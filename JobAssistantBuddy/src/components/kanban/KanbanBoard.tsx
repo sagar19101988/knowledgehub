@@ -76,15 +76,20 @@ export default function KanbanBoard() {
   return (
     <>
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="flex w-full gap-3 md:gap-4 h-full overflow-x-auto pb-4 px-4 hover:overflow-x-auto">
-          {COLUMNS_DEF.map(col => (
-            <Column
-              key={col.id}
-              column={col}
-              jobs={columnsWithJobs[col.id] || []}
-              onEdit={setJobToEdit}
-              onAddJob={() => setAddToStatus(col.id as Job['status'])}
-            />
+        <div className="flex w-full gap-3 md:gap-4 h-full overflow-x-auto pb-4 px-4 hover:overflow-x-auto items-stretch">
+          {COLUMNS_DEF.map((col, idx) => (
+            <React.Fragment key={col.id}>
+              <Column
+                column={col}
+                jobs={columnsWithJobs[col.id] || []}
+                onEdit={setJobToEdit}
+                onAddJob={() => setAddToStatus(col.id as Job['status'])}
+              />
+              {/* Premium Vertical Gradient Separator */}
+              {idx < COLUMNS_DEF.length - 1 && (
+                <div className="hidden md:block w-px h-[90%] my-auto bg-gradient-to-b from-transparent via-gray-200 dark:via-gray-700/80 to-transparent shrink-0 mx-0.5" />
+              )}
+            </React.Fragment>
           ))}
         </div>
         <DragOverlay>
