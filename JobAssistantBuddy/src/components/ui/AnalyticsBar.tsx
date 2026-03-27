@@ -16,12 +16,16 @@ function StatCard({
   color: string;
   tooltip?: string;
 }) {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
     <div 
-      className="group relative flex-1 flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm min-w-[150px] cursor-default hover:border-indigo-300 dark:hover:border-indigo-600/50 hover:shadow-md transition-all"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="relative flex-1 flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm min-w-[150px] cursor-default hover:border-indigo-300 dark:hover:border-indigo-600/50 hover:shadow-md transition-all"
     >
       {tooltip && (
-        <Info size={12} className="absolute top-2 right-2 text-gray-300 dark:text-gray-600 group-hover:text-transparent transition-colors pointer-events-none z-0" />
+        <Info size={12} className={`absolute top-2 right-2 text-gray-300 dark:text-gray-600 transition-opacity pointer-events-none z-0 ${isHovered ? 'opacity-0' : 'opacity-100'}`} />
       )}
       <div className={`shrink-0 p-2 rounded-lg ${color}`}>
         {icon}
@@ -32,9 +36,13 @@ function StatCard({
         {sub && <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{sub}</p>}
       </div>
 
-      {/* Embedded Custom Tooltip Overlay */}
+      {/* Embedded Custom Tooltip Overlay (React State Driven) */}
       {tooltip && (
-        <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 flex items-center justify-center px-4 rounded-xl bg-gray-900/95 dark:bg-black/90 backdrop-blur-sm shadow-xl scale-95 group-hover:scale-100">
+        <div 
+          className={`absolute inset-0 flex items-center justify-center px-4 rounded-xl bg-gray-900/95 dark:bg-black/90 backdrop-blur-sm shadow-xl transition-all duration-200 z-20 pointer-events-none ${
+            isHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+          }`}
+        >
           <p className="text-white text-[11px] font-medium leading-relaxed text-center drop-shadow-md">
             {tooltip}
           </p>
@@ -48,6 +56,7 @@ export default function AnalyticsBar() {
   const { jobs } = useJobs();
   const analytics = useMemo(() => computeAnalytics(jobs), [jobs]);
   const [expanded, setExpanded] = useState(true);
+  const [healthHovered, setHealthHovered] = useState(false);
 
   const scoreBarColor =
     analytics.healthScore >= 80 ? 'bg-emerald-500'
@@ -84,12 +93,18 @@ export default function AnalyticsBar() {
 
           {/* Health Score — Featured Card */}
           <div 
-            className={`group relative flex-1 flex flex-col justify-between p-4 rounded-xl border shadow-sm min-w-[176px] xl:max-w-[300px] cursor-default hover:shadow-md transition-all ${scoreBg}`}
+            onMouseEnter={() => setHealthHovered(true)}
+            onMouseLeave={() => setHealthHovered(false)}
+            className={`relative flex-1 flex flex-col justify-between p-4 rounded-xl border shadow-sm min-w-[176px] xl:max-w-[300px] cursor-default hover:shadow-md transition-all ${scoreBg}`}
           >
-            <Info size={13} className={`absolute top-3 right-3 opacity-40 group-hover:opacity-0 transition-opacity pointer-events-none z-0 ${analytics.healthColor}`} />
+            <Info size={13} className={`absolute top-3 right-3 transition-opacity pointer-events-none z-0 ${analytics.healthColor} ${healthHovered ? 'opacity-0' : 'opacity-40'}`} />
 
             {/* Custom Tooltip Overlay */}
-            <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 flex items-center justify-center px-5 rounded-xl bg-gray-900/95 dark:bg-black/90 backdrop-blur-sm shadow-xl scale-95 group-hover:scale-100">
+            <div 
+              className={`absolute inset-0 flex items-center justify-center px-5 rounded-xl bg-gray-900/95 dark:bg-black/90 backdrop-blur-sm shadow-xl transition-all duration-200 z-20 pointer-events-none ${
+                healthHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+              }`}
+            >
               <p className="text-white text-[12px] font-medium leading-relaxed text-center drop-shadow-md">
                 A holistic score out of 100 representing the momentum and health of your entire pipeline
               </p>
