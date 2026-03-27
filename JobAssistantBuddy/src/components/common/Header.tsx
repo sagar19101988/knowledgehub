@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { useJobs } from '../../context/JobContext';
 import { useCommandPalette } from '../../context/CommandPaletteContext';
-import { Moon, Sun, Briefcase, Plus, Search, Command, Newspaper } from 'lucide-react';
+import { Moon, Sun, Briefcase, Plus, Search, Command, Newspaper, HelpCircle } from 'lucide-react';
 import { AlertsBell } from '../ui/AlertsPanel';
 import { LaunchpadButton } from '../ui/Launchpad';
 
@@ -15,9 +15,10 @@ interface HeaderProps {
   onReplayBriefing: () => void;
   isLaunchpadOpen: boolean;
   onToggleLaunchpad: () => void;
+  onStartTour: () => void;
 }
 
-export default function Header({ darkMode, setDarkMode, onAddJob, isAlertsOpen, onToggleAlerts, onReplayBriefing, isLaunchpadOpen, onToggleLaunchpad }: HeaderProps) {
+export default function Header({ darkMode, setDarkMode, onAddJob, isAlertsOpen, onToggleAlerts, onReplayBriefing, isLaunchpadOpen, onToggleLaunchpad, onStartTour }: HeaderProps) {
   const { searchQuery, setSearchQuery } = useJobs();
   const { open: openPalette } = useCommandPalette();
 
@@ -70,13 +71,18 @@ export default function Header({ darkMode, setDarkMode, onAddJob, isAlertsOpen, 
           </button>
 
           {/* Alerts bell — dropdown rendered at root in App.tsx */}
-          <AlertsBell isOpen={isAlertsOpen} onToggle={onToggleAlerts} />
+          <span id="alerts-bell">
+            <AlertsBell isOpen={isAlertsOpen} onToggle={onToggleAlerts} />
+          </span>
 
           {/* Launchpad Quick Searches */}
-          <LaunchpadButton isOpen={isLaunchpadOpen} onToggle={onToggleLaunchpad} />
+          <span id="launchpad-btn">
+            <LaunchpadButton isOpen={isLaunchpadOpen} onToggle={onToggleLaunchpad} />
+          </span>
 
           {/* Morning briefing replay */}
           <button
+            id="morning-briefing-btn"
             onClick={onReplayBriefing}
             className="p-2 text-indigo-400/70 hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-full transition-colors"
             title="View Morning Briefing"
@@ -91,7 +97,18 @@ export default function Header({ darkMode, setDarkMode, onAddJob, isAlertsOpen, 
           >
             {darkMode ? <Sun size={18} /> : <Moon size={18} />}
           </button>
+
+          {/* Help / Tour trigger */}
           <button
+            onClick={onStartTour}
+            className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-gray-700 dark:text-gray-400 rounded-full transition-colors"
+            title="Take a Guided Tour"
+          >
+            <HelpCircle size={18} />
+          </button>
+
+          <button
+            id="add-job-btn"
             onClick={onAddJob}
             className="flex items-center gap-1.5 bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm"
           >

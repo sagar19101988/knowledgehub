@@ -5,7 +5,7 @@ import { useCommandPalette } from '../../context/CommandPaletteContext';
 import type { Job } from '../../types/job';
 import {
   Search, Plus, Moon, Sun, Download, Briefcase,
-  ArrowRight, Zap, ChevronRight, X, Linkedin, Compass
+  ArrowRight, Zap, ChevronRight, X, Linkedin, Compass, Map
 } from 'lucide-react';
 
 type CommandGroup = 'Actions' | 'Jobs' | 'Move Job' | 'Job Search';
@@ -35,9 +35,10 @@ interface CommandPaletteProps {
   onToggleTheme: () => void;
   isDark: boolean;
   onExport: () => void;
+  onStartTour: () => void;
 }
 
-export default function CommandPalette({ onAddJob, onToggleTheme, isDark, onExport }: CommandPaletteProps) {
+export default function CommandPalette({ onAddJob, onToggleTheme, isDark, onExport, onStartTour }: CommandPaletteProps) {
   const { isOpen, close } = useCommandPalette();
   const { jobs, updateJob, setSearchQuery } = useJobs();
   const [query, setQuery] = useState('');
@@ -112,6 +113,14 @@ export default function CommandPalette({ onAddJob, onToggleTheme, isDark, onExpo
       action: () => { close(); setSearchQuery(''); },
     },
     {
+      id: 'start-tour',
+      label: 'Take a Guided Tour',
+      description: 'Revisit the feature walkthrough',
+      icon: <Map size={16} />,
+      group: 'Actions',
+      action: () => { close(); onStartTour(); },
+    },
+    {
       id: 'search-linkedin',
       label: 'Search LinkedIn Jobs',
       description: 'Filtered to Easy Apply & Recent',
@@ -181,14 +190,17 @@ export default function CommandPalette({ onAddJob, onToggleTheme, isDark, onExpo
     );
   }, [query, allCommands]);
 
-  // Group the filtered commands
+  // Group the filtered commands into ordered array of [group, cmds] tuples
   const grouped = useMemo(() => {
-    const map = new Map<string, Command[]>();
+    const order: CommandGroup[] = ['Actions', 'Job Search', 'Move Job', 'Jobs'];
+    const record: Partial<Record<CommandGroup, Command[]>> = {};
     filtered.forEach(cmd => {
-      if (!map.has(cmd.group)) map.set(cmd.group, []);
-      map.get(cmd.group)!.push(cmd);
+      if (!record[cmd.group]) record[cmd.group] = [];
+      record[cmd.group]!.push(cmd);
     });
-    return map;
+    return order
+      .filter(g => record[g] && record[g]!.length > 0)
+      .map(g => [g, record[g]!] as [CommandGroup, Command[]]);
   }, [filtered]);
 
   const flatFiltered = filtered; // for keyboard navigation index
@@ -263,7 +275,7 @@ export default function CommandPalette({ onAddJob, onToggleTheme, isDark, onExpo
               <p className="text-sm">No commands found for "{query}"</p>
             </div>
           ) : (
-            Array.from(grouped.entries()).map(([group, cmds]) => (
+            grouped.map(([group, cmds]) => (
               <div key={group}>
                 <p className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">
                   {group}

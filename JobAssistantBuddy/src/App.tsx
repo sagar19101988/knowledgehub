@@ -12,6 +12,7 @@ import { useJobs } from './context/JobContext';
 import { useFollowUpAlerts } from './hooks/useFollowUpAlerts';
 import { hasBriefingBeenSeenToday, resetBriefingForToday } from './utils/briefing';
 import JobModal from './components/job/JobModal';
+import GuidedTour, { hasTourBeenDisabled } from './components/ui/GuidedTour';
 
 function AppInner() {
   const { toggle } = useCommandPalette();
@@ -24,6 +25,7 @@ function AppInner() {
   const [isJobModalOpen, setJobModalOpen] = useState(false);
   const [isAlertsOpen, setAlertsOpen] = useState(false);
   const [isLaunchpadOpen, setLaunchpadOpen] = useState(false);
+  const [isTourOpen, setTourOpen] = useState(false);
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
 
   // Morning briefing: show on first daily load
@@ -33,6 +35,8 @@ function AppInner() {
     const t = setTimeout(() => {
       if (!hasBriefingBeenSeenToday() && jobs.length > 0) {
         setShowBriefing(true);
+      } else if (jobs.length > 0 && !hasTourBeenDisabled()) {
+        setTourOpen(true);
       }
     }, 800);
     return () => clearTimeout(t);
@@ -93,10 +97,15 @@ function AppInner() {
         onReplayBriefing={handleReplayBriefing}
         isLaunchpadOpen={isLaunchpadOpen}
         onToggleLaunchpad={() => setLaunchpadOpen(p => !p)}
+        onStartTour={() => setTourOpen(true)}
       />
-      <AnalyticsBar />
+      <div id="pipeline-analytics">
+        <AnalyticsBar />
+      </div>
       <main className="flex-1 overflow-hidden h-full">
-        <KanbanBoard />
+        <div id="kanban-board" className="h-full">
+          <KanbanBoard />
+        </div>
       </main>
 
       {isJobModalOpen && <JobModal onClose={() => setJobModalOpen(false)} />}
@@ -118,11 +127,16 @@ function AppInner() {
         <MorningBriefing onClose={() => setShowBriefing(false)} />
       )}
 
+      {isTourOpen && (
+        <GuidedTour onClose={() => setTourOpen(false)} />
+      )}
+
       <CommandPalette
         onAddJob={() => setJobModalOpen(true)}
         onToggleTheme={() => setDarkMode(d => !d)}
         isDark={darkMode}
         onExport={handleExport}
+        onStartTour={() => setTourOpen(true)}
       />
     </div>
   );
