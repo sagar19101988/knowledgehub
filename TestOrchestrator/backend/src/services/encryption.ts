@@ -4,9 +4,14 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // The secret key must be exactly 32 bytes for aes-256-cbc.
-// Should be stored in .env in production!
+// MUST be set as ENCRYPTION_KEY env var in production — a random fallback
+// would generate a different key on every serverless cold start, making all
+// previously-encrypted data permanently unreadable.
+if (!process.env.ENCRYPTION_KEY && process.env.NODE_ENV === 'production') {
+  throw new Error('ENCRYPTION_KEY environment variable is required in production. Set it in your Vercel project settings.');
+}
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex').slice(0, 32);
-const IV_LENGTH = 16; 
+const IV_LENGTH = 16;
 
 export const encrypt = (text: string): string => {
   if (!text) return '';

@@ -10,9 +10,6 @@ import configRoutes from './routes/config';
 
 dotenv.config();
 
-// Initialize Local SQLite DB
-initDb();
-
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -21,6 +18,23 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
   : 'http://localhost:5174';
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json());
+
+// Ensure DB schema is ready before any request is processed (critical for serverless cold starts)
+let dbReady: Promise<void> | null = null;
+app.use(async (_req, _res, next) => {
+  if (!dbReady) {
+    dbReady = initDb();
+  }
+  try {
+    await dbReady;
+    next();
+  } catch (err) {
+    console.error('DB init failed:', err);
+    // Reset so next request retries
+    dbReady = null;
+    next(err);
+  }
+});
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
