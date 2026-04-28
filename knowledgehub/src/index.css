@@ -1,0 +1,27 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --color-primary-500: #10b981;
+  --color-dark-900: #0f172a;
+}
+
+body {
+  background-color: var(--color-dark-900);
+  color: white;
+  margin: 0;
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+.prose h3 {
+  color: #38bdf8 !important; /* sky-400 */
+  font-size: 1.75rem !important;
+  font-weight: 900 !important;
+  border-bottom: 2px solid rgba(56, 189, 248, 0.2);
+  padding-bottom: 0.5rem;
+  margin-top: 3rem !important;
+  margin-bottom: 1.5rem !important;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
