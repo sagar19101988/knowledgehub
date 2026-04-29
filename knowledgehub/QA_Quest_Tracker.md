@@ -51,15 +51,25 @@ This document tracks everything we have built so far, and outlines the exact pip
 
 ---
 
-## 🚀 Phase 5: TypeScript "Zero to Expert" Curriculum Expansion (IN PROGRESS)
+## ✅ Phase 4.5: Live Deployment to Vercel (COMPLETED — 2026-04-29)
 
-The TypeScript zone is being restructured into **4 Tiers** and expanded from **12 → ~29 modules** to cover every concept from absolute beginner through production-grade expert.
-
-> **✅ Tier 1 (12 modules) — DONE** | **✅ Tier 2 (5 modules) — DONE, built & pushed 2026-04-29** | **⏳ Tier 3 next**
+| Item | Description | Status |
+| :--- | :--- | :---: |
+| **`vercel.json` Config** | Added SPA routing rewrite rule so React Router routes don't 404 on page refresh. | ✅ Done |
+| **Vercel Deployment** | Project connected to `sagar19101988/AI-Projects` GitHub repo, Root Directory set to `knowledgehub`, Framework auto-detected as Vite. | ✅ Done |
+| **Auto-Deploy Pipeline** | Every `git push` to `main` now automatically triggers a live redeploy on Vercel. | ✅ Done |
 
 ---
 
-### 🟢 Tier 1: Foundations — "Zero to Writing Code" (12 modules — ALREADY DONE)
+## 🚀 Phase 5: TypeScript "Zero to Expert" Curriculum Expansion (IN PROGRESS)
+
+The TypeScript zone is being restructured into **4 Tiers** and expanded from **12 → 29 modules** to cover every concept from absolute beginner through production-grade expert.
+
+> **✅ Tier 1 (12 modules) — DONE** | **✅ Tier 2 (5 modules) — DONE** | **⏳ Tier 3 (6 modules) — NEXT UP** | **⏳ Tier 4 (6 modules) — Queued**
+
+---
+
+### ✅ Tier 1: Foundations — "Zero to Writing Code" (12 modules — COMPLETED)
 
 | # | Module ID | Title | Status |
 | :- | :--- | :--- | :---: |
@@ -78,9 +88,9 @@ The TypeScript zone is being restructured into **4 Tiers** and expanded from **1
 
 ---
 
-### ✅ Tier 2: TypeScript Core — "Why TypeScript Exists" (5 new modules — COMPLETED)
+### ✅ Tier 2: TypeScript Core — "Why TypeScript Exists" (5 modules — COMPLETED)
 
-> All 5 modules injected into `analogies.ts`. 15 quiz questions injected into `quizzes.ts`. Build verified ✅. Pushed to GitHub ✅ on 2026-04-29.
+> All 5 modules injected into `analogies.ts`. 15 quiz questions injected into `quizzes.ts`. Build verified ✅. Pushed to GitHub ✅. Deployed to Vercel ✅. Completed: 2026-04-29.
 
 | # | Module ID | Title | Key Concepts | Status |
 | :- | :--- | :--- | :--- | :---: |
@@ -92,20 +102,22 @@ The TypeScript zone is being restructured into **4 Tiers** and expanded from **1
 
 ---
 
-### 🟠 Tier 3: OOP Mastery — "Framework Architecture" (6 new modules — ⏳ NEXT UP)
+### 🟠 Tier 3: OOP Mastery — "Framework Architecture" (6 modules — ⏳ IMMEDIATE NEXT)
+
+> **This is the next thing to implement.** Each module must follow the hyper-detailed format: Analogy + Basic Example + Automation/POM Example + Common Mistakes + 3 quiz questions.
 
 | # | Module ID | Title | Key Concepts | Status |
 | :- | :--- | :--- | :--- | :---: |
-| 18 | `constructors` | Constructors | `constructor()`, initialising POM with `page` parameter | ⏳ Pending |
-| 19 | `inheritance` | Inheritance | `extends`, `super()`, `BasePage` pattern | ⏳ Pending |
-| 20 | `polymorphism` | Polymorphism | Method overriding, `override` keyword | ⏳ Pending |
-| 21 | `abstraction` | Abstraction | `abstract class`, forcing child pages to implement `navigate()` | ⏳ Pending |
-| 22 | `static-members` | Static Members | `static` methods & properties, utility classes | ⏳ Pending |
-| 23 | `getters-setters` | Getters & Setters | `get`, `set`, controlled property access | ⏳ Pending |
+| 18 | `constructors` | Constructors & Classes | `class`, `constructor()`, initialising POM with `page` parameter | ⏳ Pending |
+| 19 | `inheritance` | Inheritance | `extends`, `super()`, `BasePage` → `LoginPage` pattern | ⏳ Pending |
+| 20 | `polymorphism` | Polymorphism | Method overriding, `override` keyword, runtime dispatch | ⏳ Pending |
+| 21 | `abstraction` | Abstraction & Abstract Classes | `abstract class`, forcing child pages to implement `navigate()` | ⏳ Pending |
+| 22 | `static-members` | Static Members | `static` methods & properties, utility/helper classes | ⏳ Pending |
+| 23 | `getters-setters` | Getters & Setters | `get`, `set`, controlled property access, lazy loading | ⏳ Pending |
 
 ---
 
-### 🔴 Tier 4: Expert Level — "Production Patterns" (6 new modules)
+### 🔴 Tier 4: Expert Level — "Production Patterns" (6 modules — ⏳ Queued after Tier 3)
 
 | # | Module ID | Title | Key Concepts | Status |
 | :- | :--- | :--- | :--- | :---: |
@@ -113,20 +125,39 @@ The TypeScript zone is being restructured into **4 Tiers** and expanded from **1
 | 25 | `mapped-types` | Mapped & Conditional Types | `{ [K in keyof T]: }`, `T extends U ? X : Y`, `infer` | ⏳ Pending |
 | 26 | `decorators` | Decorators | `@decorator` syntax, class and method decorators | ⏳ Pending |
 | 27 | `pom-pattern` | TypeScript POM (Full Example) | Complete end-to-end Page Object Model with BasePage + LoginPage + typed fixtures | ⏳ Pending |
-| 28 | `ts-with-apis` | TypeScript with APIs | Strongly typing `fetch()`/`axios`, API response models | ⏳ Pending |
+| 28 | `ts-with-apis` | TypeScript with APIs | Strongly typing `fetch()`/`axios`, API response models, error types | ⏳ Pending |
 | 29 | `tsconfig-guide` | tsconfig.json Explained | `strict`, `paths`, `target`, `module`, `esModuleInterop` | ⏳ Pending |
 
 ---
 
-## 🌐 Phase 6: Expand Other Zones (FUTURE)
+## 🌐 Phase 6: Expand Other Zones (FUTURE — After Phase 5 Complete)
 
 | Item | Description | Status |
 | :--- | :--- | :---: |
-| **Playwright Zone — Beginner Mode** | Apply the same 4-Tier depth to the Playwright zone. | ⏳ Planned |
-| **API Testing Zone — Beginner Mode** | Apply the same 4-Tier depth to the API zone. | ⏳ Planned |
-| **SQL Zone — Beginner Mode** | Apply the same 4-Tier depth to the SQL zone. | ⏳ Planned |
-| **AI "Explain" Panel** | Build a native, right-hand sliding panel for AI-powered code explanations. | ⏳ Planned |
+| **Playwright Zone — Full Expansion** | Apply the same 4-Tier hyper-detailed depth to the Playwright zone (Locators, POM, Fixtures, CI/CD). | ⏳ Planned |
+| **API Testing Zone — Full Expansion** | Apply the same 4-Tier depth to the API zone (REST, Auth, Schema Validation, Mocking). | ⏳ Planned |
+| **SQL Zone — Full Expansion** | Apply the same 4-Tier depth to the SQL zone (Joins, Aggregates, Subqueries, Indexing). | ⏳ Planned |
+| **Manual Testing Zone — Full Expansion** | Deep-dive into Test Design techniques, Defect lifecycle, Risk-based testing. | ⏳ Planned |
+| **AI for QA Zone — Full Expansion** | Prompt engineering for QA, AI-assisted test generation, AI in CI pipelines. | ⏳ Planned |
+| **AI "Explain" Panel** | Build a native, right-hand sliding panel for AI-powered code explanations inside the Library. | ⏳ Planned |
+| **User Accounts & Leaderboard** | Backend integration for persistent accounts, XP leaderboard across users. | ⏳ Planned |
 
 ---
 
-*Note: This tracker is updated after every session. Last updated: 2026-04-29 — Tier 2 complete, Tier 3 is the immediate next step.*
+## 📋 Immediate Next Steps (Session Checklist)
+
+> Use this section at the start of every session to know exactly what to work on next.
+
+- [ ] **NEXT: Implement Tier 3 — Module 18: `constructors`** — Classes, `constructor()`, POM page initialisation
+- [ ] Implement Tier 3 — Module 19: `inheritance` — `extends`, `super()`, BasePage pattern
+- [ ] Implement Tier 3 — Module 20: `polymorphism` — Method overriding, `override` keyword
+- [ ] Implement Tier 3 — Module 21: `abstraction` — `abstract class`, abstract methods
+- [ ] Implement Tier 3 — Module 22: `static-members` — Static utility classes
+- [ ] Implement Tier 3 — Module 23: `getters-setters` — `get`/`set` accessors
+- [ ] After Tier 3: Begin Tier 4 modules (24–29)
+- [ ] After Phase 5: Expand Playwright Zone with same 4-Tier format
+- [ ] Rename Vercel project from `ai-projects-ki2i` to `qa-quest-hub` (via Vercel Dashboard → Settings → General)
+
+---
+
+*Note: This tracker is updated after every session. Last updated: 2026-04-29 — Tier 2 & Vercel deployment complete. Tier 3 OOP Mastery is the immediate next step.*
