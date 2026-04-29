@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { FlaskConical, Search, Code2, ChevronDown, ChevronRight, CheckCircle2, Circle, XCircle } from 'lucide-react';
-import { generateTestCasesAI } from '../api/groq';
+import { generateTestCasesAI } from '../api/backend';
 
 export default function TestCasesPage() {
   const { testCases, addTestCases, updateTestCase, setCurrentPage, testPlans, stories } = useAppStore();

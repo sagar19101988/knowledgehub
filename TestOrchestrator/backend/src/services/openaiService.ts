@@ -3,10 +3,34 @@ import dotenv from 'dotenv';
 import { JiraStory } from './jiraService';
 dotenv.config();
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Helper to create OpenAI client dynamically based on provider
+export function getAiClientExported(provider: string, apiKey: string) {
+  let baseURL: string | undefined = undefined;
+  
+  if (provider === 'Groq') baseURL = 'https://api.groq.com/openai/v1';
+  if (provider === 'LM Studio') baseURL = 'http://localhost:1234/v1';
+  if (provider === 'Ollama') baseURL = 'http://localhost:11434/v1';
+
+  // Use provided key, fall back to env var (supports dev .env setup)
+  const resolvedKey = (apiKey && apiKey.trim().length > 5 ? apiKey.trim() : null)
+    ?? process.env.OPENAI_API_KEY
+    ?? 'dummy-key';
+
+  return new OpenAI({ apiKey: resolvedKey, baseURL });
+}
+
+function getModel(provider: string) {
+  if (provider === 'Groq') return 'llama-3.3-70b-versatile';  // Current flagship Groq model
+  if (provider === 'Claude') return 'claude-3-5-haiku-20241022';
+  if (provider === 'Gemini') return 'gemini-1.5-flash';
+  if (provider === 'LM Studio' || provider === 'Ollama') return 'local-model';
+  return 'gpt-4o-mini'; // OpenAI default (cost-effective)
+}
 
 // ─── Test Plan Generation ────────────────────────────────────────────────────
-export async function generateTestPlan(stories: JiraStory[]): Promise<any> {
+export async function generateTestPlan(stories: JiraStory[], provider: string, apiKey: string): Promise<any> {
+  const openai = getAiClientExported(provider, apiKey);
+  const model = getModel(provider);
   const storySummaries = stories.map(s => `- [${s.key}] ${s.summary}: ${s.description}`).join('\n');
 
   const prompt = `You are a senior QA architect. Based on the following Jira User Stories, generate a comprehensive Test Plan in JSON format.
@@ -32,7 +56,7 @@ Return a JSON object with these exact keys:
 }`;
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4',
+    model: model,
     messages: [{ role: 'user', content: prompt }],
     temperature: 0.3,
   });
@@ -42,7 +66,9 @@ Return a JSON object with these exact keys:
 }
 
 // ─── Test Cases Generation ───────────────────────────────────────────────────
-export async function generateTestCases(story: JiraStory): Promise<any[]> {
+export async function generateTestCases(story: JiraStory, provider: string, apiKey: string): Promise<any[]> {
+  const openai = getAiClientExported(provider, apiKey);
+  const model = getModel(provider);
   const prompt = `You are a senior QA engineer. Generate comprehensive test cases for the following Jira User Story.
 
 Story ID: ${story.key}
@@ -68,7 +94,7 @@ Return a JSON array of test cases. Each test case must have these EXACT keys:
 Generate at least 5 test cases covering happy path, negative cases, and edge cases.`;
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4',
+    model: model,
     messages: [{ role: 'user', content: prompt }],
     temperature: 0.4,
   });
@@ -80,8 +106,12 @@ Generate at least 5 test cases covering happy path, negative cases, and edge cas
 // ─── Code Generation ─────────────────────────────────────────────────────────
 export async function generateAutomationCode(
   testCase: any,
-  framework: 'selenium-java' | 'playwright-typescript'
+  framework: 'selenium-java' | 'playwright-typescript',
+  provider: string,
+  apiKey: string
 ): Promise<string> {
+  const openai = getAiClientExported(provider, apiKey);
+  const aiModel = getModel(provider);
   const isSelenium = framework === 'selenium-java';
 
   const prompt = `You are a senior test automation engineer. Generate ${isSelenium ? 'Selenium Java' : 'Playwright TypeScript'} automation code for this test case.
@@ -111,7 +141,7 @@ ${isSelenium ? `
 Return ONLY the code, no explanation. Include full class/file structure.`;
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4',
+    model: aiModel,
     messages: [{ role: 'user', content: prompt }],
     temperature: 0.2,
   });

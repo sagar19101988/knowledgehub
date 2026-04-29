@@ -1,40 +1,31 @@
 import { Router } from 'express';
-import jwt from 'jsonwebtoken';
 import sql from '../services/db';
 import { encrypt, decrypt } from '../services/encryption';
+import { requireAuth } from '../middleware/authMiddleware';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-for-dev';
 
-// Middleware to verify JWT
-const requireAuth = (req: any, res: any, next: any) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'Missing token' });
-
-  try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    req.user = payload;
-    next();
-  } catch (err) {
-    return res.status(401).json({ error: 'Invalid or expired token' });
-  }
-};
-
-// Route to securely save Integrations 
+// POST /api/config/integrations — save encrypted integrations to DB
 router.post('/integrations', requireAuth, async (req: any, res: any) => {
   try {
     const { llmProvider, llmApiKey, jiraConfig, adoConfig } = req.body;
     const userId = req.user.userId;
 
-    // Encrypt the sensitive tokens
     const encryptedLlmKey = llmApiKey ? encrypt(llmApiKey) : null;
-    const encryptedJira = jiraConfig ? encrypt(JSON.stringify(jiraConfig)) : null;
-    const encryptedAdo = adoConfig ? encrypt(JSON.stringify(adoConfig)) : null;
+    const encryptedJira   = jiraConfig ? encrypt(JSON.stringify(jiraConfig)) : null;
+    const encryptedAdo    = adoConfig  ? encrypt(JSON.stringify(adoConfig))  : null;
 
+    // UPSERT: create row if it doesn't exist, otherwise update in place.
+    // A plain UPDATE would silently affect 0 rows for newly-registered users
+    // whose row hasn't been inserted yet, causing credentials to be lost.
     await sql`
-      UPDATE user_integrations 
-      SET llm_provider = ${llmProvider}, llm_api_key_encrypted = ${encryptedLlmKey}, jira_config_encrypted = ${encryptedJira}, ado_config_encrypted = ${encryptedAdo}
-      WHERE user_id = ${userId}
+      INSERT INTO user_integrations (user_id, llm_provider, llm_api_key_encrypted, jira_config_encrypted, ado_config_encrypted)
+      VALUES (${userId}, ${llmProvider}, ${encryptedLlmKey}, ${encryptedJira}, ${encryptedAdo})
+      ON CONFLICT (user_id) DO UPDATE SET
+        llm_provider          = EXCLUDED.llm_provider,
+        llm_api_key_encrypted = EXCLUDED.llm_api_key_encrypted,
+        jira_config_encrypted = EXCLUDED.jira_config_encrypted,
+        ado_config_encrypted  = EXCLUDED.ado_config_encrypted
     `;
 
     res.json({ message: 'Integrations securely encrypted and saved.' });
@@ -44,22 +35,59 @@ router.post('/integrations', requireAuth, async (req: any, res: any) => {
   }
 });
 
-// Route to securely fetch Integration Statuses (without returning the raw keys!)
+// GET /api/config/integrations/status — whether keys are configured (no raw keys returned)
 router.get('/integrations/status', requireAuth, async (req: any, res: any) => {
   try {
     const userId = req.user.userId;
     const result = await sql`SELECT * FROM user_integrations WHERE user_id = ${userId}`;
     const config = result.rows[0] || {};
-
-    // DANGER: We NEVER return the raw API keys. We only return whether they are configured.
     res.json({
-      hasLlmKey: !!config.llm_api_key_encrypted,
+      hasLlmKey:   !!config.llm_api_key_encrypted,
       llmProvider: config.llm_provider || 'Groq',
-      hasJira: !!config.jira_config_encrypted,
-      hasAdo: !!config.ado_config_encrypted
+      hasJira:     !!config.jira_config_encrypted,
+      hasAdo:      !!config.ado_config_encrypted,
     });
   } catch (error) {
-    console.error('Config fetch error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// GET /api/config/integrations/details — return non-sensitive config details (URLs, project names)
+// Tokens/keys are NEVER returned. This lets the frontend restore form fields on reload.
+router.get('/integrations/details', requireAuth, async (req: any, res: any) => {
+  try {
+    const userId = req.user.userId;
+    const result = await sql`SELECT * FROM user_integrations WHERE user_id = ${userId}`;
+    const config = result.rows[0];
+
+    if (!config) return res.json({ llmProvider: 'Groq', jiraConfig: null, adoConfig: null });
+
+    let jiraConfig = null;
+    let adoConfig  = null;
+
+    if (config.jira_config_encrypted) {
+      try {
+        const full = JSON.parse(decrypt(config.jira_config_encrypted));
+        // Return non-sensitive fields only
+        jiraConfig = { url: full.url, projectOrOrg: full.projectOrOrg, authId: full.authId };
+      } catch (e) {}
+    }
+
+    if (config.ado_config_encrypted) {
+      try {
+        const full = JSON.parse(decrypt(config.ado_config_encrypted));
+        // Return non-sensitive fields only
+        adoConfig = { url: full.url, projectOrOrg: full.projectOrOrg, authId: full.authId };
+      } catch (e) {}
+    }
+
+    res.json({
+      llmProvider: config.llm_provider || 'Groq',
+      jiraConfig,
+      adoConfig,
+    });
+  } catch (error) {
+    console.error('Config details error:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });

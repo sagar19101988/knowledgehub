@@ -66,12 +66,17 @@ export const useAppStore = create<AppState>()(
         testCases: state.testCases.map(tc => tc.id === id ? { ...tc, ...updates } : tc)
       })),
 
-      clearAllData: () => set({
-        stories: [],
-        testPlans: [],
-        testCases: [],
-        settings: { llmProvider: 'Groq', llmApiKey: '', llmBaseUrl: '', jira: null, azureDevOps: null }
-      }),
+      clearAllData: () => {
+        // Clear the persisted localStorage key so stale data is truly gone
+        localStorage.removeItem('test-orchestrator-storage');
+        localStorage.removeItem('test-orchestrator-jira-storage');
+        // Also clear any other persisted keys
+        Object.keys(localStorage)
+          .filter(k => k.startsWith('test-orchestrator'))
+          .forEach(k => localStorage.removeItem(k));
+        // Force a full page reload so Zustand re-initialises from scratch
+        window.location.reload();
+      },
 
       login: (user, token = null) => set({ session: 'logged_in', user, token }),
       continueAsGuest: () => set({ session: 'guest', user: null, token: null }),

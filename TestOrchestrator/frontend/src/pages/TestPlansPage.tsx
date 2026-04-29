@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { ClipboardList, ChevronDown, ChevronUp, Zap, Clock, ShieldAlert } from 'lucide-react';
-import { generateTestPlanAI } from '../api/groq';
+import { generateTestPlanAI } from '../api/backend';
 
 export default function TestPlansPage() {
   const { testPlans, addTestPlan, stories, setCurrentPage } = useAppStore();
@@ -44,8 +44,8 @@ export default function TestPlansPage() {
         
         <button 
           onClick={handleGenerate}
-          disabled={generatingFor !== null}
-          className="bg-dark-700 hover:bg-dark-600 border border-dark-500 text-gray-200 px-4 py-2 rounded-md font-medium text-sm flex items-center gap-2 transition-colors"
+          disabled={generatingFor !== null || stories.length === 0}
+          className="bg-dark-700 hover:bg-dark-600 border border-dark-500 text-gray-200 px-4 py-2 rounded-md font-medium text-sm flex items-center gap-2 transition-colors disabled:opacity-50"
         >
           {generatingFor ? <span className="animate-pulse">Generating...</span> : 'Generate Sample Plan'}
         </button>

@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import jiraRoutes from './routes/jira';
+import azureRoutes from './routes/azure';
 import aiRoutes from './routes/ai';
 
 import { initDb } from './services/db';
@@ -44,6 +45,7 @@ app.get('/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/jira', jiraRoutes);
+app.use('/api/azure', azureRoutes);
 app.use('/api/ai', aiRoutes);
 
 if (process.env.NODE_ENV !== 'production') {

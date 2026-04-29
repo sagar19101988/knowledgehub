@@ -43,7 +43,7 @@ export default function AuthScreen() {
       console.log('JWT Token established:', data.token);
       
       // Inject user to global Zustand state
-      login({ email: data.user.email, name: data.user.name });
+      login({ email: data.user.email, name: data.user.name }, data.token);
     } catch (err: any) {
       setError(err.message);
       setIsSubmitting(false);

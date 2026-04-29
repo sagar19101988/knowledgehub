@@ -2,12 +2,8 @@ import axios from 'axios';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const JIRA_BASE_URL = process.env.JIRA_BASE_URL;
-const JIRA_EMAIL = process.env.JIRA_EMAIL;
-const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN;
-
-function getAuthHeader(): string {
-  return `Basic ${Buffer.from(`${JIRA_EMAIL}:${JIRA_API_TOKEN}`).toString('base64')}`;
+function getAuthHeader(email: string, token: string): string {
+  return `Basic ${Buffer.from(`${email}:${token}`).toString('base64')}`;
 }
 
 export interface JiraStory {
@@ -32,13 +28,13 @@ function extractText(doc: any): string {
   return '';
 }
 
-export async function fetchJiraStories(projectKey: string, maxResults = 50): Promise<JiraStory[]> {
+export async function fetchJiraStories(projectKey: string, jiraConfig: any, maxResults = 50): Promise<JiraStory[]> {
   const jql = `project = ${projectKey} AND issuetype = Story ORDER BY created DESC`;
-  const url = `${JIRA_BASE_URL}/rest/api/3/search`;
+  const url = `${jiraConfig.url}/rest/api/3/search`;
 
   const response = await axios.get(url, {
     headers: {
-      Authorization: getAuthHeader(),
+      Authorization: getAuthHeader(jiraConfig.authId, jiraConfig.token),
       'Content-Type': 'application/json',
     },
     params: { jql, maxResults, fields: 'summary,description,customfield_10016,status,priority,assignee,customfield_10014' },

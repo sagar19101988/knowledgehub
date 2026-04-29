@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { Code2, Play, Copy, Check, Download, Layers } from 'lucide-react';
-import { generateAutomationCodeAI } from '../api/groq';
+import { generateAutomationCodeAI } from '../api/backend';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
