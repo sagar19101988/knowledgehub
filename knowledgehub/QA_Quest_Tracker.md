@@ -51,11 +51,11 @@ This document tracks everything we have built so far, and outlines the exact pip
 
 ---
 
-## 🚀 Phase 5: TypeScript "Zero to Expert" Curriculum Expansion (NEXT UP — APPROVED, NOT YET IMPLEMENTED)
+## 🚀 Phase 5: TypeScript "Zero to Expert" Curriculum Expansion (IN PROGRESS)
 
-The TypeScript zone will be restructured into **4 Tiers** and expanded from **12 → ~24 modules** to cover every concept from absolute beginner through production-grade expert.
+The TypeScript zone is being restructured into **4 Tiers** and expanded from **12 → ~29 modules** to cover every concept from absolute beginner through production-grade expert.
 
-> **⚠️ Implementation NOT started. Approved by user on 2026-04-29. Proceed tier by tier.**
+> **✅ Tier 1 (12 modules) — DONE** | **✅ Tier 2 (5 modules) — DONE, built & pushed 2026-04-29** | **⏳ Tier 3 next**
 
 ---
 
@@ -78,19 +78,21 @@ The TypeScript zone will be restructured into **4 Tiers** and expanded from **12
 
 ---
 
-### 🔵 Tier 2: TypeScript Core — "Why TypeScript Exists" (5 new modules)
+### ✅ Tier 2: TypeScript Core — "Why TypeScript Exists" (5 new modules — COMPLETED)
+
+> All 5 modules injected into `analogies.ts`. 15 quiz questions injected into `quizzes.ts`. Build verified ✅. Pushed to GitHub ✅ on 2026-04-29.
 
 | # | Module ID | Title | Key Concepts | Status |
 | :- | :--- | :--- | :--- | :---: |
-| 13 | `type-aliases` | Type Aliases & Unions | `type` keyword, `\|` union, `&` intersection | ⏳ Pending |
-| 14 | `type-narrowing` | Type Narrowing & Guards | `typeof`, `instanceof`, `in`, discriminated unions | ⏳ Pending |
-| 15 | `generics` | Generics | `<T>`, generic functions, generic classes | ⏳ Pending |
-| 16 | `utility-types` | Utility Types | `Partial<>`, `Pick<>`, `Omit<>`, `Readonly<>`, `Record<>` | ⏳ Pending |
-| 17 | `null-safety` | Null & Undefined Safety | Optional chaining `?.`, nullish coalescing `??`, non-null `!` | ⏳ Pending |
+| 13 | `type-aliases` | Type Aliases & Unions | `type` keyword, `\|` union, `&` intersection | ✅ Done |
+| 14 | `type-narrowing` | Type Narrowing & Guards | `typeof`, `instanceof`, `in`, discriminated unions | ✅ Done |
+| 15 | `generics` | Generics | `<T>`, generic functions, generic classes | ✅ Done |
+| 16 | `utility-types` | Utility Types | `Partial<>`, `Pick<>`, `Omit<>`, `Readonly<>`, `Record<>` | ✅ Done |
+| 17 | `null-safety` | Null & Undefined Safety | Optional chaining `?.`, nullish coalescing `??`, non-null `!` | ✅ Done |
 
 ---
 
-### 🟠 Tier 3: OOP Mastery — "Framework Architecture" (6 new modules)
+### 🟠 Tier 3: OOP Mastery — "Framework Architecture" (6 new modules — ⏳ NEXT UP)
 
 | # | Module ID | Title | Key Concepts | Status |
 | :- | :--- | :--- | :--- | :---: |
@@ -127,4 +129,4 @@ The TypeScript zone will be restructured into **4 Tiers** and expanded from **12
 
 ---
 
-*Note: This tracker is updated after every session. Last updated: 2026-04-29.*
+*Note: This tracker is updated after every session. Last updated: 2026-04-29 — Tier 2 complete, Tier 3 is the immediate next step.*
