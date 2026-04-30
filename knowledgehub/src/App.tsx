@@ -695,11 +695,11 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
 
         return (
           <motion.div key={node.id}
-            className="absolute cursor-pointer select-none z-20"
-            style={{ left: `${node.x}%`, top: `${node.y}%`, transform: 'translate(-50%,-50%)' }}
-            onClick={() => onZoneClick(node.id)}
-            whileHover={{ scale: 1.13 }}
-            whileTap={{ scale: 0.92 }}
+            className="absolute select-none z-20"
+            style={{ left: `${node.x}%`, top: `${node.y}%`, transform: 'translate(-50%,-50%)', cursor: isLocked ? 'default' : 'pointer' }}
+            onClick={() => !isLocked && onZoneClick(node.id)}
+            whileHover={isLocked ? { opacity: 0.7 } : { scale: 1.13 }}
+            whileTap={isLocked ? {} : { scale: 0.92 }}
           >
             {/* Outer pulse ring for in-progress */}
             {isStarted && (
