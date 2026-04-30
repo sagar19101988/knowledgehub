@@ -1,16 +1,26 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* Enable class-based dark mode — add class="dark" to <html> for dark mode */
+@variant dark (&:is(.dark *));
+
 @theme {
   --color-primary-500: #d946ef;
   --color-dark-900: #07050f;
 }
 
+/* Light mode defaults */
 body {
-  background-color: var(--color-dark-900);
-  color: white;
+  background-color: #faf8ff;
+  color: #1e1330;
   margin: 0;
   font-family: 'Inter', -apple-system, sans-serif;
+}
+
+/* Dark mode overrides */
+.dark body {
+  background-color: #07050f;
+  color: #e2e8f0;
 }
 
 .sidebar-scroll::-webkit-scrollbar {
@@ -20,10 +30,16 @@ body {
   background: transparent;
 }
 .sidebar-scroll::-webkit-scrollbar-thumb {
-  background-color: #334155; /* slate-700 */
+  background-color: #c4b5fd; /* violet-300 — light mode */
   border-radius: 9999px;
 }
+.dark .sidebar-scroll::-webkit-scrollbar-thumb {
+  background-color: #334155; /* slate-700 — dark mode */
+}
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #a78bfa; /* violet-400 */
+}
+.dark .sidebar-scroll::-webkit-scrollbar-thumb:hover {
   background-color: #475569; /* slate-600 */
 }
 

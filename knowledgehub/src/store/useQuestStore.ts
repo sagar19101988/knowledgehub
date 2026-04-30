@@ -8,6 +8,7 @@ export interface QuestState {
   unlockedBadges: string[];
   completedLevels: string[];
   lastBountyDate: string | null;
+  theme: 'dark' | 'light';
   setPlayerName: (name: string) => void;
   clearPlayerName: () => void;
   addXp: (amount: number) => void;
@@ -15,6 +16,7 @@ export interface QuestState {
   unlockBadge: (badge: string) => void;
   markLevelComplete: (levelKey: string) => void;
   claimDailyBounty: () => void;
+  toggleTheme: () => void;
 }
 
 export const useQuestStore = create<QuestState>()(
@@ -22,6 +24,7 @@ export const useQuestStore = create<QuestState>()(
     (set) => ({
       playerName: null,
       xp: 0,
+      theme: 'dark' as const,
       zoneProgress: {
         manual: 0,
         sql: 0,
@@ -62,7 +65,8 @@ export const useQuestStore = create<QuestState>()(
         const today = new Date().toISOString().slice(0, 10);
         if (state.lastBountyDate === today) return state;
         return { xp: state.xp + 50, lastBountyDate: today };
-      })
+      }),
+      toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' }))
     }),
     {
       name: 'qa-quest-storage',

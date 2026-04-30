@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useLayoutEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { Play, BookOpen, ShieldAlert, Database, Code, ShieldCheck, Cpu, Swords, LogOut, ChevronDown } from 'lucide-react';
+import { Play, BookOpen, ShieldAlert, Database, Code, ShieldCheck, Cpu, Swords, LogOut, ChevronDown, Sun, Moon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -154,6 +154,8 @@ function WelcomePage() {
   const setPlayerName = useQuestStore((state) => state.setPlayerName);
   const xp = useQuestStore((state) => state.xp);
   const completedLevels = useQuestStore((state) => state.completedLevels);
+  const theme = useQuestStore((state) => state.theme);
+  const toggleTheme = useQuestStore((state) => state.toggleTheme);
   const isReturning = xp > 0 || completedLevels.length > 0;
   const [input, setInput] = useState('');
 
@@ -198,7 +200,7 @@ function WelcomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#07050f] font-sans flex overflow-hidden">
+    <div className="min-h-screen bg-[#faf8ff] dark:bg-[#07050f] font-sans flex overflow-hidden">
 
       {/* ════════════════════════════════
           LEFT HERO  (60%)
@@ -219,8 +221,8 @@ function WelcomePage() {
           <h1 className="text-7xl font-black bg-gradient-to-r from-fuchsia-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent tracking-tight leading-none mb-3">
             QA Quest
           </h1>
-          <p className="text-2xl font-bold text-white mb-3">Master QA Engineering.</p>
-          <p className="text-slate-400 text-base max-w-sm leading-relaxed mb-7">
+          <p className="text-2xl font-bold text-slate-900 dark:text-white mb-3">Master QA Engineering.</p>
+          <p className="text-slate-600 dark:text-slate-400 text-base max-w-sm leading-relaxed mb-7">
             Six realms of knowledge. Real XP. Boss fights. The only QA learning hub built like a game.
           </p>
           <div className="flex items-center gap-8">
@@ -244,28 +246,28 @@ function WelcomePage() {
           </div>
 
           {/* App window frame */}
-          <div className="bg-slate-900/70 border border-violet-900/40 rounded-2xl overflow-hidden backdrop-blur-sm shadow-[0_24px_48px_rgba(0,0,0,0.4)]">
+          <div className="bg-white/70 dark:bg-slate-900/70 border border-violet-300/50 dark:border-violet-900/40 rounded-2xl overflow-hidden backdrop-blur-sm shadow-[0_24px_48px_rgba(0,0,0,0.4)]">
             {/* Window chrome */}
-            <div className="flex items-center gap-1.5 px-4 py-3 border-b border-violet-900/30 bg-slate-950/50">
+            <div className="flex items-center gap-1.5 px-4 py-3 border-b border-violet-300/50 dark:border-violet-900/30 bg-white/80 dark:bg-slate-950/50">
               <div className="w-2.5 h-2.5 rounded-full bg-rose-500/60" />
               <div className="w-2.5 h-2.5 rounded-full bg-amber-500/60" />
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/60" />
-              <div className="flex-1 mx-4 bg-slate-800/80 rounded-md h-5 flex items-center px-3">
-                <span className="text-slate-600 text-xs">qa-quest.app / zone / typescript</span>
+              <div className="flex-1 mx-4 bg-slate-200/80 dark:bg-slate-800/80 rounded-md h-5 flex items-center px-3">
+                <span className="text-slate-500 dark:text-slate-600 text-xs">qa-quest.app / zone / typescript</span>
               </div>
             </div>
 
             <div className="p-5 flex gap-5">
               {/* Sidebar */}
               <div className="w-36 flex-shrink-0 space-y-1">
-                <p className="text-slate-600 text-xs uppercase tracking-wider mb-2 font-semibold">Modules</p>
+                <p className="text-slate-500 dark:text-slate-600 text-xs uppercase tracking-wider mb-2 font-semibold">Modules</p>
                 {PREVIEW_MODULES.map((mod, i) => {
                   const isDone = completedSet.includes(i);
                   const isActive = i === previewModuleIdx;
                   return (
                     <div key={mod} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-all duration-500 ${
                       isActive ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' :
-                      isDone ? 'text-slate-500' : 'text-slate-700'
+                      isDone ? 'text-slate-500' : 'text-slate-500 dark:text-slate-700'
                     }`}>
                       {isDone ? <span className="text-emerald-400 flex-shrink-0">✓</span> :
                        isActive ? <span className="w-1.5 h-1.5 rounded-full bg-violet-400 flex-shrink-0 animate-pulse" /> :
@@ -279,13 +281,13 @@ function WelcomePage() {
               {/* Main content */}
               <div className="flex-1 space-y-4 min-w-0">
                 {/* Step indicator */}
-                <div className="flex items-center gap-2 bg-slate-800/60 rounded-xl p-1.5">
+                <div className="flex items-center gap-2 bg-slate-100/80 dark:bg-slate-800/60 rounded-xl p-1.5">
                   {['📖 Learn', '⚔️ Boss Fight', '✓ Complete'].map((s, i) => (
                     <div key={s} className={`flex-1 text-center text-xs py-1.5 rounded-lg font-semibold transition-all duration-500 ${
                       i === 0 && phase === 'studying' ? 'bg-slate-700 text-white' :
                       i === 1 && phase === 'completing' ? 'bg-rose-500/80 text-white' :
                       i === 2 && phase === 'badge' ? 'bg-emerald-500/80 text-white' :
-                      'text-slate-600'
+                      'text-slate-500 dark:text-slate-600'
                     }`}>{s}</div>
                   ))}
                 </div>
@@ -293,10 +295,10 @@ function WelcomePage() {
                 {/* Lesson progress bar */}
                 <div>
                   <div className="flex justify-between text-xs text-slate-500 mb-1.5">
-                    <span className="text-slate-400 font-medium">{PREVIEW_MODULES[previewModuleIdx]}</span>
+                    <span className="text-slate-600 dark:text-slate-400 font-medium">{PREVIEW_MODULES[previewModuleIdx]}</span>
                     <span>{previewBar}%</span>
                   </div>
-                  <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-slate-100 dark:bg-slate-800rounded-full overflow-hidden">
                     <motion.div
                       animate={{ width: phase === 'completing' ? '100%' : phase === 'badge' ? '100%' : `${previewBar}%` }}
                       transition={{ duration: phase === 'completing' ? 0.8 : 0.3, ease: 'easeOut' }}
@@ -306,7 +308,7 @@ function WelcomePage() {
                 </div>
 
                 {/* XP bar */}
-                <div className="bg-slate-800/50 rounded-xl p-3">
+                <div className="bg-slate-100/80 dark:bg-slate-800/50 rounded-xl p-3">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm">⚡</span>
@@ -352,7 +354,15 @@ function WelcomePage() {
       {/* ════════════════════════════════
           RIGHT LOGIN PANEL  (40%)
       ════════════════════════════════ */}
-      <div className="w-full md:w-[40%] flex flex-col justify-center px-10 py-12 border-l border-violet-900/25 bg-[#0a0715]/70 backdrop-blur-sm">
+      <div className="w-full md:w-[40%] flex flex-col justify-center px-10 py-12 border-l border-violet-200/50 dark:border-violet-900/25 bg-[#ede8ff]/70 dark:bg-[#0a0715]/70 backdrop-blur-sm relative">
+        {/* Theme toggle — top right of login panel */}
+        <button
+          onClick={toggleTheme}
+          className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-lg bg-white/60 dark:bg-slate-900/60 border border-violet-200/50 dark:border-violet-900/40 text-slate-500 hover:text-violet-500 dark:hover:text-violet-400 hover:border-violet-300 dark:hover:border-violet-700 transition-all duration-200"
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+        </button>
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -368,7 +378,7 @@ function WelcomePage() {
             >
               <BookOpen size={28} className="text-fuchsia-400" />
             </motion.div>
-            <h2 className="text-3xl font-black text-white mb-1">
+            <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-1">
               {isReturning ? 'Welcome back' : 'Get started'}
             </h2>
             <p className="text-slate-500 text-sm">
@@ -386,7 +396,7 @@ function WelcomePage() {
               placeholder="Your name"
               maxLength={30}
               autoFocus
-              className="w-full bg-slate-900/80 border border-violet-900/50 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-fuchsia-500/60 focus:ring-2 focus:ring-fuchsia-500/20 transition"
+              className="w-full bg-white/80 dark:bg-slate-900/80 border border-violet-300/60 dark:border-violet-900/50 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-fuchsia-500/60 focus:ring-2 focus:ring-fuchsia-500/20 transition"
             />
             <motion.button
               onClick={handleEnter}
@@ -404,16 +414,16 @@ function WelcomePage() {
           </div>
 
           {/* Stat strip */}
-          <div className="flex items-center justify-between pt-6 border-t border-violet-900/30">
+          <div className="flex items-center justify-between pt-6 border-t border-violet-300/50 dark:border-violet-900/30">
             {[{ v: '6', l: 'Realms' }, { v: '50+', l: 'Modules' }, { v: '8', l: 'XP Levels' }].map(s => (
               <div key={s.l} className="text-center">
-                <p className="text-white font-black text-xl leading-tight">{s.v}</p>
-                <p className="text-slate-600 text-xs mt-0.5">{s.l}</p>
+                <p className="text-slate-900 dark:text-white font-black text-xl leading-tight">{s.v}</p>
+                <p className="text-slate-500 dark:text-slate-600 text-xs mt-0.5">{s.l}</p>
               </div>
             ))}
           </div>
 
-          <p className="text-slate-700 text-xs mt-6 text-center">No account needed · Progress saved locally</p>
+          <p className="text-slate-500 dark:text-slate-700 text-xs mt-6 text-center">No account needed · Progress saved locally</p>
         </motion.div>
       </div>
     </div>
@@ -430,6 +440,8 @@ function HubMap() {
   const unlockedBadges = useQuestStore((state) => state.unlockedBadges);
   const lastBountyDate = useQuestStore((state) => state.lastBountyDate);
   const claimDailyBounty = useQuestStore((state) => state.claimDailyBounty);
+  const theme = useQuestStore((state) => state.theme);
+  const toggleTheme = useQuestStore((state) => state.toggleTheme);
   const today = new Date().toISOString().slice(0, 10);
   const bountyAlreadyClaimed = lastBountyDate === today;
 
@@ -437,26 +449,37 @@ function HubMap() {
   const earnedCount = unlockedBadges.length;
 
   return (
-    <div className="min-h-screen bg-[#07050f] text-slate-200 font-sans flex flex-col">
+    <div className="min-h-screen bg-[#faf8ff] dark:bg-[#07050f] text-slate-700 dark:text-slate-200 font-sans flex flex-col">
 
       {/* Top navbar */}
-      <header className="h-16 border-b border-violet-900/30 bg-[#0a0715]/80 backdrop-blur px-6 flex items-center justify-between sticky top-0 z-50">
+      <header className="h-16 border-b border-violet-300/50 dark:border-violet-900/30 bg-[#ede8ff]/80 dark:bg-[#0a0715]/80 backdrop-blur px-6 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-3">
           <BookOpen size={24} className="text-fuchsia-400 flex-shrink-0" />
           <h1 className="text-xl font-black bg-gradient-to-r from-fuchsia-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent tracking-tight drop-shadow-[0_0_12px_rgba(192,38,211,0.3)]">
             QA Quest: The Knowledge Hub
           </h1>
         </div>
-        <div className="relative group">
+        <div className="flex items-center gap-2">
+          {/* Theme toggle */}
           <button
-            onClick={() => { clearPlayerName(); navigate('/login', { replace: true }); }}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-900 border border-slate-700 text-slate-500 hover:text-rose-400 hover:border-rose-500/50 hover:bg-rose-500/10 hover:shadow-[0_0_14px_rgba(244,63,94,0.25)] hover:scale-110 active:scale-95 transition-all duration-200"
+            onClick={toggleTheme}
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-violet-500 dark:hover:text-violet-400 hover:border-violet-300 dark:hover:border-violet-700 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:scale-110 active:scale-95 transition-all duration-200"
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >
-            <LogOut size={15} />
+            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
           </button>
-          <span className="absolute right-11 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-            Log out
-          </span>
+          {/* Logout */}
+          <div className="relative group">
+            <button
+              onClick={() => { clearPlayerName(); navigate('/login', { replace: true }); }}
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-rose-400 hover:border-rose-500/50 hover:bg-rose-500/10 hover:shadow-[0_0_14px_rgba(244,63,94,0.25)] hover:scale-110 active:scale-95 transition-all duration-200"
+            >
+              <LogOut size={15} />
+            </button>
+            <span className="absolute right-11 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              Log out
+            </span>
+          </div>
         </div>
       </header>
 
@@ -464,19 +487,19 @@ function HubMap() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* ── Left sidebar ── */}
-        <aside className="w-72 flex-shrink-0 border-r border-violet-900/25 bg-[#0a0715]/60 flex flex-col gap-5 p-5 overflow-y-auto sidebar-scroll">
+        <aside className="w-72 flex-shrink-0 border-r border-violet-200/50 dark:border-violet-900/25 bg-[#ede8ff]/60 dark:bg-[#0a0715]/60 flex flex-col gap-5 p-5 overflow-y-auto sidebar-scroll">
 
           {/* Player card */}
-          <div className="bg-slate-900/60 border border-violet-900/40 rounded-2xl p-4 shadow-lg">
+          <div className="bg-white/60 dark:bg-slate-900/60 border border-violet-300/50 dark:border-violet-900/40 rounded-2xl p-4 shadow-lg">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-11 h-11 rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-500 flex items-center justify-center text-white font-black text-lg flex-shrink-0 shadow-[0_0_16px_rgba(192,38,211,0.4)]">
                 {playerName?.[0]?.toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-white font-bold text-sm truncate">{playerName}</p>
+                <p className="text-slate-900 dark:text-white font-bold text-sm truncate">{playerName}</p>
                 <p className="text-amber-400 text-xs truncate">{current.title}</p>
               </div>
-              <span className="text-xs font-bold text-slate-400 bg-slate-800 border border-slate-700 px-2 py-0.5 rounded-full flex-shrink-0">
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700px-2 py-0.5 rounded-full flex-shrink-0">
                 Lv.{current.level}
               </span>
             </div>
@@ -484,7 +507,7 @@ function HubMap() {
               <span className="font-medium">{xp.toLocaleString()} XP</span>
               <span>{next ? `Next: ${next.min.toLocaleString()}` : 'Max Level'}</span>
             </div>
-            <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-2 w-full bg-slate-100 dark:bg-slate-800rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
@@ -492,17 +515,17 @@ function HubMap() {
                 className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full"
               />
             </div>
-            <p className="text-slate-600 text-xs mt-1.5">
+            <p className="text-slate-500 dark:text-slate-600 text-xs mt-1.5">
               {next ? `${(next.min - xp).toLocaleString()} XP to ${next.title}` : 'You have achieved the ultimate rank.'}
             </p>
           </div>
 
           {/* Daily Bounty */}
-          <div className={`rounded-2xl border p-4 transition-all ${bountyAlreadyClaimed ? 'bg-slate-900/60 border-slate-800' : 'bg-amber-500/5 border-amber-500/25'}`}>
+          <div className={`rounded-2xl border p-4 transition-all ${bountyAlreadyClaimed ? 'bg-white/60 dark:bg-slate-900/60 border-slate-800' : 'bg-amber-500/5 border-amber-500/25'}`}>
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <span className="text-base">⚔️</span>
-                <p className="text-sm font-bold text-slate-200">Daily Bounty</p>
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Daily Bounty</p>
               </div>
               {!bountyAlreadyClaimed && (
                 <span className="relative flex h-2 w-2">
@@ -519,7 +542,7 @@ function HubMap() {
               disabled={bountyAlreadyClaimed}
               className={`w-full py-2 rounded-xl text-xs font-bold transition-all ${
                 bountyAlreadyClaimed
-                  ? 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                  ? 'bg-slate-800 text-slate-500 dark:text-slate-600 cursor-not-allowed'
                   : 'bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.15)] hover:shadow-[0_0_18px_rgba(245,158,11,0.25)]'
               }`}
             >
@@ -531,7 +554,7 @@ function HubMap() {
           <div>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Mastery Badges</h2>
-              <span className="text-xs text-slate-600">{earnedCount}/{ZONES.length}</span>
+              <span className="text-xs text-slate-500 dark:text-slate-600">{earnedCount}/{ZONES.length}</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {ZONES.map((zone) => {
@@ -542,14 +565,14 @@ function HubMap() {
                     className={`relative flex flex-col items-center text-center p-3 rounded-xl border transition-all ${
                       earned
                         ? `${zone.bgColor} ${zone.borderColor} shadow-[0_0_12px_rgba(0,0,0,0.2)]`
-                        : 'bg-slate-900/30 border-slate-800/60 opacity-40 grayscale'
+                        : 'bg-slate-100/50 dark:bg-slate-900/30 border-slate-200/80 dark:border-slate-800/60 opacity-40 grayscale'
                     }`}
                   >
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-1.5 [&>svg]:w-5 [&>svg]:h-5 ${earned ? 'bg-slate-900/80' : 'bg-slate-800'}`}>
-                      {earned ? zone.icon : <span className="text-slate-600 text-sm">🔒</span>}
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-1.5 [&>svg]:w-5 [&>svg]:h-5 ${earned ? 'bg-white/80 dark:bg-slate-900/80' : 'bg-slate-800'}`}>
+                      {earned ? zone.icon : <span className="text-slate-500 dark:text-slate-600 text-sm">🔒</span>}
                     </div>
-                    <p className={`text-xs font-bold leading-tight ${earned ? zone.colorText : 'text-slate-600'}`}>{zone.badge}</p>
-                    <p className="text-slate-600 text-xs mt-0.5 truncate w-full">{zone.title}</p>
+                    <p className={`text-xs font-bold leading-tight ${earned ? zone.colorText : 'text-slate-500 dark:text-slate-600'}`}>{zone.badge}</p>
+                    <p className="text-slate-500 dark:text-slate-600 text-xs mt-0.5 truncate w-full">{zone.title}</p>
                     {earned && <span className="absolute top-1.5 right-1.5 text-xs">⭐</span>}
                   </div>
                 );
@@ -564,7 +587,7 @@ function HubMap() {
             <h2 className="text-2xl font-black text-white">
               Welcome back, <span className="bg-gradient-to-r from-fuchsia-400 to-cyan-400 bg-clip-text text-transparent">{playerName}</span> 👋
             </h2>
-            <p className="text-slate-400 text-sm mt-1">Choose a realm to conquer.</p>
+            <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">Choose a realm to conquer.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {ZONES.map((zone, i) => {
@@ -599,30 +622,30 @@ function HubMap() {
                     <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[1px] z-0 transition-opacity group-hover:opacity-0" />
                   )}
                   <div className="p-6 relative z-10">
-                    <div className="w-14 h-14 rounded-xl bg-slate-900 shadow-xl border border-slate-700/50 flex items-center justify-center mb-5">
+                    <div className="w-14 h-14 rounded-xl bg-white dark:bg-slate-900shadow-xl border border-slate-200 dark:border-slate-700/50 flex items-center justify-center mb-5">
                       {zone.icon}
                     </div>
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-xl font-bold text-white">{zone.title}</h3>
+                      <h3 className="text-xl font-bold text-slate-900 dark:text-white">{zone.title}</h3>
                       <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${zone.bgColor} ${zone.colorText} border-current opacity-80`}>
                         {completedCount}/{totalModules}
                       </span>
                     </div>
-                    <p className="text-slate-400 text-sm mb-6 leading-relaxed">{zone.description}</p>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm mb-6 leading-relaxed">{zone.description}</p>
                     <div className="flex items-center justify-between mt-auto">
                       <div className="flex-1 mr-4">
                         <div className="flex justify-between text-xs mb-1 font-medium">
-                          <span className="text-slate-400">Map Explored</span>
-                          <span className={isMastered ? 'text-amber-400' : 'text-slate-300'}>{progress}%</span>
+                          <span className="text-slate-600 dark:text-slate-400">Map Explored</span>
+                          <span className={isMastered ? 'text-amber-400' : 'text-slate-600 dark:text-slate-300'}>{progress}%</span>
                         </div>
-                        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                        <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all duration-1000 ${isMastered ? 'bg-amber-400' : zone.colorText.replace('text-', 'bg-')}`}
                             style={{ width: `${progress}%` }}
                           />
                         </div>
                       </div>
-                      <button className="font-bold text-sm px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white transition">
+                      <button className="font-bold text-sm px-4 py-2 bg-slate-900/5 hover:bg-slate-900/10 border border-slate-900/10 dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/10 rounded-lg text-slate-800 dark:text-white transition">
                         Enter
                       </button>
                     </div>
@@ -654,6 +677,8 @@ function ZoneView() {
   const zoneMeta = ZONES.find(z => z.id === id);
   const contentData = ZONES_CONTENT[id || ''];
   const completedLevels = useQuestStore((state) => state.completedLevels);
+  const theme = useQuestStore((state) => state.theme);
+  const toggleTheme = useQuestStore((state) => state.toggleTheme);
 
   React.useEffect(() => {
     if (contentData && contentData.levels.length > 0 && !contentData.levels.find(l => l.id === level)) {
@@ -680,42 +705,53 @@ function ZoneView() {
   const progressIncrement = Math.floor(100 / (availableLevels.length || 1));
 
   return (
-    <div className="min-h-screen bg-[#07050f] text-slate-200 font-sans flex flex-col">
+    <div className="min-h-screen bg-[#faf8ff] dark:bg-[#07050f] text-slate-700 dark:text-slate-200 font-sans flex flex-col">
       {/* Top Navbar */}
-      <nav className="h-16 border-b border-violet-900/30 bg-[#0a0715]/80 backdrop-blur px-6 flex items-center justify-between sticky top-0 z-50">
+      <nav className="h-16 border-b border-violet-300/50 dark:border-violet-900/30 bg-[#ede8ff]/80 dark:bg-[#0a0715]/80 backdrop-blur px-6 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-2">
           {/* Breadcrumb: Home */}
           <button
             onClick={() => navigate('/', { replace: true })}
-            className="flex items-center gap-2 text-slate-400 hover:text-fuchsia-400 transition-colors duration-150 group"
+            className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-fuchsia-400 transition-colors duration-150 group"
           >
             <BookOpen size={18} className="group-hover:text-fuchsia-400 transition-colors" />
             <span className="text-sm font-semibold">QA Quest</span>
           </button>
 
           {/* Separator */}
-          <span className="text-slate-700 text-lg font-light select-none">/</span>
+          <span className="text-slate-500 dark:text-slate-700 text-lg font-light select-none">/</span>
 
           {/* Current zone */}
           <div className="flex items-center gap-2">
             <span className="[&>svg]:w-5 [&>svg]:h-5">{zoneMeta.icon}</span>
-            <span className="text-sm font-bold text-white">{zoneMeta.title}</span>
+            <span className="text-sm font-bold text-slate-900 dark:text-white">{zoneMeta.title}</span>
           </div>
         </div>
-        
-        <div className="flex bg-slate-800 rounded-lg p-1">
-          <button 
-            onClick={() => setMode('library')}
-            className={`px-4 py-1.5 rounded-md text-sm font-bold flex items-center gap-2 transition ${mode === 'library' ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/50' : 'text-slate-400 hover:text-white'}`}
+
+        <div className="flex items-center gap-2">
+          {/* Theme toggle */}
+          <button
+            onClick={toggleTheme}
+            className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-violet-500 dark:hover:text-violet-400 hover:border-violet-300 dark:hover:border-violet-700 transition-all duration-200"
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >
-            <BookOpen size={16} /> The Library
+            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
           </button>
-          <button 
-            onClick={() => setMode('arena')}
-            className={`px-4 py-1.5 rounded-md text-sm font-bold flex items-center gap-2 transition ${mode === 'arena' ? 'bg-rose-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
-          >
-            <Swords size={16} /> The Arena
-          </button>
+          {/* Library / Arena toggle */}
+          <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+            <button
+              onClick={() => setMode('library')}
+              className={`px-4 py-1.5 rounded-md text-sm font-bold flex items-center gap-2 transition ${mode === 'library' ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/50' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
+            >
+              <BookOpen size={16} /> The Library
+            </button>
+            <button
+              onClick={() => setMode('arena')}
+              className={`px-4 py-1.5 rounded-md text-sm font-bold flex items-center gap-2 transition ${mode === 'arena' ? 'bg-rose-500 text-white shadow-lg' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
+            >
+              <Swords size={16} /> The Arena
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -752,13 +788,13 @@ function ZoneView() {
                         </span>
                         <ChevronDown
                           size={14}
-                          className={`text-slate-500 group-hover:text-slate-300 transition-transform duration-200 flex-shrink-0 ${isCollapsed ? '-rotate-90' : ''}`}
+                          className={`text-slate-500 group-hover:text-slate-600 dark:text-slate-300 transition-transform duration-200 flex-shrink-0 ${isCollapsed ? '-rotate-90' : ''}`}
                         />
                       </div>
                     </button>
                     {!isCollapsed && (
                       tier.moduleIds.length === 0 ? (
-                        <p className="text-xs text-slate-600 px-3 py-2 italic">Coming Soon</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-600 px-3 py-2 italic">Coming Soon</p>
                       ) : (
                         <div className="space-y-1">
                           {tier.moduleIds.map((lvl) => {
@@ -773,7 +809,7 @@ function ZoneView() {
                                 className={`w-full text-left px-3 py-2 rounded-xl border transition-all ${
                                   isActive
                                     ? `bg-slate-800 ${zoneMeta.colorText} border-current`
-                                    : 'bg-transparent border-transparent text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                                    : 'bg-transparent border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:bg-slate-800/50 hover:text-slate-700 dark:text-slate-200'
                                 }`}
                               >
                                 <div className="flex items-center justify-between gap-2">
@@ -806,7 +842,7 @@ function ZoneView() {
                       className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all ${
                         isActive
                           ? `bg-slate-800 ${zoneMeta.colorText} border-current`
-                          : 'bg-transparent border-transparent text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                          : 'bg-transparent border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:bg-slate-800/50 hover:text-slate-700 dark:text-slate-200'
                       }`}
                     >
                       <div className="flex items-center justify-between gap-2">
@@ -824,7 +860,7 @@ function ZoneView() {
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 bg-slate-900/50 border border-violet-900/25 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
+        <main className="flex-1 bg-white/50 dark:bg-slate-900/50 border border-violet-200/50 dark:border-violet-900/25 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
 
           {/* Step indicator */}
           {(() => {
@@ -836,7 +872,7 @@ function ZoneView() {
             ];
             const activeIdx = isLevelDone ? 2 : mode === 'arena' ? 1 : 0;
             return (
-              <div className="flex items-center mb-8 bg-slate-800/50 rounded-2xl p-1.5 gap-1">
+              <div className="flex items-center mb-8 bg-slate-100/80 dark:bg-slate-800/50 rounded-2xl p-1.5 gap-1">
                 {steps.map((s, i) => {
                   const isDone = isLevelDone ? true : i < activeIdx;
                   const isActive = i === activeIdx;
@@ -857,7 +893,7 @@ function ZoneView() {
                         <span>{s.label}</span>
                       </button>
                       {i < steps.length - 1 && (
-                        <span className={`text-lg font-light select-none transition-colors ${i < activeIdx || isLevelDone ? 'text-emerald-700' : 'text-slate-700'}`}>›</span>
+                        <span className={`text-lg font-light select-none transition-colors ${i < activeIdx || isLevelDone ? 'text-emerald-700' : 'text-slate-500 dark:text-slate-700'}`}>›</span>
                       )}
                     </React.Fragment>
                   );
@@ -884,7 +920,7 @@ function ZoneView() {
                         <p className="text-emerald-400 font-black text-base">
                           {completionWasFirstTime ? 'Boss Defeated!' : 'Victory — Again!'}
                         </p>
-                        <p className="text-slate-300 text-sm">
+                        <p className="text-slate-600 dark:text-slate-300 text-sm">
                           {completionWasFirstTime
                             ? '+100 XP earned. Keep going — the next module awaits.'
                             : 'Practice makes perfect. No XP for replays, but the knowledge sticks.'}
@@ -935,7 +971,7 @@ function ZoneView() {
                     <h4 className="text-indigo-400 font-bold mb-2 flex items-center gap-2">
                       <span>💡</span> The Core Analogy Summary
                     </h4>
-                    <p className="text-lg text-slate-300 italic leading-relaxed">
+                    <p className="text-lg text-slate-600 dark:text-slate-300 italic leading-relaxed">
                       "{currentContent.analogy}"
                     </p>
                   </div>
@@ -948,7 +984,7 @@ function ZoneView() {
                       transition={{ delay: 0.3 }}
                       className="mt-8 flex flex-col items-center gap-3 p-6 rounded-2xl border border-rose-500/20 bg-rose-500/5"
                     >
-                      <p className="text-slate-400 text-sm">Finished reading? Put your knowledge to the test.</p>
+                      <p className="text-slate-600 dark:text-slate-400 text-sm">Finished reading? Put your knowledge to the test.</p>
                       <button
                         onClick={() => setMode('arena')}
                         className="flex items-center gap-2 px-6 py-3 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl shadow-[0_0_24px_rgba(244,63,94,0.3)] hover:shadow-[0_0_32px_rgba(244,63,94,0.5)] transition-all duration-200 text-sm"
@@ -992,6 +1028,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const theme = useQuestStore((state) => state.theme);
+
+  // Sync theme class to <html> before first paint to avoid flash
+  useLayoutEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
+
   const badgesMap = ZONES.reduce((acc, zone) => {
     acc[zone.id] = zone.badge;
     return acc;
