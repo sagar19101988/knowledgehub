@@ -565,14 +565,14 @@ function HubMap() {
                     className={`relative flex flex-col items-center text-center p-3 rounded-xl border transition-all ${
                       earned
                         ? `${zone.bgColor} ${zone.borderColor} shadow-[0_0_12px_rgba(0,0,0,0.2)]`
-                        : 'bg-slate-100/50 dark:bg-slate-900/30 border-slate-200/80 dark:border-slate-800/60 opacity-40 grayscale'
+                        : 'bg-slate-100 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/50'
                     }`}
                   >
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-1.5 [&>svg]:w-5 [&>svg]:h-5 ${earned ? 'bg-white/80 dark:bg-slate-900/80' : 'bg-slate-800'}`}>
-                      {earned ? zone.icon : <span className="text-slate-500 dark:text-slate-600 text-sm">🔒</span>}
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-1.5 [&>svg]:w-5 [&>svg]:h-5 ${earned ? 'bg-white/80 dark:bg-slate-900/80' : 'bg-slate-200 dark:bg-slate-700/50'}`}>
+                      {earned ? zone.icon : <span className="text-slate-400 dark:text-slate-500 text-sm">🔒</span>}
                     </div>
-                    <p className={`text-xs font-bold leading-tight ${earned ? zone.colorText : 'text-slate-500 dark:text-slate-600'}`}>{zone.badge}</p>
-                    <p className="text-slate-500 dark:text-slate-600 text-xs mt-0.5 truncate w-full">{zone.title}</p>
+                    <p className={`text-xs font-bold leading-tight ${earned ? zone.colorText : 'text-slate-400 dark:text-slate-500'}`}>{zone.badge}</p>
+                    <p className="text-slate-400 dark:text-slate-500 text-xs mt-0.5 truncate w-full">{zone.title}</p>
                     {earned && <span className="absolute top-1.5 right-1.5 text-xs">⭐</span>}
                   </div>
                 );
@@ -584,10 +584,10 @@ function HubMap() {
         {/* ── Main: zone cards ── */}
         <main className="flex-1 p-6 overflow-y-auto">
           <div className="mb-6">
-            <h2 className="text-2xl font-black text-white">
-              Welcome back, <span className="bg-gradient-to-r from-fuchsia-400 to-cyan-400 bg-clip-text text-transparent">{playerName}</span> 👋
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white">
+              Welcome back, <span className="bg-gradient-to-r from-fuchsia-600 to-cyan-600 dark:from-fuchsia-400 dark:to-cyan-400 bg-clip-text text-transparent">{playerName}</span> 👋
             </h2>
-            <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">Choose a realm to conquer.</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Choose a realm to conquer.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {ZONES.map((zone, i) => {
@@ -940,7 +940,7 @@ function ZoneView() {
               })()}
               {currentContent ? (
                 <>
-                  <div className="prose prose-invert prose-indigo max-w-none">
+                  <div className={`prose max-w-none ${theme === 'dark' ? 'prose-invert' : 'prose-slate'} prose-indigo`}>
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
@@ -952,11 +952,11 @@ function ZoneView() {
                               style={atomDark}
                               language={match[1]}
                               PreTag="div"
-                              className="rounded-xl border border-slate-700"
+                              className="rounded-xl border border-slate-200 dark:border-slate-700"
                               {...props}
                             />
                           ) : (
-                            <code className="bg-slate-800 text-sky-300 px-1.5 py-0.5 rounded text-sm" {...props}>
+                            <code className="bg-slate-100 dark:bg-slate-800 text-sky-700 dark:text-sky-300 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
                               {children}
                             </code>
                           )
@@ -968,10 +968,10 @@ function ZoneView() {
                   </div>
 
                   <div className="mt-12 p-6 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-                    <h4 className="text-indigo-400 font-bold mb-2 flex items-center gap-2">
+                    <h4 className="text-indigo-600 dark:text-indigo-400 font-bold mb-2 flex items-center gap-2">
                       <span>💡</span> The Core Analogy Summary
                     </h4>
-                    <p className="text-lg text-slate-600 dark:text-slate-300 italic leading-relaxed">
+                    <p className="text-lg text-slate-700 dark:text-slate-300 italic leading-relaxed">
                       "{currentContent.analogy}"
                     </p>
                   </div>

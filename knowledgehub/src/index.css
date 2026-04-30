@@ -43,15 +43,31 @@ body {
   background-color: #475569; /* slate-600 */
 }
 
-.prose h3 {
+/* Dark mode: sky-400 headings */
+.dark .prose h3 {
   color: #38bdf8 !important; /* sky-400 */
+  border-bottom: 2px solid rgba(56, 189, 248, 0.2);
+}
+
+/* Light mode: darker sky headings for contrast */
+.prose h3 {
+  color: #0284c7 !important; /* sky-600 — readable on white */
   font-size: 1.75rem !important;
   font-weight: 900 !important;
-  border-bottom: 2px solid rgba(56, 189, 248, 0.2);
+  border-bottom: 2px solid rgba(2, 132, 199, 0.2);
   padding-bottom: 0.5rem;
   margin-top: 3rem !important;
   margin-bottom: 1.5rem !important;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+/* Prose body text in light mode */
+.prose p, .prose li, .prose ul, .prose ol {
+  color: #374151; /* gray-700 — good contrast on white */
+}
+
+.dark .prose p, .dark .prose li, .dark .prose ul, .dark .prose ol {
+  color: inherit;
 }
