@@ -1,6 +1,6 @@
 import React, { useState, useLayoutEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { Play, BookOpen, ShieldAlert, Database, Code, ShieldCheck, Cpu, Swords, LogOut, ChevronDown, Sun, Moon, ArrowLeft, CheckCircle2, Lock } from 'lucide-react';
+import { Play, BookOpen, ShieldAlert, Database, Code, ShieldCheck, Cpu, Swords, LogOut, ChevronDown, Sun, Moon, ArrowLeft, CheckCircle2, Lock, Volume2, VolumeX } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -167,6 +167,91 @@ function WelcomePage() {
   const toggleTheme = useQuestStore((state) => state.toggleTheme);
   const isReturning = xp > 0 || completedLevels.length > 0;
   const [input, setInput] = useState('');
+  const [isMuted, setIsMuted] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const synthRef = React.useRef<SpeechSynthesis | null>(null);
+
+  // ── Narrator voice-over ──────────────────────────────────────
+  const NARRATOR_LINES = [
+    { text: "Welcome.", rate: 0.72, pitch: 0.65 },
+    { text: "To the Q A Quest Arena.", rate: 0.76, pitch: 0.68 },
+    { text: "Six realms of knowledge await.", rate: 0.80, pitch: 0.70 },
+    { text: "Infinite bugs hide in the shadows.", rate: 0.78, pitch: 0.67 },
+    { text: "One tester stands between order and chaos.", rate: 0.75, pitch: 0.65 },
+    { text: "Enter your name.", rate: 0.70, pitch: 0.62 },
+    { text: "And begin... your legend.", rate: 0.68, pitch: 0.70 },
+  ];
+
+  const speakNarration = React.useCallback(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    const synth = window.speechSynthesis;
+    synthRef.current = synth;
+    if (synth.speaking) synth.cancel();
+
+    const pickVoice = (voices: SpeechSynthesisVoice[]) => {
+      const preferred = [
+        'Google UK English Male',
+        'Microsoft George Online (Natural)',
+        'Microsoft George',
+        'Microsoft David Desktop',
+        'Microsoft David',
+        'Daniel',
+        'Alex',
+      ];
+      let v = voices.find(vx => preferred.some(p => vx.name.includes(p)));
+      if (!v) v = voices.find(vx => vx.lang.startsWith('en') && /male|daniel|david|alex|george|oliver|arthur/i.test(vx.name));
+      if (!v) v = voices.find(vx => vx.lang.startsWith('en'));
+      return v ?? null;
+    };
+
+    const queue = (voices: SpeechSynthesisVoice[]) => {
+      setIsSpeaking(true);
+      const voice = pickVoice(voices);
+      NARRATOR_LINES.forEach((line, i) => {
+        const utt = new SpeechSynthesisUtterance(line.text);
+        if (voice) utt.voice = voice;
+        utt.rate   = line.rate;
+        utt.pitch  = line.pitch;
+        utt.volume = 0.88;
+        if (i === NARRATOR_LINES.length - 1) {
+          utt.onend = () => setIsSpeaking(false);
+          utt.onerror = () => setIsSpeaking(false);
+        }
+        synth.speak(utt);
+      });
+    };
+
+    const voices = synth.getVoices();
+    if (voices.length > 0) {
+      queue(voices);
+    } else {
+      synth.addEventListener('voiceschanged', () => queue(synth.getVoices()), { once: true });
+    }
+  }, []);
+
+  // Auto-play on mount (slight delay so page animation settles first)
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!isMuted) speakNarration();
+    }, 900);
+    return () => {
+      clearTimeout(timer);
+      synthRef.current?.cancel();
+      setIsSpeaking(false);
+    };
+  }, []);
+
+  // Toggle mute / unmute
+  const handleVoiceToggle = () => {
+    if (isMuted) {
+      setIsMuted(false);
+      speakNarration();
+    } else {
+      setIsMuted(true);
+      synthRef.current?.cancel();
+      setIsSpeaking(false);
+    }
+  };
 
   // Live preview animation state
   const [previewModuleIdx, setPreviewModuleIdx] = useState(0);
@@ -364,7 +449,7 @@ function WelcomePage() {
           RIGHT LOGIN PANEL  (40%)
       ════════════════════════════════ */}
       <div className="w-full md:w-[40%] flex flex-col justify-center px-10 py-12 border-l border-violet-200/50 dark:border-violet-900/25 bg-[#ede8ff]/70 dark:bg-[#0a0715]/70 backdrop-blur-sm relative">
-        {/* Theme toggle — top right of login panel */}
+        {/* Theme toggle — top right */}
         <button
           onClick={toggleTheme}
           className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-lg bg-white/60 dark:bg-slate-900/60 border border-violet-200/50 dark:border-violet-900/40 text-slate-500 hover:text-violet-500 dark:hover:text-violet-400 hover:border-violet-300 dark:hover:border-violet-700 transition-all duration-200"
@@ -372,6 +457,37 @@ function WelcomePage() {
         >
           {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
         </button>
+
+        {/* Narrator voice button — top left */}
+        <div className="absolute top-5 left-5 flex items-center gap-2">
+          <button
+            onClick={handleVoiceToggle}
+            title={isMuted ? 'Play narrator' : 'Mute narrator'}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all duration-200 ${
+              isMuted
+                ? 'bg-white/60 dark:bg-slate-900/60 border-slate-200/60 dark:border-slate-700/60 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
+                : 'bg-violet-500/10 dark:bg-violet-500/10 border-violet-400/30 dark:border-violet-500/30 text-violet-500 dark:text-violet-400 hover:bg-violet-500/20'
+            }`}
+          >
+            {isMuted ? <VolumeX size={13} /> : <Volume2 size={13} />}
+            {/* Animated sound-wave bars */}
+            {!isMuted && isSpeaking && (
+              <div className="flex items-end gap-px h-3">
+                {[0, 0.18, 0.09].map((delay, i) => (
+                  <motion.div
+                    key={i}
+                    className="w-0.5 bg-violet-400 rounded-full"
+                    animate={{ height: ['3px', '11px', '3px'] }}
+                    transition={{ duration: 0.55, repeat: Infinity, delay, ease: 'easeInOut' }}
+                  />
+                ))}
+              </div>
+            )}
+            <span className="hidden sm:inline">
+              {isMuted ? 'Narrator off' : isSpeaking ? 'Narrating…' : 'Replay'}
+            </span>
+          </button>
+        </div>
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
