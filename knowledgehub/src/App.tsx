@@ -567,6 +567,206 @@ function WelcomePage() {
   );
 }
 
+// ─────────────────────────────────────────────────────────────
+//  🗺️  ZONE PROGRESS MAP
+// ─────────────────────────────────────────────────────────────
+const MAP_NODES = [
+  { id: 'manual',     x: 11, y: 26 },
+  { id: 'sql',        x: 21, y: 65 },
+  { id: 'api',        x: 46, y: 43 },
+  { id: 'typescript', x: 69, y: 17 },
+  { id: 'playwright', x: 74, y: 60 },
+  { id: 'ai-qa',      x: 87, y: 73 },
+];
+
+const MAP_PATHS: [string, string][] = [
+  ['manual', 'sql'],
+  ['manual', 'api'],
+  ['sql',    'api'],
+  ['api',    'typescript'],
+  ['api',    'playwright'],
+  ['typescript', 'playwright'],
+  ['playwright', 'ai-qa'],
+];
+
+function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
+  const zoneProgress = useQuestStore(s => s.zoneProgress);
+
+  // stable pseudo-random stars (no Math.random on render)
+  const stars = React.useMemo(() =>
+    Array.from({ length: 40 }, (_, i) => ({
+      id: i,
+      x: 2 + (i * 41 + i * i * 17) % 96,
+      y: 2 + (i * 59 + i * i * 11) % 96,
+      r: 1 + (i % 3),
+      delay: (i * 0.27) % 5,
+      dur: 2.5 + (i % 5),
+      op: 0.15 + (i % 6) * 0.08,
+    })), []);
+
+  return (
+    <div className="relative w-full" style={{ minHeight: 480 }}>
+
+      {/* ── Clipped art layer (bg + particles) ── */}
+      <div className="absolute inset-0 rounded-2xl overflow-hidden border border-violet-900/30 bg-[#05030f]">
+        {/* dot grid */}
+        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle, rgba(148,163,184,0.07) 1px, transparent 1px)', backgroundSize: '26px 26px' }} />
+        {/* per-zone region halos */}
+        {ZONES.map(zone => {
+          const node = MAP_NODES.find(n => n.id === zone.id)!;
+          const prog = zoneProgress[zone.id] || 0;
+          return (
+            <div key={zone.id} className="absolute pointer-events-none transition-opacity duration-1000"
+              style={{ left: `${node.x}%`, top: `${node.y}%`, width: 260, height: 260, transform: 'translate(-50%,-50%)', background: `radial-gradient(circle, ${zone.glowColor.replace('0.28', prog > 0 ? '0.11' : '0.035')} 0%, transparent 70%)`, borderRadius: '50%', filter: 'blur(36px)' }}
+            />
+          );
+        })}
+        {/* centre ambient */}
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 50%, rgba(139,92,246,0.04) 0%, transparent 65%)' }} />
+        {/* stars */}
+        {stars.map(s => (
+          <motion.div key={s.id} className="absolute rounded-full bg-white pointer-events-none"
+            style={{ left: `${s.x}%`, top: `${s.y}%`, width: s.r, height: s.r }}
+            animate={{ opacity: [0, s.op, 0] }}
+            transition={{ duration: s.dur, repeat: Infinity, delay: s.delay, ease: 'easeInOut' }}
+          />
+        ))}
+      </div>
+
+      {/* ── Clipped SVG paths ── */}
+      <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <defs>
+            {ZONES.map(z => (
+              <filter key={z.id} id={`mglow-${z.id}`} x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="0.6" result="b"/>
+                <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            ))}
+          </defs>
+          {MAP_PATHS.map(([fId, tId]) => {
+            const f = MAP_NODES.find(n => n.id === fId)!;
+            const t = MAP_NODES.find(n => n.id === tId)!;
+            const fZone = ZONES.find(z => z.id === fId)!;
+            const fProg = zoneProgress[fId] || 0;
+            const tProg = zoneProgress[tId] || 0;
+            // perpendicular bezier curve for organic feel
+            const mx = (f.x + t.x) / 2, my = (f.y + t.y) / 2;
+            const dx = t.x - f.x, dy = t.y - f.y;
+            const len = Math.sqrt(dx * dx + dy * dy) || 1;
+            const cx = mx + (-dy / len) * 5, cy = my + (dx / len) * 5;
+            const d = `M ${f.x} ${f.y} Q ${cx} ${cy} ${t.x} ${t.y}`;
+            const bothActive = fProg > 0 && tProg > 0;
+            const oneActive  = fProg > 0;
+            return (
+              <g key={`${fId}-${tId}`}>
+                <path d={d} fill="none" stroke="rgba(148,163,184,0.07)" strokeWidth="0.4" strokeDasharray="1.2 2"/>
+                {oneActive && (
+                  <path d={d} fill="none"
+                    stroke={fZone.glowColor.replace('0.28', bothActive ? '0.75' : '0.38')}
+                    strokeWidth={bothActive ? '0.5' : '0.32'}
+                    strokeDasharray={bothActive ? undefined : '0.8 1.6'}
+                    filter={`url(#mglow-${fId})`}
+                  />
+                )}
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+
+      {/* ── Map title + compass ── */}
+      <div className="absolute top-4 left-5 pointer-events-none z-10">
+        <p className="text-slate-600 dark:text-slate-700 text-[10px] font-black uppercase tracking-widest select-none">🗺️ The QA Realm</p>
+      </div>
+      <div className="absolute bottom-3 right-4 pointer-events-none z-10 text-slate-700 font-mono text-[10px] select-none opacity-40">N ↑</div>
+
+      {/* ── Zone nodes (outside overflow-hidden so labels aren't clipped) ── */}
+      {MAP_NODES.map((node, i) => {
+        const zone = ZONES.find(z => z.id === node.id)!;
+        const prog = zoneProgress[node.id] || 0;
+        const isMastered = prog >= 100;
+        const isStarted  = prog > 0 && !isMastered;
+        const isLocked   = prog === 0;
+
+        const R    = 26;
+        const circ = 2 * Math.PI * R;
+        const dash = circ - (prog / 100) * circ;
+
+        return (
+          <motion.div key={node.id}
+            className="absolute cursor-pointer select-none z-20"
+            style={{ left: `${node.x}%`, top: `${node.y}%`, transform: 'translate(-50%,-50%)' }}
+            onClick={() => onZoneClick(node.id)}
+            whileHover={{ scale: 1.13 }}
+            whileTap={{ scale: 0.92 }}
+          >
+            {/* Outer pulse ring for in-progress */}
+            {isStarted && (
+              <motion.div className="absolute rounded-full pointer-events-none"
+                style={{ inset: -9, border: `1.5px solid ${zone.glowColor.replace('0.28','0.55')}` }}
+                animate={{ scale:[1,1.35,1], opacity:[0.6,0,0.6] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease:'easeOut', delay: i*0.4 }}
+              />
+            )}
+            {/* Gold ring for mastered */}
+            {isMastered && (
+              <motion.div className="absolute rounded-full pointer-events-none border-2 border-amber-400"
+                style={{ inset: -7 }}
+                animate={{ opacity:[0.5,1,0.5] }}
+                transition={{ duration: 2.2, repeat: Infinity, ease:'easeInOut', delay: i*0.3 }}
+              />
+            )}
+
+            {/* SVG progress ring */}
+            <svg width="72" height="72" className="absolute inset-0 pointer-events-none" style={{ transform:'rotate(-90deg)' }}>
+              <circle cx="36" cy="36" r={R} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="2.5"/>
+              {prog > 0 && (
+                <motion.circle cx="36" cy="36" r={R} fill="none"
+                  stroke={isMastered ? '#fbbf24' : zone.glowColor.replace('0.28','0.9')}
+                  strokeWidth="2.5" strokeLinecap="round"
+                  strokeDasharray={circ}
+                  initial={{ strokeDashoffset: circ }}
+                  animate={{ strokeDashoffset: dash }}
+                  transition={{ duration: 1.6, ease:'easeOut', delay: 0.3 + i*0.1 }}
+                />
+              )}
+            </svg>
+
+            {/* Node body */}
+            <div className="w-[72px] h-[72px] rounded-full flex items-center justify-center relative border-2 transition-all duration-300"
+              style={{
+                background: isMastered ? 'rgba(251,191,36,0.15)' : isStarted ? zone.glowColor.replace('0.28','0.12') : 'rgba(12,9,28,0.9)',
+                borderColor: isMastered ? '#fbbf24' : isStarted ? zone.glowColor.replace('0.28','0.65') : 'rgba(71,85,105,0.35)',
+                boxShadow: isMastered ? '0 0 26px rgba(251,191,36,0.38)' : isStarted ? `0 0 22px ${zone.glowColor}` : 'none',
+              }}
+            >
+              {isLocked && (
+                <div className="absolute inset-0 rounded-full bg-slate-950/65 backdrop-blur-[2px] flex items-center justify-center z-10">
+                  <Lock size={17} className="text-slate-600"/>
+                </div>
+              )}
+              <div className={`[&>svg]:w-[26px] [&>svg]:h-[26px] transition-opacity ${isLocked ? 'opacity-20' : 'opacity-100'}`}>
+                {zone.icon}
+              </div>
+            </div>
+
+            {/* Label */}
+            <div className="absolute top-full mt-2.5 left-1/2 -translate-x-1/2 text-center whitespace-nowrap pointer-events-none">
+              <p className={`text-[11px] font-bold leading-tight ${isMastered ? 'text-amber-400' : isStarted ? zone.colorText : 'text-slate-600'}`}>
+                {zone.title}
+              </p>
+              <p className={`text-[10px] mt-0.5 font-semibold ${isLocked ? 'text-slate-700' : 'text-slate-500'}`}>
+                {isMastered ? '⭐ Mastered' : prog > 0 ? `${prog}%` : 'Unexplored'}
+              </p>
+            </div>
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
 function HubMap() {
   const navigate = useNavigate();
   const zoneProgress = useQuestStore((state) => state.zoneProgress);
@@ -581,6 +781,7 @@ function HubMap() {
   const toggleTheme = useQuestStore((state) => state.toggleTheme);
   const today = new Date().toISOString().slice(0, 10);
   const bountyAlreadyClaimed = lastBountyDate === today;
+  const [viewMode, setViewMode] = useState<'map' | 'grid'>('map');
 
   const { current, next, progress } = getLevel(xp);
   const earnedCount = unlockedBadges.length;
@@ -720,12 +921,38 @@ function HubMap() {
 
         {/* ── Main: zone cards ── */}
         <main className="flex-1 p-6 overflow-y-auto">
-          <div className="mb-6">
-            <h2 className="text-2xl font-black text-slate-900 dark:text-white">
-              Welcome back, <span className="bg-gradient-to-r from-fuchsia-600 to-cyan-600 dark:from-fuchsia-400 dark:to-cyan-400 bg-clip-text text-transparent">{playerName}</span> 👋
-            </h2>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Choose a realm to conquer.</p>
+          {/* Header row */}
+          <div className="flex items-start justify-between mb-6 gap-4">
+            <div>
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white">
+                Welcome back, <span className="bg-gradient-to-r from-fuchsia-600 to-cyan-600 dark:from-fuchsia-400 dark:to-cyan-400 bg-clip-text text-transparent">{playerName}</span> 👋
+              </h2>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Choose a realm to conquer.</p>
+            </div>
+            {/* Map / Grid toggle */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 gap-1 flex-shrink-0">
+              <button
+                onClick={() => setViewMode('map')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'map' ? 'bg-violet-600 text-white shadow-md shadow-violet-900/40' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
+              >
+                🗺️ Map
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'grid' ? 'bg-violet-600 text-white shadow-md shadow-violet-900/40' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
+              >
+                ⊞ Grid
+              </button>
+            </div>
           </div>
+
+          {/* ── Map View ── */}
+          {viewMode === 'map' && (
+            <ZoneMap onZoneClick={(id) => navigate(`/zone/${id}`)} />
+          )}
+
+          {/* ── Grid View ── */}
+          {viewMode === 'grid' && (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {ZONES.map((zone, i) => {
               const progress = zoneProgress[zone.id] || 0;
@@ -845,6 +1072,7 @@ function HubMap() {
               );
             })}
           </div>
+          )} {/* end grid view */}
         </main>
 
       </div>
