@@ -21,7 +21,9 @@ const ZONES = [
     bgColor: 'bg-orange-500/10',
     borderColor: 'border-orange-500/30',
     badge: 'The Detective',
-    colorText: 'text-orange-400'
+    colorText: 'text-orange-400',
+    glowColor: 'rgba(249,115,22,0.28)',
+    shimmerColor: 'rgba(251,146,60,0.18)',
   },
   {
     id: 'sql',
@@ -31,7 +33,9 @@ const ZONES = [
     bgColor: 'bg-blue-500/10',
     borderColor: 'border-blue-500/30',
     badge: 'Data Whisperer',
-    colorText: 'text-blue-400'
+    colorText: 'text-blue-400',
+    glowColor: 'rgba(59,130,246,0.28)',
+    shimmerColor: 'rgba(96,165,250,0.18)',
   },
   {
     id: 'api',
@@ -41,7 +45,9 @@ const ZONES = [
     bgColor: 'bg-purple-500/10',
     borderColor: 'border-purple-500/30',
     badge: 'The Postman',
-    colorText: 'text-purple-400'
+    colorText: 'text-purple-400',
+    glowColor: 'rgba(168,85,247,0.28)',
+    shimmerColor: 'rgba(192,132,252,0.18)',
   },
   {
     id: 'typescript',
@@ -51,7 +57,9 @@ const ZONES = [
     bgColor: 'bg-sky-500/10',
     borderColor: 'border-sky-500/30',
     badge: 'Type Guardian',
-    colorText: 'text-sky-400'
+    colorText: 'text-sky-400',
+    glowColor: 'rgba(14,165,233,0.28)',
+    shimmerColor: 'rgba(56,189,248,0.18)',
   },
   {
     id: 'playwright',
@@ -61,7 +69,9 @@ const ZONES = [
     bgColor: 'bg-emerald-500/10',
     borderColor: 'border-emerald-500/30',
     badge: 'Grandmaster Automaton',
-    colorText: 'text-emerald-400'
+    colorText: 'text-emerald-400',
+    glowColor: 'rgba(16,185,129,0.28)',
+    shimmerColor: 'rgba(52,211,153,0.18)',
   },
   {
     id: 'ai-qa',
@@ -71,7 +81,9 @@ const ZONES = [
     bgColor: 'bg-rose-500/10',
     borderColor: 'border-rose-500/30',
     badge: 'Cyborg Tester',
-    colorText: 'text-rose-400'
+    colorText: 'text-rose-400',
+    glowColor: 'rgba(244,63,94,0.28)',
+    shimmerColor: 'rgba(251,113,133,0.18)',
   }
 ];
 
@@ -746,6 +758,60 @@ function HubMap() {
                   {progress === 0 && (
                     <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[1px] z-0 transition-opacity group-hover:opacity-0" />
                   )}
+
+                  {/* ── Holographic shimmer sweep ── */}
+                  <motion.div
+                    className="absolute inset-y-0 pointer-events-none z-20"
+                    style={{
+                      width: '90px',
+                      background: isMastered
+                        ? 'linear-gradient(105deg, transparent 0%, rgba(251,191,36,0.22) 50%, transparent 100%)'
+                        : `linear-gradient(105deg, transparent 0%, ${zone.shimmerColor} 50%, transparent 100%)`,
+                      transform: 'skewX(-14deg)',
+                    }}
+                    animate={{ left: ['-90px', 'calc(100% + 90px)'] }}
+                    transition={{
+                      duration: 1.35,
+                      ease: 'easeInOut',
+                      repeat: Infinity,
+                      repeatDelay: 3.8 + i * 0.72,
+                      delay: 2 + i * 0.9,
+                    }}
+                    aria-hidden="true"
+                  />
+
+                  {/* ── In-progress zone colour pulse ── */}
+                  {isStarted && !isMastered && (
+                    <motion.div
+                      className="absolute inset-0 rounded-2xl pointer-events-none z-10"
+                      animate={{ opacity: [0, 1, 0] }}
+                      transition={{
+                        duration: 2.6,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                        delay: i * 0.55,
+                      }}
+                      style={{ boxShadow: `inset 0 0 32px ${zone.glowColor}` }}
+                      aria-hidden="true"
+                    />
+                  )}
+
+                  {/* ── Mastered golden ambient pulse ── */}
+                  {isMastered && (
+                    <motion.div
+                      className="absolute inset-0 rounded-2xl pointer-events-none z-10"
+                      animate={{ opacity: [0, 0.7, 0] }}
+                      transition={{
+                        duration: 3.2,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                        delay: i * 0.4,
+                      }}
+                      style={{ boxShadow: 'inset 0 0 40px rgba(251,191,36,0.2)' }}
+                      aria-hidden="true"
+                    />
+                  )}
+
                   <div className="p-6 relative z-10">
                     <div className="w-14 h-14 rounded-xl bg-white dark:bg-slate-900shadow-xl border border-slate-200 dark:border-slate-700/50 flex items-center justify-center mb-5">
                       {zone.icon}
