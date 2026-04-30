@@ -173,13 +173,13 @@ function WelcomePage() {
 
   // ── Narrator voice-over ──────────────────────────────────────
   const NARRATOR_LINES = [
-    { text: "Welcome.", rate: 0.72, pitch: 0.65 },
-    { text: "To the Q A Quest Arena.", rate: 0.76, pitch: 0.68 },
-    { text: "Six realms of knowledge await.", rate: 0.80, pitch: 0.70 },
-    { text: "Infinite bugs hide in the shadows.", rate: 0.78, pitch: 0.67 },
-    { text: "One tester stands between order and chaos.", rate: 0.75, pitch: 0.65 },
-    { text: "Enter your name.", rate: 0.70, pitch: 0.62 },
-    { text: "And begin... your legend.", rate: 0.68, pitch: 0.70 },
+    { text: "Welcome.", rate: 0.88, pitch: 0.65 },
+    { text: "To the Q A Quest Arena.", rate: 0.92, pitch: 0.68 },
+    { text: "Six realms of knowledge await.", rate: 0.95, pitch: 0.70 },
+    { text: "Infinite bugs hide in the shadows.", rate: 0.93, pitch: 0.67 },
+    { text: "One tester stands between order and chaos.", rate: 0.91, pitch: 0.65 },
+    { text: "Enter your name.", rate: 0.87, pitch: 0.62 },
+    { text: "And begin... your legend.", rate: 0.85, pitch: 0.70 },
   ];
 
   const speakNarration = React.useCallback(() => {
