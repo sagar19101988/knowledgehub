@@ -70,6 +70,15 @@ export const useQuestStore = create<QuestState>()(
     }),
     {
       name: 'qa-quest-storage',
+      // playerName is intentionally excluded — login page always shows on refresh
+      partialize: (state) => ({
+        xp: state.xp,
+        zoneProgress: state.zoneProgress,
+        unlockedBadges: state.unlockedBadges,
+        completedLevels: state.completedLevels,
+        lastBountyDate: state.lastBountyDate,
+        theme: state.theme,
+      }),
     }
   )
 );
