@@ -1,6 +1,6 @@
 import React, { useState, useLayoutEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { Play, BookOpen, ShieldAlert, Database, Code, ShieldCheck, Cpu, Swords, LogOut, ChevronDown, Sun, Moon } from 'lucide-react';
+import { Play, BookOpen, ShieldAlert, Database, Code, ShieldCheck, Cpu, Swords, LogOut, ChevronDown, Sun, Moon, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -708,20 +708,20 @@ function ZoneView() {
     <div className="min-h-screen bg-[#faf8ff] dark:bg-[#07050f] text-slate-700 dark:text-slate-200 font-sans flex flex-col">
       {/* Top Navbar */}
       <nav className="h-16 border-b border-violet-300/50 dark:border-violet-900/30 bg-[#ede8ff]/80 dark:bg-[#0a0715]/80 backdrop-blur px-6 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-2">
-          {/* Breadcrumb: Home */}
+        <div className="flex items-center gap-3">
+          {/* Back button */}
           <button
             onClick={() => navigate('/', { replace: true })}
-            className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-fuchsia-400 transition-colors duration-150 group"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-fuchsia-500 dark:hover:text-fuchsia-400 hover:border-fuchsia-300 dark:hover:border-fuchsia-700 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 transition-all duration-200 group"
           >
-            <BookOpen size={18} className="group-hover:text-fuchsia-400 transition-colors" />
-            <span className="text-sm font-semibold">QA Quest</span>
+            <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
+            <span className="text-sm font-semibold">Back</span>
           </button>
 
           {/* Separator */}
-          <span className="text-slate-500 dark:text-slate-700 text-lg font-light select-none">/</span>
+          <span className="text-slate-300 dark:text-slate-700 select-none">|</span>
 
-          {/* Current zone */}
+          {/* Breadcrumb: zone icon + name */}
           <div className="flex items-center gap-2">
             <span className="[&>svg]:w-5 [&>svg]:h-5">{zoneMeta.icon}</span>
             <span className="text-sm font-bold text-slate-900 dark:text-white">{zoneMeta.title}</span>
