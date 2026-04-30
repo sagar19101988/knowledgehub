@@ -17,99 +17,1108 @@ export interface QuizLevel {
 
 export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
   manual: [
+    // ── BEGINNER ────────────────────────────────────────────────
     {
-      level: 'basic',
+      level: 'what-is-testing',
       questions: [
         {
-          question: 'What is the main goal of Exploratory Testing?',
+          question: 'Your team just shipped a brand-new checkout feature. A developer says "It compiled with zero errors, so it must be working." What is wrong with this reasoning?',
           options: [
-            { id: 'a', text: 'To follow a script perfectly step-by-step.', isCorrect: false },
-            { id: 'b', text: 'To learn, design tests, and execute them all at once using your intuition.', isCorrect: true },
-            { id: 'c', text: 'To let automation tools find bugs.', isCorrect: false }
+            { id: 'a', text: 'Nothing — if code compiles, it works correctly.', isCorrect: false },
+            { id: 'b', text: 'Compilation only checks syntax, not whether the feature behaves the way users expect it to.', isCorrect: true },
+            { id: 'c', text: 'Developers should never test their own code.', isCorrect: false },
+            { id: 'd', text: 'The tester should have compiled it first.', isCorrect: false }
           ],
-          explanation: 'Exploratory testing is about learning the system and finding bugs by thinking on your feet, not just following a script.'
+          explanation: 'A compiler checks grammar — not logic. A car engine that starts does not mean it will reach your destination. Testing checks real-world behavior, not just code structure.'
         },
         {
-          question: 'Why do we test the "Happy Path" first?',
+          question: 'Software testing was famously defined as "executing a program with the intent of finding errors." Who said this?',
           options: [
-            { id: 'a', text: 'To make sure the basic feature actually works before trying to break it.', isCorrect: true },
-            { id: 'b', text: 'Because users never make mistakes.', isCorrect: false },
-            { id: 'c', text: 'To trick the developers.', isCorrect: false }
+            { id: 'a', text: 'Bill Gates', isCorrect: false },
+            { id: 'b', text: 'Edsger Dijkstra', isCorrect: false },
+            { id: 'c', text: 'Glenford Myers', isCorrect: true },
+            { id: 'd', text: 'Kent Beck', isCorrect: false }
           ],
-          explanation: 'If the normal, intended way to use the app is broken, there is no point in testing weird edge cases yet.'
+          explanation: 'Glenford Myers wrote "The Art of Software Testing" in 1979. His key insight: testing is a destructive activity — your goal is to FIND errors, not to prove the software works.'
         },
         {
-          question: 'What is a "Negative Test"?',
+          question: 'An e-commerce site shows items in stock, but when a user clicks "Buy Now" the order fails silently with no error message. Which testing principle does this scenario most directly violate?',
           options: [
-            { id: 'a', text: 'Testing how the system handles invalid input or unexpected actions.', isCorrect: true },
-            { id: 'b', text: 'A test that always fails by design.', isCorrect: false },
-            { id: 'c', text: 'A test where the tester has negative expectations.', isCorrect: false }
+            { id: 'a', text: 'Testing shows absence of defects.', isCorrect: false },
+            { id: 'b', text: 'Exhaustive testing is impossible.', isCorrect: false },
+            { id: 'c', text: 'Early testing saves time and money.', isCorrect: false },
+            { id: 'd', text: 'Testing shows the presence of defects — silent failures are unfound bugs.', isCorrect: true }
           ],
-          explanation: 'Negative testing checks if the app can gracefully handle wrong data, like entering letters into a phone number field.'
+          explanation: 'Testing can prove defects exist but can never prove 100% correctness. A silent failure is a found defect waiting to be discovered — ideally by testers, not real customers.'
+        },
+        {
+          question: 'Why is it generally NOT possible to test every possible combination of inputs for a web form?',
+          options: [
+            { id: 'a', text: 'Because the test environment is too slow.', isCorrect: false },
+            { id: 'b', text: 'Because the number of possible inputs is practically infinite, making exhaustive testing impossible.', isCorrect: true },
+            { id: 'c', text: 'Because only automation can do that.', isCorrect: false },
+            { id: 'd', text: 'Because forms only accept 10 inputs.', isCorrect: false }
+          ],
+          explanation: 'A single text field accepting up to 100 characters has more possible combinations than atoms in the observable universe. This is why techniques like Equivalence Partitioning exist — to test smartly, not exhaustively.'
+        },
+        {
+          question: 'A bug is found in production that costs $50,000 to fix. The same bug was visible in the design document phase. If caught then, it would have cost $500 to fix. What principle does this illustrate?',
+          options: [
+            { id: 'a', text: 'The Pareto Principle (80/20 rule).', isCorrect: false },
+            { id: 'b', text: 'The Pesticide Paradox.', isCorrect: false },
+            { id: 'c', text: 'The Rule of Ten — defects cost 10x more to fix at each later stage.', isCorrect: true },
+            { id: 'd', text: 'Regression testing failure.', isCorrect: false }
+          ],
+          explanation: 'This is the "Early Testing Saves Money" principle. Every stage you let a bug pass through multiplies the cost to fix it. Finding it at design: $500. In production: $50,000+.'
         }
       ]
     },
     {
-      level: 'intermediate',
+      level: 'types-of-testing',
       questions: [
         {
-          question: 'If a password must be 8 to 12 characters, what values do you test for Boundary Value Analysis?',
+          question: 'You are testing a login button. You click it and verify the user lands on the dashboard. Which type of testing is this?',
           options: [
-            { id: 'a', text: '7, 8, 12, 13', isCorrect: true },
-            { id: 'b', text: '8, 9, 10, 11', isCorrect: false },
-            { id: 'c', text: '0, 10, 100', isCorrect: false }
+            { id: 'a', text: 'Unit Testing', isCorrect: false },
+            { id: 'b', text: 'Functional Testing', isCorrect: true },
+            { id: 'c', text: 'Performance Testing', isCorrect: false },
+            { id: 'd', text: 'Security Testing', isCorrect: false }
           ],
-          explanation: 'Boundary Value Analysis focuses on the exact limits and one step outside them (7, 8, 12, 13).'
+          explanation: 'Functional testing checks what the system does — does it perform the correct function? Clicking login and landing on the dashboard is a functional check.'
         },
         {
-          question: 'What is Equivalence Partitioning?',
+          question: 'Your app loads correctly but takes 12 seconds to display a product list. What type of testing should be used to catch this?',
           options: [
-            { id: 'a', text: 'Dividing developers into equal teams.', isCorrect: false },
-            { id: 'b', text: 'Grouping inputs that should be treated the same way by the app, so you only have to test one.', isCorrect: true },
-            { id: 'c', text: 'Running tests on multiple browsers equally.', isCorrect: false }
+            { id: 'a', text: 'Regression Testing', isCorrect: false },
+            { id: 'b', text: 'Usability Testing', isCorrect: false },
+            { id: 'c', text: 'Performance Testing', isCorrect: true },
+            { id: 'd', text: 'Smoke Testing', isCorrect: false }
           ],
-          explanation: 'If ages 18-65 are adults, testing age 25 is enough. You do not need to test 26, 27, etc. They are in the same partition.'
+          explanation: 'Performance testing measures speed, response times, and scalability. A 12-second load time is a performance defect, not a functional one — the data shows, it just shows slowly.'
         },
         {
-          question: 'Why do we use state transition testing?',
+          question: 'A developer fixes a bug on the "Forgot Password" page. Before releasing, you run tests on ALL features of the app to make sure nothing else broke. What is this called?',
           options: [
-            { id: 'a', text: 'To test how an app moves from one state to another (e.g., from "In Cart" to "Purchased").', isCorrect: true },
-            { id: 'b', text: 'To test if the app works in different states like Texas and Florida.', isCorrect: false },
-            { id: 'c', text: 'To see if the app loads fast.', isCorrect: false }
+            { id: 'a', text: 'Smoke Testing', isCorrect: false },
+            { id: 'b', text: 'Regression Testing', isCorrect: true },
+            { id: 'c', text: 'Exploratory Testing', isCorrect: false },
+            { id: 'd', text: 'Unit Testing', isCorrect: false }
           ],
-          explanation: 'State Transition Testing checks if an object can correctly move between allowed statuses, like an order going from Pending to Shipped.'
+          explanation: 'Regression testing re-runs existing tests after a change to ensure nothing else broke. Like checking the whole car after replacing one tyre.'
+        },
+        {
+          question: 'You want a quick check — "Is the build even stable enough to test in detail?" You run 10 critical tests in 5 minutes. What type of testing is this?',
+          options: [
+            { id: 'a', text: 'Sanity Testing', isCorrect: false },
+            { id: 'b', text: 'Smoke Testing', isCorrect: true },
+            { id: 'c', text: 'System Testing', isCorrect: false },
+            { id: 'd', text: 'Acceptance Testing', isCorrect: false }
+          ],
+          explanation: 'Smoke testing is a quick broad check — "does the app even turn on?" Like checking if there is smoke coming from an engine before driving it. If smoke tests fail, you reject the build immediately.'
+        },
+        {
+          question: 'The client wants to verify that the delivered software meets their business requirements before signing off. What type of testing is this?',
+          options: [
+            { id: 'a', text: 'Integration Testing', isCorrect: false },
+            { id: 'b', text: 'System Testing', isCorrect: false },
+            { id: 'c', text: 'User Acceptance Testing (UAT)', isCorrect: true },
+            { id: 'd', text: 'Alpha Testing', isCorrect: false }
+          ],
+          explanation: 'UAT is done by the actual client or business stakeholders to confirm the software does what they asked for in plain business language — not just technical terms.'
         }
       ]
     },
     {
-      level: 'expert',
+      level: 'writing-test-cases',
       questions: [
         {
-          question: 'What does the heuristic "State Dependency" refer to?',
+          question: 'Which of the following is the BEST-written test case for a login feature?',
           options: [
-            { id: 'a', text: 'When an app relies on data that might be stale across different tabs or sessions.', isCorrect: true },
-            { id: 'b', text: 'When code depends on the operating system.', isCorrect: false },
-            { id: 'c', text: 'When a button is disabled.', isCorrect: false }
+            { id: 'a', text: 'Test the login.', isCorrect: false },
+            { id: 'b', text: 'Enter valid email and password → Click Login → Verify dashboard page loads with user\'s name displayed.', isCorrect: true },
+            { id: 'c', text: 'Login should work.', isCorrect: false },
+            { id: 'd', text: 'Check if user can log in and stuff.', isCorrect: false }
           ],
-          explanation: 'State dependency bugs happen when an application gets confused about its current data across multiple tabs (e.g. changing cart items in two tabs).'
+          explanation: 'A good test case has a precise action (Enter X, Click Y) and a measurable expected result (Dashboard loads with username). Vague test cases are worthless — anyone should be able to execute them without asking questions.'
         },
         {
-          question: 'How do you test for Race Conditions?',
+          question: 'A test case has the step: "Enter a valid email." A new tester is confused — what counts as a valid email? This is a problem with which aspect of the test case?',
           options: [
-            { id: 'a', text: 'By seeing who can write the test faster.', isCorrect: false },
-            { id: 'b', text: 'By doing two actions at the exact same time to see if the system handles them correctly.', isCorrect: true },
-            { id: 'c', text: 'By slowing down your internet speed.', isCorrect: false }
+            { id: 'a', text: 'Test priority', isCorrect: false },
+            { id: 'b', text: 'Test Data — the test case is missing specific, concrete test data.', isCorrect: true },
+            { id: 'c', text: 'Expected result', isCorrect: false },
+            { id: 'd', text: 'Module coverage', isCorrect: false }
           ],
-          explanation: 'A race condition occurs when two operations hit the system at the same time, often causing duplicate data if not locked properly.'
+          explanation: 'Test data must be explicit. Instead of "valid email," write "user@example.com". This makes tests reproducible by anyone on the team.'
         },
         {
-          question: 'Why test "Interrupts" on a mobile app?',
+          question: 'You have 500 test cases and only 2 days. Which field in a test case tells you which tests to run first?',
           options: [
-            { id: 'a', text: 'To see if the app crashes when a phone call comes in or the battery dies.', isCorrect: true },
-            { id: 'b', text: 'To interrupt the developer during coding.', isCorrect: false },
-            { id: 'c', text: 'To stop an automated test early.', isCorrect: false }
+            { id: 'a', text: 'Test Case ID', isCorrect: false },
+            { id: 'b', text: 'Expected Result', isCorrect: false },
+            { id: 'c', text: 'Priority', isCorrect: true },
+            { id: 'd', text: 'Author', isCorrect: false }
           ],
-          explanation: 'Mobile apps must handle real-world interruptions gracefully (alarms, phone calls, low battery) without losing the user\'s data.'
+          explanation: 'Priority (High/Medium/Low) tells the team which tests must run even under time pressure. A payment checkout is Priority 1; changing a profile avatar is Priority 3.'
+        },
+        {
+          question: 'What is the purpose of a "Precondition" in a test case?',
+          options: [
+            { id: 'a', text: 'To describe what the test checks.', isCorrect: false },
+            { id: 'b', text: 'To list the exact steps of the test.', isCorrect: false },
+            { id: 'c', text: 'To describe the state the system must be in BEFORE the test steps begin.', isCorrect: true },
+            { id: 'd', text: 'To write the expected result.', isCorrect: false }
+          ],
+          explanation: 'Example precondition: "User must be registered and logged out." If the precondition is not met, the test result is meaningless. Like needing bread before testing a sandwich recipe.'
+        },
+        {
+          question: 'A test case passes today but fails next week because a developer changed the app. The test steps were fine — no one updated the test. What should you do to prevent this?',
+          options: [
+            { id: 'a', text: 'Delete the old test case.', isCorrect: false },
+            { id: 'b', text: 'Maintain and review test cases after every sprint or release.', isCorrect: true },
+            { id: 'c', text: 'Blame the developer.', isCorrect: false },
+            { id: 'd', text: 'Mark it as passed anyway.', isCorrect: false }
+          ],
+          explanation: 'Test cases are living documents. They must be updated when features change. Outdated test cases give false confidence and are worse than no tests at all.'
+        }
+      ]
+    },
+    {
+      level: 'happy-path',
+      questions: [
+        {
+          question: 'You are testing an online order form. What is the "happy path" scenario?',
+          options: [
+            { id: 'a', text: 'A user submits the form with an expired credit card.', isCorrect: false },
+            { id: 'b', text: 'A user fills in all required fields correctly and successfully places an order.', isCorrect: true },
+            { id: 'c', text: 'A user leaves all fields empty and clicks Submit.', isCorrect: false },
+            { id: 'd', text: 'A user opens the form on a very slow connection.', isCorrect: false }
+          ],
+          explanation: 'The happy path is the most common, ideal user flow with valid data and no errors. It is the first thing you test — if this is broken, nothing else matters.'
+        },
+        {
+          question: 'Why should happy path testing be done BEFORE negative or edge-case testing?',
+          options: [
+            { id: 'a', text: 'Because edge cases are not important.', isCorrect: false },
+            { id: 'b', text: 'Because if the main flow is broken, testing edge cases is a waste of time.', isCorrect: true },
+            { id: 'c', text: 'Because happy path tests are faster.', isCorrect: false },
+            { id: 'd', text: 'Because developers prefer it.', isCorrect: false }
+          ],
+          explanation: 'Think of it like building a house. You test the walls before testing the windows. If the walls fall, the windows do not matter. Verify the core flow works before poking at edges.'
+        },
+        {
+          question: 'You tested the happy path of a signup form and it works. A colleague asks "Can we skip all other testing now?" What do you say?',
+          options: [
+            { id: 'a', text: 'Yes — if the happy path works, the rest usually does too.', isCorrect: false },
+            { id: 'b', text: 'No — happy path only confirms the best-case scenario. Real users make mistakes, and the app must handle them.', isCorrect: true },
+            { id: 'c', text: 'Yes — negative testing is only done in the final sprint.', isCorrect: false },
+            { id: 'd', text: 'Only skip integration tests.', isCorrect: false }
+          ],
+          explanation: 'Happy path = minimum bar. Real bugs often hide in the unusual paths: typos, missing fields, slow internet, browser back buttons, and double-clicks.'
+        },
+        {
+          question: 'Which scenario is NOT a happy path test for a search feature?',
+          options: [
+            { id: 'a', text: 'Searching for "laptop" and seeing a list of laptops.', isCorrect: false },
+            { id: 'b', text: 'Searching for "!!@@##" and seeing a user-friendly error message.', isCorrect: true },
+            { id: 'c', text: 'Searching for "phone" and clicking the first result.', isCorrect: false },
+            { id: 'd', text: 'Searching for "shoes" and applying a price filter.', isCorrect: false }
+          ],
+          explanation: '"!!@@##" is special characters — that is a negative/edge test. Happy path uses realistic, valid inputs that a normal user would type.'
+        },
+        {
+          question: 'A tester says "I only test happy paths because I don\'t want to find bugs." What is wrong with this attitude?',
+          options: [
+            { id: 'a', text: 'Nothing — happy path covers 90% of scenarios.', isCorrect: false },
+            { id: 'b', text: 'The purpose of testing IS to find bugs. Avoiding negative tests means real users will find the bugs instead.', isCorrect: true },
+            { id: 'c', text: 'Happy path testing is wrong.', isCorrect: false },
+            { id: 'd', text: 'Negative tests are the developer\'s job.', isCorrect: false }
+          ],
+          explanation: 'Glenford Myers said it best: testing is the act of executing software with the INTENT of finding errors. A tester who avoids finding bugs is not testing — they are performing theatre.'
+        }
+      ]
+    },
+    {
+      level: 'negative-testing',
+      questions: [
+        {
+          question: 'A registration form requires a phone number. What is a correct negative test for this field?',
+          options: [
+            { id: 'a', text: 'Enter "+1 (555) 123-4567" and verify it is accepted.', isCorrect: false },
+            { id: 'b', text: 'Enter "ABCDEFGHIJ" (letters) and verify the system shows a validation error.', isCorrect: true },
+            { id: 'c', text: 'Enter "9876543210" and verify it is accepted.', isCorrect: false },
+            { id: 'd', text: 'Leave the field blank and verify it is optional.', isCorrect: false }
+          ],
+          explanation: 'Negative testing means sending INVALID input. Letters in a phone field should trigger a validation error — not crash the app and definitely not silently accept the data.'
+        },
+        {
+          question: 'An app accepts passwords of 8 to 20 characters. Which of the following is a negative test?',
+          options: [
+            { id: 'a', text: 'Entering "MyPass123" (9 chars).', isCorrect: false },
+            { id: 'b', text: 'Entering "Hi" (2 chars) and expecting the app to show an error.', isCorrect: true },
+            { id: 'c', text: 'Entering "SecurePassword1" (14 chars).', isCorrect: false },
+            { id: 'd', text: 'Entering a 20-character password.', isCorrect: false }
+          ],
+          explanation: '"Hi" is only 2 characters — below the minimum of 8. The system MUST reject it with a clear message. Accepting it would be a critical security bug.'
+        },
+        {
+          question: 'You enter a negative number (-5) into a "Quantity" field on a shopping cart. The app shows -5 items in the cart and subtracts money from the total. What type of bug is this?',
+          options: [
+            { id: 'a', text: 'A cosmetic bug.', isCorrect: false },
+            { id: 'b', text: 'A critical functional bug found by negative testing.', isCorrect: true },
+            { id: 'c', text: 'A performance bug.', isCorrect: false },
+            { id: 'd', text: 'Not a bug — this is expected.', isCorrect: false }
+          ],
+          explanation: 'This is a classic negative test result! The system should validate that quantity must be ≥ 1. Accepting -5 could let users get money from the company. Real bugs, real money lost.'
+        },
+        {
+          question: 'What is the key difference between negative testing and boundary value analysis?',
+          options: [
+            { id: 'a', text: 'They are the same thing.', isCorrect: false },
+            { id: 'b', text: 'Negative testing focuses on invalid/unexpected inputs broadly. BVA specifically targets the edges of valid ranges.', isCorrect: true },
+            { id: 'c', text: 'Negative testing is always automated.', isCorrect: false },
+            { id: 'd', text: 'BVA only tests text fields.', isCorrect: false }
+          ],
+          explanation: 'Negative testing is broad: wrong type, empty fields, SQL injection. BVA is precision: testing exactly at the boundaries (e.g., if max is 100, test 100, 101, 99). They complement each other.'
+        },
+        {
+          question: 'Why should negative tests also verify the ERROR MESSAGE, not just that the app rejected the input?',
+          options: [
+            { id: 'a', text: 'Because error messages are not important.', isCorrect: false },
+            { id: 'b', text: 'Because a vague or missing error message leaves users confused and is itself a defect.', isCorrect: true },
+            { id: 'c', text: 'Because developers write error messages last.', isCorrect: false },
+            { id: 'd', text: 'Error messages should not be tested.', isCorrect: false }
+          ],
+          explanation: 'An app that rejects input silently is broken. "Something went wrong" is not helpful. A good error message says WHAT is wrong: "Phone number must be 10 digits." Testing this IS testing.'
+        }
+      ]
+    },
+    {
+      level: 'exploratory-testing',
+      questions: [
+        {
+          question: 'You are handed a brand-new e-commerce app with no test cases written yet. What is the BEST approach for the first session?',
+          options: [
+            { id: 'a', text: 'Wait until the test cases are written before touching the app.', isCorrect: false },
+            { id: 'b', text: 'Run exploratory testing — learn the app by clicking around and note anything suspicious.', isCorrect: true },
+            { id: 'c', text: 'Immediately run automated regression tests.', isCorrect: false },
+            { id: 'd', text: 'Report that you cannot test without scripts.', isCorrect: false }
+          ],
+          explanation: 'Exploratory testing shines when little is documented. You simultaneously learn, design, and execute tests. It is structured chaos — guided by your experience and curiosity, not a script.'
+        },
+        {
+          question: 'What is a "Test Charter" in exploratory testing?',
+          options: [
+            { id: 'a', text: 'A fully scripted test case with step-by-step instructions.', isCorrect: false },
+            { id: 'b', text: 'A brief mission statement: "Explore [area] to find [type of issue]" that focuses your session without scripting every step.', isCorrect: true },
+            { id: 'c', text: 'A legal document the tester must sign.', isCorrect: false },
+            { id: 'd', text: 'A list of all bugs found.', isCorrect: false }
+          ],
+          explanation: 'Example charter: "Explore the checkout flow to find data loss bugs." It gives focus without killing creativity. You still decide HOW to test within that mission.'
+        },
+        {
+          question: 'A tester says exploratory testing is "just clicking around randomly." Is this accurate?',
+          options: [
+            { id: 'a', text: 'Yes — it is completely unstructured.', isCorrect: false },
+            { id: 'b', text: 'No — it is guided by skill, experience, and a defined charter/session goal.', isCorrect: true },
+            { id: 'c', text: 'Yes — but only senior testers can do it.', isCorrect: false },
+            { id: 'd', text: 'Yes — and that is why it finds the most bugs.', isCorrect: false }
+          ],
+          explanation: 'Good exploratory testing is disciplined curiosity, not chaos. A skilled tester uses heuristics, past experience, and risk thinking to guide where they probe. It looks casual — it is not.'
+        },
+        {
+          question: 'Which situation is BEST suited for exploratory testing over scripted testing?',
+          options: [
+            { id: 'a', text: 'Running 500 regression tests before a major release.', isCorrect: false },
+            { id: 'b', text: 'Testing a new feature with no specification and a tight deadline.', isCorrect: true },
+            { id: 'c', text: 'Confirming a payment flow works exactly as documented.', isCorrect: false },
+            { id: 'd', text: 'Verifying compliance with a 40-page security standard.', isCorrect: false }
+          ],
+          explanation: 'Exploratory testing is fastest when specs are thin or absent. Where scripted testing requires weeks of planning, exploratory delivers feedback in hours. It is ideal for sprints and new features.'
+        },
+        {
+          question: 'After an exploratory session, a good tester should do what?',
+          options: [
+            { id: 'a', text: 'Nothing — the bugs are in the system already.', isCorrect: false },
+            { id: 'b', text: 'Write session notes: areas covered, bugs found, risks noticed, and areas not explored.', isCorrect: true },
+            { id: 'c', text: 'Immediately start the next session.', isCorrect: false },
+            { id: 'd', text: 'Delete their notes to stay agile.', isCorrect: false }
+          ],
+          explanation: 'Exploratory testing is not exempt from documentation. Session notes create a coverage map, turn findings into formal bugs, and let the next tester pick up where you left off.'
+        }
+      ]
+    },
+    {
+      level: 'bug-life-cycle',
+      questions: [
+        {
+          question: 'A tester logs a new bug. What is the FIRST status the bug should receive?',
+          options: [
+            { id: 'a', text: 'Open', isCorrect: false },
+            { id: 'b', text: 'New', isCorrect: true },
+            { id: 'c', text: 'In Progress', isCorrect: false },
+            { id: 'd', text: 'Resolved', isCorrect: false }
+          ],
+          explanation: 'When a bug is first raised, it enters the "New" status. It then gets reviewed — if valid and reproducible, it moves to "Open" (assigned to a developer). New → Open → In Progress → Fixed → Verified → Closed.'
+        },
+        {
+          question: 'A developer fixes a bug and marks it "Resolved." What should the tester do next?',
+          options: [
+            { id: 'a', text: 'Mark it closed immediately.', isCorrect: false },
+            { id: 'b', text: 'Re-test the fix and verify the bug is actually gone, then move it to "Closed."', isCorrect: true },
+            { id: 'c', text: 'Assign it to another developer.', isCorrect: false },
+            { id: 'd', text: 'Nothing — the developer marked it resolved.', isCorrect: false }
+          ],
+          explanation: 'Testers always verify fixes before closing bugs. A "Resolved" status from a developer means "I think I fixed it." The tester must confirm. If still broken, it is reopened.'
+        },
+        {
+          question: 'A bug is raised for the login page. The product owner reviews it and says "This is a feature, not a bug — it was designed this way." What status should the bug receive?',
+          options: [
+            { id: 'a', text: 'Closed', isCorrect: false },
+            { id: 'b', text: 'Deferred', isCorrect: false },
+            { id: 'c', text: 'Rejected / Not a Bug', isCorrect: true },
+            { id: 'd', text: 'Reopened', isCorrect: false }
+          ],
+          explanation: 'When a "bug" is actually intended behavior, it is rejected or marked "Not a Bug." This is common — testers catch unintended behaviors that the PM then clarifies were intentional design choices.'
+        },
+        {
+          question: 'A major bug is found but the release is in 2 days and there is not enough time to fix it safely. What status is appropriate?',
+          options: [
+            { id: 'a', text: 'Closed', isCorrect: false },
+            { id: 'b', text: 'Deferred — it is acknowledged but postponed to the next release.', isCorrect: true },
+            { id: 'c', text: 'Rejected', isCorrect: false },
+            { id: 'd', text: 'Duplicate', isCorrect: false }
+          ],
+          explanation: 'Deferred means: "We know this is a real bug, but we are intentionally postponing the fix." This must be a conscious business decision, not just ignoring the bug.'
+        },
+        {
+          question: 'A tester verifies a bug fix and it seems fixed. But two weeks later, the same bug appears again after a new code change. What should the tester do?',
+          options: [
+            { id: 'a', text: 'Open a brand new bug ticket.', isCorrect: false },
+            { id: 'b', text: 'Reopen the original bug ticket with details about when it regressed.', isCorrect: true },
+            { id: 'c', text: 'Mark it as a duplicate.', isCorrect: false },
+            { id: 'd', text: 'Ignore it — it was fixed once already.', isCorrect: false }
+          ],
+          explanation: 'Reopening a bug means the fix broke again (regression). This is a key sign that automated regression tests should cover this scenario so it never slips through again.'
+        }
+      ]
+    },
+    {
+      level: 'severity-vs-priority',
+      questions: [
+        {
+          question: 'The app\'s logo is missing on the homepage just before a major product launch. The logo itself has no functional impact. How would you classify this?',
+          options: [
+            { id: 'a', text: 'High Severity, High Priority', isCorrect: false },
+            { id: 'b', text: 'Low Severity, High Priority', isCorrect: true },
+            { id: 'c', text: 'High Severity, Low Priority', isCorrect: false },
+            { id: 'd', text: 'Low Severity, Low Priority', isCorrect: false }
+          ],
+          explanation: 'The logo not showing does NOT break functionality (Low Severity). But it is embarrassing before a launch, so the business deems it urgent (High Priority). Severity = technical impact. Priority = business urgency.'
+        },
+        {
+          question: 'The payment processing system is completely broken — no one can check out. But the site launches in 6 months. How would you classify this?',
+          options: [
+            { id: 'a', text: 'Low Severity, High Priority', isCorrect: false },
+            { id: 'b', text: 'High Severity, Low Priority', isCorrect: true },
+            { id: 'c', text: 'High Severity, High Priority', isCorrect: false },
+            { id: 'd', text: 'Low Severity, Low Priority', isCorrect: false }
+          ],
+          explanation: 'Broken payments = High Severity (critical system failure). But since launch is 6 months away, the business priority to fix it RIGHT NOW is lower. High Severity does NOT always mean High Priority.'
+        },
+        {
+          question: 'Who determines PRIORITY of a bug?',
+          options: [
+            { id: 'a', text: 'The QA Engineer who found it.', isCorrect: false },
+            { id: 'b', text: 'The Product Owner or Business Stakeholder.', isCorrect: true },
+            { id: 'c', text: 'The Developer who fixes it.', isCorrect: false },
+            { id: 'd', text: 'The automated test suite.', isCorrect: false }
+          ],
+          explanation: 'Priority is a BUSINESS decision — it is about what to fix first based on business needs. Severity is a TECHNICAL assessment of how badly the bug impacts the system, done by QA.'
+        },
+        {
+          question: 'Who determines SEVERITY of a bug?',
+          options: [
+            { id: 'a', text: 'The Product Owner.', isCorrect: false },
+            { id: 'b', text: 'The QA Tester, based on technical impact on the system.', isCorrect: true },
+            { id: 'c', text: 'The end user.', isCorrect: false },
+            { id: 'd', text: 'The client.', isCorrect: false }
+          ],
+          explanation: 'Severity is a technical measure: does it crash the app (Critical), block a major function (Major), cause minor issues (Minor), or just look wrong (Cosmetic)? QA engineers assess this based on system behavior.'
+        },
+        {
+          question: 'A spelling mistake appears in a footnote of the Terms & Conditions page of a banking app. The legal team says this MUST be fixed before release. What is the correct classification?',
+          options: [
+            { id: 'a', text: 'High Severity, High Priority', isCorrect: false },
+            { id: 'b', text: 'Low Severity, High Priority', isCorrect: true },
+            { id: 'c', text: 'High Severity, Low Priority', isCorrect: false },
+            { id: 'd', text: 'Medium Severity, Medium Priority', isCorrect: false }
+          ],
+          explanation: 'A typo is cosmetically wrong (Low Severity). But for a banking app with legal obligations, the business says fix it NOW (High Priority). Classic example of business context elevating priority independently of severity.'
+        }
+      ]
+    },
+
+    // ── INTERMEDIATE ─────────────────────────────────────────────
+    {
+      level: 'bva',
+      questions: [
+        {
+          question: 'A form accepts ages between 18 and 65. Using Boundary Value Analysis, which set of test values is MOST complete?',
+          options: [
+            { id: 'a', text: '18, 40, 65', isCorrect: false },
+            { id: 'b', text: '17, 18, 19, 64, 65, 66', isCorrect: true },
+            { id: 'c', text: '0, 18, 65, 100', isCorrect: false },
+            { id: 'd', text: '18, 65', isCorrect: false }
+          ],
+          explanation: 'BVA tests: just below lower bound (17), at lower bound (18), just above lower bound (19), just below upper bound (64), at upper bound (65), just above upper bound (66). Errors almost always happen at the edges, not the middle.'
+        },
+        {
+          question: 'A login attempt limit is set to 3. After 3 failed attempts, the account locks. What boundary values should you test?',
+          options: [
+            { id: 'a', text: '1, 2, 3', isCorrect: false },
+            { id: 'b', text: '2, 3, 4', isCorrect: true },
+            { id: 'c', text: '0, 3, 10', isCorrect: false },
+            { id: 'd', text: 'Just 3', isCorrect: false }
+          ],
+          explanation: 'The critical boundary is at 3. Test 2 (should not lock), 3 (should lock), and 4 (confirm it stays locked). The bug is usually "off by one" — locking at 2 or NOT locking at 3.'
+        },
+        {
+          question: 'Why does Boundary Value Analysis focus on the MIN and MAX values, rather than random middle values?',
+          options: [
+            { id: 'a', text: 'Because middle values are boring to test.', isCorrect: false },
+            { id: 'b', text: 'Because developers write boundary-handling code separately and it is historically where "off by one" errors occur.', isCorrect: true },
+            { id: 'c', text: 'Because it is faster.', isCorrect: false },
+            { id: 'd', text: 'Because only the boundaries matter to users.', isCorrect: false }
+          ],
+          explanation: 'The infamous "off by one" error (< vs <=) is the most common programming mistake. BVA was invented specifically because boundary conditions are where code logic most often breaks.'
+        },
+        {
+          question: 'A text field accepts 5 to 15 characters. A tester only tests with 10 characters. What is wrong with this approach?',
+          options: [
+            { id: 'a', text: 'Nothing — 10 is a valid value.', isCorrect: false },
+            { id: 'b', text: 'Testing only the middle skips the boundaries where bugs are most likely to be found.', isCorrect: true },
+            { id: 'c', text: 'The field should be tested with more values.', isCorrect: false },
+            { id: 'd', text: 'A single test is sufficient.', isCorrect: false }
+          ],
+          explanation: '10 characters is valid but tells you nothing about the edge cases. You MUST test 4, 5, 6, 14, 15, 16 to verify the validation logic around the boundaries.'
+        },
+        {
+          question: 'BVA and Equivalence Partitioning are often used together. What does each technique contribute?',
+          options: [
+            { id: 'a', text: 'EP divides inputs into groups. BVA then tests the edges of those groups for precision.', isCorrect: true },
+            { id: 'b', text: 'BVA divides inputs into groups. EP tests the edges.', isCorrect: false },
+            { id: 'c', text: 'They are identical techniques.', isCorrect: false },
+            { id: 'd', text: 'EP is for performance. BVA is for security.', isCorrect: false }
+          ],
+          explanation: 'EP says "valid ages are 18-65, invalid are <18 and >65." BVA then says "test 17, 18, 19 and 64, 65, 66 specifically." Together they give maximum coverage with minimum tests.'
+        }
+      ]
+    },
+    {
+      level: 'equivalence-partitioning',
+      questions: [
+        {
+          question: 'A ticket-booking app charges different prices: Child (0-12), Teen (13-17), Adult (18-59), Senior (60+). Using EP, how many partitions are there?',
+          options: [
+            { id: 'a', text: '2 (valid and invalid).', isCorrect: false },
+            { id: 'b', text: '4 (one for each age group).', isCorrect: true },
+            { id: 'c', text: '100 (one for each age from 0 to 100).', isCorrect: false },
+            { id: 'd', text: '3 (child, adult, senior).', isCorrect: false }
+          ],
+          explanation: 'Each age group is handled differently by the system, so each is a separate equivalence class. Testing one value from each class (e.g., age 5, 15, 30, 70) is sufficient — you do not need to test every age.'
+        },
+        {
+          question: 'Why is it sufficient to test only ONE value from each equivalence partition?',
+          options: [
+            { id: 'a', text: 'Because it is faster and managers prefer it.', isCorrect: false },
+            { id: 'b', text: 'Because all values in a partition are expected to be processed identically by the system.', isCorrect: true },
+            { id: 'c', text: 'Because the other values are tested automatically.', isCorrect: false },
+            { id: 'd', text: 'Because testers are lazy.', isCorrect: false }
+          ],
+          explanation: 'If entering age 20, 25, or 35 all result in the "Adult" price, testing all 3 is redundant. Testing one from the group proves the whole group\'s behavior. This is the efficiency of EP.'
+        },
+        {
+          question: 'A form field accepts only uppercase letters (A-Z). A user types "hello123". Which partition does this fall into?',
+          options: [
+            { id: 'a', text: 'Valid partition', isCorrect: false },
+            { id: 'b', text: 'Invalid partition', isCorrect: true },
+            { id: 'c', text: 'Boundary partition', isCorrect: false },
+            { id: 'd', text: 'Null partition', isCorrect: false }
+          ],
+          explanation: '"hello123" contains lowercase letters and numbers — both invalid. It belongs in the invalid partition. The system should reject it with an error message.'
+        },
+        {
+          question: 'For an email field, which is an example of a VALID equivalence class?',
+          options: [
+            { id: 'a', text: 'Strings with no @ symbol.', isCorrect: false },
+            { id: 'b', text: 'Strings in the format name@domain.com.', isCorrect: true },
+            { id: 'c', text: 'Empty strings.', isCorrect: false },
+            { id: 'd', text: 'Strings with two @ symbols.', isCorrect: false }
+          ],
+          explanation: 'The valid partition for email is "correctly formatted email address." All values in this partition (user@test.com, alice@company.org) should be accepted. Everything else is in invalid partitions.'
+        },
+        {
+          question: 'A tester tests the value 50 for an age field that accepts 18-65. They then also test 30, 40, and 55. What mistake are they making?',
+          options: [
+            { id: 'a', text: 'No mistake — more values is always better.', isCorrect: false },
+            { id: 'b', text: 'Redundant testing within the same valid partition — wasting time that could be spent on boundary or negative tests.', isCorrect: true },
+            { id: 'c', text: 'They should test 25 instead.', isCorrect: false },
+            { id: 'd', text: 'The age field does not need to be tested.', isCorrect: false }
+          ],
+          explanation: '30, 40, 50, and 55 are all in the same "valid adult" partition. Testing all of them tells you nothing extra. Use EP to test smart: one from each partition, then use BVA for the edges.'
+        }
+      ]
+    },
+    {
+      level: 'state-transition',
+      questions: [
+        {
+          question: 'An ATM card starts as "Active." After 3 wrong PINs, it becomes "Blocked." After bank unblocking, it returns to "Active." If you try to withdraw money while "Blocked," what SHOULD happen?',
+          options: [
+            { id: 'a', text: 'The withdrawal should succeed.', isCorrect: false },
+            { id: 'b', text: 'The withdrawal should be rejected with a "Card Blocked" message.', isCorrect: true },
+            { id: 'c', text: 'The card should be destroyed.', isCorrect: false },
+            { id: 'd', text: 'The ATM should crash.', isCorrect: false }
+          ],
+          explanation: 'This is state transition testing. A Blocked card must REJECT transactions — that is its only valid behavior in that state. Testing invalid actions from a state reveals missing guard logic.'
+        },
+        {
+          question: 'An order can transition: New → Processing → Shipped → Delivered. What should happen if you try to move an order directly from "New" to "Delivered" skipping steps?',
+          options: [
+            { id: 'a', text: 'The system should allow it for VIP customers.', isCorrect: false },
+            { id: 'b', text: 'The system should reject invalid transitions not in the state diagram.', isCorrect: true },
+            { id: 'c', text: 'The system should auto-process all skipped steps.', isCorrect: false },
+            { id: 'd', text: 'It should crash.', isCorrect: false }
+          ],
+          explanation: 'State machines have defined valid transitions. Jumping from New to Delivered skips business-critical steps (payment, shipping). The system must reject this as an invalid state change.'
+        },
+        {
+          question: 'What is a "State Transition Diagram" used for?',
+          options: [
+            { id: 'a', text: 'Drawing UI wireframes.', isCorrect: false },
+            { id: 'b', text: 'Visually mapping all possible states of an object and the valid transitions between them.', isCorrect: true },
+            { id: 'c', text: 'Planning database migrations.', isCorrect: false },
+            { id: 'd', text: 'Showing how users navigate a website.', isCorrect: false }
+          ],
+          explanation: 'A state diagram is a visual map of every possible state an object can be in (Active, Blocked, Expired) and every allowed action (Enter PIN, Block, Unblock) that moves it between states.'
+        },
+        {
+          question: 'A user account can be: Unverified → Verified → Suspended → Deleted. Can a Deleted account be Unsuspended?',
+          options: [
+            { id: 'a', text: 'Yes, any state can transition to any other state.', isCorrect: false },
+            { id: 'b', text: 'No — "Deleted" is a terminal state. Testing this invalid transition should result in an error.', isCorrect: true },
+            { id: 'c', text: 'Yes, as long as an admin does it.', isCorrect: false },
+            { id: 'd', text: 'Only if the account was deleted in the last 30 days.', isCorrect: false }
+          ],
+          explanation: 'Terminal states have no outgoing transitions. Testing that you CANNOT perform actions on a Deleted account is as important as testing valid actions. This is a "negative transition" test.'
+        },
+        {
+          question: 'How many tests are needed to achieve 100% transition coverage for a system with 3 states and 4 valid transitions?',
+          options: [
+            { id: 'a', text: '3 tests (one per state).', isCorrect: false },
+            { id: 'b', text: '4 tests (one per transition).', isCorrect: true },
+            { id: 'c', text: '12 tests (states × transitions).', isCorrect: false },
+            { id: 'd', text: '1 test (happy path only).', isCorrect: false }
+          ],
+          explanation: 'Transition coverage requires one test per valid transition — so 4 tests for 4 transitions. This ensures every valid path between states is exercised at least once.'
+        }
+      ]
+    },
+    {
+      level: 'test-planning',
+      questions: [
+        {
+          question: 'What is the PRIMARY purpose of a Test Plan?',
+          options: [
+            { id: 'a', text: 'To list all bugs found in the current sprint.', isCorrect: false },
+            { id: 'b', text: 'To document the scope, approach, resources, and schedule for testing activities.', isCorrect: true },
+            { id: 'c', text: 'To automate test execution.', isCorrect: false },
+            { id: 'd', text: 'To replace test cases.', isCorrect: false }
+          ],
+          explanation: 'A Test Plan is the strategy document. It answers: WHAT are we testing, HOW will we test it, WHO will test it, WHEN will it be done, and what are the ENTRY/EXIT criteria. It is the roadmap for the entire testing effort.'
+        },
+        {
+          question: 'What is an Entry Criterion in a test plan?',
+          options: [
+            { id: 'a', text: 'The condition that must be met BEFORE testing can officially begin.', isCorrect: true },
+            { id: 'b', text: 'The list of bugs that are acceptable to ship with.', isCorrect: false },
+            { id: 'c', text: 'The final sign-off from the client.', isCorrect: false },
+            { id: 'd', text: 'The condition that ends testing.', isCorrect: false }
+          ],
+          explanation: 'Entry criteria prevent wasted effort. Examples: "The build must pass smoke tests," "All critical features must be code-complete." Testing on a broken build wastes everyone\'s time.'
+        },
+        {
+          question: 'The test plan says the exit criterion is "All P1 bugs are fixed and 95% of test cases pass." The team has 94% pass rate but all P1 bugs are fixed. What should happen?',
+          options: [
+            { id: 'a', text: 'Release immediately — all P1 bugs are gone.', isCorrect: false },
+            { id: 'b', text: 'Hold the release — exit criteria are not met until BOTH conditions are satisfied.', isCorrect: true },
+            { id: 'c', text: 'Ask the developer to quickly pass the remaining tests.', isCorrect: false },
+            { id: 'd', text: 'Ignore the test plan.', isCorrect: false }
+          ],
+          explanation: 'Exit criteria must ALL be met. The test plan defines "done" — bypassing one criterion because another is met makes the plan meaningless. Raise the risk to the PM for a conscious decision.'
+        },
+        {
+          question: 'A new feature is descoped from the release mid-sprint. What must the QA lead update?',
+          options: [
+            { id: 'a', text: 'Nothing — the existing test plan covers it.', isCorrect: false },
+            { id: 'b', text: 'The test plan scope to reflect the change, and remove related test cases from the execution cycle.', isCorrect: true },
+            { id: 'c', text: 'Only the bug tracker.', isCorrect: false },
+            { id: 'd', text: 'The developer\'s code.', isCorrect: false }
+          ],
+          explanation: 'Test plans are living documents. When scope changes, the plan must be updated. Running tests for a descoped feature wastes time and creates false failure metrics.'
+        },
+        {
+          question: 'What is "Test Estimation" in a test plan and why does it matter?',
+          options: [
+            { id: 'a', text: 'Guessing how many bugs there will be.', isCorrect: false },
+            { id: 'b', text: 'Predicting the time, resources, and effort needed for testing, so the project timeline is realistic.', isCorrect: true },
+            { id: 'c', text: 'Estimating the cost of the app.', isCorrect: false },
+            { id: 'd', text: 'Estimating how many test cases are needed.', isCorrect: false }
+          ],
+          explanation: 'Without estimation, teams under- or over-allocate QA resources. Techniques like Work Breakdown Structure, historical data, or 3-point estimation help QA leads forecast effort and justify sprint capacity to management.'
+        }
+      ]
+    },
+    {
+      level: 'defect-reporting',
+      questions: [
+        {
+          question: 'A tester writes: "The login is broken." A developer cannot reproduce it. What is wrong with this defect report?',
+          options: [
+            { id: 'a', text: 'Nothing — it is clear enough.', isCorrect: false },
+            { id: 'b', text: 'It lacks Steps to Reproduce, actual result, expected result, environment, and test data.', isCorrect: true },
+            { id: 'c', text: 'The tester should have attached a video.', isCorrect: false },
+            { id: 'd', text: 'The developer should try harder.', isCorrect: false }
+          ],
+          explanation: 'A good defect report has: Title, Steps to Reproduce (numbered), Actual Result, Expected Result, Severity/Priority, Environment (browser, OS, version), and test data used. Reproducible = fixable. Vague = ignored.'
+        },
+        {
+          question: 'Which is the BEST defect title for a bug where clicking "Save" on the profile page shows a blank error?',
+          options: [
+            { id: 'a', text: 'Save button broken.', isCorrect: false },
+            { id: 'b', text: 'Profile page > Save button > Shows blank error message instead of confirmation after valid save.', isCorrect: true },
+            { id: 'c', text: 'Bug on profile.', isCorrect: false },
+            { id: 'd', text: 'Error appears when saving.', isCorrect: false }
+          ],
+          explanation: 'A good title = Location + Action + Wrong Result. Specific titles allow developers to find the issue without opening it, prioritise it quickly, and identify duplicates at a glance.'
+        },
+        {
+          question: 'Why is "Steps to Reproduce" the most critical section of a defect report?',
+          options: [
+            { id: 'a', text: 'Because it tells the developer what technology was used.', isCorrect: false },
+            { id: 'b', text: 'Because a bug that cannot be reproduced cannot be fixed — clear steps let the developer see it themselves.', isCorrect: true },
+            { id: 'c', text: 'Because it is required by the project manager.', isCorrect: false },
+            { id: 'd', text: 'Because it helps the tester remember what they did.', isCorrect: false }
+          ],
+          explanation: 'If a dev cannot reproduce the bug, it may be closed as "Cannot Reproduce." Precise steps (including test data, user role, and environment) make bugs undeniable and unfixable excuses disappear.'
+        },
+        {
+          question: 'A defect report says: "Actual: User receives a 500 error. Expected: User sees a success toast." What is this comparing?',
+          options: [
+            { id: 'a', text: 'The test case versus the bug.', isCorrect: false },
+            { id: 'b', text: 'What the system DID versus what the requirements say it SHOULD do.', isCorrect: true },
+            { id: 'c', text: 'Two different bugs.', isCorrect: false },
+            { id: 'd', text: 'Two browser behaviours.', isCorrect: false }
+          ],
+          explanation: 'Actual vs Expected is the heart of a defect report. Actual = reality. Expected = the requirement or specification. The gap between them IS the bug. This makes defects objective, not opinions.'
+        },
+        {
+          question: 'You find a bug that only occurs in Internet Explorer 11 but not Chrome, Firefox, or Edge. What should you include in the defect report?',
+          options: [
+            { id: 'a', text: 'Nothing extra — all bugs are the same.', isCorrect: false },
+            { id: 'b', text: 'Browser and OS details in the Environment section, and note it is IE11-specific.', isCorrect: true },
+            { id: 'c', text: 'Suggest dropping IE11 support.', isCorrect: false },
+            { id: 'd', text: 'Log it as a low severity automatically.', isCorrect: false }
+          ],
+          explanation: 'Environment details (Browser, Version, OS, Device) are essential for browser-specific bugs. The developer needs this to set up the same conditions. Without it, they may not reproduce the bug at all.'
+        }
+      ]
+    },
+    {
+      level: 'regression-testing',
+      questions: [
+        {
+          question: 'A developer fixes a bug in the "Add to Cart" feature. Before release, what does regression testing verify?',
+          options: [
+            { id: 'a', text: 'Only that the Add to Cart bug is fixed.', isCorrect: false },
+            { id: 'b', text: 'That the fix did not break any other existing features of the application.', isCorrect: true },
+            { id: 'c', text: 'That the code is clean.', isCorrect: false },
+            { id: 'd', text: 'That the developer wrote unit tests.', isCorrect: false }
+          ],
+          explanation: 'Regression testing checks that a change — any change — did not introduce new bugs. Like patching a pipe and checking no other pipe is now leaking. The fix is assumed correct; regression verifies the surroundings.'
+        },
+        {
+          question: 'Why is automation especially valuable for regression testing?',
+          options: [
+            { id: 'a', text: 'Because automated tests are always more thorough than manual ones.', isCorrect: false },
+            { id: 'b', text: 'Because regression suites are run repeatedly after every change — automation makes this fast and consistent without exhausting human testers.', isCorrect: true },
+            { id: 'c', text: 'Because it is cheaper to set up automation.', isCorrect: false },
+            { id: 'd', text: 'Because manual regression is impossible.', isCorrect: false }
+          ],
+          explanation: 'Running 500 regression tests manually after every sprint would take weeks. Automation runs the same tests in minutes. Consistency, speed, and freedom from human error make automation perfect for regression suites.'
+        },
+        {
+          question: 'What is "Partial Regression" or "Selective Regression"?',
+          options: [
+            { id: 'a', text: 'Running only the tests for the new feature added.', isCorrect: false },
+            { id: 'b', text: 'Running a targeted subset of regression tests related to areas affected by the change.', isCorrect: true },
+            { id: 'c', text: 'Skipping regression because the change was minor.', isCorrect: false },
+            { id: 'd', text: 'Automating only the regression tests that fail.', isCorrect: false }
+          ],
+          explanation: 'When only one module was changed, running the full 1,000-test regression suite is overkill. Selective regression targets the impacted areas first, saving time while managing risk smartly.'
+        },
+        {
+          question: 'After a hotfix deployed on Friday evening, the team skips regression testing due to time pressure. On Monday, users report that login is now broken. What went wrong?',
+          options: [
+            { id: 'a', text: 'The login was already broken before the hotfix.', isCorrect: false },
+            { id: 'b', text: 'The hotfix introduced a regression — skipping regression testing missed a change-induced break.', isCorrect: true },
+            { id: 'c', text: 'The developers should not deploy on Fridays.', isCorrect: false },
+            { id: 'd', text: 'Users were not using the correct login details.', isCorrect: false }
+          ],
+          explanation: 'This is the classic regression failure story. Every code change carries risk. The "it\'s just a small hotfix" excuse is a trap. A 1-line change can break unrelated systems through hidden dependencies.'
+        },
+        {
+          question: 'What is the key difference between Regression Testing and Re-testing?',
+          options: [
+            { id: 'a', text: 'They are the same thing.', isCorrect: false },
+            { id: 'b', text: 'Re-testing verifies a specific bug fix. Regression testing ensures the fix did not break other things.', isCorrect: true },
+            { id: 'c', text: 'Regression testing only applies to UI features.', isCorrect: false },
+            { id: 'd', text: 'Re-testing is automated; regression is manual.', isCorrect: false }
+          ],
+          explanation: 'Re-testing = did we fix THAT specific bug? Regression = did fixing THAT bug break SOMETHING ELSE? Both are always done after a fix — one is focused, one is broad.'
+        }
+      ]
+    },
+
+    // ── EXPERT ───────────────────────────────────────────────────
+    {
+      level: 'risk-based-testing',
+      questions: [
+        {
+          question: 'You have 3 days left and 200 test cases. The payment system, profile photo upload, and dark mode toggle are all untested. Which do you test first using risk-based testing?',
+          options: [
+            { id: 'a', text: 'Dark mode toggle — it affects all users visually.', isCorrect: false },
+            { id: 'b', text: 'Payment system — highest business impact and likelihood of critical bugs.', isCorrect: true },
+            { id: 'c', text: 'Profile photo — users update it frequently.', isCorrect: false },
+            { id: 'd', text: 'All three equally.', isCorrect: false }
+          ],
+          explanation: 'Risk = Likelihood × Impact. A broken payment system = lost revenue and trust (catastrophic impact). A broken dark mode = minor annoyance (low impact). Risk-based testing allocates limited time to the areas that matter most.'
+        },
+        {
+          question: 'How do you calculate the risk level of a feature to decide testing priority?',
+          options: [
+            { id: 'a', text: 'Risk = Code Complexity + Developer Mood.', isCorrect: false },
+            { id: 'b', text: 'Risk = Probability of Failure × Impact of Failure.', isCorrect: true },
+            { id: 'c', text: 'Risk = Number of bugs found in the last release.', isCorrect: false },
+            { id: 'd', text: 'Risk = Feature size in lines of code.', isCorrect: false }
+          ],
+          explanation: 'This is the core formula. A feature that rarely fails but causes total system shutdown when it does = High Risk. A feature that fails often but only shows a cosmetic glitch = Low Risk. Multiply probability × impact to rank your risks.'
+        },
+        {
+          question: 'A team is skipping regression tests on the authentication module because "it hasn\'t changed in 6 months." From a risk-based perspective, why is this dangerous?',
+          options: [
+            { id: 'a', text: 'Because authentication is complex code.', isCorrect: false },
+            { id: 'b', text: 'Because authentication failure = complete system lockout, making impact HIGH regardless of likelihood.', isCorrect: true },
+            { id: 'c', text: 'Because no code should be untested.', isCorrect: false },
+            { id: 'd', text: 'It is not dangerous — old code is stable code.', isCorrect: false }
+          ],
+          explanation: 'Risk-based testing considers IMPACT even when probability is low. Authentication = the front door. Even a 1% chance of a break is catastrophic. High-impact areas must always be included in risk analysis.'
+        },
+        {
+          question: 'Risk-based testing means you might INTENTIONALLY skip some tests. When is this acceptable?',
+          options: [
+            { id: 'a', text: 'Never — all tests must be run before release.', isCorrect: false },
+            { id: 'b', text: 'When skipping low-risk, low-impact tests is a conscious, documented decision agreed to by stakeholders.', isCorrect: true },
+            { id: 'c', text: 'When the team is running behind schedule — just skip anything.', isCorrect: false },
+            { id: 'd', text: 'When the developer says it is fine.', isCorrect: false }
+          ],
+          explanation: 'Skipping tests is NOT lazy testing — it is SMART resource allocation, but only when the decision is deliberate, transparent, and documented. Stakeholders must understand and accept the residual risk.'
+        },
+        {
+          question: 'A newly hired developer just rewrote the user authentication system from scratch. Without risk analysis, which testing approach makes most sense?',
+          options: [
+            { id: 'a', text: 'Test the newest UI screens — they are freshest in the developer\'s mind.', isCorrect: false },
+            { id: 'b', text: 'Focus heavy testing on authentication — new code in critical areas has high defect likelihood AND high impact.', isCorrect: true },
+            { id: 'c', text: 'Run only the happy path for authentication.', isCorrect: false },
+            { id: 'd', text: 'Trust the developer — they are experienced.', isCorrect: false }
+          ],
+          explanation: 'New code + critical function = maximum risk. Rewrites often introduce new bugs even in previously stable systems. This is textbook "high probability × high impact" — your risk matrix should light up red here.'
+        }
+      ]
+    },
+    {
+      level: 'state-dependency',
+      questions: [
+        {
+          question: 'A user adds items to their cart in Tab A. They open Tab B, add different items, and checkout. Tab A still shows the original items. When they checkout from Tab A, what might go wrong?',
+          options: [
+            { id: 'a', text: 'Nothing — each tab is independent.', isCorrect: false },
+            { id: 'b', text: 'Tab A might checkout with stale data, causing a duplicate or incorrect order.', isCorrect: true },
+            { id: 'c', text: 'The browser will sync both tabs automatically.', isCorrect: false },
+            { id: 'd', text: 'The checkout will fail with an error.', isCorrect: false }
+          ],
+          explanation: 'This is a classic state dependency bug. Tab A holds a stale snapshot of state. When it submits, the server may process outdated data — leading to duplicate charges, wrong quantities, or phantom inventory updates.'
+        },
+        {
+          question: 'How can a tester reproduce a state dependency bug in a banking app?',
+          options: [
+            { id: 'a', text: 'Log in and transfer money normally.', isCorrect: false },
+            { id: 'b', text: 'Open two browser sessions simultaneously and make conflicting updates to the same account.', isCorrect: true },
+            { id: 'c', text: 'Enter an invalid account number.', isCorrect: false },
+            { id: 'd', text: 'Refresh the page during a transfer.', isCorrect: false }
+          ],
+          explanation: 'State dependency bugs require concurrent actions. Open two sessions: change the account balance in one, then initiate a transaction in the other. The system may use the pre-change balance, causing an incorrect result.'
+        },
+        {
+          question: 'What does "stale state" mean in the context of a web application?',
+          options: [
+            { id: 'a', text: 'The app has not been updated in a long time.', isCorrect: false },
+            { id: 'b', text: 'The UI or client is displaying data that is outdated compared to the current server state.', isCorrect: true },
+            { id: 'c', text: 'The database has old records.', isCorrect: false },
+            { id: 'd', text: 'The session cookie has expired.', isCorrect: false }
+          ],
+          explanation: 'Stale state = the frontend shows "old news." The server moved on, but the client did not refresh. This is like looking at yesterday\'s stock prices to make today\'s trades.'
+        },
+        {
+          question: 'An admin dashboard shows 100 active users. While viewing it, 20 users log out on their phones. The dashboard still shows 100. What is this called and how should it be handled?',
+          options: [
+            { id: 'a', text: 'A security breach — lock down the dashboard.', isCorrect: false },
+            { id: 'b', text: 'A stale state bug — the dashboard needs real-time updates or a manual refresh mechanism.', isCorrect: true },
+            { id: 'c', text: 'Normal behaviour for dashboards.', isCorrect: false },
+            { id: 'd', text: 'A network issue on the user\'s devices.', isCorrect: false }
+          ],
+          explanation: 'This is expected in polling-based UIs, but critical dashboards should use WebSockets or auto-refresh to stay current. From a testing standpoint, verify what happens when the admin acts on stale data (e.g., sends a message to an already-logged-out user).'
+        },
+        {
+          question: 'A tester refreshes a page mid-session and loses all their unsaved form data. Is this a bug?',
+          options: [
+            { id: 'a', text: 'No — this is expected browser behaviour.', isCorrect: false },
+            { id: 'b', text: 'It depends — if UX requires preserving state on refresh, the app should save to localStorage or warn the user before refresh.', isCorrect: true },
+            { id: 'c', text: 'Yes — always a critical bug.', isCorrect: false },
+            { id: 'd', text: 'No — users should not refresh during forms.', isCorrect: false }
+          ],
+          explanation: 'State persistence requirements depend on the spec. Multi-step wizards and long forms should typically preserve state across accidental refreshes. If the spec says "auto-save draft," losing data on refresh IS a bug.'
+        }
+      ]
+    },
+    {
+      level: 'race-conditions',
+      questions: [
+        {
+          question: 'Two users click "Book the last seat" on a concert ticket app at the exact same time. Both get a success message, but only one seat exists. What is this?',
+          options: [
+            { id: 'a', text: 'A UI bug.', isCorrect: false },
+            { id: 'b', text: 'A race condition — two concurrent requests beat the system\'s stock check before it could update.', isCorrect: true },
+            { id: 'c', text: 'A network error.', isCorrect: false },
+            { id: 'd', text: 'A database backup failure.', isCorrect: false }
+          ],
+          explanation: 'Race conditions occur when two operations run so close together that they both read the "1 seat available" state before either has a chance to set it to 0. The fix is database-level locking or atomic operations.'
+        },
+        {
+          question: 'How would a QA tester manually attempt to trigger a race condition on a "Claim Promo Code" feature?',
+          options: [
+            { id: 'a', text: 'Enter an invalid promo code.', isCorrect: false },
+            { id: 'b', text: 'Use two browser sessions to click "Claim" simultaneously and verify only one succeeds.', isCorrect: true },
+            { id: 'c', text: 'Test on a slow network.', isCorrect: false },
+            { id: 'd', text: 'Wait for the code to expire.', isCorrect: false }
+          ],
+          explanation: 'Manual race condition testing = time your clicks to overlap. Open two incognito windows, navigate to the same promo code, count "3, 2, 1, click!" simultaneously. If both claim success, that\'s a race condition bug.'
+        },
+        {
+          question: 'What technical mechanism do developers use to prevent race conditions in databases?',
+          options: [
+            { id: 'a', text: 'Faster internet connections.', isCorrect: false },
+            { id: 'b', text: 'Database transactions with row-level locking or atomic operations.', isCorrect: true },
+            { id: 'c', text: 'Disabling concurrent users.', isCorrect: false },
+            { id: 'd', text: 'Adding a CAPTCHA before purchases.', isCorrect: false }
+          ],
+          explanation: 'Database locks ensure only ONE transaction can read-update-write a resource at a time. "SELECT FOR UPDATE" or pessimistic locking prevents the second request from reading stale data during the first\'s write window.'
+        },
+        {
+          question: 'A tester finds a race condition bug but it is intermittent — it only happens 1 in 10 tries. How should this be reported?',
+          options: [
+            { id: 'a', text: 'Ignore it — intermittent bugs are not real bugs.', isCorrect: false },
+            { id: 'b', text: 'Report it with detailed reproduction steps, frequency of occurrence, and mark it as intermittent.', isCorrect: true },
+            { id: 'c', text: 'Only report it when it happens 100% of the time.', isCorrect: false },
+            { id: 'd', text: 'Ask the developer to make it happen every time first.', isCorrect: false }
+          ],
+          explanation: 'Intermittent bugs are the hardest and most dangerous. Note: "Reproducible approximately 1 in 10 attempts by clicking simultaneously in two sessions." Include a screen recording. Intermittent race conditions in production can cause data corruption at scale.'
+        },
+        {
+          question: 'A race condition causes a user\'s account to be debited twice when they double-click the "Pay" button. What severity is this?',
+          options: [
+            { id: 'a', text: 'Low — just disable the button after one click.', isCorrect: false },
+            { id: 'b', text: 'Critical — financial data corruption directly harming users.', isCorrect: true },
+            { id: 'c', text: 'Medium — users can contact support for a refund.', isCorrect: false },
+            { id: 'd', text: 'Cosmetic — the double click is user error.', isCorrect: false }
+          ],
+          explanation: 'Double-charging a user is a CRITICAL defect. It causes financial harm, erodes trust, and creates legal liability. The app MUST handle rapid duplicate submissions with idempotency keys or button-disabling on first click.'
+        }
+      ]
+    },
+    {
+      level: 'interrupt-testing',
+      questions: [
+        {
+          question: 'A user is filling out a 5-step checkout form on a mobile app. They receive a phone call at step 3. After the call ends, they return to the app. What SHOULD happen?',
+          options: [
+            { id: 'a', text: 'The app should restart from step 1.', isCorrect: false },
+            { id: 'b', text: 'The app should resume at step 3 with the data the user entered preserved.', isCorrect: true },
+            { id: 'c', text: 'The app should submit the incomplete form.', isCorrect: false },
+            { id: 'd', text: 'The app should show the home screen.', isCorrect: false }
+          ],
+          explanation: 'Interrupt testing checks that apps gracefully pause and resume. A phone call is the most common interrupt. Losing checkout progress = lost sale. The app must preserve state when moved to background.'
+        },
+        {
+          question: 'Which of the following is NOT a type of interrupt you should test on a mobile banking app?',
+          options: [
+            { id: 'a', text: 'Incoming SMS notification.', isCorrect: false },
+            { id: 'b', text: 'Low battery warning.', isCorrect: false },
+            { id: 'c', text: 'Screen brightness change.', isCorrect: true },
+            { id: 'd', text: 'Network loss mid-transaction.', isCorrect: false }
+          ],
+          explanation: 'Screen brightness is a display setting, not an app interrupt. Real interrupts are: calls, SMS, push notifications, low battery (may force close app), network drops, and switching apps. These all affect app state.'
+        },
+        {
+          question: 'A user is transferring $5,000 in a banking app. Mid-transfer, their internet drops for 3 seconds. When it reconnects, the transfer shows "Pending." What should the tester verify?',
+          options: [
+            { id: 'a', text: 'That the app shows a loading spinner.', isCorrect: false },
+            { id: 'b', text: 'That the money was not deducted before the transaction confirmed, AND that it eventually completes or clearly fails.', isCorrect: true },
+            { id: 'c', text: 'That the app shows a timeout error immediately.', isCorrect: false },
+            { id: 'd', text: 'That the app retries automatically 10 times.', isCorrect: false }
+          ],
+          explanation: 'Network interrupts during transactions are the scariest bugs. The tester must verify: no double deduction, correct final state (completed/failed/pending), and a clear user message. "Pending" forever is itself a defect.'
+        },
+        {
+          question: 'What happens if a user presses the "Home" button mid-video-call in an app? What should interrupt testing verify?',
+          options: [
+            { id: 'a', text: 'The call should immediately end.', isCorrect: false },
+            { id: 'b', text: 'The call should continue in the background with an audio indicator visible in the notification bar.', isCorrect: true },
+            { id: 'c', text: 'The app should lock the screen.', isCorrect: false },
+            { id: 'd', text: 'Nothing — this behaviour depends on the OS.', isCorrect: false }
+          ],
+          explanation: 'Modern apps must handle background state gracefully. Video calls use PiP (Picture-in-Picture) or background audio. Interrupt testing verifies the call does not drop, audio continues, and the user can easily return to the app.'
+        },
+        {
+          question: 'How do you test app behaviour when the device battery reaches 5%?',
+          options: [
+            { id: 'a', text: 'Let the phone die and see what happens.', isCorrect: false },
+            { id: 'b', text: 'Use developer tools / battery simulation to trigger low battery while the app is active and observe behaviour.', isCorrect: true },
+            { id: 'c', text: 'Test it during an actual power cut.', isCorrect: false },
+            { id: 'd', text: 'This is not a valid test scenario.', isCorrect: false }
+          ],
+          explanation: 'Android and iOS both provide developer tools to simulate battery levels. At 5%, Android OS may kill background processes. The tester verifies: does the app warn the user, save state, and resume correctly after charging?'
+        }
+      ]
+    },
+    {
+      level: 'usability-testing',
+      questions: [
+        {
+          question: 'A new user says: "I couldn\'t find the logout button — I thought I had to close the browser." This is an example of which type of defect?',
+          options: [
+            { id: 'a', text: 'A functional defect — the logout button does not work.', isCorrect: false },
+            { id: 'b', text: 'A usability defect — the logout button exists but is not discoverable.', isCorrect: true },
+            { id: 'c', text: 'A performance defect.', isCorrect: false },
+            { id: 'd', text: 'A security defect.', isCorrect: false }
+          ],
+          explanation: 'Usability defects are about UX friction, not broken functionality. The button works — but users cannot find it. This is discoverability failure. A feature that users cannot find might as well not exist.'
+        },
+        {
+          question: 'During usability testing, a tester is observing a user attempt to complete a task. The user is struggling. What should the tester do?',
+          options: [
+            { id: 'a', text: 'Immediately help them — they are frustrated.', isCorrect: false },
+            { id: 'b', text: 'Stay silent and observe — their struggle is the data. Note what confused them.', isCorrect: true },
+            { id: 'c', text: 'End the session early.', isCorrect: false },
+            { id: 'd', text: 'Tell them the correct path.', isCorrect: false }
+          ],
+          explanation: 'Observing where users struggle IS the usability test. Helping them removes the data. The tester\'s job is to be a fly on the wall, noting confusion, hesitation, and wrong clicks — all of which signal UX problems.'
+        },
+        {
+          question: 'Which heuristic from Nielsen\'s 10 Usability Heuristics is violated when an error message says "Error Code: E1045" with no further explanation?',
+          options: [
+            { id: 'a', text: 'Match between system and the real world.', isCorrect: false },
+            { id: 'b', text: 'Help users recognize, diagnose, and recover from errors.', isCorrect: true },
+            { id: 'c', text: 'Aesthetic and minimalist design.', isCorrect: false },
+            { id: 'd', text: 'Consistency and standards.', isCorrect: false }
+          ],
+          explanation: 'Error messages should use plain language, identify the problem clearly, and suggest a solution. "E1045" tells the user nothing. "Your session expired. Please log in again." is the usability standard.'
+        },
+        {
+          question: 'What is the key difference between usability testing and functional testing?',
+          options: [
+            { id: 'a', text: 'Functional testing uses real users; usability testing uses scripts.', isCorrect: false },
+            { id: 'b', text: 'Functional testing checks WHAT the system does. Usability testing checks HOW WELL real users can use it.', isCorrect: true },
+            { id: 'c', text: 'Usability testing is done by developers.', isCorrect: false },
+            { id: 'd', text: 'They are the same thing with different names.', isCorrect: false }
+          ],
+          explanation: 'Functional: "Does the button submit the form?" Usability: "Can a first-time user find the button, understand it, and successfully submit without confusion?" Usability is about the human, not just the function.'
+        },
+        {
+          question: 'A checkout flow has 7 steps: Cart, Address, Shipping, Payment, Review, Confirm, Receipt. A usability test finds 60% of users abandon at step 4. What should the team do?',
+          options: [
+            { id: 'a', text: 'Make step 4 load faster.', isCorrect: false },
+            { id: 'b', text: 'Investigate what makes step 4 confusing or frustrating — consider reducing steps or redesigning the payment screen.', isCorrect: true },
+            { id: 'c', text: 'Remove step 4 entirely.', isCorrect: false },
+            { id: 'd', text: 'Add a help tooltip to every field.', isCorrect: false }
+          ],
+          explanation: 'High abandonment at a specific step is a critical usability signal. Investigate: Is the UI confusing? Are there too many required fields? Does it feel untrustworthy? Then redesign and A/B test the improved version.'
+        }
+      ]
+    },
+    {
+      level: 'test-metrics',
+      questions: [
+        {
+          question: 'Your team ran 200 test cases and found 40 bugs. What is the Defect Density if the application has 1,000 lines of code?',
+          options: [
+            { id: 'a', text: '0.02 defects per line.', isCorrect: false },
+            { id: 'b', text: '0.04 defects per line of code.', isCorrect: true },
+            { id: 'c', text: '40 defects per module.', isCorrect: false },
+            { id: 'd', text: '200 defects per build.', isCorrect: false }
+          ],
+          explanation: 'Defect Density = Number of Defects / Size of software (KLOC or module). 40 / 1,000 = 0.04 defects/LOC. This metric helps identify which modules are buggiest and need more testing attention.'
+        },
+        {
+          question: 'At the end of a sprint, the team has 180 passed, 10 failed, and 10 blocked test cases out of 200 total. What is the Test Pass Rate?',
+          options: [
+            { id: 'a', text: '90%', isCorrect: true },
+            { id: 'b', text: '95%', isCorrect: false },
+            { id: 'c', text: '100%', isCorrect: false },
+            { id: 'd', text: '80%', isCorrect: false }
+          ],
+          explanation: 'Test Pass Rate = (Passed / Total Executed) × 100. 180/200 = 90%. Note: blocked tests are still "executed" in this context. A 90% pass rate with 10 failures still means you have 10 open bugs to investigate.'
+        },
+        {
+          question: 'A team boasts "We found 0 bugs this sprint!" Is this always good news from a metrics perspective?',
+          options: [
+            { id: 'a', text: 'Yes — zero bugs means perfect quality.', isCorrect: false },
+            { id: 'b', text: 'No — it could mean testing coverage was too low, the test cases were too shallow, or the team was pressured not to report bugs.', isCorrect: true },
+            { id: 'c', text: 'Yes — the developers wrote great code.', isCorrect: false },
+            { id: 'd', text: 'No — all apps have bugs by definition.', isCorrect: false }
+          ],
+          explanation: 'Zero bugs is a red flag as often as it is a celebration. Ask: What was the test coverage? Were negative tests run? Were exploratory sessions done? Metrics must be interpreted with context, not at face value.'
+        },
+        {
+          question: 'What does "Test Coverage" measure?',
+          options: [
+            { id: 'a', text: 'The number of bugs found per tester.', isCorrect: false },
+            { id: 'b', text: 'The percentage of requirements or code paths exercised by test cases.', isCorrect: true },
+            { id: 'c', text: 'The total number of test cases written.', isCorrect: false },
+            { id: 'd', text: 'The time taken to run all tests.', isCorrect: false }
+          ],
+          explanation: 'Coverage = what percentage of the system did we actually test? Requirement coverage: are all user stories tested? Code coverage: what percentage of code lines were executed? 100% coverage does not mean 0 bugs, but low coverage means high blind spots.'
+        },
+        {
+          question: 'A QA manager sees the Defect Removal Efficiency (DRE) is 60% for the last release. This means 40% of bugs were found in production. What action should they take?',
+          options: [
+            { id: 'a', text: 'Nothing — 60% is acceptable for any project.', isCorrect: false },
+            { id: 'b', text: 'Investigate gaps in testing — add more negative tests, edge cases, or automation to catch more bugs before release.', isCorrect: true },
+            { id: 'c', text: 'Hire more developers to write better code.', isCorrect: false },
+            { id: 'd', text: 'Remove the metrics dashboard.', isCorrect: false }
+          ],
+          explanation: 'DRE = (Bugs found before release / Total bugs) × 100. A DRE of 60% is poor — it means 40% of defects escaped to production where they are 10-100x more expensive to fix. The target should be 90%+. Low DRE demands immediate testing process review.'
         }
       ]
     }

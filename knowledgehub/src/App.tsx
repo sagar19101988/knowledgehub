@@ -97,9 +97,18 @@ const ZONE_TIERS: Record<string, { id: string; label: string; color: string; mod
     },
   ],
   manual: [
-    { id: 'beginner',     label: 'Beginner',     color: 'text-emerald-400', moduleIds: ['basic']        },
-    { id: 'intermediate', label: 'Intermediate', color: 'text-sky-400',     moduleIds: ['intermediate'] },
-    { id: 'expert',       label: 'Expert',       color: 'text-amber-400',   moduleIds: ['expert']       },
+    {
+      id: 'beginner', label: 'Beginner', color: 'text-emerald-400',
+      moduleIds: ['what-is-testing','types-of-testing','writing-test-cases','happy-path','negative-testing','exploratory-testing','bug-life-cycle','severity-vs-priority'],
+    },
+    {
+      id: 'intermediate', label: 'Intermediate', color: 'text-sky-400',
+      moduleIds: ['bva','equivalence-partitioning','state-transition','test-planning','defect-reporting','regression-testing'],
+    },
+    {
+      id: 'expert', label: 'Expert', color: 'text-amber-400',
+      moduleIds: ['risk-based-testing','state-dependency','race-conditions','interrupt-testing','usability-testing','test-metrics'],
+    },
   ],
   sql: [
     { id: 'beginner',     label: 'Beginner',     color: 'text-emerald-400', moduleIds: ['basic']        },

@@ -14,67 +14,1447 @@ export const ZONES_CONTENT: Record<string, ZoneData> = {
   manual: {
     id: 'manual',
     levels: [
+
+      // ─── BEGINNER ───────────────────────────────────────────────────────────
+
       {
-        id: 'basic',
-        title: 'Basic: Core Testing Ideas',
-        analogy: "Testing software is like test-driving a new car. You have to check if it drives normally, but you also have to try slamming the brakes and pressing all the radio buttons at once just to see what happens.",
+        id: 'what-is-testing',
+        title: 'Beginner: What is Software Testing?',
+        analogy: "Software testing is like being a professional food taster before the dish goes to the king. Your job is to find anything wrong before it poisons someone important.",
         lessonMarkdown: `
-### 1. Exploratory Testing
-*💡 Analogy: It's like walking into a brand new Escape Room. You don't just look at the obvious clues; you start pulling on fake books, turning knobs, and eating the props just to see what the Game Master does!*
+## What is Software Testing?
 
-Exploratory Testing is the art of testing an application without a pre-defined script. Instead of following a strict checklist (like "Click button A, then type in Box B"), you rely entirely on your intuition, curiosity, and experience. You explore the software dynamically, designing and executing your tests at the exact same time. This is often where the most critical bugs are found, because real users act unpredictably. If you only test what the developer *expected* to happen, you will miss all the things they *didn't* expect.
+Software testing is the process of **evaluating a software application to find defects** and verify that it behaves exactly as expected. It is not about "breaking things for fun" — it is about ensuring that real users get a reliable, correct experience.
 
-### 2. The Happy Path
-*💡 Analogy: It's the smooth, paved highway. No traffic, perfectly sunny, driving exactly the speed limit. It's exactly how the road was designed to be used.*
+### 1. Why Software Breaks
 
-The Happy Path is the default, most common scenario where everything goes perfectly right. If an e-commerce site wants a user to add a shirt to their cart, enter their credit card, and click buy—that's the Happy Path. As a tester, you **must** test the Happy Path first. Why? Because if the core, intended functionality of the app doesn't even work, there is absolutely no reason to waste time testing weird edge cases or error messages. 
+Software is written by humans, and humans make mistakes. These mistakes can be:
 
-### 3. Negative Testing
-*💡 Analogy: Going to a vending machine, putting in a piece of paper instead of a dollar bill, and pressing the button for a soda just to make sure the machine spits it back out instead of catching fire.*
+- **Logic errors** — The code does something, just not the right thing. E.g., a discount applies to ALL users, not just premium ones.
+- **Missing requirements** — The developer forgot a rule. E.g., the form accepts negative ages.
+- **Integration bugs** — Two systems talk to each other incorrectly. E.g., the payment gateway sends a success signal but the order system never receives it.
+- **Environmental bugs** — Works on the developer's laptop but breaks in production.
 
-Negative testing is deliberately doing things you aren't supposed to do. You intentionally provide invalid data or perform unexpected actions to ensure the application handles it gracefully. What happens if you type the letter "A" into a calculator? What happens if you try to submit a form without filling in your email address? A well-built system will catch your mistake and show you a polite, helpful error message. A poorly built system will crash or corrupt its database.
+**Real Example:**
+
+In 1996, the Ariane 5 rocket exploded 37 seconds after launch. The cause? A piece of software originally written for Ariane 4 was reused without re-testing it against the new rocket's higher speed. A number conversion overflowed. Cost: $370 million. One untested edge case.
+
+*💡 Analogy: Software breaks for the same reason IKEA furniture wobbles — someone skipped a step in the instructions and assumed it would be fine.*
+
+---
+
+### 2. The QA Mindset vs The Dev Mindset
+
+Developers think: *"How do I build this so it works?"*
+
+Testers think: *"How can I prove this doesn't work?"*
+
+This is not adversarial — it is complementary. A developer who tests their own code will subconsciously avoid the paths they didn't build. A tester approaches it like a stranger who has never seen the app before.
+
+**Key qualities of a great tester:**
+- **Curiosity** — always asking "what if I do THIS?"
+- **Scepticism** — never assuming the code is correct until proven
+- **Empathy** — thinking like a real user, not a developer
+
+*💡 Analogy: A chef who cooks the meal and then also judges it will always say it tastes fine. You need a separate person whose only job is to be brutally honest.*
+
+---
+
+### 3. The Cost of Finding Bugs Late
+
+The later a bug is found, the more expensive it is to fix. This is known as the **Rule of Ten**:
+
+| When Bug is Found | Relative Cost to Fix |
+|---|---|
+| During requirements | ×1 (cheapest) |
+| During design | ×5 |
+| During coding | ×10 |
+| During testing | ×20 |
+| After release (production) | ×100+ |
+
+**Real Example:**
+
+A startup launches a mobile banking app. After 3 weeks in production, users discover they can transfer more money than their balance because the validation was only on the frontend — the API had no server-side check. Fixing it requires a hotfix deployment, a security audit, notifying regulators, and compensating affected users. A 10-minute code review would have caught it.
+
+*💡 Analogy: Finding a crack in a house foundation during construction costs £500 to fix. Finding it after the family has moved in costs £50,000 and involves structural engineers, temporary housing, and a lawsuit.*
         `
       },
+
       {
-        id: 'intermediate',
-        title: 'Intermediate: Test Design',
-        analogy: "Being efficient is like a bouncer at a club. You don't need to check every single 20-year-old's ID if you already know the whole group is 20. But you definitely keep an eye on the kid who looks exactly 17.",
+        id: 'types-of-testing',
+        title: 'Beginner: Types of Testing',
+        analogy: "Types of testing are like different tools in a toolbox. A hammer, screwdriver, and wrench all serve different purposes — you wouldn't use a hammer to tighten a bolt.",
         lessonMarkdown: `
-### 1. Boundary Value Analysis (BVA)
-*💡 Analogy: If a sign says "Bridge Capacity: 10 Cars", you don't care about 5 cars. You care about exactly 10 cars, and you definitely care about what happens when the 11th car tries to drive on.*
+## Types of Testing
 
-Bugs absolutely love to hide at the edges or "boundaries" of rules. Developers frequently make "off-by-one" errors (using \`<\` instead of \`<=\`). If a password field requires between 8 and 12 characters, testing a 10-character password isn't very useful. Instead, BVA tells you to test the exact limits and the numbers just outside those limits. For an 8-12 limit, you must test 7, 8, 12, and 13. If those edges work perfectly, everything in the middle will almost certainly work too.
+Not all testing is the same. Different types of testing serve different purposes, and a professional QA engineer needs to know which weapon to pick for which battle.
 
-### 2. Equivalence Partitioning
-*💡 Analogy: If you are sorting apples into "Good" and "Rotten" baskets, you don't need to bite into every single good apple to know it's good. Biting one from the "Good" pile is enough to prove the pile is correct.*
+### 1. Functional vs Non-Functional Testing
 
-This is a technique used to save massive amounts of time. It involves dividing test inputs into groups (partitions) that the application treats exactly the same way. For example, if a movie ticket discount applies to anyone aged 65 to 100, you don't need to write a test case for a 65-year-old, a 66-year-old, a 67-year-old, etc. You just pick one number from that "partition" (like 70) and test it once. If 70 works, you assume 71 works too.
+**Functional Testing** checks WHAT the software does — does it meet the requirements?
 
-### 3. State Transition Testing
-*💡 Analogy: Think of a washing machine. It must go from "Fill" to "Wash" to "Spin". You want to make sure it doesn't try to "Spin" while it's still filling with water.*
+Examples:
+- Does clicking "Submit" save the form?
+- Does the login page reject wrong passwords?
+- Does the search return relevant results?
 
-State Transition Testing checks if an object or system moves correctly between different allowed statuses. In software, an online order starts as "Pending". Then it moves to "Paid". Then "Shipped". Finally "Delivered". Your job is to test these transitions. Can an order go from "Pending" straight to "Delivered"? Can an order go backwards from "Shipped" to "Pending"? You map out every possible state and test the triggers that cause the system to move between them.
+**Non-Functional Testing** checks HOW WELL the software does it.
+
+| Non-Functional Type | What it Checks | Example |
+|---|---|---|
+| Performance | Speed under load | Can 10,000 users login simultaneously? |
+| Security | Resistance to attacks | Can a user access another user's data? |
+| Usability | Ease of use | Can a first-time user find the checkout button? |
+| Compatibility | Works on different devices/browsers | Does it look right on Safari? |
+| Reliability | Stays stable over time | Does it crash after running for 24 hours? |
+
+*💡 Analogy: Functional testing checks if a car DRIVES. Non-functional testing checks if it drives FAST ENOUGH, SAFELY ENOUGH, and is COMFORTABLE ENOUGH for a 6-hour road trip.*
+
+---
+
+### 2. Black Box, White Box, and Grey Box Testing
+
+These describe HOW MUCH you know about the system's internals when testing.
+
+**Black Box Testing** — You see only the input and output. You have no idea what the code looks like inside. You test as a real user would.
+
+- ✅ No coding knowledge required
+- ✅ Tests what users actually experience
+- ❌ Cannot test internal logic directly
+
+**Real Example:** You test a login form by entering email/password and checking if you log in. You never look at the database query behind it.
+
+**White Box Testing** — You see ALL the code. You write tests targeting specific lines, branches, and conditions inside the code.
+
+- ✅ Can achieve very high code coverage
+- ✅ Can find hidden logic bugs
+- ❌ Requires strong programming knowledge
+
+**Grey Box Testing** — You have PARTIAL knowledge. You know the high-level architecture and APIs but not the exact code. Most professional manual QA sits here.
+
+*💡 Analogy: Black box = ordering food at a restaurant. White box = being the chef who knows every ingredient. Grey box = being a food critic who knows the menu, the kitchen layout, but not the exact recipe.*
+
+---
+
+### 3. Manual vs Automated Testing
+
+**Manual Testing** — A human tester interacts with the app directly and checks results with their own eyes and judgment.
+
+✅ Best for: Exploratory testing, UX feedback, one-off tests, visual checks
+❌ Slow, prone to human error on repetitive tasks
+
+**Automated Testing** — Code (scripts) clicks buttons, fills forms, and checks results automatically.
+
+✅ Best for: Regression testing, repetitive checks, CI/CD pipelines
+❌ Takes time to build, brittle if UI changes frequently
+
+**Real Example:** A banking app has 200 screens. Testing login manually takes 2 minutes. Testing all 200 screens manually after every release takes 3 days. An automated suite can do it in 15 minutes overnight.
+
+*💡 Analogy: Manual testing is hand-washing your dishes. Automation is buying a dishwasher. The dishwasher is faster for the regular load, but you still hand-wash your grandmother's antique china.*
         `
       },
+
       {
-        id: 'expert',
-        title: 'Expert: Advanced Heuristics',
-        analogy: "Expert testing is looking for the invisible strings holding the app together. It's trying to trick the system by acting faster than it can think, or pulling the plug while it's in the middle of a thought.",
+        id: 'writing-test-cases',
+        title: 'Beginner: Writing Test Cases',
+        analogy: "A test case is like a recipe. If you write 'add some flour', you'll get a different cake every time. You need to write 'add exactly 200g of plain flour, sifted' to get consistent, repeatable results.",
         lessonMarkdown: `
-### 1. State Dependency
-*💡 Analogy: It's like having a conversation with someone, leaving the room, changing your clothes, walking back in, and seeing if they realize you are wearing something different, or if they still think you have the old clothes on.*
+## Writing Test Cases
 
-State dependency bugs occur when an application gets confused about its current reality across multiple sessions, tabs, or devices. A classic example is e-commerce: You open Tab A and add 1 laptop to your cart. You open Tab B and add 5 laptops. You go back to Tab A (which still visually says 1 laptop) and click "Buy". Does the system charge you for 1, or does the backend charge you for 6? Applications frequently fail to sync their "state" when the user does unexpected cross-tab wizardry.
+A test case is a **documented set of conditions and steps** that tell you exactly what to do, what data to use, and what result to expect. Without test cases, testing is guesswork.
 
-### 2. Race Conditions
-*💡 Analogy: Two people trying to grab the last slice of pizza at the exact same millisecond. If the system isn't watching closely, both people walk away thinking they got the whole slice.*
+### 1. Anatomy of a Test Case
 
-A race condition is a dangerous timing bug. It happens when two operations or requests hit the server at the exact same time, and the server processes them out of order or fails to lock the database. For example, if a user has $100 in their bank account and clicks "Transfer $100" on their phone and their laptop at the exact same millisecond. If the bank's database doesn't lock the account during the first transaction, both transfers might succeed, leaving the user with a negative balance.
+Every professional test case contains these fields:
 
-### 3. Interrupts
-*💡 Analogy: You are in the middle of writing a very important essay, and someone unplugs your computer from the wall. When you turn it back on, did you lose everything?*
+| Field | Description | Example |
+|---|---|---|
+| **Test Case ID** | Unique identifier | TC-LOGIN-001 |
+| **Title** | What it tests | Verify login with valid credentials |
+| **Preconditions** | What must be true before starting | User must be registered with email: test@qa.com |
+| **Test Steps** | Numbered, specific actions | 1. Go to /login  2. Enter email  3. Enter password  4. Click Submit |
+| **Test Data** | Exact values to use | Email: test@qa.com, Password: Test@1234 |
+| **Expected Result** | What SHOULD happen | User is redirected to dashboard, greeting shows "Hello, Test User" |
+| **Actual Result** | What DID happen (filled after execution) | ✅ Pass / ❌ Fail + description |
+| **Priority** | P1 / P2 / P3 | P1 — Critical path |
 
-Particularly critical in mobile app testing, interrupt testing checks how an application behaves when a real-world event brutally interrupts it. What happens to the payment processing screen if a phone call comes in? What happens to your unsaved game if the battery dies, or if you lose Wi-Fi and switch to 4G? A robust application must gracefully pause, save its state, or recover without crashing or corrupting the user's data.
+---
+
+### 2. Good Test Cases vs Bad Test Cases
+
+**❌ Bad Test Case:**
+> "Login with correct details and check it works"
+
+This is useless. What "correct details"? How do you know "it works"?
+
+**✅ Good Test Case:**
+> **TC-LOGIN-001:** Verify successful login with registered email and password
+> Steps: 1) Navigate to https://app.com/login  2) Enter email "user@test.com"  3) Enter password "ValidPass@123"  4) Click the "Sign In" button
+> Expected: Browser redirects to /dashboard. Page title is "Dashboard". User's name "John" appears in the top right corner.
+
+**Why the detail matters:** If a bug exists and different testers run the same case with different data, one might pass and one fail — and you'll never know why.
+
+*💡 Analogy: "Drive to the supermarket and get food" vs "Drive to Tesco on Main Street, park on Level 2, buy 2 litres of semi-skimmed milk (blue cap), and be back by 3pm." Only one of these will reliably get you milk.*
+
+---
+
+### 3. Test Case Coverage — Don't Just Test the Obvious
+
+For a single "Login" feature, a complete test case suite should cover:
+
+\`\`\`
+✅ TC-001: Valid email + valid password → Success
+❌ TC-002: Valid email + wrong password → Error message shown
+❌ TC-003: Unregistered email → Error message shown
+❌ TC-004: Empty email field → Validation message
+❌ TC-005: Empty password field → Validation message
+❌ TC-006: Both fields empty → Validation message
+⚠️  TC-007: Email with spaces "  user@test.com  " → Should trim and succeed
+⚠️  TC-008: SQL injection in email field → Should be rejected safely
+⚠️  TC-009: Password with 100 characters → Should work or show proper limit message
+🔒 TC-010: After 5 failed attempts → Account should lock
+\`\`\`
+
+Notice how TC-001 is just the beginning. Real testing is everything else.
+
+*💡 Analogy: A doctor doesn't just check if your heart is beating. They check your blood pressure, cholesterol, oxygen levels, and ask if you get chest pain when climbing stairs. A heartbeat alone doesn't mean you're healthy.*
+        `
+      },
+
+      {
+        id: 'happy-path',
+        title: 'Beginner: The Happy Path',
+        analogy: "The Happy Path is the smooth, paved highway where everything goes perfectly right. No traffic, perfectly sunny, driving exactly the speed limit — exactly how the road was designed to be used.",
+        lessonMarkdown: `
+## The Happy Path
+
+The Happy Path is the **default, correct, intended flow** through your application — the path a user takes when they do everything right, in the right order, with the right data.
+
+### 1. What is the Happy Path?
+
+It is the sequence of actions a developer designed the system to handle. No surprises, no mistakes, no edge cases. Just the core intended workflow from start to finish.
+
+**Real Example — E-commerce Checkout Happy Path:**
+
+\`\`\`
+1. User browses products
+2. Clicks "Add to Cart" on a product
+3. Clicks the cart icon
+4. Reviews items and clicks "Proceed to Checkout"
+5. Enters shipping address
+6. Enters valid credit card number
+7. Clicks "Place Order"
+8. Sees "Order Confirmed" screen with order number
+\`\`\`
+
+Every single step here assumes the user does the right thing. No expired cards. No out-of-stock items. No address validation failures.
+
+*💡 Analogy: The Happy Path is the demo your sales team shows to potential clients in a perfectly controlled environment. It always works. It is not what real users actually do.*
+
+---
+
+### 2. Why You MUST Test the Happy Path First
+
+If the core intended functionality is broken, there is zero point testing edge cases. You don't test whether a car's cup holder survives a crash if the engine doesn't start.
+
+**Rule of thumb:** If the Happy Path fails, file a **P1 blocker bug** and stop testing until it is fixed.
+
+**Real Example:**
+
+A tester joins a project and immediately starts testing edge cases — what happens if a user submits the registration form with a duplicate email? They spend 2 hours on this. Later they discover the entire registration form crashes on the first click of "Submit" regardless of what you type. All those edge case tests were completely wasted effort.
+
+*💡 Analogy: Don't test whether the fire exits are clearly labelled in a building that is actively on fire and has no front door.*
+
+---
+
+### 3. The Happy Path is Not Enough
+
+Once the Happy Path passes, your job has barely started. The Happy Path represents maybe 10% of what users will actually do. Real users:
+
+- Leave forms half-filled and come back
+- Use the browser back button instead of the app's back button
+- Copy-paste content with invisible special characters
+- Open the same page in 3 tabs simultaneously
+- Use your app on a 5-year-old phone with 2G internet
+
+**Happy Path → Alternate Paths → Error Paths → Edge Cases**
+
+That is the order to test. Never skip any layer.
+
+*💡 Analogy: You've tested that the front door opens with the key. Now test the back door, the fire exit, what happens when you lose the key, and whether the door still opens in -10°C weather. The house is not "tested" just because the front door opens.*
+        `
+      },
+
+      {
+        id: 'negative-testing',
+        title: 'Beginner: Negative Testing',
+        analogy: "Negative testing is putting a square peg in a round hole on purpose, just to make sure the system politely says 'no' instead of exploding.",
+        lessonMarkdown: `
+## Negative Testing
+
+Negative testing means **deliberately giving the system invalid, unexpected, or incorrect input** to ensure it handles failures gracefully instead of crashing or corrupting data.
+
+### 1. What is Negative Testing?
+
+If positive testing (Happy Path) checks that things work when you do them correctly, negative testing checks that things **fail safely** when you do them incorrectly.
+
+The goal is not to make the app crash for fun — it is to verify that the app produces **clear, helpful error messages** and **does not corrupt any data** when things go wrong.
+
+*💡 Analogy: Going to a vending machine and inserting a banana instead of a coin. A good vending machine politely rejects the banana. A bad vending machine eats the banana, dispenses nothing, and catches fire.*
+
+---
+
+### 2. Categories of Negative Tests
+
+**Invalid Data Type:**
+| Field | Valid Input | Negative Test |
+|---|---|---|
+| Age | 25 | "twenty-five", -5, 999, null |
+| Email | user@test.com | "notanemail", "user@", "@test.com" |
+| Phone | 07700900000 | "ABCDEFGHIJK", 1234, "++44" |
+| Price | 19.99 | "free", -10, 999999999 |
+
+**Real Example — Age field bug:**
+
+A hotel booking site allows guests to enter the number of children. A tester types "-1 children." The site calculates room pricing with a negative person, applies a negative discount, and shows a final price of £-50, which the user could theoretically complete and get paid to stay. This is a real class of exploit found regularly in e-commerce apps.
+
+**Missing Required Data:**
+
+Submitting a form with empty required fields is one of the most common negative tests. The app should show a specific, helpful validation message — not a generic server error.
+
+❌ Bad error: *"Error 500: Internal Server Error"*
+✅ Good error: *"Please enter your email address to continue"*
+
+**Exceeding Limits:**
+
+- Upload a 10GB file to a system that accepts 5MB
+- Enter 10,000 characters into a field that expects 100
+- Submit a form 100 times rapidly by clicking "Submit" repeatedly
+
+*💡 Analogy: Negative testing is what QA Mythbusters do. "They said it can handle 500 users — let's send 5,000 and see what actually happens."*
+
+---
+
+### 3. Security-Focused Negative Testing
+
+Some negative tests protect against deliberate attacks:
+
+**SQL Injection:** Enter \`' OR '1'='1\` into a login email field. A vulnerable app will log you in as the first user in the database. A secure app will show a validation error.
+
+**XSS (Cross-Site Scripting):** Enter \`<script>alert('hacked')</script>\` into a comment field. A vulnerable app executes the script. A secure app renders it as plain text.
+
+**These are not hacker tricks — these are standard test cases.** Every QA engineer should run them on any text field that saves data.
+
+*💡 Analogy: A bank tests its vault by hiring a locksmith to try to break in. They are not hoping he succeeds — they need to know the door is actually secure before putting real money inside.*
+        `
+      },
+
+      {
+        id: 'exploratory-testing',
+        title: 'Beginner: Exploratory Testing',
+        analogy: "Exploratory testing is being a detective in a city you've never visited. You have no map, no tour guide — just your instincts, a notebook, and a healthy suspicion that something is hidden in that alley.",
+        lessonMarkdown: `
+## Exploratory Testing
+
+Exploratory Testing is **simultaneous learning, test design, and test execution**. Instead of following a script, you interact with the application freely, guided by your curiosity and intuition, and adjust your approach based on what you discover in real time.
+
+### 1. The Explorer's Mindset
+
+A scripted tester follows a checklist. An exploratory tester asks questions:
+
+- "What happens if I do this in the wrong order?"
+- "What if I use this feature in a way it wasn't designed for?"
+- "What happens if I combine these two actions?"
+- "Can I get the same result via a different route?"
+
+**Real Example:**
+
+A tester is exploring a banking app's money transfer feature. The scripted test says: "Transfer £50 to a saved payee." The exploratory tester tries:
+- Transfer £0 — allowed?
+- Transfer the exact balance — allowed?
+- Transfer £0.001 — what happens?
+- Delete a payee mid-transfer in another tab
+- Enter a payee account number with letters in it
+- Rapidly click "Send" 5 times in a row
+
+None of these are in the script. All of them have found real bugs in real apps.
+
+*💡 Analogy: Scripted testing is following a tourist map. Exploratory testing is wandering off the tourist map because you noticed a suspicious-looking door in an alley and decided to knock.*
+
+---
+
+### 2. Session-Based Exploratory Testing (SBET)
+
+Unstructured exploration can become unfocused. Session-based testing brings **light structure** to exploration:
+
+- **Set a charter** — a brief mission statement for your session: *"Explore the user profile editing feature focusing on photo upload and data validation."*
+- **Timebox it** — typically 45–90 minutes
+- **Take notes** — write down every bug, question, and observation
+- **Debrief** — summarise what you found and what you still have questions about
+
+**Example Charter:**
+> *"Explore the checkout process as a guest user, paying attention to how the site handles address validation, coupon codes, and payment failures."*
+
+This is broad enough to allow creativity but focused enough to be useful.
+
+*💡 Analogy: An explorer doesn't wander the jungle with zero plan. They say "Today I'm exploring the north riverbank for 3 hours, looking for signs of wildlife." Structure without a rigid script.*
+
+---
+
+### 3. When to Use Exploratory Testing
+
+| Situation | Use Exploratory? |
+|---|---|
+| New feature just built by dev | ✅ Yes — learn the feature first |
+| Time is short and no test cases exist | ✅ Yes — best use of limited time |
+| You have detailed test cases already | ✅ Yes — run after scripted testing |
+| Regression testing after a hotfix | ❌ No — use scripted regression cases |
+| Performance testing | ❌ No — needs precise tooling |
+
+Exploratory testing finds bugs that scripted tests miss because **real bugs come from unexpected interactions**, not the paths the developer anticipated.
+
+*💡 Analogy: You can read every food review ever written about a restaurant. Or you can just go there and eat. The review tells you what the food is supposed to taste like. Going there tells you what it actually tastes like today.*
+        `
+      },
+
+      {
+        id: 'bug-life-cycle',
+        title: 'Beginner: The Bug Life Cycle',
+        analogy: "A bug's life cycle is like a parking ticket. It gets issued, assigned to someone to pay, paid (fixed), verified the payment went through, and then filed away. If it bounces, it comes back to haunt you.",
+        lessonMarkdown: `
+## The Bug Life Cycle
+
+Every defect found in testing goes on a journey from the moment it is discovered to the moment it is resolved. Understanding this journey helps QA engineers communicate, track, and close bugs effectively.
+
+### 1. The Journey of a Bug
+
+\`\`\`
+NEW → ASSIGNED → IN PROGRESS → FIXED → RETESTING → CLOSED
+                                  ↓
+                              REOPENED (if fix didn't work)
+                                  ↓
+                              REJECTED (if it's not a bug)
+                                  ↓
+                            DEFERRED (won't fix now)
+\`\`\`
+
+---
+
+### 2. Every State Explained
+
+**NEW** — The tester has found and logged the bug. It is sitting unread in the bug tracker (Jira, Azure DevOps, etc.). Nobody has looked at it yet.
+
+**ASSIGNED** — A developer (or team lead) has accepted the bug and assigned it to themselves or someone else for investigation.
+
+**IN PROGRESS** — The developer is actively fixing the code. The bug is being worked on.
+
+**FIXED** — The developer has pushed a code fix and marked it ready for QA to verify. This does NOT mean it is actually fixed — it means the dev thinks it is.
+
+**RETESTING** — The tester now verifies the fix by repeating the exact steps that originally caused the bug.
+
+**CLOSED** — The fix is confirmed. The bug is dead. Everyone celebrates.
+
+**REOPENED** — The fix didn't work. The same bug still occurs. The dev needs another look.
+
+**REJECTED** — The dev investigated and concluded it is NOT a bug — it is intended behaviour, or the tester made an error. The tester and dev may need to discuss.
+
+**DEFERRED** — It is a real bug, but it won't be fixed in this release. Typically because the effort to fix is too high or the impact is too low.
+
+*💡 Analogy: A bug report is like a food health inspection violation notice. "New" = inspector writes it up. "Assigned" = restaurant owner receives it. "Fixed" = kitchen is cleaned. "Retesting" = inspector comes back. "Closed" = pass. "Reopened" = the inspector came back and it was still dirty.*
+
+---
+
+### 3. Real Example — Bug Life Cycle in Action
+
+**Day 1 (Monday):** Tester finds that the "Forgot Password" email is never sent. Logs it as NEW in Jira with full steps, screenshots, and environment details.
+
+**Day 1 afternoon:** Team lead assigns it to the backend developer. Status: ASSIGNED.
+
+**Day 2:** Developer investigates — finds the email service API key expired. Renews it and deploys the fix. Status: FIXED.
+
+**Day 2 afternoon:** Tester gets notification. Re-runs the exact steps: enters email, clicks "Send Reset Link," checks inbox. Email arrives. Status: CLOSED.
+
+**Day 3:** User reports on production that the email arrives but the reset link is expired after 1 minute (should be 24 hours). Tester reopens the bug with new details. Status: REOPENED.
+
+*💡 Analogy: "Fixed" from a developer is like a patient telling the doctor "I feel better." The doctor still needs to run the tests. You don't close a bug because someone SAID they fixed it — you close it because YOU PROVED they fixed it.*
+        `
+      },
+
+      {
+        id: 'severity-vs-priority',
+        title: 'Beginner: Severity vs Priority',
+        analogy: "Severity is how bad a wound is medically. Priority is how urgently you need to treat it. A paper cut is low severity and low priority. A broken leg before a marathon tomorrow is low severity but extremely high priority.",
+        lessonMarkdown: `
+## Severity vs Priority
+
+These two concepts are constantly confused — even by experienced testers. Getting them right is what separates a junior QA from a professional one.
+
+### 1. What is Severity?
+
+**Severity** is the **technical impact of the bug on the system**. It describes how badly the bug breaks functionality.
+
+| Severity Level | Description | Example |
+|---|---|---|
+| **Critical** | System crash, data loss, complete feature failure | Payment processing crashes. Users cannot pay at all. |
+| **High** | Major feature broken, serious workaround needed | Search returns wrong results for 30% of queries |
+| **Medium** | Feature partially broken, workaround exists | Sorting by price sorts in wrong direction |
+| **Low** | Minor issue, cosmetic or trivial | Button label says "Sbumit" instead of "Submit" |
+
+Severity is assessed purely on **technical impact** — how much of the system is affected.
+
+*💡 Analogy: Severity is a doctor rating how bad your injury is, purely medically. A severed artery is Critical. A bruise is Low.*
+
+---
+
+### 2. What is Priority?
+
+**Priority** is the **business urgency of fixing the bug**. It describes how quickly the bug needs to be resolved, considering business context, not just technical impact.
+
+| Priority Level | Description |
+|---|---|
+| **P1 (Must Fix Now)** | Blocks release. Business cannot ship without this being resolved. |
+| **P2 (Fix This Sprint)** | Important, affects many users, but doesn't block the release today. |
+| **P3 (Fix When Possible)** | Noticeable but low business impact. Goes in the backlog. |
+| **P4 (Nice to Have)** | Cosmetic or trivial. May never be fixed. |
+
+*💡 Analogy: Priority is the doctor's waiting room triage. Someone with a paper cut has low priority even if they arrived first. Someone having a heart attack gets seen immediately regardless of queue position.*
+
+---
+
+### 3. The Severity ≠ Priority Matrix
+
+This is where it gets interesting. Severity and priority are **independent** of each other.
+
+| Scenario | Severity | Priority | Why |
+|---|---|---|---|
+| Payment button crashes the app | Critical | P1 | Nobody can buy anything. Ship is blocked. |
+| CEO's name is misspelt on the About page | Low | P1 | Launch is tomorrow. CEO is watching. Fix NOW. |
+| Search sorts in wrong order | High | P3 | Feature is new and not in the marketing material yet |
+| The loading spinner is the wrong shade of blue | Low | P4 | Nobody cares |
+
+**Real Example:**
+
+A QA engineer finds two bugs on the day before launch:
+- Bug A: The app crashes if you enter an emoji in the username field (Severity: High)
+- Bug B: The company logo on the login page is blurry (Severity: Low)
+
+The Marketing Director has told the team the CEO will personally demo the app to 500 investors tomorrow. Which bug has higher Priority?
+
+**Bug B.** Because the CEO will see the logo on screen 1. The emoji crash is unlikely to happen in the demo. Priority is about business context, not just technical severity.
+
+*💡 Analogy: A cracked windscreen (High Severity) in a car you sell in 6 months has lower priority than a scuff on the bumper (Low Severity) before a car show this weekend where first impressions are everything.*
+        `
+      },
+
+      // ─── INTERMEDIATE ────────────────────────────────────────────────────────
+
+      {
+        id: 'bva',
+        title: 'Intermediate: Boundary Value Analysis',
+        analogy: "Bugs love to live at the edges. If a sign says 'Maximum 10 people in lift', the bug is hiding at person number 10 and 11 — not somewhere in the middle.",
+        lessonMarkdown: `
+## Boundary Value Analysis (BVA)
+
+Boundary Value Analysis is a **test design technique** that focuses testing effort on the values at the extreme edges of valid and invalid input ranges. The mathematical principle is simple: bugs are disproportionately likely to appear at boundaries because developers make "off-by-one" errors.
+
+### 1. Why Boundaries Are Dangerous
+
+Developers frequently write conditions like:
+\`\`\`
+if (age < 18) → reject
+if (age >= 18) → allow
+\`\`\`
+
+An off-by-one error might read:
+\`\`\`
+if (age <= 18) → reject  // BUG: 18-year-olds are blocked!
+\`\`\`
+
+If you only test age 25, this bug is invisible. If you test age 18 specifically, you find it immediately.
+
+*💡 Analogy: A bridge rated for 10 tonnes. Testing with 5 tonnes tells you nothing useful. Testing with exactly 10 tonnes (the boundary) and 10.001 tonnes (just over) tells you everything.*
+
+---
+
+### 2. How to Apply BVA
+
+For any range-based rule, always test these 4 values:
+
+| Position | What to Test |
+|---|---|
+| Min boundary - 1 | One below the minimum (should FAIL) |
+| Min boundary | Exact minimum (should PASS) |
+| Max boundary | Exact maximum (should PASS) |
+| Max boundary + 1 | One above the maximum (should FAIL) |
+
+**Real Example — Password Length (8–20 characters):**
+
+| Test Value | Characters | Expected Result | Why |
+|---|---|---|---|
+| TC-01 | 7 chars | ❌ Rejected | Below minimum |
+| TC-02 | 8 chars | ✅ Accepted | Exact minimum |
+| TC-03 | 20 chars | ✅ Accepted | Exact maximum |
+| TC-04 | 21 chars | ❌ Rejected | Above maximum |
+
+You do NOT need to test 9, 10, 11, 12... characters. They are irrelevant to BVA.
+
+*💡 Analogy: A nightclub bouncer checks IDs at age 18. You test with someone who is exactly 17 years 364 days old, someone who is exactly 18 today, and someone who is 18 years and 1 day. Those are your boundaries. A 25-year-old is irrelevant.*
+
+---
+
+### 3. BVA on Real Forms and APIs
+
+**Age verification (must be 18–99):**
+Test: 17, 18, 99, 100
+
+**File upload (max 5MB):**
+Test: 4.9MB, 5.0MB exactly, 5.1MB
+
+**Discount applied for orders over £50:**
+Test: £49.99, £50.00, £50.01
+
+**API rate limit (100 requests per hour):**
+Test: 99 requests, 100 requests, 101 requests — does the 101st get rejected correctly?
+
+**Real Bug Found with BVA:**
+
+A lottery app allowed users to pick numbers from 1–49. Testing value 49 passed. Testing value 50 was supposed to be rejected. Instead, the app accepted it silently — stored 50 in the database — and crashed the draw algorithm that only knew about numbers 1–49. This crashed the entire draw for 200,000 users. The boundary test took 2 minutes to run. The incident took 6 hours to recover from.
+        `
+      },
+
+      {
+        id: 'equivalence-partitioning',
+        title: 'Intermediate: Equivalence Partitioning',
+        analogy: "If you need to taste-test a 50kg barrel of soup to check if it's salty enough, you don't need to taste every spoonful. One spoonful from the middle represents the whole barrel. That spoonful is your partition.",
+        lessonMarkdown: `
+## Equivalence Partitioning
+
+Equivalence Partitioning is a technique that **divides all possible inputs into groups (partitions)** where every value within the group is expected to behave identically. You then test ONE representative value from each partition instead of testing every possible value.
+
+### 1. The Core Idea
+
+Without partitioning, a field that accepts numbers from 1–100 would theoretically require 100 test cases. With partitioning, you need exactly 3:
+
+| Partition | Range | One Representative | Expected Result |
+|---|---|---|---|
+| Below valid | Less than 1 | 0 or -5 | ❌ Rejected |
+| Valid | 1 to 100 | 50 | ✅ Accepted |
+| Above valid | More than 100 | 150 | ❌ Rejected |
+
+*💡 Analogy: A teacher marking 30 essays doesn't re-read every word of every essay to spot the same spelling mistake. They look at one from each "pile" — the A students, the B students, and the failing students — and apply consistent marking.*
+
+---
+
+### 2. Creating Partitions for Real Features
+
+**Real Example — Movie Ticket Pricing by Age:**
+
+| Age Group | Rule | Partition | Test Value |
+|---|---|---|---|
+| Child | Under 5: Free | 0–4 | 3 |
+| Junior | 5–15: £5.99 | 5–15 | 10 |
+| Adult | 16–64: £12.99 | 16–64 | 35 |
+| Senior | 65+: £7.99 | 65–120 | 70 |
+| Invalid | Negative / over 120 | <0, >120 | -1, 130 |
+
+Total test cases needed: 5 (one per partition). Not 121.
+
+**Real Example — Username Validation:**
+
+Rules: 3–15 characters, letters and numbers only, cannot start with a number.
+
+Partitions:
+- Too short (< 3 chars)
+- Valid length (3–15 chars)
+- Too long (> 15 chars)
+- Valid characters only (letters + numbers)
+- Invalid character (space, @, !)
+- Starts with number (e.g., "3user")
+- Starts with letter (e.g., "user3")
+
+*💡 Analogy: When testing if a vending machine accepts coins, you don't try every single 5p coin ever minted. You try one valid coin, one invalid coin (a button), and one coin from a foreign country. Each represents an entire class of behaviour.*
+
+---
+
+### 3. Combining EP with BVA
+
+For maximum coverage with minimum tests, use **both techniques together**:
+
+- Equivalence Partitioning identifies the groups
+- Boundary Value Analysis tests the edges of each group
+
+For the movie ticket example:
+- EP tells you the partitions are: <0, 0–4, 5–15, 16–64, 65+, >120
+- BVA then says: test -1, 0, 4, 5, 15, 16, 64, 65, 120, 121
+
+That is 10 targeted tests that cover every meaningful scenario in a system with 121+ possible inputs.
+        `
+      },
+
+      {
+        id: 'state-transition',
+        title: 'Intermediate: State Transition Testing',
+        analogy: "Think of a traffic light. It MUST go Green → Amber → Red → Green. If it ever goes directly from Red to Green without Amber, or tries to be Green and Red simultaneously, someone is going to get hurt.",
+        lessonMarkdown: `
+## State Transition Testing
+
+State Transition Testing is a technique for testing systems where **the system's behaviour depends on its current state**, and actions cause transitions between states. It ensures all valid transitions work and all invalid ones are properly blocked.
+
+### 1. What is "State"?
+
+A system has a **state** when its current condition determines how it responds to inputs. An ATM in "Card Inserted" state behaves differently to an ATM in "Idle" state when you press "Withdraw."
+
+**Real Example — ATM States:**
+
+\`\`\`
+[Idle] --insert card--> [Card Inserted]
+[Card Inserted] --correct PIN--> [Authenticated]
+[Card Inserted] --wrong PIN x3--> [Card Retained]
+[Authenticated] --withdraw--> [Dispensing Cash]
+[Authenticated] --eject card--> [Idle]
+[Dispensing Cash] --cash taken--> [Authenticated]
+\`\`\`
+
+*💡 Analogy: A vending machine is the perfect state machine. After you insert money, it waits for a selection. After a selection, it dispenses. It cannot dispense before you insert money. It cannot accept a new selection while it is dispensing. Each state has strict rules about what it allows.*
+
+---
+
+### 2. Building a State Transition Table
+
+A state transition table maps every state against every possible event:
+
+**Online Order System:**
+
+| Current State | Event | Next State | Expected Behaviour |
+|---|---|---|---|
+| Pending | Payment received | Confirmed | Send confirmation email |
+| Pending | Payment failed | Pending | Show retry payment prompt |
+| Confirmed | Warehouse picks items | Processing | Update tracking page |
+| Processing | Courier collects | Shipped | Send tracking number |
+| Shipped | Delivered | Delivered | Ask for review |
+| Any state | User cancels | Cancelled | Initiate refund |
+| Delivered | User cancels | ❌ Invalid | Show "cannot cancel delivered order" |
+
+**Test Cases From This Table:**
+
+- TC-01: Can a Pending order be Cancelled? ✅ Should be yes
+- TC-02: Can a Shipped order be Cancelled? ⚠️ Business decision — test what the spec says
+- TC-03: Can a Delivered order go back to Processing? ❌ Should be blocked
+
+---
+
+### 3. Testing Invalid Transitions
+
+This is where the real bugs hide. Invalid transitions are actions that should be **impossible**, but developers sometimes forget to block them.
+
+**Real Example:**
+
+A streaming service has a subscription with states: Free → Trial → Paid → Cancelled.
+
+The tester discovered: If a user in "Trial" state called the API directly (bypassing the UI) with a "Cancelled" status, the system accepted it and moved them to Cancelled — but also kept their Trial benefits active because the Trial expiry check still ran. They effectively had free premium content indefinitely.
+
+The UI never showed a "Cancel Trial" button — but the API had no guard against direct calls. **Always test if invalid state transitions are blocked at the API level, not just the UI level.**
+
+*💡 Analogy: A "Cancelled" flight that shows up as "Boarding" at the gate. The database said cancelled. The departure board said boarding. Which one is real? The system is in an inconsistent state — that is a state transition bug.*
+        `
+      },
+
+      {
+        id: 'test-planning',
+        title: 'Intermediate: Test Planning & Strategy',
+        analogy: "A test plan is your battle map before the war. You wouldn't send soldiers into enemy territory without knowing the objective, the terrain, the resources, and when to retreat. Testing without a plan is exactly that.",
+        lessonMarkdown: `
+## Test Planning & Strategy
+
+A **Test Plan** is a formal document that defines the **scope, approach, resources, and schedule** for testing activities on a project. Without it, testing is random, incomplete, and unmeasurable.
+
+### 1. What Goes Into a Test Plan?
+
+A professional Test Plan answers these 6 questions:
+
+| Question | Section |
+|---|---|
+| WHAT are we testing? | Scope & Features in/out of scope |
+| HOW are we testing it? | Test approach & techniques |
+| WHO is doing the testing? | Roles & responsibilities |
+| WHEN will testing happen? | Schedule & milestones |
+| WHERE are we testing? | Test environments |
+| HOW do we know when we're done? | Entry & Exit criteria |
+
+**Real Example — Test Plan Scope for a Login Feature:**
+
+> **In Scope:** Email/password login, password reset, session management, account lockout
+> **Out of Scope:** Social login (Google/Facebook) — scheduled for Q3
+> **Test Environments:** Chrome latest, Safari 16, iOS 16, Android 12
+> **Test Data:** 10 registered test accounts, 5 with locked status
+
+*💡 Analogy: A film director's shooting schedule. It lists every scene, which actors are needed, which location, which day, and what equipment is required. Without it, everyone shows up to the wrong place on the wrong day.*
+
+---
+
+### 2. Entry and Exit Criteria
+
+**Entry Criteria** — conditions that must be true BEFORE testing begins:
+- Build is deployed to the test environment ✅
+- Smoke test passed (basic navigation works) ✅
+- Test data is set up ✅
+- Test cases are reviewed and approved ✅
+
+**Exit Criteria** — conditions that must be true BEFORE testing is considered DONE:
+- 100% of P1 test cases executed ✅
+- 95% of all test cases executed ✅
+- 0 open P1 or P2 bugs ✅
+- Defect rate below 5% of test cases ✅
+- All reopened bugs re-verified ✅
+
+**Why this matters:** Without exit criteria, testing never officially "ends" — it just stops when someone gets tired or the deadline hits. Exit criteria make the decision objective.
+
+*💡 Analogy: Entry criteria = the ingredients and oven must be ready before you start baking. Exit criteria = the cake is golden brown, passes the skewer test, and has cooled for 30 minutes before serving. Don't serve raw cake just because you ran out of time.*
+
+---
+
+### 3. Test Strategy vs Test Plan
+
+These are often confused. Here is the difference:
+
+| | Test Strategy | Test Plan |
+|---|---|---|
+| **Level** | Organisation-wide | Project-specific |
+| **Scope** | All projects | One project or release |
+| **Content** | Principles, tools, standards | Schedule, scope, resources |
+| **Changes** | Rarely | Per project |
+| **Author** | Test Manager / Head of QA | Lead QA on the project |
+
+**Real Example:**
+
+The Test Strategy says: *"All projects at this company will use BVA and EP techniques, Jira for bug tracking, and require 0 P1 bugs before release."*
+
+The Test Plan for the "December Payment Upgrade" says: *"Testing runs from Dec 1–Dec 15. Three QA engineers. Testing focuses on payment flows and refund processing. Go/No-Go meeting on Dec 14."*
+        `
+      },
+
+      {
+        id: 'defect-reporting',
+        title: 'Intermediate: Defect Reporting',
+        analogy: "A bug report is a crime scene report. 'Something bad happened' is useless. 'At 3:47pm, in the kitchen, with a candlestick, leaving these specific marks' is what gets the case solved.",
+        lessonMarkdown: `
+## Defect Reporting
+
+A bug report is only as useful as the information it contains. A poorly written bug report wastes the developer's time, leads to "Cannot Reproduce" responses, and slows the entire team down.
+
+### 1. Why a Great Bug Report Matters
+
+**Bad bug report:**
+> "The checkout doesn't work when I add things."
+
+A developer reading this has no idea:
+- Which browser/device was used
+- Which items were added
+- What "doesn't work" means (error? freeze? wrong price?)
+- What the user expected to happen
+- Whether this is reproducible
+
+**Result:** Developer tries random things, cannot reproduce it, marks it as "Cannot Reproduce," and closes it. Bug survives to production.
+
+*💡 Analogy: Calling a plumber and saying "the house is wet." The plumber needs to know which room, what kind of wet, when it started, whether it's from a pipe or a roof. "The house is wet" sends them in circles.*
+
+---
+
+### 2. Anatomy of a Perfect Bug Report
+
+\`\`\`
+Title: "Add to Cart" button returns 500 error for out-of-stock products [Chrome 120, Prod]
+
+Summary:
+When a logged-in user attempts to add an out-of-stock product to their
+cart on the Product Detail Page, the browser displays a generic 500 error
+instead of the expected "Out of Stock" message.
+
+Steps to Reproduce:
+1. Log in as test@qa.com / Test@1234
+2. Navigate to https://store.com/products/headphones-456
+3. Note: Product shows "Out of Stock" badge in the top-right corner
+4. Click the "Add to Cart" button
+5. Observe the result
+
+Expected Result:
+Button should be disabled OR clicking it should show:
+"Sorry, this product is currently out of stock. Add to wishlist?"
+
+Actual Result:
+Browser displays a full-page "500 Internal Server Error" message.
+Cart icon count does not change.
+
+Environment:
+- Browser: Chrome 120.0.6099.109
+- OS: macOS Sonoma 14.1
+- URL: https://store.com/products/headphones-456
+- User account: test@qa.com
+- Date/Time: 2024-01-15, 14:23 GMT
+
+Severity: High (core e-commerce flow impacted)
+Priority: P2 (affects out-of-stock items only, workaround: don't click button)
+
+Attachments:
+- screenshot_error.png
+- browser_console_errors.txt (shows "Uncaught TypeError: Cannot read property...")
+\`\`\`
+
+---
+
+### 3. Good vs Bad: The Full Comparison
+
+| Element | ❌ Bad | ✅ Good |
+|---|---|---|
+| **Title** | "Checkout broken" | "'Pay Now' crashes on declined cards - Chrome/iOS" |
+| **Steps** | "Add item and checkout" | Numbered, specific, with exact URLs and test data |
+| **Expected** | "It should work" | "User sees 'Payment declined, please try another card'" |
+| **Actual** | "It didn't work" | "Page goes blank. No error message. Console shows 404 on /payment/process" |
+| **Environment** | "My computer" | Chrome 120, Windows 11, Test environment URL |
+| **Attachments** | None | Screenshot, video, console log, network log |
+
+**Real Example of a Bug That Could Not Be Reproduced (and why):**
+
+A tester filed: "The discount code doesn't work." The developer tried 20 different codes. None failed. Marked: Cannot Reproduce.
+
+The tester had used a code that only worked for accounts created before 2022. Their account was created in 2019. The dev's account was from 2023. Without specifying the account used and the exact code entered, this information was invisible.
+
+*💡 Analogy: A bug report without clear steps is like a recipe that says "cook it until it's done." Every chef will produce something different. Specific instructions are the only way to guarantee a consistent result.*
+        `
+      },
+
+      {
+        id: 'regression-testing',
+        title: 'Intermediate: Regression Testing',
+        analogy: "Regression testing is checking that the builder who fixed your leaky kitchen tap didn't accidentally break a pipe in the bathroom wall in the process. Things that worked before must still work after.",
+        lessonMarkdown: `
+## Regression Testing
+
+Regression testing is the practice of **re-testing previously working functionality** after a code change, to ensure the change has not introduced new bugs into areas that were previously stable.
+
+### 1. Why Regression Happens
+
+Every code change carries risk. A developer fixing Bug A may inadvertently:
+- Change a shared function used by Feature B and Feature C
+- Update a database query that affects multiple pages
+- Modify a style that breaks layout on a different screen
+- Change an environment variable that affects another service
+
+**Real Example:**
+
+A developer fixes a bug where promo codes weren't being applied at checkout. The fix touches the \`calculateTotal()\` function. Three days later, users report that loyalty points are no longer being deducted correctly — because \`calculateTotal()\` was also used for loyalty point calculations, and the fix changed how it rounds decimal values.
+
+The promo code bug fix broke the loyalty points. This is a regression.
+
+*💡 Analogy: A surgeon fixes a problem with your knee. Two weeks later your hip starts aching because the altered gait from the knee surgery transferred stress to your hip. The surgeon fixed one thing and inadvertently broke something adjacent.*
+
+---
+
+### 2. Smoke, Sanity, and Full Regression Testing
+
+These three levels of regression serve different purposes:
+
+**Smoke Testing** (5–15 minutes)
+- Tests only the most critical, core pathways
+- Run after every new build to confirm the app is "alive"
+- If smoke fails, the build is rejected and sent back to dev immediately
+- Example: Can you log in? Can you reach the main page? Do the core APIs respond?
+
+**Sanity Testing** (30–60 minutes)
+- Focused on the specific area that was changed
+- Run after a bug fix or small change
+- Example: Developer fixed the search feature → tester runs all search-related tests only
+
+**Full Regression Testing** (hours to days)
+- The entire test suite is executed
+- Run before major releases or after large code changes
+- Ensures nothing anywhere in the system is broken
+
+| Type | When | Depth | Time |
+|---|---|---|---|
+| Smoke | Every build | Surface only | Minutes |
+| Sanity | After a specific fix | Focused area | Hours |
+| Regression | Before release | Full system | Days |
+
+*💡 Analogy: Smoke test = does the car start? Sanity test = does the fixed rear window actually close now? Full regression = test drive every feature including indicators, heating, all gears, and the boot latch.*
+
+---
+
+### 3. What to Include in a Regression Suite
+
+Not everything needs to be regressed every time. A smart regression suite prioritises:
+
+1. **Core business flows** — login, payment, main user journeys
+2. **Areas touched by the recent change** — anything using the modified code
+3. **Previously failed and fixed bugs** — bugs that were once real tend to come back
+4. **Integration points** — where your system talks to external services
+
+**Real Strategy Used by Teams:**
+
+Categorise test cases as:
+- 🔴 **Always Regress** — critical path (run every build)
+- 🟡 **Sprint Regress** — run every sprint
+- 🟢 **Release Regress** — run only before major releases
+
+This keeps the suite manageable without sacrificing coverage where it matters.
+        `
+      },
+
+      // ─── EXPERT ──────────────────────────────────────────────────────────────
+
+      {
+        id: 'risk-based-testing',
+        title: 'Expert: Risk-Based Testing',
+        analogy: "You cannot inspect every bag at an airport. So you profile — frequent travellers, low-risk routes, known faces get a quick check. Unknown origins, one-way tickets, and last-minute cash purchases get the full screening. You put your resources where the probability of a problem is highest.",
+        lessonMarkdown: `
+## Risk-Based Testing
+
+Risk-based testing is the practice of **prioritising testing effort based on the probability and impact of failure**, ensuring the highest-risk areas receive the most attention when time and resources are limited.
+
+### 1. Why You Cannot Test Everything
+
+In an ideal world, every feature would be tested exhaustively before every release. In the real world:
+
+- Release deadlines are fixed
+- QA team size is finite
+- Some features change 5 minutes before release
+
+Risk-based testing is the professional answer to: *"We have 3 days to test 50 features. Where do we spend our time?"*
+
+*💡 Analogy: A hospital cannot give every patient an MRI scan every week. So they prioritise — patients with symptoms, high-risk demographics, and recent exposure to risk factors get the scan. Low-risk patients get a check-up. Resources go to where risk is highest.*
+
+---
+
+### 2. The Risk Matrix
+
+Risk is calculated from two dimensions:
+
+**Risk = Probability of Failure × Impact of Failure**
+
+| | Low Impact | High Impact |
+|---|---|---|
+| **High Probability** | 🟡 Medium Risk | 🔴 Critical Risk |
+| **Low Probability** | 🟢 Low Risk | 🟠 High Risk |
+
+**Practical Assessment:**
+
+| Feature | Probability of Bug | Impact if it Fails | Risk Level | Test Priority |
+|---|---|---|---|---|
+| Payment processing | Medium (recently changed) | Critical (revenue loss) | 🔴 Critical | Test exhaustively |
+| User profile picture upload | Low (stable for 2 years) | Low (cosmetic only) | 🟢 Low | Smoke test only |
+| New promo code engine | High (brand new code) | High (financial loss) | 🔴 Critical | Test exhaustively |
+| Footer copyright year | Low | Low | 🟢 Low | Visual check only |
+| Third-party map widget | Low (vendor managed) | Medium | 🟡 Medium | Basic validation |
+
+---
+
+### 3. Applying Risk-Based Testing in Practice
+
+**Step 1: Identify all features and recent changes**
+Work with the developer to get a list of everything that changed in this release.
+
+**Step 2: Assess probability of failure**
+- Is this code new or existing? New = higher probability
+- Has this area had bugs before? Yes = higher probability
+- Is this a complex area (lots of conditions/integrations)? Yes = higher probability
+
+**Step 3: Assess impact of failure**
+- Is this on the critical user journey (login, payment, core feature)?
+- How many users are affected?
+- Is there financial, legal, or reputational risk?
+
+**Step 4: Prioritise your test execution**
+- 🔴 Critical Risk areas → Full test coverage, automated + manual
+- 🟠 High Risk → Full manual coverage
+- 🟡 Medium Risk → Key test cases only
+- 🟢 Low Risk → Smoke test / spot check
+
+**Real Example:**
+
+A QA lead has 2 days before a release. 40 features changed. Using risk-based testing:
+
+- 5 features are Critical (payment, auth, new checkout flow) → Full testing
+- 12 features are High Risk → Targeted test cases
+- 23 features are Low Risk → Smoke tests via the regression suite
+
+Time spent: 80% on the 17 high+critical features, 20% on the 23 low-risk features. This is a defensible, documented approach to quality coverage under constraints.
+
+*💡 Analogy: A building inspector before handover doesn't spend equal time inspecting every room. They spend most of their time on the structural walls, the electrical panel, and the roof — the things that cause catastrophic failure. Less time on whether the door knobs match.*
+        `
+      },
+
+      {
+        id: 'state-dependency',
+        title: 'Expert: State Dependency Bugs',
+        analogy: "A state dependency bug is like two people editing the same Google Doc simultaneously, but one person's screen never refreshes. They're both convinced they have the latest version. Only one of them is right.",
+        lessonMarkdown: `
+## State Dependency Bugs
+
+State dependency bugs occur when an application makes decisions based on **stale or inconsistent data** — data that was true at some point but has since changed, and the app doesn't know it.
+
+### 1. The Problem of Stale State
+
+Every time a user's browser or app stores information locally (in memory, in a variable, in the session), that information can become "stale" if the server-side data changes without the client being notified.
+
+**Real Example — E-commerce Cart:**
+
+1. User opens Tab A: Cart shows 1 laptop, price £999
+2. An admin removes the laptop from the store (it's discontinued)
+3. User never refreshes Tab A
+4. User clicks "Proceed to Checkout" on Tab A
+5. What happens?
+
+**Bad outcome:** Server accepts the checkout with the deleted product
+**Good outcome:** Server rejects it and shows "This item is no longer available"
+**Worst outcome:** Order is placed, charged to card, but warehouse tries to fulfil an order for a product that doesn't exist
+
+*💡 Analogy: You're bidding on an item at an auction. You see the current bid as £200. You bid £250. Unknown to you, while you were deciding, three other people bid and the current price is now £450. Your bid goes through at £250. Did you just steal it, or will the auction house catch the discrepancy?*
+
+---
+
+### 2. Multi-Tab and Multi-Device Testing
+
+This is where state dependency bugs love to live. Always test:
+
+**Scenario 1: Parallel Sessions**
+- Log in on Chrome and Firefox simultaneously
+- Perform an action on Firefox (e.g., change email)
+- Go back to Chrome — does it still show the old email?
+- Continue using Chrome — does it behave correctly or fail?
+
+**Scenario 2: Session Expiry**
+- Log in and stay idle for longer than the session timeout
+- Try to perform an action (submit a form, make a purchase)
+- Does the app detect the expired session gracefully, or does it silently fail?
+
+**Scenario 3: Cross-Device Conflict**
+- Add items to cart on mobile
+- Log into the same account on desktop
+- Check cart — are the items there?
+- Add different items on desktop
+- Go back to mobile — does the cart merge, overwrite, or show an error?
+
+---
+
+### 3. Cookie and LocalStorage Attacks
+
+Beyond accidental stale state, expert testers check if **manipulated state** causes security issues.
+
+**Test:** Inspect browser localStorage. Find a variable like \`userRole: "free"\`. Manually change it to \`userRole: "admin"\`. Refresh the page. Did you just get admin access?
+
+If yes — the application trusts client-side state for security decisions. This is a critical security bug.
+
+**Correct behaviour:** The server should re-verify the user's role on every privileged action, not trust what the client sends.
+
+*💡 Analogy: A theme park that stamps your hand for unlimited rides. A state dependency bug is the park not checking if the stamp is real — they accept any hand with ink on it, including the one you drew on yourself with a marker in the carpark.*
+        `
+      },
+
+      {
+        id: 'race-conditions',
+        title: 'Expert: Race Conditions',
+        analogy: "Two people running to the last seat on a plane. The airline's system must handle the race and give the seat to exactly one of them. If it doesn't, both boarding passes print, and someone is going to have a very bad day.",
+        lessonMarkdown: `
+## Race Conditions
+
+A race condition is a **timing-dependent bug** where the outcome of an operation depends on the sequence or timing of events, and two or more operations compete to access or modify the same resource simultaneously.
+
+### 1. What is a Race Condition?
+
+When two users or processes try to do the same thing at the exact same moment, and the system doesn't properly manage the conflict, both can "win" — causing data corruption, double processing, or inconsistent state.
+
+**Classic Example — Double Spending:**
+
+User has £100 in their account.
+- Request A: "Transfer £100 to Alice" — reads balance: £100. Checks: sufficient. Preparing to deduct...
+- Request B: "Transfer £100 to Bob" — reads balance: £100. Checks: sufficient. Preparing to deduct...
+- Request A completes: Balance becomes £0
+- Request B completes: Balance becomes -£100
+
+Both transfers succeed because both requests read the balance BEFORE either had deducted it. The database was not "locked" during the transaction.
+
+*💡 Analogy: Two chefs looking in the fridge at the same time. Both see one egg. Both decide to use it. Both reach in. One of them is going to be very confused.*
+
+---
+
+### 2. Classic Race Condition Scenarios to Test
+
+**Double-clicking a payment button:**
+Rapidly double-click "Place Order." Does the order get created twice? Does the user get charged twice?
+
+**Simultaneous seat/ticket booking:**
+Open two browser windows. Both select seat 14A on a flight. Both click "Book." Does seat 14A get double-booked?
+
+**Concurrent coupon code use:**
+A promo code is valid for the "first 100 users." Use a script or two browser tabs to submit the code simultaneously. Does the 101st request through?
+
+**Flash sale inventory:**
+100 items in stock. 500 users simultaneously click "Buy." Does the sold count go above 100?
+
+**Real Incident:**
+
+A ride-hailing app allowed users to request a ride and cancel it within 60 seconds for a full refund. A user wrote a script to request a ride and cancel it at the exact millisecond the driver confirmed — exploiting a race condition where the system processed the refund AND the driver's payment simultaneously. The user got a refund AND the driver got paid. The company lost money on every transaction the script ran.
+
+---
+
+### 3. How to Test for Race Conditions
+
+**Manual technique (browser):**
+1. Open the action in two browser tabs simultaneously
+2. Set both tabs up ready to submit (forms filled, button visible)
+3. Click both "Submit" buttons at the same moment (requires two hands or a helper)
+4. Check the result — was the operation performed once or twice?
+
+**Advanced technique:**
+Use browser developer tools or tools like Postman to fire two identical API requests simultaneously and examine the responses.
+
+**What to check:**
+- Are both responses successful? (They should not both be)
+- Is the database in a consistent state? (Check record counts)
+- Are error messages informative and correct?
+
+*💡 Analogy: Testing a race condition is like two people calling a cinema box office at the same second for the last ticket for the same screening. Only one call should result in a booked ticket. If both succeed, the cinema has oversold. If neither succeeds, revenue is lost. The test is making both calls happen at once.*
+        `
+      },
+
+      {
+        id: 'interrupt-testing',
+        title: 'Expert: Interrupt Testing',
+        analogy: "Interrupt testing is checking what happens when life rudely barges in. You're mid-sentence and someone calls your name. A robust person remembers what they were saying. A buggy person starts talking about something completely different.",
+        lessonMarkdown: `
+## Interrupt Testing
+
+Interrupt testing checks how an application behaves when an **external event unexpectedly interrupts the user's session** mid-task. This is most critical in mobile applications but applies to all platforms.
+
+### 1. The Real World is Rude
+
+Users do not operate in a perfectly controlled environment. While they are using your app:
+
+- Phone calls arrive
+- Notifications pop up and they tap them
+- The battery dies
+- They lose internet connection
+- They switch to another app and come back
+- The device goes to sleep mid-action
+
+A robust application handles every one of these gracefully. A poorly tested application loses data, crashes, or leaves the user in a broken state.
+
+*💡 Analogy: You're writing a cheque and someone taps you on the shoulder. A sensible person holds the pen, handles the interruption, and finishes the cheque. A badly designed cheque would smudge, forget the amount, and post itself to the wrong address.*
+
+---
+
+### 2. Types of Interrupts to Test
+
+**Incoming Phone Call (Mobile):**
+- What happens to a payment processing screen when a call comes in?
+- Does the app pause? Does the timer reset? Is the session still valid when you return?
+- Does the payment go through, not go through, or go through twice?
+
+**Network Loss:**
+- Disconnect the device from Wi-Fi/data mid-submission
+- Does the app show a helpful "No connection" message?
+- When connection restores, does it retry the submission? Does it submit twice?
+
+**App Backgrounding:**
+- Start filling in a long form
+- Press the Home button (app goes to background)
+- Return after 10 minutes
+- Is the form data still there? Or did it reset?
+
+**Device Sleep:**
+- Start a time-limited action (e.g., a checkout with a 10-minute timer)
+- Lock the screen / let the device sleep for 5 minutes
+- Unlock and return
+- Is the timer still counting? Has it expired? Does the UI reflect reality?
+
+**Battery Death Simulation:**
+- Start a file upload or data sync
+- Simulate low battery warning
+- Kill the app forcefully
+- Restart and check: Was the upload completed? Partially? Or does it need to restart?
+
+---
+
+### 3. How to Simulate Interrupts in Testing
+
+| Interrupt Type | How to Test |
+|---|---|
+| Phone call | Have a second phone call the test device mid-action |
+| Network loss | Toggle Airplane Mode at the critical moment |
+| App background | Press Home mid-form submission |
+| Screen lock | Press Power button mid-action |
+| Force kill | Use developer tools to kill the app process |
+| Low storage | Fill device storage to trigger storage warnings |
+
+**What to verify after each interrupt:**
+
+1. **Data integrity** — Is the data in the database correct? Not doubled, not lost?
+2. **User experience** — Is there a clear message telling the user what happened?
+3. **App state** — Is the UI showing the correct, current state?
+4. **Recovery** — Can the user retry the action? Are they prompted to?
+
+**Real Bug Found:**
+
+A mobile banking app would process a transfer even when backgrounded mid-transfer (because the API call was already in flight). When the user returned, the app showed the "Enter Transfer Amount" screen — suggesting the transfer hadn't gone through. They transferred again. The money was transferred twice. No error. No notification. Just a confused user and an empty account.
+
+*💡 Analogy: A good restaurant puts your food in a warmer if you step away mid-meal. A bad restaurant throws it in the bin and makes you order again when you return — charging you for both meals.*
+        `
+      },
+
+      {
+        id: 'usability-testing',
+        title: 'Expert: Usability & Accessibility Testing',
+        analogy: "Usability testing is handing your app to your grandmother and watching silently while she tries to book a flight. Every time she sighs, hesitates, or clicks the wrong thing is a usability bug — even if technically nothing is broken.",
+        lessonMarkdown: `
+## Usability & Accessibility Testing
+
+A product can be functionally perfect — every button works, every API returns the right data — and still be completely unusable by real humans. Usability and accessibility testing ensures the product works FOR people, not just in theory.
+
+### 1. Usability Testing — Testing for Humans
+
+Usability testing assesses how **easy, efficient, and satisfying** the application is to use for real users in real scenarios.
+
+**Jakob Nielsen's 10 Usability Heuristics (the gold standard):**
+
+| # | Heuristic | What to Check |
+|---|---|---|
+| 1 | Visibility of system status | Does the user always know what's happening? (loading spinners, progress bars) |
+| 2 | Match between system and real world | Does the language make sense to a non-technical user? |
+| 3 | User control and freedom | Can users undo actions? Is there a clear "Cancel" or "Back" button? |
+| 4 | Consistency and standards | Do buttons look the same across the app? Are patterns consistent? |
+| 5 | Error prevention | Does the UI prevent mistakes before they happen? (confirmation dialogs) |
+| 6 | Recognition over recall | Do users need to remember information between screens? (They shouldn't) |
+| 7 | Flexibility and efficiency | Are there shortcuts for power users without confusing beginners? |
+| 8 | Aesthetic and minimal design | Is there unnecessary clutter? Does every element earn its place? |
+| 9 | Help recognise, diagnose, and recover | Are error messages human-readable and actionable? |
+| 10 | Help and documentation | Is help available without leaving the current task? |
+
+**Real Example — Heuristic 9:**
+
+❌ Bad error message: *"Error 422: Unprocessable entity"*
+✅ Good error message: *"Your postcode doesn't look right. UK postcodes should be in the format SW1A 1AA."*
+
+*💡 Analogy: Usability is why Apple Store employees don't hand you a printed manual when you buy an iPhone. The product should be intuitive enough that you can figure out how to call someone without reading a book.*
+
+---
+
+### 2. Accessibility Testing (A11y)
+
+Accessibility ensures that people with disabilities can use your application. This is not just ethical — in many countries it is a **legal requirement** (WCAG 2.1 AA is mandated in the EU and UK public sector).
+
+**Key Accessibility Tests:**
+
+**Keyboard Navigation:**
+- Tab through every interactive element without using a mouse
+- Every button, link, and form field must be reachable and operable with keyboard only
+- Focus must be visible at all times (you should see which element is active)
+
+**Screen Reader Compatibility:**
+- Use a screen reader (VoiceOver on iOS, TalkBack on Android, NVDA on Windows)
+- Every image must have alt text that describes its content
+- Icons used as buttons must have aria-labels
+- Form fields must have associated labels
+
+**Colour Contrast:**
+- Text must have sufficient contrast against its background
+- WCAG AA requires a minimum 4.5:1 contrast ratio for normal text
+- Tool: [contrast-ratio.com](https://contrast-ratio.com) or browser DevTools
+
+**Real Bug Found:**
+
+A government benefits portal had a red "Error" banner for form validation. Users who are red-green colour blind saw the banner but had no way to distinguish it from the page content — it was the same grey to them. An icon (⚠️) and the word "Error" in the text fixed the issue.
+
+*💡 Analogy: Accessibility is building a ramp next to the stairs. The stairs work perfectly for most people. The ramp makes the building usable for everyone — and often the ramp is also useful for people with pushchairs, delivery trolleys, and anyone who hurt their knee.*
+
+---
+
+### 3. Common Usability Bugs
+
+| Usability Bug | Example | Impact |
+|---|---|---|
+| No loading indicator | Button clicked — nothing visible happens for 3 seconds | User clicks again, duplicating the action |
+| Confusing error messages | "Invalid input" with no detail | User doesn't know what to fix |
+| No confirmation dialog | Delete button with no "Are you sure?" | Accidental permanent data loss |
+| Mobile keyboard not triggered | Numeric field opens full keyboard on mobile | Friction for mobile users |
+| Form resets on error | Submitting invalid form clears all fields | User must retype everything |
+| No autosave | 20-step form lost on back button | Infuriating. Users abandon. |
+        `
+      },
+
+      {
+        id: 'test-metrics',
+        title: 'Expert: Test Metrics & Reporting',
+        analogy: "Test metrics are your speedometer and fuel gauge for the testing process. Without them, you're driving blind — you don't know if you're going fast enough, running out of time, or about to break down.",
+        lessonMarkdown: `
+## Test Metrics & Reporting
+
+Test metrics are **quantitative measurements** of the testing process and product quality. They allow QA engineers to communicate objectively with stakeholders, identify trends, and make data-driven decisions about release readiness.
+
+### 1. Why Metrics Matter
+
+"We tested a lot" is not a report. "We executed 847 test cases, found 23 defects (4 Critical, 7 High), have 0 open Critical bugs, and achieved 94% test case pass rate" is a report.
+
+Metrics answer the questions stakeholders actually care about:
+- Are we ready to release?
+- How many bugs were found and fixed?
+- Where are the quality risks?
+- Is the testing on schedule?
+
+*💡 Analogy: A weather forecast says "It will be cold tomorrow." A meteorologist says "Temperature will be 3°C with 80% probability of rain between 9am and 2pm and wind at 40km/h from the north." Only one of these helps you decide what to wear.*
+
+---
+
+### 2. Key Metrics Every QA Engineer Should Know
+
+**Test Execution Metrics:**
+
+| Metric | Formula | What It Tells You |
+|---|---|---|
+| Test Case Pass Rate | (Passed / Total Executed) × 100 | Overall quality signal |
+| Test Execution Progress | (Executed / Total Planned) × 100 | Are we on schedule? |
+| Blocked Test Rate | (Blocked / Total) × 100 | How much is environment/data blocking us? |
+
+**Defect Metrics:**
+
+| Metric | Formula | What It Tells You |
+|---|---|---|
+| Defect Density | Defects found / Function points (or features) | Which areas have most bugs? |
+| Defect Detection Rate | Bugs found in testing / Total bugs (including production) | How effective is our testing? |
+| Defect Leakage | Bugs found in production / Total bugs found | The most important metric — bugs that escaped testing |
+| Defect Fix Rate | Fixed defects / Reported defects (per sprint) | Is the team keeping up with fixes? |
+
+**Real Example — Reading the Numbers:**
+
+| Sprint | Tests Run | Pass Rate | Critical Bugs | Defect Leakage |
+|---|---|---|---|---|
+| Sprint 12 | 450 | 91% | 3 | 2 production bugs |
+| Sprint 13 | 510 | 88% | 6 | 5 production bugs |
+| Sprint 14 | 490 | 86% | 8 | 7 production bugs |
+
+This table is telling a clear story: quality is getting **worse every sprint**. Pass rate is declining. Critical bugs are increasing. Production bugs are increasing. Something has changed — perhaps the team is moving too fast, test coverage dropped, or a complex new feature was introduced without sufficient QA involvement early.
+
+---
+
+### 3. Presenting Quality to Stakeholders
+
+Non-technical stakeholders (PMs, executives) need dashboards, not spreadsheets.
+
+**Effective Quality Dashboard includes:**
+
+- 🟢🟡🔴 Traffic light for each major feature area
+- Total bugs by severity (Critical / High / Medium / Low)
+- Open vs Closed trend over time (are we closing bugs faster than we find them?)
+- % of planned testing completed
+- Top 3 risk areas with clear descriptions
+- **Go / No-Go recommendation with justification**
+
+**How to write a No-Go recommendation:**
+
+> *"We recommend NOT releasing this build. 2 Critical P1 defects remain open: (1) Payment processing fails for Visa cards (35% of our user base uses Visa), and (2) Session does not expire correctly, leaving accounts vulnerable. Testing is 92% complete. Both defects are estimated to take 1 day to fix and verify. Recommend deploying on Thursday after verification."*
+
+This is clear, specific, data-backed, and gives the stakeholder everything they need to make an informed decision.
+
+*💡 Analogy: A pilot's pre-flight checklist isn't just "does the plane feel okay?" It is a specific list of 50+ items with pass/fail checks. When a pilot says "cleared for takeoff," they mean every item on that checklist was verified. That is what test metrics give your release decision — a verifiable, documented basis for confidence.*
         `
       }
     ]
