@@ -1,6 +1,6 @@
 import React, { useState, useLayoutEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { Play, BookOpen, ShieldAlert, Database, Code, ShieldCheck, Cpu, Swords, LogOut, ChevronDown, Sun, Moon, ArrowLeft, CheckCircle2, Lock, Volume2, VolumeX } from 'lucide-react';
+import { Play, BookOpen, ShieldAlert, Database, Code, ShieldCheck, Cpu, Swords, LogOut, ChevronDown, Sun, Moon, ArrowLeft, CheckCircle2, Lock, Volume2, VolumeX, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -10,6 +10,8 @@ import { ZONES_CONTENT } from './data/analogies';
 import { QuizEngine } from './components/QuizEngine';
 import { BadgeToast } from './components/BadgeToast';
 import { useQuestStore } from './store/useQuestStore';
+import { useAuthStore } from './store/useAuthStore';
+import { AuthPage } from './components/AuthPage';
 
 // Mock Data for the Zones
 const ZONES = [
@@ -757,12 +759,12 @@ function HubMap() {
   const completedLevels = useQuestStore((state) => state.completedLevels);
   const xp = useQuestStore((state) => state.xp);
   const playerName = useQuestStore((state) => state.playerName);
-  const clearPlayerName = useQuestStore((state) => state.clearPlayerName);
   const unlockedBadges = useQuestStore((state) => state.unlockedBadges);
   const lastBountyDate = useQuestStore((state) => state.lastBountyDate);
   const claimDailyBounty = useQuestStore((state) => state.claimDailyBounty);
   const theme = useQuestStore((state) => state.theme);
   const toggleTheme = useQuestStore((state) => state.toggleTheme);
+  const { logout } = useAuthStore();
   const today = new Date().toISOString().slice(0, 10);
   const bountyAlreadyClaimed = lastBountyDate === today;
   const [viewMode, setViewMode] = useState<'map' | 'grid'>('map');
@@ -793,7 +795,7 @@ function HubMap() {
           {/* Logout */}
           <div className="relative group">
             <button
-              onClick={() => { clearPlayerName(); navigate('/login', { replace: true }); }}
+              onClick={() => { logout(); navigate('/login', { replace: true }); }}
               className="w-9 h-9 flex items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-rose-400 hover:border-rose-500/50 hover:bg-rose-500/10 hover:shadow-[0_0_14px_rgba(244,63,94,0.25)] hover:scale-110 active:scale-95 transition-all duration-200"
             >
               <LogOut size={15} />
@@ -1573,22 +1575,47 @@ function ZoneView() {
   )
 }
 
+// ── Auth-aware route guards ────────────────────────────────────
 function LoginRoute() {
-  const playerName = useQuestStore((state) => state.playerName);
-  if (playerName) return <Navigate to="/" replace />;
-  return <WelcomePage />;
+  const { user, authLoading } = useAuthStore();
+  if (authLoading) return <AuthSpinner />;
+  if (user) return <Navigate to="/" replace />;
+  return <AuthPage />;
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const playerName = useQuestStore((state) => state.playerName);
-  if (!playerName) return <Navigate to="/login" replace />;
+  const { user, authLoading } = useAuthStore();
+  if (authLoading) return <AuthSpinner />;
+  if (!user) return <Navigate to="/login" replace />;
   return <>{children}</>;
+}
+
+// ── Full-screen spinner shown while Firebase checks auth session ─
+function AuthSpinner() {
+  const theme = useQuestStore((s) => s.theme);
+  return (
+    <div className={theme === 'dark' ? 'dark' : ''}>
+      <div className="min-h-screen bg-slate-50 dark:bg-[#05030f] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <motion.div
+            animate={{ boxShadow: ['0 0 20px rgba(192,38,211,0.2)', '0 0 40px rgba(192,38,211,0.45)', '0 0 20px rgba(192,38,211,0.2)'] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="w-14 h-14 rounded-2xl bg-fuchsia-500/15 border border-fuchsia-500/30 flex items-center justify-center"
+          >
+            <BookOpen size={28} className="text-fuchsia-400" />
+          </motion.div>
+          <Loader2 size={20} className="text-fuchsia-400 animate-spin" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function App() {
   const theme = useQuestStore((state) => state.theme);
+  // Initialise the auth listener as early as possible
+  useAuthStore();
 
-  // Sync theme class to <html> before first paint to avoid flash
   useLayoutEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [theme]);
