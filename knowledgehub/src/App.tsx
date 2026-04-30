@@ -396,7 +396,7 @@ function WelcomePage() {
               placeholder="Your name"
               maxLength={30}
               autoFocus
-              className="w-full bg-white/80 dark:bg-slate-900/80 border border-violet-300/60 dark:border-violet-900/50 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-fuchsia-500/60 focus:ring-2 focus:ring-fuchsia-500/20 transition"
+              className="w-full bg-white/80 dark:bg-slate-900/80 border border-violet-300/60 dark:border-violet-900/50 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-fuchsia-500/60 focus:ring-2 focus:ring-fuchsia-500/20 transition"
             />
             <motion.button
               onClick={handleEnter}
