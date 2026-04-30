@@ -1462,30 +1462,1533 @@ This is clear, specific, data-backed, and gives the stakeholder everything they 
   sql: {
     id: 'sql',
     levels: [
+
+      // ─── BEGINNER ───────────────────────────────────────────────────────────
+
       {
-        id: 'basic',
-        title: 'Basic: Reading Data',
-        analogy: "A database is just a giant, magical library. SQL is the specific language you have to speak to the librarian to get them to bring you the exact book you want.",
+        id: 'sql-what-is-db',
+        title: 'Beginner: What is a Database?',
+        analogy: "A database is like a magical filing cabinet that never loses a single paper, can find any document in milliseconds, and doesn't set the office on fire when you put two things in the wrong drawer.",
         lessonMarkdown: `
-### 1. The SELECT Statement
-*💡 Analogy: It is the equivalent of pointing at a menu in a restaurant and saying, "I want that."*
+## What is a Database?
 
-The \`SELECT\` statement is the most fundamental command in SQL. It is used exclusively to read data out of a database. It never deletes, creates, or changes anything. You use it to specify exactly which columns of data you want to look at. For example, \`SELECT first_name, email FROM Users\` tells the database to ignore all the other clutter and only show you the names and emails.
+Before you write a single line of SQL, you need to understand what you're actually talking to. A database is an **organised collection of structured data stored electronically**. It is not a spreadsheet. It is not a bunch of files in a folder. It is a purpose-built system designed to store, retrieve, and manage data at scale — from 10 rows to 10 billion rows.
 
-### 2. The WHERE Clause
-*💡 Analogy: It's like telling a bouncer, "Only let people in if they are wearing a red shirt."*
+---
 
-If \`SELECT\` chooses the columns, \`WHERE\` chooses the rows. Without a WHERE clause, the database will return every single row in the table, which could be millions of records, crashing your computer. The WHERE clause acts as a strict filter. By typing \`SELECT * FROM Users WHERE age > 18\`, you are commanding the database to scan the table and only return the rows where the age condition is true.
+### 1. Why Not Just Use Excel?
 
-### 3. The Asterisk (*)
-*💡 Analogy: Walking into a buffet and saying, "Give me one of absolutely everything you have."*
+*💡 Analogy: Excel is a notepad on your kitchen counter. A database is a fully automated warehouse with robots, security guards, and a barcode scanner on every item.*
 
-In SQL, the asterisk \`*\` is a wildcard character that translates to "all columns." When you write \`SELECT * FROM Users\`, you are telling the database that you are too lazy to type out every single column name, and you just want it to return all the data it has for those rows. While useful for quick debugging, it is generally bad practice in production code because it wastes memory pulling data you might not actually need.
+You could technically store user data in an Excel file. But the moment you have:
+- **10,000 users** logging in at the same time
+- **Multiple apps** trying to read and write simultaneously
+- **Relationships** between data (orders linked to users linked to products)
+- A need to **not lose data** if the server crashes
+
+...Excel will collapse in a heap and cry. Databases are built for all of this.
+
+**Real Example:** Amazon's database handles over **1.6 million orders per day**. Imagine that in Excel. Your laptop would achieve liftoff.
+
+---
+
+### 2. Tables, Rows, and Columns — The Holy Trinity
+
+*💡 Analogy: A table is a spreadsheet. A column is the header at the top ("Name", "Age", "Email"). A row is one specific person's data filling in those headers.*
+
+Every database is made up of **tables**. Think of a table as a single, focused topic — one table for Users, one for Products, one for Orders.
+
+Each table has:
+
+| Concept | What it means | Real example |
+|---|---|---|
+| **Table** | A collection of related data | The \`users\` table |
+| **Column** | A specific attribute/field | \`first_name\`, \`email\`, \`age\` |
+| **Row** | One complete record | One specific user's data |
+| **Cell** | One value at the intersection | "Priya" in the \`first_name\` column |
+
+**Example — The \`users\` table:**
+
+\`\`\`
+| id | first_name | last_name | email               | age |
+|----|------------|-----------|---------------------|-----|
+|  1 | Priya      | Sharma    | priya@test.com      |  28 |
+|  2 | Marcus     | Webb       | marcus@test.com     |  34 |
+|  3 | Ayesha     | Khan       | ayesha@test.com     |  22 |
+\`\`\`
+
+That's it. A table is just organised rows and columns — like a spreadsheet — but with superpowers.
+
+---
+
+### 3. The Primary Key — Every Row's Unique ID
+
+*💡 Analogy: Your Aadhaar number / Passport number. There are a billion people in India, some with the same name, same city, same birthday. Your government-issued number is what makes YOU uniquely you.*
+
+Every table has a special column called the **Primary Key**. It is a value that:
+- Is **unique** — no two rows can have the same value
+- Is **never null** — every row must have one
+- Is used to **identify** a specific record precisely
+
+In the table above, \`id\` is the primary key. Even if two users are both named "Priya Sharma", they will have different \`id\` values (1 and 47, for example), so the database can tell them apart with zero confusion.
+
+\`\`\`sql
+-- Creating a table with a primary key
+CREATE TABLE users (
+  id         INT PRIMARY KEY AUTO_INCREMENT,
+  first_name VARCHAR(50),
+  email      VARCHAR(100)
+);
+\`\`\`
+
+The \`AUTO_INCREMENT\` part means the database will automatically assign the next available number (1, 2, 3...) so you never have to think about it.
+
+---
+
+### 4. What is a Relational Database?
+
+*💡 Analogy: Imagine a hospital. There's a Patients file, a Doctors file, and an Appointments file. You don't photocopy the patient's full details into the appointments folder — you just write their patient ID. That ID is the link. That's exactly how relational databases work.*
+
+A **Relational Database** stores data in multiple tables that are **linked to each other** using keys. This is important because:
+
+- You don't want to repeat data (storing the full user profile in every single order row)
+- You don't want data to go out of sync (if user changes email, you'd have to update it in 1,000 order rows)
+
+Instead, you store the user's data once in the \`users\` table, and in the \`orders\` table you just reference their \`user_id\`.
+
+\`\`\`
+users table:          orders table:
+id | name             id | user_id | product
+---+-------           ---+---------+--------
+ 1 | Priya             1 |       1 | Laptop
+ 2 | Marcus            2 |       1 | Mouse
+                       3 |       2 | Keyboard
+\`\`\`
+
+Priya's name is stored **once**. Both of her orders simply reference \`user_id = 1\`. Clean, efficient, and impossible to get out of sync.
+
+---
+
+### 5. Popular Database Systems You'll Encounter
+
+You don't "install SQL" — SQL is a **language**. The things you install are database management systems (DBMS) that speak SQL:
+
+| Database | Who uses it | Fun fact |
+|---|---|---|
+| **MySQL** | Most web apps, WordPress | Free, open-source, used by Facebook at one point |
+| **PostgreSQL** | Startups, serious applications | Free, extremely powerful, the community's favourite |
+| **SQLite** | Mobile apps, testing | So lightweight it runs inside your app file |
+| **SQL Server** | Enterprise / Microsoft shops | Comes with a price tag and a sales rep |
+| **Oracle** | Banks, airlines, governments | Also comes with a price tag and a lawsuit |
+
+As a QA engineer, you will mostly be writing **SELECT queries** to validate data. You'll use the same syntax across all of them with minor differences.
+
+---
+
+### 6. What is SQL?
+
+*💡 Analogy: SQL is the language you speak to the database. It's like learning to speak to a genie. The genie is incredibly powerful, but also incredibly literal. You must phrase your wish EXACTLY right, or you'll get something completely unexpected.*
+
+**SQL** stands for **Structured Query Language** (pronounced "sequel" or "S-Q-L", both are fine — just don't start a war about it in the office).
+
+It is the **universal language** for talking to relational databases. You use it to:
+
+| Action | SQL Command |
+|---|---|
+| **Read** data | \`SELECT\` |
+| **Add** new data | \`INSERT\` |
+| **Change** existing data | \`UPDATE\` |
+| **Remove** data | \`DELETE\` |
+| **Create** a table | \`CREATE TABLE\` |
+
+As a QA engineer, you will use SQL to:
+- **Verify** that after a user signs up, their row is correctly created in the database
+- **Check** that a deleted record is actually gone
+- **Investigate** bugs by looking directly at the raw data
+- **Set up** test data before running automated tests
         `
       },
+
+      {
+        id: 'sql-select',
+        title: 'Beginner: The SELECT Statement',
+        analogy: "SELECT is like placing an order at a restaurant. You're telling the database exactly what you want, from which table, and the database is the kitchen that delivers it.",
+        lessonMarkdown: `
+## The SELECT Statement — Asking the Database for Data
+
+The \`SELECT\` statement is the **most important SQL command you will ever learn**. It is how you read data from a database. It never modifies, deletes, or creates anything. It is purely a question — and the database answers it.
+
+---
+
+### 1. The Basic Structure
+
+*💡 Analogy: Think of it like ordering food. "I want [the burger] from [the menu]." = "SELECT [column] FROM [table]."*
+
+\`\`\`sql
+SELECT column1, column2
+FROM table_name;
+\`\`\`
+
+**Real example** — Get the first name and email of all users:
+\`\`\`sql
+SELECT first_name, email
+FROM users;
+\`\`\`
+
+**Result:**
+\`\`\`
+| first_name | email           |
+|------------|-----------------|
+| Priya      | priya@test.com  |
+| Marcus     | marcus@test.com |
+| Ayesha     | ayesha@test.com |
+\`\`\`
+
+The database ignores everything else (age, last name, id) and gives you only what you asked for. Polite and efficient.
+
+---
+
+### 2. SELECT * — The "Give Me Everything" Mode
+
+*💡 Analogy: Walking into a restaurant and saying "Just bring me one of everything." The kitchen panics, your table collapses, and the bill arrives in 40 minutes. Use with caution.*
+
+The asterisk \`*\` is a wildcard that means "all columns":
+
+\`\`\`sql
+SELECT *
+FROM users;
+\`\`\`
+
+**Result:**
+\`\`\`
+| id | first_name | last_name | email           | age |
+|----|------------|-----------|-----------------|-----|
+|  1 | Priya      | Sharma    | priya@test.com  |  28 |
+|  2 | Marcus     | Webb      | marcus@test.com |  34 |
+|  3 | Ayesha     | Khan      | ayesha@test.com |  22 |
+\`\`\`
+
+✅ **Use \`SELECT *\`** for quick exploration and debugging.
+
+❌ **Avoid \`SELECT *\`** in production code — it pulls unnecessary data, wastes bandwidth, and if someone adds a new column (like \`password_hash\`), your query suddenly returns sensitive data.
+
+---
+
+### 3. Giving Columns Nicknames with AS (Aliases)
+
+*💡 Analogy: Your name is "Venkataraman Krishnaswamy" but at work everyone calls you "VK". The alias is just a friendlier label for the same thing.*
+
+You can rename columns in your output using \`AS\`:
+
+\`\`\`sql
+SELECT
+  first_name AS name,
+  email      AS contact_email
+FROM users;
+\`\`\`
+
+**Result:**
+\`\`\`
+| name   | contact_email   |
+|--------|-----------------|
+| Priya  | priya@test.com  |
+| Marcus | marcus@test.com |
+\`\`\`
+
+The database column is still called \`first_name\` — the alias is just cosmetic for the output. Super useful when columns have ugly technical names like \`usr_frst_nm_v2\`.
+
+---
+
+### 4. SELECT with Expressions — Making the Database Do Maths
+
+*💡 Analogy: Instead of asking the waiter for a burger and then calculating the total yourself, you just ask: "What's my total including 18% GST?" The kitchen does the maths.*
+
+You can put expressions and calculations directly in a SELECT:
+
+\`\`\`sql
+SELECT
+  first_name,
+  age,
+  age + 10   AS age_in_ten_years,
+  age * 2    AS double_age
+FROM users;
+\`\`\`
+
+**Result:**
+\`\`\`
+| first_name | age | age_in_ten_years | double_age |
+|------------|-----|------------------|------------|
+| Priya      |  28 |               38 |         56 |
+| Marcus     |  34 |               44 |         68 |
+| Ayesha     |  22 |               32 |         44 |
+\`\`\`
+
+The database computed those new columns on the fly. No extra storage, just instant maths.
+
+---
+
+### 5. SELECT DISTINCT — Remove Duplicates
+
+*💡 Analogy: You have a guest list where "Priya" appears 3 times because she RSVPed from 3 different email addresses. DISTINCT only lets one "Priya" through the door.*
+
+\`\`\`sql
+SELECT DISTINCT city
+FROM users;
+\`\`\`
+
+Without DISTINCT, if 500 users live in Mumbai, you get "Mumbai" listed 500 times. With DISTINCT, you get it once.
+
+**Practical QA use case:** Check how many unique statuses exist in an \`orders\` table:
+\`\`\`sql
+SELECT DISTINCT status
+FROM orders;
+\`\`\`
+
+Result: \`pending\`, \`shipped\`, \`delivered\`, \`cancelled\` — and if you also see \`DELIVERED\` (capital letters), that's a data inconsistency bug worth reporting.
+
+---
+
+### 6. SELECT with String Concatenation
+
+*💡 Analogy: You have a first name box and a last name box. You want a full name. You glue them together.*
+
+\`\`\`sql
+-- MySQL / SQLite
+SELECT CONCAT(first_name, ' ', last_name) AS full_name
+FROM users;
+
+-- PostgreSQL
+SELECT first_name || ' ' || last_name AS full_name
+FROM users;
+\`\`\`
+
+**Result:**
+\`\`\`
+| full_name     |
+|---------------|
+| Priya Sharma  |
+| Marcus Webb   |
+| Ayesha Khan   |
+\`\`\`
+
+---
+
+### 7. The Golden Rules of SELECT
+
+| Rule | Why it matters |
+|---|---|
+| Always specify column names in production | Prevents accidental data leaks |
+| Use aliases for clarity | Makes output readable for non-technical stakeholders |
+| SELECT does not modify data | Safe to run SELECT anytime on production |
+| Semicolon ends the statement | Some tools require it, some don't — always include it |
+        `
+      },
+
+      {
+        id: 'sql-where',
+        title: 'Beginner: Filtering with WHERE',
+        analogy: "WHERE is the bouncer at the club door. Without it, everyone gets in. With it, you set exact rules — 'Only people over 21 wearing blue shoes who work in tech.' The database enforces every rule with robotic precision.",
+        lessonMarkdown: `
+## The WHERE Clause — Filtering Your Data
+
+If \`SELECT\` decides **which columns** you get, \`WHERE\` decides **which rows** you get. It is the most powerful tool for pinpointing exactly the data you need.
+
+Without \`WHERE\`, a table with 50 million rows returns 50 million rows. Your computer stops speaking to you.
+
+---
+
+### 1. Basic WHERE Syntax
+
+*💡 Analogy: You're looking for your friend Priya at a party with 500 people. "WHERE name = Priya" is you asking the bouncer to bring only Priya to you.*
+
+\`\`\`sql
+SELECT first_name, email
+FROM users
+WHERE age > 25;
+\`\`\`
+
+**Result:**
+\`\`\`
+| first_name | email           |
+|------------|-----------------|
+| Priya      | priya@test.com  |  -- age 28 ✅
+| Marcus     | marcus@test.com |  -- age 34 ✅
+                                 -- Ayesha (age 22) is excluded ❌
+\`\`\`
+
+---
+
+### 2. Comparison Operators — The Bouncer's Rulebook
+
+*💡 Analogy: The bouncer doesn't just check age. They check shoe type, guest list membership, and whether you're wearing that awful printed shirt. Each rule is an operator.*
+
+| Operator | Meaning | Example |
+|---|---|---|
+| \`=\` | Equal to | \`WHERE status = 'active'\` |
+| \`!=\` or \`<>\` | Not equal | \`WHERE status != 'deleted'\` |
+| \`>\` | Greater than | \`WHERE age > 18\` |
+| \`<\` | Less than | \`WHERE price < 1000\` |
+| \`>=\` | Greater than or equal | \`WHERE score >= 50\` |
+| \`<=\` | Less than or equal | \`WHERE age <= 65\` |
+
+**QA Example:** Check if any orders slipped through with a negative price (a classic bug):
+\`\`\`sql
+SELECT id, product_name, price
+FROM orders
+WHERE price < 0;
+\`\`\`
+
+If this returns ANY rows — that's a bug. File it immediately.
+
+---
+
+### 3. AND / OR — Combining Multiple Conditions
+
+*💡 Analogy: AND is your strict parent: "You can go out IF your homework is done AND IF you're home by 10pm." OR is your cool aunt: "You can have cake if it's your birthday OR if it's a Tuesday."*
+
+**AND — Both conditions must be true:**
+\`\`\`sql
+SELECT first_name, age, city
+FROM users
+WHERE age > 18
+  AND city = 'Mumbai';
+\`\`\`
+Only returns users who are **both** over 18 **and** from Mumbai. Marcus, 25, from Delhi? Sorry, not making the cut.
+
+**OR — At least one condition must be true:**
+\`\`\`sql
+SELECT first_name, status
+FROM orders
+WHERE status = 'pending'
+   OR status = 'failed';
+\`\`\`
+Returns orders that are either pending **or** failed — useful for finding all "needs attention" orders in one go.
+
+**Combining AND + OR (use brackets!):**
+\`\`\`sql
+SELECT *
+FROM users
+WHERE (city = 'Mumbai' OR city = 'Delhi')
+  AND age > 21;
+\`\`\`
+
+⚠️ **Always use brackets when mixing AND and OR.** Without them, operator precedence can give you completely wrong results — like a maths equation without brackets.
+
+---
+
+### 4. IN — The VIP List
+
+*💡 Analogy: Instead of telling the bouncer "Let in Sarah, OR let in John, OR let in Marcus, OR let in Priya..." you just hand them a VIP list. That's IN.*
+
+\`\`\`sql
+-- Without IN (messy):
+WHERE city = 'Mumbai' OR city = 'Delhi' OR city = 'Bangalore'
+
+-- With IN (clean):
+WHERE city IN ('Mumbai', 'Delhi', 'Bangalore')
+\`\`\`
+
+**QA use case** — Check if any user has an invalid role that shouldn't exist:
+\`\`\`sql
+SELECT id, username, role
+FROM users
+WHERE role NOT IN ('admin', 'editor', 'viewer', 'guest');
+\`\`\`
+If this returns rows, someone assigned a role that isn't in the approved list. Data integrity bug!
+
+---
+
+### 5. BETWEEN — A Range Filter
+
+*💡 Analogy: "I want to see all users who signed up between January and March." You don't list every single date — you just give the start and end.*
+
+\`\`\`sql
+SELECT first_name, age
+FROM users
+WHERE age BETWEEN 20 AND 30;
+\`\`\`
+
+**Important:** \`BETWEEN\` is **inclusive** — it includes both the start (20) and end (30) values.
+
+\`\`\`sql
+-- Works with dates too
+SELECT order_id, amount
+FROM orders
+WHERE order_date BETWEEN '2024-01-01' AND '2024-03-31';
+\`\`\`
+
+---
+
+### 6. LIKE — Pattern Matching (The Wildcard Search)
+
+*💡 Analogy: You're looking for a contact in your phone but you only remember their name starts with "Sri". LIKE is the search bar that says "show me everyone whose name begins with Sri%".*
+
+\`\`\`sql
+SELECT first_name, email
+FROM users
+WHERE email LIKE '%@gmail.com';
+\`\`\`
+
+**The two wildcards:**
+
+| Wildcard | Means | Example |
+|---|---|---|
+| \`%\` | Zero or more of any character | \`'%gmail%'\` matches anything containing "gmail" |
+| \`_\` | Exactly one character | \`'_iya'\` matches "Riya", "Priya" ❌ (too long), but "Diya" ✅ |
+
+\`\`\`sql
+-- Find all users whose name starts with 'A'
+WHERE first_name LIKE 'A%'
+
+-- Find emails that don't look like emails (missing @)
+WHERE email NOT LIKE '%@%'
+\`\`\`
+
+The second example is a great data quality check — if an email doesn't contain "@", it was never a valid email address and the validation is broken.
+
+---
+
+### 7. IS NULL — Finding the Missing Values
+
+*💡 Analogy: NULL is not zero. NULL is not an empty string. NULL is the database equivalent of a sticky note that says "we have no information about this at all." You can't use = to find it — you need IS NULL.*
+
+\`\`\`sql
+-- WRONG ❌ — this will NEVER return any rows
+WHERE phone_number = NULL
+
+-- CORRECT ✅
+WHERE phone_number IS NULL
+\`\`\`
+
+**QA check** — Are there any user accounts missing an email address?
+\`\`\`sql
+SELECT id, first_name
+FROM users
+WHERE email IS NULL;
+\`\`\`
+
+If users can register without an email and your system requires it later, you've found a validation gap.
+
+\`\`\`sql
+-- Or find rows that DO have a value
+WHERE email IS NOT NULL
+\`\`\`
+
+---
+
+### 8. WHERE in Action — A QA Test Scenario
+
+You're testing an e-commerce app. After a checkout test, verify the database:
+
+\`\`\`sql
+-- 1. Did the order actually get created?
+SELECT *
+FROM orders
+WHERE user_id = 42
+  AND status = 'pending'
+  AND created_at >= '2024-11-01';
+
+-- 2. Is the price correct (not negative, not zero)?
+SELECT id, amount
+FROM orders
+WHERE amount <= 0;
+
+-- 3. Are there orphan orders with no matching user?
+SELECT o.id, o.user_id
+FROM orders o
+WHERE o.user_id NOT IN (SELECT id FROM users);
+\`\`\`
+
+These three queries would catch: missing order creation, bad price calculation, and referential integrity violations — three completely different categories of bugs, found in seconds.
+        `
+      },
+
+      {
+        id: 'sql-order-limit',
+        title: 'Beginner: ORDER BY and LIMIT',
+        analogy: "ORDER BY is the database's sorting shelf — tallest to shortest, A to Z, newest to oldest. LIMIT is the velvet rope: even if 10,000 people qualify, only the first 20 get through.",
+        lessonMarkdown: `
+## ORDER BY and LIMIT — Sorting and Slicing Results
+
+You've learned to ask for data (SELECT) and filter it (WHERE). Now let's learn to **sort** it and **slice** it. These two commands are essential for any real-world query.
+
+---
+
+### 1. ORDER BY — Sorting Your Results
+
+*💡 Analogy: You've found all the trophies in the cabinet. ORDER BY is deciding: do you want them arranged from oldest to newest, or biggest to smallest?*
+
+Without ORDER BY, databases return data in no guaranteed order. The order can change based on internal storage, recent insertions, and the phase of the moon. Never assume data comes back in a specific order unless you explicitly sort it.
+
+\`\`\`sql
+SELECT first_name, age
+FROM users
+ORDER BY age;
+\`\`\`
+
+**Result (ascending — smallest first by default):**
+\`\`\`
+| first_name | age |
+|------------|-----|
+| Ayesha     |  22 |
+| Priya      |  28 |
+| Marcus     |  34 |
+\`\`\`
+
+---
+
+### 2. ASC and DESC — Which Direction?
+
+*💡 Analogy: ASC is the underdog bracket — the weakest first, strongest last. DESC is the highlight reel — show me the best one first.*
+
+\`\`\`sql
+-- Ascending (default — smallest/earliest first)
+ORDER BY age ASC
+
+-- Descending (largest/latest first)
+ORDER BY age DESC
+\`\`\`
+
+**Practical example** — Show the most recently placed orders first:
+\`\`\`sql
+SELECT id, customer_name, amount, order_date
+FROM orders
+ORDER BY order_date DESC;
+\`\`\`
+
+This is how every admin dashboard "recent orders" list works.
+
+---
+
+### 3. Sorting by Multiple Columns
+
+*💡 Analogy: First sort by surname (A-Z). If two people have the same surname, then sort by first name. You've given the system a tiebreaker.*
+
+\`\`\`sql
+SELECT first_name, last_name, city
+FROM users
+ORDER BY city ASC, last_name ASC;
+\`\`\`
+
+**Result:**
+\`\`\`
+| first_name | last_name | city      |
+|------------|-----------|-----------|
+| Neha       | Gupta     | Bangalore |
+| Rohan      | Kapoor    | Bangalore |
+| Priya      | Sharma    | Mumbai    |
+| Marcus     | Webb      | Mumbai    |
+\`\`\`
+
+Bangalore comes before Mumbai (A < M). Within Bangalore, Gupta comes before Kapoor. Crystal clear hierarchy.
+
+---
+
+### 4. LIMIT — Only Give Me N Rows
+
+*💡 Analogy: You walk into a bookshop and ask for "the 5 most popular books this month." The clerk doesn't hand you every book in the store — they go to the bestseller shelf and bring you exactly 5.*
+
+\`\`\`sql
+SELECT first_name, score
+FROM users
+ORDER BY score DESC
+LIMIT 5;
+\`\`\`
+
+This returns the **top 5 highest-scoring users**. Without LIMIT, this query on a table with a million users returns a million rows — crashing browsers, exhausting memory, and making your DBA very unhappy.
+
+\`\`\`sql
+-- See just the top 10 most expensive orders
+SELECT order_id, product, amount
+FROM orders
+ORDER BY amount DESC
+LIMIT 10;
+\`\`\`
+
+---
+
+### 5. OFFSET — Skipping Rows (Pagination!)
+
+*💡 Analogy: You're reading search results. Page 1 shows results 1-10. Page 2 shows 11-20. You're not re-searching — you're just skipping the first 10 and showing the next 10. That's OFFSET.*
+
+\`\`\`sql
+-- Page 1 — first 10 results
+SELECT id, title FROM articles
+ORDER BY created_at DESC
+LIMIT 10 OFFSET 0;
+
+-- Page 2 — results 11 to 20
+SELECT id, title FROM articles
+ORDER BY created_at DESC
+LIMIT 10 OFFSET 10;
+
+-- Page 3 — results 21 to 30
+SELECT id, title FROM articles
+ORDER BY created_at DESC
+LIMIT 10 OFFSET 20;
+\`\`\`
+
+**Formula for any page:** \`OFFSET = (page_number - 1) × rows_per_page\`
+
+Every "Load more" button, every paginated API endpoint, every "Page 2 of 847" you've ever clicked — this is what's running behind it.
+
+---
+
+### 6. QA Testing with ORDER BY and LIMIT
+
+**Test Case 1 — Verify the latest record after an action:**
+\`\`\`sql
+-- After a user signs up, confirm their row was created correctly
+SELECT *
+FROM users
+ORDER BY created_at DESC
+LIMIT 1;
+\`\`\`
+
+**Test Case 2 — Find the most expensive order (to verify discount wasn't applied wrong):**
+\`\`\`sql
+SELECT order_id, user_id, amount, discount_applied
+FROM orders
+ORDER BY amount DESC
+LIMIT 20;
+\`\`\`
+
+**Test Case 3 — Find the oldest unresolved bug ticket in a support system:**
+\`\`\`sql
+SELECT ticket_id, title, created_at
+FROM support_tickets
+WHERE status = 'open'
+ORDER BY created_at ASC
+LIMIT 1;
+\`\`\`
+
+---
+
+### 7. Common Mistakes
+
+| Mistake | What happens | Fix |
+|---|---|---|
+| No ORDER BY, assuming fixed order | Results change randomly | Always use ORDER BY for predictable output |
+| LIMIT without ORDER BY | You get a random subset | Always sort before limiting |
+| OFFSET on huge tables | Very slow on millions of rows | Use cursor-based pagination for large datasets |
+| Forgetting DESC | You get the cheapest/oldest, not the most expensive/latest | Double-check sort direction |
+        `
+      },
+
+      {
+        id: 'sql-insert',
+        title: 'Beginner: INSERT — Adding Data',
+        analogy: "INSERT is filling out a form and clicking Submit. You're telling the database: 'Add this new entry. Here are all the fields. Here are all the values.' The database stamps it with an ID and files it away forever.",
+        lessonMarkdown: `
+## INSERT INTO — Adding New Data to the Database
+
+You've been reading data with SELECT. Now it's time to **write** data. The \`INSERT INTO\` statement is how you add new rows to a table. This is what runs every time a user creates an account, places an order, or writes a comment.
+
+---
+
+### 1. Basic INSERT Syntax
+
+*💡 Analogy: Filling out a paper form. You specify which fields you're filling in, then write in the values. One form → one row in the database.*
+
+\`\`\`sql
+INSERT INTO table_name (column1, column2, column3)
+VALUES ('value1', 'value2', 'value3');
+\`\`\`
+
+**Real example** — Add a new user:
+\`\`\`sql
+INSERT INTO users (first_name, last_name, email, age)
+VALUES ('Priya', 'Sharma', 'priya@test.com', 28);
+\`\`\`
+
+After this runs, a new row appears in the \`users\` table. The \`id\` column auto-increments, so the database assigns it automatically — you don't touch it.
+
+---
+
+### 2. Column Names vs Values — They Must Match
+
+*💡 Analogy: You're addressing a letter. The columns are the envelope fields (To:, From:, Subject:). The values are what you write in each field. Every field must have exactly one matching value, in the same order.*
+
+\`\`\`sql
+-- ✅ Correct — 3 columns, 3 matching values
+INSERT INTO products (name, price, category)
+VALUES ('Wireless Mouse', 599.00, 'Electronics');
+
+-- ❌ Wrong — mismatch will throw an error
+INSERT INTO products (name, price, category)
+VALUES ('Wireless Mouse', 'Electronics');  -- missing price!
+\`\`\`
+
+The column list and the values list must be in **perfect alignment**. The database matches them positionally — first column gets first value, second gets second, and so on.
+
+---
+
+### 3. Inserting Multiple Rows at Once
+
+*💡 Analogy: Instead of filing one form per person, you submit a stack of 5 forms in a single trip to the counter. Same result, much more efficient.*
+
+\`\`\`sql
+INSERT INTO users (first_name, email, age)
+VALUES
+  ('Priya',  'priya@test.com',  28),
+  ('Marcus', 'marcus@test.com', 34),
+  ('Ayesha', 'ayesha@test.com', 22),
+  ('Rohan',  'rohan@test.com',  29);
+\`\`\`
+
+One statement, four new rows. Much faster than running four separate INSERT statements — especially useful for setting up test data.
+
+---
+
+### 4. What Happens to Columns You Don't Mention?
+
+*💡 Analogy: You fill in the "Name" and "Email" boxes on a registration form but skip "Phone Number" (it's optional). The form submits successfully — the phone field is just empty (NULL).*
+
+If you don't include a column in your INSERT, the database either:
+- Inserts the **default value** (if one is defined) — e.g., status defaults to 'active'
+- Inserts **NULL** (if nullable)
+- **Throws an error** (if the column is NOT NULL and has no default)
+
+\`\`\`sql
+-- Suppose 'status' has a default of 'active'
+INSERT INTO users (first_name, email)
+VALUES ('Neha', 'neha@test.com');
+
+-- The resulting row:
+-- | id | first_name | email          | status | age  |
+-- |----|------------|----------------|--------|------|
+-- |  4 | Neha       | neha@test.com  | active | NULL |
+\`\`\`
+
+---
+
+### 5. Inserting with SELECT (Copy Data)
+
+*💡 Analogy: You have a guest list from last year's conference. You want to invite all VIP guests again. Instead of retyping everyone, you just copy the VIP subset from last year's list into this year's list.*
+
+\`\`\`sql
+INSERT INTO premium_users (first_name, email)
+SELECT first_name, email
+FROM users
+WHERE subscription_type = 'premium';
+\`\`\`
+
+This copies matching rows from \`users\` directly into \`premium_users\`. No manual typing. No copy-paste errors. SQL handles the loop.
+
+---
+
+### 6. INSERT and Auto-Increment — Where Did My ID Go?
+
+After an INSERT, you often need to know what ID the database assigned to the new row (to use in a follow-up query or verify it was created correctly).
+
+\`\`\`sql
+-- MySQL: get the last auto-generated ID
+SELECT LAST_INSERT_ID();
+
+-- PostgreSQL: get the ID right from the INSERT
+INSERT INTO users (first_name, email)
+VALUES ('Rohan', 'rohan@test.com')
+RETURNING id;
+\`\`\`
+
+**QA tip:** After an INSERT test, always verify with a SELECT:
+\`\`\`sql
+-- Insert a test order
+INSERT INTO orders (user_id, product, amount, status)
+VALUES (1, 'Laptop', 75000, 'pending');
+
+-- Immediately verify it's there correctly
+SELECT *
+FROM orders
+WHERE user_id = 1
+ORDER BY created_at DESC
+LIMIT 1;
+\`\`\`
+
+---
+
+### 7. Common INSERT Mistakes and Errors
+
+| Error | What caused it | Fix |
+|---|---|---|
+| \`Duplicate entry '...' for key 'PRIMARY'\` | You tried to insert a row with an ID that already exists | Don't manually specify the ID if it's auto-increment |
+| \`Column 'email' cannot be null\` | You skipped a NOT NULL column with no default | Include the column and value in your INSERT |
+| \`Data too long for column 'name'\` | Your value exceeds the column's length limit (e.g., VARCHAR(50)) | Shorten the value or increase the column size |
+| \`Column count doesn't match value count\` | Mismatch between column list and values list | Count them — they must be equal |
+
+---
+
+### 8. QA Use Case — Setting Up Test Data
+
+One of the most common reasons a QA engineer writes INSERT is to **set up a clean test state**:
+
+\`\`\`sql
+-- Create a test user
+INSERT INTO users (first_name, last_name, email, role)
+VALUES ('Test', 'User', 'testuser_auto@qa.com', 'viewer');
+
+-- Create an order for that user
+INSERT INTO orders (user_id, product_name, amount, status)
+VALUES (LAST_INSERT_ID(), 'Test Product', 999, 'pending');
+
+-- Verify both were created
+SELECT u.first_name, o.product_name, o.status
+FROM users u
+JOIN orders o ON o.user_id = u.id
+WHERE u.email = 'testuser_auto@qa.com';
+\`\`\`
+
+This is test data setup done entirely in SQL — no UI clicking required. Fast, repeatable, and completely predictable.
+        `
+      },
+
+      {
+        id: 'sql-update-delete',
+        title: 'Beginner: UPDATE and DELETE',
+        analogy: "UPDATE is using correction fluid on a filed document. DELETE is feeding it to the shredder. Both are permanent, both are powerful, and both have caused at least one developer to cry at 2am because they forgot the WHERE clause.",
+        lessonMarkdown: `
+## UPDATE and DELETE — Modifying and Removing Data
+
+These two commands are the ones that can get you in serious trouble if used carelessly. Unlike SELECT, they **permanently change your database**. There is no Ctrl+Z. Always double-check your WHERE clause before running these.
+
+---
+
+### 1. UPDATE — Changing Existing Data
+
+*💡 Analogy: You're updating a customer's address in their file. You don't throw away the whole file — you just cross out the old address and write the new one in.*
+
+\`\`\`sql
+UPDATE table_name
+SET column1 = value1, column2 = value2
+WHERE condition;
+\`\`\`
+
+**Real example** — A user changed their email address:
+\`\`\`sql
+UPDATE users
+SET email = 'priya.new@test.com'
+WHERE id = 1;
+\`\`\`
+
+Result: Row with \`id = 1\` now has the new email. Everything else about that row is untouched.
+
+---
+
+### 2. The WHERE Clause in UPDATE — The Most Important Thing
+
+*💡 Analogy: Imagine you're updating the salary of "John" in the company database. Without a WHERE clause, EVERY employee in the company gets John's new salary. Hope you work for a generous company.*
+
+\`\`\`sql
+-- ✅ Correct — only updates user with id 5
+UPDATE users
+SET status = 'suspended'
+WHERE id = 5;
+
+-- ☠️ CATASTROPHIC — updates EVERY user's status to 'suspended'
+UPDATE users
+SET status = 'suspended';
+\`\`\`
+
+The second query has no WHERE clause. Every single user account in your entire system is now suspended. Production is down. Your phone is ringing. Your manager is typing in all caps.
+
+**Golden Rule:** Before running any UPDATE on production, run the equivalent SELECT first to see exactly which rows you're about to change:
+\`\`\`sql
+-- Step 1: Check WHAT will be affected
+SELECT id, first_name, status
+FROM users
+WHERE status = 'inactive'
+  AND last_login < '2023-01-01';
+
+-- Step 2: If the results look right, run the UPDATE
+UPDATE users
+SET status = 'archived'
+WHERE status = 'inactive'
+  AND last_login < '2023-01-01';
+\`\`\`
+
+---
+
+### 3. Updating Multiple Columns at Once
+
+\`\`\`sql
+UPDATE users
+SET
+  first_name   = 'Marcus',
+  email        = 'marcus.new@test.com',
+  updated_at   = NOW()
+WHERE id = 2;
+\`\`\`
+
+\`NOW()\` is a SQL function that returns the current timestamp. Always update \`updated_at\` when you modify a row — it's how you track when data last changed.
+
+---
+
+### 4. Updating Based on a Calculation
+
+*💡 Analogy: "Give everyone a 10% pay raise." You don't type in each person's new salary — you tell the database to multiply each existing salary by 1.10.*
+
+\`\`\`sql
+-- Give all active users +100 bonus points
+UPDATE users
+SET loyalty_points = loyalty_points + 100
+WHERE status = 'active';
+
+-- Apply a 15% discount to all electronics
+UPDATE products
+SET price = price * 0.85
+WHERE category = 'Electronics';
+\`\`\`
+
+---
+
+### 5. DELETE — Removing Rows
+
+*💡 Analogy: DELETE is the shredder. Once you put the paper in, it's gone. There's no "undo shred" button. The only way to get the data back is if someone took a photo of it (a database backup).*
+
+\`\`\`sql
+DELETE FROM table_name
+WHERE condition;
+\`\`\`
+
+**Real example** — Remove a test user after testing:
+\`\`\`sql
+DELETE FROM users
+WHERE email = 'testuser_auto@qa.com';
+\`\`\`
+
+---
+
+### 6. DELETE Without WHERE — The Horror Show
+
+\`\`\`sql
+-- ✅ Deletes one specific user
+DELETE FROM users WHERE id = 42;
+
+-- ☠️ Deletes EVERY SINGLE USER in the database
+DELETE FROM users;
+\`\`\`
+
+This actually happened at a major company. A developer forgot the WHERE clause while trying to clean up test data. The entire production user database was wiped. The company had to restore from a backup that was 6 hours old. Six hours of real user activity — gone. The developer did not come to work the next day.
+
+**Professional habits to prevent this:**
+1. Always SELECT first to see what will be affected
+2. Use a transaction so you can roll back if something looks wrong
+3. Never run DELETE directly on production without a second pair of eyes
+
+---
+
+### 7. TRUNCATE vs DELETE — What's the Difference?
+
+*💡 Analogy: DELETE is removing books from a shelf one by one, checking each title first. TRUNCATE is picking up the entire shelf and throwing it out the window.*
+
+| | \`DELETE\` | \`TRUNCATE\` |
+|---|---|---|
+| Removes specific rows? | ✅ Yes (with WHERE) | ❌ No — removes ALL |
+| Can be rolled back? | ✅ Yes (in a transaction) | ❌ Usually not |
+| Speed | Slower (checks each row) | Much faster |
+| Resets auto-increment? | ❌ No | ✅ Yes |
+| Use case | Cleaning specific data | Resetting a table entirely |
+
+\`\`\`sql
+-- Wipe all test data and reset the ID counter
+TRUNCATE TABLE test_sessions;
+\`\`\`
+
+Use TRUNCATE only when you intentionally want to empty an entire table and are absolutely sure about it.
+
+---
+
+### 8. Soft Delete — The Professional's Delete
+
+*💡 Analogy: When a company "archives" an employee rather than deleting their record. Their badge stops working, they don't show up in the active list, but HR still has all their records for compliance reasons.*
+
+In production systems, you almost **never** actually DELETE rows. Instead, you add a \`deleted_at\` or \`is_deleted\` column and UPDATE it:
+
+\`\`\`sql
+-- Soft delete — the row still exists
+UPDATE users
+SET deleted_at = NOW()
+WHERE id = 42;
+
+-- Then all your queries filter out soft-deleted rows
+SELECT * FROM users
+WHERE deleted_at IS NULL;
+\`\`\`
+
+Why? Because:
+- You might need to restore the record later
+- Regulations (GDPR audit logs) may require keeping records
+- Analytics needs historical data
+- Foreign key references won't break
+
+**QA implication:** When testing a "Delete Account" feature, always check the database to confirm whether it's a hard delete (row gone) or soft delete (row still there with \`deleted_at\` populated). Both are valid — you just need to test accordingly.
+
+---
+
+### 9. QA Testing UPDATE and DELETE
+
+\`\`\`sql
+-- After testing "Update Profile" feature:
+SELECT first_name, email, updated_at
+FROM users
+WHERE id = [test_user_id];
+-- Verify: new values are correct, updated_at was refreshed
+
+-- After testing "Cancel Order" feature:
+SELECT status, cancelled_at
+FROM orders
+WHERE id = [test_order_id];
+-- Verify: status changed to 'cancelled', cancelled_at was set
+
+-- After testing "Delete Account" feature:
+SELECT id, deleted_at
+FROM users
+WHERE id = [test_user_id];
+-- Verify: either row is gone (hard delete) or deleted_at is populated (soft delete)
+\`\`\`
+        `
+      },
+
+      {
+        id: 'sql-data-types',
+        title: 'Beginner: SQL Data Types',
+        analogy: "SQL data types are like labelled storage containers in your kitchen. You don't store soup in a pencil case or keep pencils in a soup pot. Every type of data has a container specifically designed for it — the right shape, the right size, the right material.",
+        lessonMarkdown: `
+## SQL Data Types — What Kind of Data Are You Storing?
+
+Every column in a database table has a **data type** — a declaration of what kind of information it will hold. This is not optional or cosmetic. The data type determines:
+- How much storage space a value takes
+- What operations you can do on it (maths, date arithmetic, text search)
+- What values are even allowed
+
+Choosing the wrong type causes bugs, wasted storage, and errors that only appear at 2am on a Friday.
+
+---
+
+### 1. Numeric Types
+
+*💡 Analogy: The difference between a ruler (decimals matter, measured to 0.1cm) and a counting jar (you're counting whole marbles — you can't have half a marble).*
+
+| Type | What it stores | Range | Example use |
+|---|---|---|---|
+| \`INT\` | Whole numbers | -2 billion to +2 billion | User ID, quantity, age |
+| \`BIGINT\` | Very large whole numbers | -9 quintillion to +9 quintillion | Order count, timestamps |
+| \`SMALLINT\` | Small whole numbers | -32,768 to 32,767 | Rating (1-5), status codes |
+| \`DECIMAL(p,s)\` | Exact decimal numbers | Depends on precision | Money, prices, tax rates |
+| \`FLOAT\` | Approximate decimals | Large range, imprecise | Scientific measurements |
+
+**The critical rule about money:**
+
+\`\`\`sql
+-- ❌ NEVER store money as FLOAT
+price FLOAT   -- 19.99 might actually be stored as 19.990000000000002
+
+-- ✅ Always use DECIMAL for money
+price DECIMAL(10, 2)  -- Exactly 19.99, always
+\`\`\`
+
+Why? Floating-point maths is approximate. When you add up 1,000 orders at FLOAT precision, you might get £8,999.97 instead of £9,000.00. Banks don't appreciate that.
+
+\`\`\`sql
+-- Create a products table with proper numeric types
+CREATE TABLE products (
+  id       INT           PRIMARY KEY AUTO_INCREMENT,
+  quantity INT           NOT NULL DEFAULT 0,
+  price    DECIMAL(10,2) NOT NULL,
+  rating   DECIMAL(3,1)  -- e.g., 4.5
+);
+\`\`\`
+
+---
+
+### 2. String / Text Types
+
+*💡 Analogy: VARCHAR is a stretchy rubber band — it only uses as much space as the text inside it. CHAR is a rigid box — it's always the same size whether you fill it or not.*
+
+| Type | What it stores | When to use |
+|---|---|---|
+| \`VARCHAR(n)\` | Variable-length text, up to n chars | Names, emails, titles |
+| \`CHAR(n)\` | Fixed-length text, always n chars | Country codes ('IN', 'US'), fixed codes |
+| \`TEXT\` | Large text, no fixed limit | Blog posts, descriptions, comments |
+| \`ENUM\` | One value from a predefined list | Status fields, categories |
+
+\`\`\`sql
+CREATE TABLE users (
+  id           INT           PRIMARY KEY AUTO_INCREMENT,
+  first_name   VARCHAR(50)   NOT NULL,
+  country_code CHAR(2),               -- 'IN', 'US', 'GB' — always 2 chars
+  bio          TEXT,                  -- unlimited text
+  role         ENUM('admin','editor','viewer') DEFAULT 'viewer'
+);
+\`\`\`
+
+**ENUM is particularly useful for QA** — if a column is ENUM('pending','shipped','delivered'), the database will literally refuse to accept 'DELIVERED' or 'Pending' or 'shipped!' with a typo. It enforces data integrity at the schema level.
+
+---
+
+### 3. Date and Time Types
+
+*💡 Analogy: There's a huge difference between "the date of your birthday" (just the day, no time), "the exact moment the rocket launched" (date + time + timezone), and "how long the race took" (a duration, not a point in time).*
+
+| Type | Stores | Format | Example |
+|---|---|---|---|
+| \`DATE\` | Just a date | YYYY-MM-DD | 1998-05-14 |
+| \`TIME\` | Just a time | HH:MM:SS | 09:30:00 |
+| \`DATETIME\` | Date + time, no timezone | YYYY-MM-DD HH:MM:SS | 2024-11-01 14:30:00 |
+| \`TIMESTAMP\` | Date + time, timezone-aware | Same format | 2024-11-01 14:30:00 |
+
+\`\`\`sql
+CREATE TABLE orders (
+  id           INT       PRIMARY KEY AUTO_INCREMENT,
+  order_date   DATE      NOT NULL,        -- '2024-11-01'
+  created_at   TIMESTAMP DEFAULT NOW(),   -- auto-set to current date+time
+  updated_at   TIMESTAMP DEFAULT NOW() ON UPDATE NOW()  -- auto-updated
+);
+\`\`\`
+
+**Date arithmetic is very powerful:**
+\`\`\`sql
+-- Find orders placed in the last 30 days
+SELECT * FROM orders
+WHERE order_date >= DATE_SUB(NOW(), INTERVAL 30 DAY);
+
+-- How old is each user?
+SELECT first_name, DATEDIFF(NOW(), date_of_birth) / 365 AS age_years
+FROM users;
+\`\`\`
+
+---
+
+### 4. Boolean Type
+
+*💡 Analogy: A light switch. It's either on (TRUE / 1) or off (FALSE / 0). There's no "sort of on" — that's NULL's job.*
+
+\`\`\`sql
+-- MySQL uses TINYINT(1) for boolean
+is_active  TINYINT(1) DEFAULT 1   -- 1 = true, 0 = false
+
+-- PostgreSQL has a native BOOLEAN type
+is_verified BOOLEAN DEFAULT FALSE
+\`\`\`
+
+\`\`\`sql
+-- Find all active premium users
+SELECT first_name FROM users
+WHERE is_active = 1
+  AND is_premium = 1;
+\`\`\`
+
+**Common QA check:** After a "Verify Email" flow, confirm the flag was set:
+\`\`\`sql
+SELECT email, is_email_verified
+FROM users
+WHERE email = 'testuser@qa.com';
+-- Expected: is_email_verified = 1
+\`\`\`
+
+---
+
+### 5. NULL — The Mysterious Absence of Data
+
+*💡 Analogy: NULL is not zero. It's not an empty string. NULL is the database's way of saying "we have absolutely no information about this." It's the difference between a person who owns £0 and a person who has never been asked how much they own.*
+
+\`\`\`sql
+SELECT 5 + NULL;    -- Result: NULL (not 5!)
+SELECT NULL = NULL; -- Result: NULL (not TRUE!)
+SELECT NULL != NULL;-- Result: NULL (not TRUE!)
+\`\`\`
+
+NULL is like a black hole — any operation involving NULL returns NULL. This trips up almost every beginner.
+
+\`\`\`sql
+-- You can NOT do this:
+WHERE phone_number = NULL   -- ❌ Always returns nothing
+
+-- You must do this:
+WHERE phone_number IS NULL  -- ✅
+WHERE phone_number IS NOT NULL -- ✅
+\`\`\`
+
+---
+
+### 6. Choosing the Right Type — A Quick Guide
+
+| You're storing... | Use this |
+|---|---|
+| User ID, order number | \`INT\` or \`BIGINT\` |
+| Price, money | \`DECIMAL(10,2)\` |
+| First name, email | \`VARCHAR(100)\` |
+| Country code ('IN') | \`CHAR(2)\` |
+| Blog post content | \`TEXT\` |
+| Status (pending/active) | \`ENUM\` or \`VARCHAR\` |
+| Date of birth | \`DATE\` |
+| Exact timestamp of action | \`TIMESTAMP\` |
+| Yes/No flag | \`BOOLEAN\` or \`TINYINT(1)\` |
+
+---
+
+### 7. QA Implications of Data Types
+
+As a QA engineer, data types tell you **exactly what the system should and shouldn't accept**:
+
+\`\`\`sql
+-- If age is INT, what happens when you submit 'twenty-five' in the form?
+-- The DB will reject it — but does the app show a nice error?
+
+-- If email is VARCHAR(100), what happens with a 200-character email?
+-- Either the DB truncates it (silent data loss!) or throws an error.
+
+-- If price is DECIMAL(8,2), can it store 9999999.99?
+-- Yes. Can it store 10000000.00? No — that's 10 digits before the decimal.
+\`\`\`
+
+Understanding data types means you can design better boundary value tests directly targeting the database's actual limits.
+        `
+      },
+
+      {
+        id: 'sql-aggregations',
+        title: 'Beginner: COUNT, SUM, AVG, MIN, MAX',
+        analogy: "Aggregate functions are the database's calculator, accountant, and statistician rolled into one. Instead of giving you every single row, they crunch the numbers and hand you the summary — like an exam that shows your final grade, not every mark from every question.",
+        lessonMarkdown: `
+## Aggregate Functions — Summarising Data
+
+So far you've been fetching individual rows. Aggregate functions change the game: instead of returning rows, they **summarise** data and return a single calculated value. These are the backbone of every dashboard, report, and analytics page you'll ever test.
+
+---
+
+### 1. COUNT — How Many?
+
+*💡 Analogy: You're a teacher and you want to know how many students submitted their homework. You don't read every homework — you just count the pile.*
+
+\`\`\`sql
+-- How many users are in the database?
+SELECT COUNT(*) AS total_users
+FROM users;
+\`\`\`
+Result: \`| total_users | 3847 |\`
+
+\`COUNT(*)\` counts every row, including ones with NULL values.
+\`COUNT(column)\` counts only rows where that column is NOT NULL.
+
+\`\`\`sql
+-- How many users have a phone number? (i.e., phone is not NULL)
+SELECT COUNT(phone_number) AS users_with_phone
+FROM users;
+
+-- How many users DON'T have a phone number?
+SELECT COUNT(*) - COUNT(phone_number) AS users_without_phone
+FROM users;
+\`\`\`
+
+**QA use case:** After a bulk import of 500 records, verify exactly 500 were created:
+\`\`\`sql
+SELECT COUNT(*) FROM users
+WHERE created_at >= '2024-11-01 09:00:00'
+  AND created_at <= '2024-11-01 09:05:00';
+-- Expected: 500
+\`\`\`
+
+---
+
+### 2. SUM — What's the Total?
+
+*💡 Analogy: At the end of the day, the cashier doesn't count individual coins — they just total the register. SUM is the register total.*
+
+\`\`\`sql
+-- Total revenue from all completed orders
+SELECT SUM(amount) AS total_revenue
+FROM orders
+WHERE status = 'delivered';
+\`\`\`
+Result: \`| total_revenue | 4872659.50 |\`
+
+\`\`\`sql
+-- Total items in a specific order
+SELECT SUM(quantity) AS total_items
+FROM order_items
+WHERE order_id = 101;
+\`\`\`
+
+**QA use case:** After applying a 10% discount to a cart, verify the maths:
+\`\`\`sql
+SELECT
+  SUM(amount)              AS original_total,
+  SUM(amount * 0.90)       AS discounted_total,
+  SUM(amount - discounted_amount) AS total_discount_applied
+FROM order_items
+WHERE order_id = 202;
+\`\`\`
+
+---
+
+### 3. AVG — What's the Average?
+
+*💡 Analogy: Your school gives out report cards. AVG is the teacher calculating the class average score so they know whether the exam was too hard or too easy — not reading every student's individual score.*
+
+\`\`\`sql
+-- Average order value
+SELECT AVG(amount) AS avg_order_value
+FROM orders;
+
+-- Average rating of a product
+SELECT AVG(rating) AS avg_rating
+FROM product_reviews
+WHERE product_id = 55;
+\`\`\`
+
+⚠️ **AVG ignores NULL values.** If 10 users have ratings (7, 8, 9...) and 5 users have NULL (didn't rate), AVG only divides by 10, not 15. This is usually correct but worth knowing.
+
+\`\`\`sql
+-- Average age of active users
+SELECT AVG(age) AS avg_age
+FROM users
+WHERE status = 'active';
+\`\`\`
+
+---
+
+### 4. MIN and MAX — Extremes
+
+*💡 Analogy: MIN is finding the shortest student in the class. MAX is finding the tallest. You don't care about the ones in the middle — you want the extremes.*
+
+\`\`\`sql
+-- Cheapest and most expensive product
+SELECT
+  MIN(price) AS cheapest,
+  MAX(price) AS most_expensive
+FROM products
+WHERE is_available = 1;
+
+-- Earliest and latest order dates
+SELECT
+  MIN(order_date) AS first_order_ever,
+  MAX(order_date) AS most_recent_order
+FROM orders;
+\`\`\`
+
+**QA use case:** Check if any order slipped through with an impossible price:
+\`\`\`sql
+SELECT MIN(amount), MAX(amount) FROM orders;
+-- If MIN is negative or 0 — data integrity bug!
+-- If MAX is unrealistically huge — someone entered 999999 by mistake
+\`\`\`
+
+---
+
+### 5. GROUP BY — Aggregate Per Category
+
+*💡 Analogy: You have 1000 receipts from different cities. GROUP BY is sorting them into city piles first, then running SUM on each pile separately. You get one total per city, not one total for everything.*
+
+This is where aggregates get truly powerful:
+
+\`\`\`sql
+-- How many orders per status?
+SELECT status, COUNT(*) AS order_count
+FROM orders
+GROUP BY status;
+\`\`\`
+
+**Result:**
+\`\`\`
+| status    | order_count |
+|-----------|-------------|
+| pending   |         142 |
+| shipped   |         891 |
+| delivered |        3201 |
+| cancelled |          87 |
+\`\`\`
+
+\`\`\`sql
+-- Total revenue per city
+SELECT city, SUM(o.amount) AS city_revenue
+FROM orders o
+JOIN users u ON o.user_id = u.id
+GROUP BY city
+ORDER BY city_revenue DESC;
+\`\`\`
+
+---
+
+### 6. HAVING — Filter After Grouping
+
+*💡 Analogy: WHERE filters the data BEFORE the calculation. HAVING filters AFTER. It's like checking salaries BEFORE vs AFTER tax — very different results.*
+
+\`\`\`sql
+-- WHERE filters individual rows (BEFORE grouping)
+-- HAVING filters groups (AFTER grouping)
+
+-- Find cities where total revenue exceeds ₹1,000,000
+SELECT city, SUM(amount) AS revenue
+FROM orders o
+JOIN users u ON o.user_id = u.id
+GROUP BY city
+HAVING SUM(amount) > 1000000;
+\`\`\`
+
+\`\`\`sql
+-- Find products with an average rating below 3 (potential quality issues)
+SELECT product_id, AVG(rating) AS avg_rating, COUNT(*) AS review_count
+FROM reviews
+GROUP BY product_id
+HAVING AVG(rating) < 3
+   AND COUNT(*) > 10;  -- only flag products with enough reviews to be meaningful
+\`\`\`
+
+---
+
+### 7. Combining All Aggregates Together
+
+\`\`\`sql
+-- Complete sales report per product category
+SELECT
+  category,
+  COUNT(*)            AS total_orders,
+  SUM(amount)         AS total_revenue,
+  AVG(amount)         AS avg_order_value,
+  MIN(amount)         AS smallest_order,
+  MAX(amount)         AS largest_order
+FROM orders o
+JOIN products p ON o.product_id = p.id
+WHERE o.status = 'delivered'
+  AND o.order_date >= '2024-01-01'
+GROUP BY category
+ORDER BY total_revenue DESC;
+\`\`\`
+
+This single query generates a complete summary dashboard — per category, for delivered orders, in 2024, sorted by revenue. One query. No spreadsheets. No manual counting.
+
+---
+
+### 8. QA Validation Queries Using Aggregates
+
+\`\`\`sql
+-- After an import job: were exactly 1000 records inserted?
+SELECT COUNT(*) FROM products WHERE imported_batch = 'NOV2024';
+
+-- After checkout: is the order total correct?
+SELECT SUM(unit_price * quantity) AS calculated_total
+FROM order_items WHERE order_id = 303;
+-- Compare this to orders.total_amount for the same order_id
+
+-- Are any category averages unexpectedly 0?
+SELECT category, AVG(price) FROM products GROUP BY category;
+
+-- Find categories with suspiciously high max prices (data entry errors)
+SELECT category, MAX(price) FROM products
+GROUP BY category
+HAVING MAX(price) > 500000;
+\`\`\`
+
+These queries take seconds to write and can catch data errors that would take hours to find by clicking through a UI.
+        `
+      },
+
+      // ─── INTERMEDIATE & EXPERT (kept for continuity) ────────────────────────
+
       {
         id: 'intermediate',
-        title: 'Intermediate: Combining Data',
+        title: 'Intermediate: Combining Data with JOINs',
         analogy: "Data is often split up into different boxes to keep things organized. A JOIN is like taking a puzzle piece from Box A and perfectly snapping it into the matching piece from Box B.",
         lessonMarkdown: `
 ### 1. What is a JOIN?
@@ -1496,7 +2999,7 @@ In relational databases, data is intentionally broken up into multiple tables to
 ### 2. INNER vs LEFT JOIN
 *💡 Analogy: An INNER JOIN is a strict club; you only get in if you have a partner. A LEFT JOIN is a casual party; everyone from the host's list (the left) gets in, even if they show up completely alone.*
 
-Understanding the difference is critical. 
+Understanding the difference is critical.
 - **INNER JOIN:** This only returns rows if there is a perfect match in BOTH tables. If a user has never made an order, they won't show up in the results at all.
 - **LEFT JOIN:** This returns EVERYTHING from the first (left) table. If the user hasn't made an order, the user still shows up in the results, but the order columns will just be completely blank (NULL).
 

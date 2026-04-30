@@ -1124,38 +1124,463 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
     }
   ],
   sql: [
+    // ─── BEGINNER MODULE 1: What is a Database? ───────────────────────────────
     {
-      level: 'basic',
+      level: 'sql-what-is-db',
       questions: [
         {
-          question: 'What does the SELECT statement do?',
+          question: 'A QA engineer opens the database after a new user signs up. Which of these represents a single user\'s data in a database table?',
           options: [
-            { id: 'a', text: 'It creates a new table.', isCorrect: false },
-            { id: 'b', text: 'It deletes data from the database.', isCorrect: false },
-            { id: 'c', text: 'It reads or pulls data out of a database.', isCorrect: true }
+            { id: 'a', text: 'A column — it stores one category of information like "email" for all users.', isCorrect: false },
+            { id: 'b', text: 'A row — it contains all the information (name, email, age) for one specific user.', isCorrect: true },
+            { id: 'c', text: 'A table — it contains the entire user registration system.', isCorrect: false },
+            { id: 'd', text: 'A primary key — it stores the password for the user.', isCorrect: false },
           ],
-          explanation: 'SELECT is how you ask the database to show you information.'
+          explanation: 'A row is one complete record. Think of it as one filled-out form. A column is a field on that form (like "email"), and a table is the whole filing cabinet of forms.'
         },
         {
-          question: 'What is a WHERE clause used for?',
+          question: 'Your team has a Users table and an Orders table. Instead of copying the user\'s full name into every order row, you store the user\'s ID. What concept is this?',
           options: [
-            { id: 'a', text: 'To filter the results so you only get the data you need.', isCorrect: true },
-            { id: 'b', text: 'To find out where the database server is located.', isCorrect: false },
-            { id: 'c', text: 'To combine two tables together.', isCorrect: false }
+            { id: 'a', text: 'Indexing — it speeds up data retrieval.', isCorrect: false },
+            { id: 'b', text: 'Normalisation — storing data once and referencing it by ID to avoid repetition.', isCorrect: true },
+            { id: 'c', text: 'Replication — copying data across servers for backup.', isCorrect: false },
+            { id: 'd', text: 'Caching — storing data in memory for faster access.', isCorrect: false },
           ],
-          explanation: 'WHERE filters the data, like asking only for users who are older than 18.'
+          explanation: 'Normalisation is the practice of organising data to reduce redundancy. Instead of writing "Priya Sharma" in every order row, you write user_id = 1, and Priya\'s details live once in the Users table.'
         },
         {
-          question: 'What does the asterisk (*) mean in SELECT *?',
+          question: 'A developer says "never store money as a FLOAT." As a QA engineer testing a payment feature, why does this matter?',
           options: [
-            { id: 'a', text: 'It multiplies the numbers in the table.', isCorrect: false },
-            { id: 'b', text: 'It tells the database to return ALL columns.', isCorrect: true },
-            { id: 'c', text: 'It makes the query run faster.', isCorrect: false }
+            { id: 'a', text: 'FLOAT is not supported by most databases.', isCorrect: false },
+            { id: 'b', text: 'FLOAT values are approximate — 19.99 might store as 19.990000000000002, causing rounding errors in totals.', isCorrect: true },
+            { id: 'c', text: 'FLOAT takes up too much disk space.', isCorrect: false },
+            { id: 'd', text: 'FLOAT doesn\'t support negative values needed for refunds.', isCorrect: false },
           ],
-          explanation: 'The * is a wildcard that means "give me every single column in this table".'
-        }
+          explanation: 'Floating-point numbers are inherently imprecise. Adding 1,000 orders at FLOAT precision can produce totals that are off by a few pence — unacceptable in finance. Always use DECIMAL for money.'
+        },
+        {
+          question: 'You are testing a "Delete Account" feature. After clicking delete, you check the database and the row is still there — but a new column "deleted_at" has a timestamp. What is this pattern called?',
+          options: [
+            { id: 'a', text: 'A rollback — the database undid the deletion.', isCorrect: false },
+            { id: 'b', text: 'A cascade delete — the row was deleted from all related tables.', isCorrect: false },
+            { id: 'c', text: 'A soft delete — the record is logically removed but physically retained for safety and compliance.', isCorrect: true },
+            { id: 'd', text: 'A transaction failure — the DELETE command did not execute.', isCorrect: false },
+          ],
+          explanation: 'Soft delete flags a row as deleted (via a timestamp or boolean) without actually removing it. This preserves audit trails, supports account recovery, and maintains foreign key references. It\'s the responsible, production-safe approach.'
+        },
+        {
+          question: 'Two users both named "Priya Sharma" register on an app. How does the database tell them apart without any confusion?',
+          options: [
+            { id: 'a', text: 'It uses the email column — no two users can have the same email.', isCorrect: false },
+            { id: 'b', text: 'It uses the Primary Key — a unique, auto-generated ID assigned to every row.', isCorrect: true },
+            { id: 'c', text: 'It uses the created_at timestamp — they registered at different times.', isCorrect: false },
+            { id: 'd', text: 'It doesn\'t — the database stores them as one record and merges the data.', isCorrect: false },
+          ],
+          explanation: 'The Primary Key guarantees uniqueness. Even if two users share every other attribute, their primary key (e.g., id = 1 and id = 4729) is always different. It\'s the database\'s equivalent of an Aadhaar or passport number.'
+        },
       ]
     },
+
+    // ─── BEGINNER MODULE 2: SELECT ─────────────────────────────────────────────
+    {
+      level: 'sql-select',
+      questions: [
+        {
+          question: 'You need to verify that a user\'s profile displays only their name and email — not their password hash or internal ID. Which query is correct?',
+          options: [
+            { id: 'a', text: 'SELECT * FROM users;', isCorrect: false },
+            { id: 'b', text: 'SELECT first_name, email FROM users;', isCorrect: true },
+            { id: 'c', text: 'SELECT users FROM first_name, email;', isCorrect: false },
+            { id: 'd', text: 'GET first_name, email FROM users;', isCorrect: false },
+          ],
+          explanation: 'SELECT column1, column2 FROM table is the correct syntax. SELECT * returns everything including sensitive columns you don\'t want to expose. Always specify only what you need.'
+        },
+        {
+          question: 'A QA engineer wants to quickly inspect the full structure and all data in a small test table. Which query is most appropriate for this exploratory check?',
+          options: [
+            { id: 'a', text: 'SELECT first_name FROM test_users;', isCorrect: false },
+            { id: 'b', text: 'SHOW ALL test_users;', isCorrect: false },
+            { id: 'c', text: 'SELECT * FROM test_users;', isCorrect: true },
+            { id: 'd', text: 'DESCRIBE test_users;', isCorrect: false },
+          ],
+          explanation: 'SELECT * is fine for quick exploration and debugging on small tables. The caution with SELECT * applies to production queries and large tables, not one-off inspection queries during testing.'
+        },
+        {
+          question: 'Your query returns a column named "usr_frst_nm_v2" which is unreadable. How do you display it as "name" in your results?',
+          options: [
+            { id: 'a', text: 'SELECT usr_frst_nm_v2 RENAME name FROM users;', isCorrect: false },
+            { id: 'b', text: 'SELECT usr_frst_nm_v2 AS name FROM users;', isCorrect: true },
+            { id: 'c', text: 'SELECT name = usr_frst_nm_v2 FROM users;', isCorrect: false },
+            { id: 'd', text: 'ALIAS usr_frst_nm_v2 AS name IN users;', isCorrect: false },
+          ],
+          explanation: 'The AS keyword creates an alias — a temporary readable name for a column in your output. It doesn\'t rename the actual database column, just the label shown in the results.'
+        },
+        {
+          question: 'You\'re testing a "Status" column that should only contain the values pending, shipped, or delivered. After a data migration, you run: SELECT DISTINCT status FROM orders; — and you see "DELIVERED" and "Shipped" in the results. What does this indicate?',
+          options: [
+            { id: 'a', text: 'These are valid alternative formats accepted by the system.', isCorrect: false },
+            { id: 'b', text: 'Data inconsistency — the status values are not normalised (mixed case), which can break filters and reports.', isCorrect: true },
+            { id: 'c', text: 'SELECT DISTINCT includes every variation as a separate unique value, which is expected.', isCorrect: false },
+            { id: 'd', text: 'The DISTINCT keyword is malfunctioning.', isCorrect: false },
+          ],
+          explanation: 'SELECT DISTINCT removes duplicate identical values — but "delivered" and "DELIVERED" are different strings to a case-sensitive database. Mixed-case status values break WHERE clauses, break reports, and indicate the system lacks proper input normalisation.'
+        },
+        {
+          question: 'You want to display each user\'s full name as one column. Their names are stored in first_name and last_name columns. What is the correct approach?',
+          options: [
+            { id: 'a', text: 'SELECT first_name + last_name AS full_name FROM users;', isCorrect: false },
+            { id: 'b', text: 'SELECT CONCAT(first_name, \' \', last_name) AS full_name FROM users;', isCorrect: true },
+            { id: 'c', text: 'SELECT MERGE(first_name, last_name) AS full_name FROM users;', isCorrect: false },
+            { id: 'd', text: 'SELECT JOIN(first_name, last_name, \' \') AS full_name FROM users;', isCorrect: false },
+          ],
+          explanation: 'CONCAT() joins strings together. The \' \' in the middle adds a space between the names. PostgreSQL uses || operator instead: first_name || \' \' || last_name. This is a common QA check for how full names are displayed in the UI.'
+        },
+      ]
+    },
+
+    // ─── BEGINNER MODULE 3: WHERE ──────────────────────────────────────────────
+    {
+      level: 'sql-where',
+      questions: [
+        {
+          question: 'After releasing a coupon feature, you suspect some orders received a negative discount, making them cheaper than they should be. Which query checks for this?',
+          options: [
+            { id: 'a', text: 'SELECT * FROM orders WHERE discount = 0;', isCorrect: false },
+            { id: 'b', text: 'SELECT * FROM orders WHERE discount IS NULL;', isCorrect: false },
+            { id: 'c', text: 'SELECT id, discount FROM orders WHERE discount < 0;', isCorrect: true },
+            { id: 'd', text: 'SELECT * FROM orders WHERE discount != positive;', isCorrect: false },
+          ],
+          explanation: 'WHERE discount < 0 filters for any row where the discount went negative — a clear data integrity bug. If rows are returned, the discount calculation logic has a flaw that could allow users to get paid to shop.'
+        },
+        {
+          question: 'A tester writes: WHERE email = NULL to find users without email addresses. They get zero results, even though some users clearly have no email. What is the mistake?',
+          options: [
+            { id: 'a', text: 'The query should use WHERE email = \'\' instead.', isCorrect: false },
+            { id: 'b', text: 'NULL cannot be compared with = because NULL = NULL evaluates to NULL, not TRUE. Use WHERE email IS NULL.', isCorrect: true },
+            { id: 'c', text: 'The email column needs to be wrapped in COALESCE().', isCorrect: false },
+            { id: 'd', text: 'The WHERE clause doesn\'t support NULL checks — use a subquery.', isCorrect: false },
+          ],
+          explanation: 'This is one of the most common SQL mistakes. NULL means "no value" — comparing it with = always yields NULL (which is falsy), never TRUE. You must use IS NULL or IS NOT NULL to check for missing values.'
+        },
+        {
+          question: 'You want to find all users from Mumbai OR Delhi who are also over 21. Which WHERE clause is correct?',
+          options: [
+            { id: 'a', text: 'WHERE city = \'Mumbai\' OR city = \'Delhi\' AND age > 21', isCorrect: false },
+            { id: 'b', text: 'WHERE (city = \'Mumbai\' OR city = \'Delhi\') AND age > 21', isCorrect: true },
+            { id: 'c', text: 'WHERE city IN (\'Mumbai\', \'Delhi\') OR age > 21', isCorrect: false },
+            { id: 'd', text: 'WHERE city = \'Mumbai, Delhi\' AND age > 21', isCorrect: false },
+          ],
+          explanation: 'Without brackets, AND has higher precedence than OR — so the unbracketed version would mean: "city = Mumbai OR (city = Delhi AND age > 21)". Brackets make the intent explicit and correct. Always wrap OR conditions in brackets when combining with AND.'
+        },
+        {
+          question: 'You\'re validating a registration form. To check if any submitted emails don\'t contain an "@" symbol (invalid email format), which query works?',
+          options: [
+            { id: 'a', text: 'SELECT email FROM users WHERE email = \'invalid\';', isCorrect: false },
+            { id: 'b', text: 'SELECT email FROM users WHERE email NOT LIKE \'%@%\';', isCorrect: true },
+            { id: 'c', text: 'SELECT email FROM users WHERE email CONTAINS NO \'@\';', isCorrect: false },
+            { id: 'd', text: 'SELECT email FROM users WHERE email != \'@\';', isCorrect: false },
+          ],
+          explanation: 'LIKE \'%@%\' matches any string that contains "@" anywhere. NOT LIKE \'%@%\' finds all emails that DON\'T contain "@" — which are definitely invalid. This is a quick data quality validation for broken email validation.'
+        },
+        {
+          question: 'A QA engineer needs to check all orders placed between January 1 and March 31, 2024. Which WHERE clause correctly fetches this range, inclusive of both dates?',
+          options: [
+            { id: 'a', text: 'WHERE order_date > \'2024-01-01\' AND order_date < \'2024-03-31\'', isCorrect: false },
+            { id: 'b', text: 'WHERE order_date BETWEEN \'2024-01-01\' AND \'2024-03-31\'', isCorrect: true },
+            { id: 'c', text: 'WHERE order_date FROM \'2024-01-01\' TO \'2024-03-31\'', isCorrect: false },
+            { id: 'd', text: 'WHERE order_date IN (\'2024-01-01\', \'2024-03-31\')', isCorrect: false },
+          ],
+          explanation: 'BETWEEN is inclusive on both ends — it includes Jan 1 and Mar 31. Using > and < would exclude both boundary dates. IN only matches exact listed values, not a range. BETWEEN is the cleanest and most readable option for date ranges.'
+        },
+      ]
+    },
+
+    // ─── BEGINNER MODULE 4: ORDER BY and LIMIT ────────────────────────────────
+    {
+      level: 'sql-order-limit',
+      questions: [
+        {
+          question: 'After a new user registers, you want to verify their row was correctly created. Which query most reliably retrieves the most recently added user?',
+          options: [
+            { id: 'a', text: 'SELECT * FROM users WHERE id = MAX(id);', isCorrect: false },
+            { id: 'b', text: 'SELECT * FROM users ORDER BY created_at DESC LIMIT 1;', isCorrect: true },
+            { id: 'c', text: 'SELECT LAST * FROM users;', isCorrect: false },
+            { id: 'd', text: 'SELECT * FROM users ORDER BY id LIMIT 1;', isCorrect: false },
+          ],
+          explanation: 'ORDER BY created_at DESC puts the newest rows first. LIMIT 1 takes only the top one. This is the reliable pattern for fetching the most recent record — much safer than ORDER BY id since IDs can occasionally be non-sequential.'
+        },
+        {
+          question: 'A leaderboard shows the top 10 highest-scoring users. The developer wrote: SELECT username, score FROM users LIMIT 10. What is wrong with this query?',
+          options: [
+            { id: 'a', text: 'LIMIT is not supported for leaderboard queries.', isCorrect: false },
+            { id: 'b', text: 'Without ORDER BY, LIMIT returns 10 random rows, not the top 10 highest scores.', isCorrect: true },
+            { id: 'c', text: 'The query is missing a WHERE clause for active users.', isCorrect: false },
+            { id: 'd', text: 'LIMIT 10 will crash if there are fewer than 10 users.', isCorrect: false },
+          ],
+          explanation: 'LIMIT without ORDER BY returns an arbitrary subset — the database returns whichever 10 rows it happens to find first. For a correct leaderboard, you need ORDER BY score DESC LIMIT 10 to guarantee you get the highest scores.'
+        },
+        {
+          question: 'An API returns 20 articles per page. To fetch page 3 of articles (articles 41-60), what SQL is correct?',
+          options: [
+            { id: 'a', text: 'SELECT * FROM articles LIMIT 20 OFFSET 40;', isCorrect: true },
+            { id: 'b', text: 'SELECT * FROM articles LIMIT 20 OFFSET 60;', isCorrect: false },
+            { id: 'c', text: 'SELECT * FROM articles LIMIT 40 OFFSET 20;', isCorrect: false },
+            { id: 'd', text: 'SELECT * FROM articles PAGE 3 LIMIT 20;', isCorrect: false },
+          ],
+          explanation: 'OFFSET = (page - 1) × page_size = (3-1) × 20 = 40. So LIMIT 20 OFFSET 40 skips the first 40 rows (pages 1 and 2) and returns the next 20 (page 3). This is how every paginated API or "Load More" button works.'
+        },
+        {
+          question: 'You want to find the oldest unresolved support ticket (created first, still open). Which ORDER BY direction is correct?',
+          options: [
+            { id: 'a', text: 'ORDER BY created_at DESC — this gives the oldest first.', isCorrect: false },
+            { id: 'b', text: 'ORDER BY created_at ASC — this gives the oldest first, as smaller (earlier) dates come first.', isCorrect: true },
+            { id: 'c', text: 'ORDER BY ticket_id — IDs always reflect creation order.', isCorrect: false },
+            { id: 'd', text: 'The default order is always oldest-first, so ORDER BY is not needed.', isCorrect: false },
+          ],
+          explanation: 'ASC (ascending) is oldest-first for dates because earlier dates are "smaller". DESC (descending) is newest-first. The default order in databases is undefined — never assume a specific order without ORDER BY.'
+        },
+        {
+          question: 'You\'re sorting a user list by city first, then by last name within each city. Two users in Mumbai have last names "Sharma" and "Kapoor". After the query runs, which appears first?',
+          options: [
+            { id: 'a', text: 'Sharma — alphabetically S comes after K, so Sharma is ranked higher.', isCorrect: false },
+            { id: 'b', text: 'Kapoor — alphabetically K comes before S, so Kapoor appears first when sorted ASC.', isCorrect: true },
+            { id: 'c', text: 'The order within the same city is random unless a third sort column is added.', isCorrect: false },
+            { id: 'd', text: 'Whichever row was inserted into the database first.', isCorrect: false },
+          ],
+          explanation: 'ORDER BY city ASC, last_name ASC sorts by city first, then by last_name alphabetically within each city. K comes before S in the alphabet, so Kapoor appears before Sharma. Multiple ORDER BY columns create a clear, deterministic tiebreaker.'
+        },
+      ]
+    },
+
+    // ─── BEGINNER MODULE 5: INSERT ─────────────────────────────────────────────
+    {
+      level: 'sql-insert',
+      questions: [
+        {
+          question: 'You are setting up test data before running a test suite. Which INSERT correctly adds a test user?',
+          options: [
+            { id: 'a', text: 'INSERT users SET first_name=\'Test\', email=\'test@qa.com\';', isCorrect: false },
+            { id: 'b', text: 'INSERT INTO users (first_name, email) VALUES (\'Test\', \'test@qa.com\');', isCorrect: true },
+            { id: 'c', text: 'ADD INTO users (first_name, email) VALUES (\'Test\', \'test@qa.com\');', isCorrect: false },
+            { id: 'd', text: 'INSERT (first_name, email) INTO users VALUES (\'Test\', \'test@qa.com\');', isCorrect: false },
+          ],
+          explanation: 'The correct syntax is INSERT INTO table_name (columns) VALUES (values). The column list and values list must match in order and count. The keyword is INSERT INTO, not just INSERT or ADD INTO.'
+        },
+        {
+          question: 'You run an INSERT with 4 columns listed but only 3 values in the VALUES clause. What happens?',
+          options: [
+            { id: 'a', text: 'The database inserts NULL for the missing fourth value.', isCorrect: false },
+            { id: 'b', text: 'The database throws an error: column count doesn\'t match value count.', isCorrect: true },
+            { id: 'c', text: 'The database inserts 0 for the missing fourth value.', isCorrect: false },
+            { id: 'd', text: 'The database inserts the row and ignores the extra column.', isCorrect: false },
+          ],
+          explanation: 'SQL strictly matches the column list and values list by position. A mismatch in count immediately throws an error. No guessing, no defaults — the counts must be equal.'
+        },
+        {
+          question: 'After inserting a new order for a user in a test, how do you immediately verify it was created with the correct data?',
+          options: [
+            { id: 'a', text: 'Trust the INSERT — if there was no error, the data is definitely correct.', isCorrect: false },
+            { id: 'b', text: 'Run SELECT * FROM orders ORDER BY created_at DESC LIMIT 1 to fetch and inspect the most recent order.', isCorrect: true },
+            { id: 'c', text: 'Run VERIFY FROM orders WHERE id = LAST_INSERT();', isCorrect: false },
+            { id: 'd', text: 'Check the server logs for confirmation.', isCorrect: false },
+          ],
+          explanation: 'Always follow an INSERT with a SELECT to verify the data. No error on INSERT only means the syntax was valid — it doesn\'t confirm the values are what you intended. SELECT ORDER BY created_at DESC LIMIT 1 gets the most recent row.'
+        },
+        {
+          question: 'You need to insert 500 test users for a load test. Which approach is most efficient?',
+          options: [
+            { id: 'a', text: 'Run 500 separate INSERT statements, one per user.', isCorrect: false },
+            { id: 'b', text: 'Use a single INSERT INTO table (cols) VALUES (row1), (row2), ..., (row500);', isCorrect: true },
+            { id: 'c', text: 'Export a CSV and manually import it through the UI.', isCorrect: false },
+            { id: 'd', text: 'Use SELECT to duplicate existing rows automatically.', isCorrect: false },
+          ],
+          explanation: 'Multi-row INSERT is significantly faster than individual statements because it sends one request to the database instead of 500. The syntax is: INSERT INTO table (cols) VALUES (row1), (row2), (row3)... — comma-separated rows in one statement.'
+        },
+        {
+          question: 'A column "status" has a DEFAULT value of \'pending\' in the table definition. You INSERT a row without specifying the status column. What value does the status column contain?',
+          options: [
+            { id: 'a', text: 'NULL — because you didn\'t provide a value.', isCorrect: false },
+            { id: 'b', text: 'An empty string \'\' — because the column was not mentioned.', isCorrect: false },
+            { id: 'c', text: '\'pending\' — the database automatically uses the DEFAULT value.', isCorrect: true },
+            { id: 'd', text: 'An error is thrown — all columns must be specified in an INSERT.', isCorrect: false },
+          ],
+          explanation: 'When a column has a DEFAULT value defined in the schema, omitting it from an INSERT causes the database to automatically use that default. This is how created_at timestamps auto-populate, and how status defaults to \'pending\' for new orders.'
+        },
+      ]
+    },
+
+    // ─── BEGINNER MODULE 6: UPDATE and DELETE ─────────────────────────────────
+    {
+      level: 'sql-update-delete',
+      questions: [
+        {
+          question: 'A developer runs: UPDATE users SET status = \'suspended\'; — without a WHERE clause. What is the outcome?',
+          options: [
+            { id: 'a', text: 'Only the most recently created user is suspended.', isCorrect: false },
+            { id: 'b', text: 'The query throws an error because WHERE is mandatory for UPDATE.', isCorrect: false },
+            { id: 'c', text: 'Every single user account in the database is suspended — a production disaster.', isCorrect: true },
+            { id: 'd', text: 'The database asks for confirmation before applying to all rows.', isCorrect: false },
+          ],
+          explanation: 'Without a WHERE clause, UPDATE modifies every row in the table. This is one of the most catastrophic SQL mistakes possible. Always run SELECT first to confirm which rows will be affected, then run the UPDATE with an identical WHERE clause.'
+        },
+        {
+          question: 'You want to test the "Update Profile" feature. After clicking Save, which SQL query best validates the data was updated correctly?',
+          options: [
+            { id: 'a', text: 'SELECT COUNT(*) FROM users WHERE id = 42;', isCorrect: false },
+            { id: 'b', text: 'SELECT first_name, email, updated_at FROM users WHERE id = 42;', isCorrect: true },
+            { id: 'c', text: 'SELECT * FROM update_log WHERE user_id = 42;', isCorrect: false },
+            { id: 'd', text: 'UPDATE users SET verified = 1 WHERE id = 42;', isCorrect: false },
+          ],
+          explanation: 'To verify an UPDATE, SELECT the specific columns that should have changed, filtered by the user\'s ID. Crucially, also check updated_at — it should reflect the current timestamp, confirming the row was actually modified, not just read.'
+        },
+        {
+          question: 'What is the difference between DELETE FROM users and TRUNCATE TABLE users?',
+          options: [
+            { id: 'a', text: 'They are identical — both delete all rows.', isCorrect: false },
+            { id: 'b', text: 'DELETE removes rows one by one and can be rolled back. TRUNCATE removes all rows instantly, resets the auto-increment counter, and usually cannot be rolled back.', isCorrect: true },
+            { id: 'c', text: 'DELETE requires a WHERE clause; TRUNCATE does not.', isCorrect: false },
+            { id: 'd', text: 'TRUNCATE also drops the table structure; DELETE only removes data.', isCorrect: false },
+          ],
+          explanation: 'DELETE is row-by-row and transactional (rollback possible). TRUNCATE is a fast table wipe that also resets identity counters. TRUNCATE is appropriate only for clearing test/staging data, never for selectively removing records.'
+        },
+        {
+          question: 'What is the safest procedure before running an UPDATE or DELETE on a production database?',
+          options: [
+            { id: 'a', text: 'Run it quickly to minimise downtime.', isCorrect: false },
+            { id: 'b', text: 'First run a SELECT with the same WHERE clause to see exactly which rows will be affected, confirm the count is right, then run the UPDATE/DELETE.', isCorrect: true },
+            { id: 'c', text: 'Ask the developer to do it — QA shouldn\'t touch production databases.', isCorrect: false },
+            { id: 'd', text: 'Wrap it in a comment block so it can be undone later.', isCorrect: false },
+          ],
+          explanation: 'The golden rule: SELECT before you UPDATE or DELETE. Run the equivalent SELECT to preview exactly which rows match your WHERE clause. If the count and data look correct, proceed. If not, adjust the WHERE clause and repeat.'
+        },
+        {
+          question: 'You\'re testing a feature where all products in the "Electronics" category get a 10% price reduction. The developer used: UPDATE products SET price = price * 0.9 WHERE category = \'Electronics\'. How do you verify this worked correctly for a product that was originally priced at ₹10,000?',
+          options: [
+            { id: 'a', text: 'SELECT price FROM products WHERE category = \'Electronics\'; — if price shows, the update worked.', isCorrect: false },
+            { id: 'b', text: 'SELECT id, price FROM products WHERE id = [product_id]; — verify price is now 9000.', isCorrect: true },
+            { id: 'c', text: 'SELECT COUNT(*) FROM products WHERE category = \'Electronics\'; — verify the count didn\'t change.', isCorrect: false },
+            { id: 'd', text: 'Run the UPDATE again — if no rows are affected, the first one worked.', isCorrect: false },
+          ],
+          explanation: 'Verify the UPDATE by SELECTing the specific product and checking the new price is exactly 9000 (10000 × 0.9). Also check that updated_at was refreshed. Verifying by row count tells you nothing about whether the values changed correctly.'
+        },
+      ]
+    },
+
+    // ─── BEGINNER MODULE 7: Data Types ─────────────────────────────────────────
+    {
+      level: 'sql-data-types',
+      questions: [
+        {
+          question: 'A registration form allows users to enter their age. The database column is defined as INT. A user submits the value "twenty-five" (as text). What is the most likely outcome?',
+          options: [
+            { id: 'a', text: 'The database converts "twenty-five" to 25 automatically.', isCorrect: false },
+            { id: 'b', text: 'The database stores "twenty-five" in the INT column as-is.', isCorrect: false },
+            { id: 'c', text: 'The database throws a type mismatch error and rejects the value.', isCorrect: true },
+            { id: 'd', text: 'The database stores 0 as a fallback for invalid numeric input.', isCorrect: false },
+          ],
+          explanation: 'INT columns only accept integers. Submitting a text string causes a type error at the database level. As a QA engineer, test this boundary: can the UI submit non-numeric data? If it can, the frontend validation is insufficient and it will hit the database error instead.'
+        },
+        {
+          question: 'Which data type is most appropriate for storing a product\'s price (e.g., ₹1,299.99)?',
+          options: [
+            { id: 'a', text: 'FLOAT — it handles decimal numbers.', isCorrect: false },
+            { id: 'b', text: 'VARCHAR(10) — prices can be stored as formatted text.', isCorrect: false },
+            { id: 'c', text: 'DECIMAL(10,2) — it stores exact decimal values, critical for accurate financial calculations.', isCorrect: true },
+            { id: 'd', text: 'INT — round prices to the nearest rupee to avoid decimals.', isCorrect: false },
+          ],
+          explanation: 'FLOAT is approximate and can introduce rounding errors (₹19.99 stored as 19.990000000000002). DECIMAL(10,2) stores exactly 2 decimal places with no floating-point errors. This is the standard for all monetary values in any serious application.'
+        },
+        {
+          question: 'The column "country_code" is defined as CHAR(2). It stores values like \'IN\', \'US\', \'GB\'. Why use CHAR instead of VARCHAR?',
+          options: [
+            { id: 'a', text: 'CHAR supports special characters that VARCHAR doesn\'t.', isCorrect: false },
+            { id: 'b', text: 'Because the value is always exactly 2 characters — fixed-length storage is more efficient and appropriate here.', isCorrect: true },
+            { id: 'c', text: 'CHAR is case-insensitive, which is needed for country codes.', isCorrect: false },
+            { id: 'd', text: 'VARCHAR(2) doesn\'t work with 2-character strings.', isCorrect: false },
+          ],
+          explanation: 'CHAR(n) is fixed-length — it always uses exactly n characters of storage. This is perfect for values that are always the same length (country codes, fixed codes, checksums). VARCHAR saves space for variable-length text but has a small overhead per row. For short fixed-length values, CHAR is the clean choice.'
+        },
+        {
+          question: 'You\'re testing an "Email Verification" flow. After clicking the verify link, which database check confirms the feature worked?',
+          options: [
+            { id: 'a', text: 'SELECT COUNT(*) FROM users WHERE email_verified = \'yes\';', isCorrect: false },
+            { id: 'b', text: 'SELECT email, is_email_verified FROM users WHERE email = \'testuser@qa.com\'; — expecting is_email_verified = 1 (or TRUE).', isCorrect: true },
+            { id: 'c', text: 'SELECT email FROM verified_emails WHERE email = \'testuser@qa.com\';', isCorrect: false },
+            { id: 'd', text: 'SELECT * FROM users ORDER BY is_email_verified DESC LIMIT 1;', isCorrect: false },
+          ],
+          explanation: 'Boolean flag columns (is_email_verified stored as TINYINT(1) or BOOLEAN) should be checked directly with a targeted SELECT. You\'re looking for the specific user and confirming is_email_verified changed from 0 (false) to 1 (true) after the verification flow.'
+        },
+        {
+          question: 'A column is defined as VARCHAR(100). A QA engineer tests submitting a 150-character email. What should they expect?',
+          options: [
+            { id: 'a', text: 'The database silently truncates it to 100 characters and stores it.', isCorrect: false },
+            { id: 'b', text: 'Either the database throws an error (Data too long) or the application layer rejects it — both should be tested.', isCorrect: true },
+            { id: 'c', text: 'VARCHAR auto-expands to fit any length, so 150 characters is stored perfectly.', isCorrect: false },
+            { id: 'd', text: 'The database stores the first 100 characters and creates a second row for the remaining 50.', isCorrect: false },
+          ],
+          explanation: 'VARCHAR(100) enforces a maximum length. Exceeding it either throws a "Data too long" error at the DB level, or should be caught earlier by application validation. Testing with boundary values (100 chars = valid, 101 chars = should fail) is a classic BVA scenario.'
+        },
+      ]
+    },
+
+    // ─── BEGINNER MODULE 8: Aggregations ──────────────────────────────────────
+    {
+      level: 'sql-aggregations',
+      questions: [
+        {
+          question: 'After a batch import of 500 products, you want to verify all 500 were successfully created today. Which query is correct?',
+          options: [
+            { id: 'a', text: 'SELECT SUM(*) FROM products WHERE DATE(created_at) = CURDATE();', isCorrect: false },
+            { id: 'b', text: 'SELECT COUNT(*) FROM products WHERE DATE(created_at) = CURDATE();', isCorrect: true },
+            { id: 'c', text: 'SELECT TOTAL(*) FROM products WHERE created_at = TODAY();', isCorrect: false },
+            { id: 'd', text: 'SELECT COUNT(id) = 500 FROM products WHERE DATE(created_at) = CURDATE();', isCorrect: false },
+          ],
+          explanation: 'COUNT(*) counts every row matching the condition, regardless of NULL values. SUM is for adding numeric values, not for counting rows. The result should be 500 — if it\'s less, some records failed to import.'
+        },
+        {
+          question: 'You\'re testing a cart checkout. A cart has 3 items: ₹500, ₹1200, and ₹300. The UI shows a total of ₹2,100. Which SQL query validates this against the database?',
+          options: [
+            { id: 'a', text: 'SELECT COUNT(price) FROM cart_items WHERE cart_id = 7;', isCorrect: false },
+            { id: 'b', text: 'SELECT SUM(price) AS cart_total FROM cart_items WHERE cart_id = 7;', isCorrect: true },
+            { id: 'c', text: 'SELECT AVG(price) FROM cart_items WHERE cart_id = 7;', isCorrect: false },
+            { id: 'd', text: 'SELECT MAX(price) FROM cart_items WHERE cart_id = 7;', isCorrect: false },
+          ],
+          explanation: 'SUM(price) adds up all the price values for that cart. The result (₹2,000 = 500+1200+300) should match what the UI displays as the total. If they differ, there\'s a calculation bug — either in the UI rendering or the backend total computation.'
+        },
+        {
+          question: 'You want to find all product categories where the average review rating has dropped below 3.0 — indicating potential quality issues. Which query achieves this?',
+          options: [
+            { id: 'a', text: 'SELECT category FROM products WHERE AVG(rating) < 3.0;', isCorrect: false },
+            { id: 'b', text: 'SELECT category, AVG(rating) FROM reviews GROUP BY category HAVING AVG(rating) < 3.0;', isCorrect: true },
+            { id: 'c', text: 'SELECT category, AVG(rating) FROM reviews WHERE AVG(rating) < 3.0 GROUP BY category;', isCorrect: false },
+            { id: 'd', text: 'SELECT category FROM reviews GROUP BY category WHERE rating < 3.0;', isCorrect: false },
+          ],
+          explanation: 'Aggregate functions like AVG() cannot be used in a WHERE clause — WHERE filters individual rows before grouping. HAVING filters groups after aggregation. So: GROUP BY category HAVING AVG(rating) < 3.0 is the correct pattern.'
+        },
+        {
+          question: 'A dashboard shows the total number of orders per status. Which SQL generates this?',
+          options: [
+            { id: 'a', text: 'SELECT status, SUM(id) FROM orders GROUP BY status;', isCorrect: false },
+            { id: 'b', text: 'SELECT status, COUNT(*) AS order_count FROM orders GROUP BY status;', isCorrect: true },
+            { id: 'c', text: 'SELECT COUNT(status) FROM orders;', isCorrect: false },
+            { id: 'd', text: 'SELECT status FROM orders COUNT(*) GROUP BY status;', isCorrect: false },
+          ],
+          explanation: 'GROUP BY status creates one group per distinct status value. COUNT(*) then counts the rows in each group. This produces one row per status with its count — exactly what a status breakdown dashboard shows. SUM(id) would add up the IDs, which is meaningless.'
+        },
+        {
+          question: 'After running a price update, you suspect some prices may have been set to 0 or negative values by mistake. Which query detects this across all categories?',
+          options: [
+            { id: 'a', text: 'SELECT category, AVG(price) FROM products GROUP BY category;', isCorrect: false },
+            { id: 'b', text: 'SELECT category, MIN(price) AS lowest_price FROM products GROUP BY category HAVING MIN(price) <= 0;', isCorrect: true },
+            { id: 'c', text: 'SELECT * FROM products WHERE price IS NULL;', isCorrect: false },
+            { id: 'd', text: 'SELECT COUNT(*) FROM products WHERE price > 0;', isCorrect: false },
+          ],
+          explanation: 'MIN(price) per category finds the lowest price in each group. HAVING MIN(price) <= 0 then filters to only return categories where at least one product has an invalid price (zero or negative). This is a focused data integrity check that targets exactly the problem described.'
+        },
+      ]
+    },
+
+    // ─── INTERMEDIATE & EXPERT (kept for continuity) ──────────────────────────
     {
       level: 'intermediate',
       questions: [
@@ -1164,7 +1589,8 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
           options: [
             { id: 'a', text: 'It combines rows from two or more tables based on a related column.', isCorrect: true },
             { id: 'b', text: 'It adds a new user to the database.', isCorrect: false },
-            { id: 'c', text: 'It merges two databases into one.', isCorrect: false }
+            { id: 'c', text: 'It merges two databases into one.', isCorrect: false },
+            { id: 'd', text: 'It removes duplicate rows from a result.', isCorrect: false },
           ],
           explanation: 'JOIN acts like a bridge, connecting tables (like Users and Orders) using a common ID.'
         },
@@ -1173,7 +1599,8 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
           options: [
             { id: 'a', text: 'INNER gets only matching rows. LEFT gets all rows from the first table, even if there is no match.', isCorrect: true },
             { id: 'b', text: 'LEFT JOIN is faster than INNER JOIN.', isCorrect: false },
-            { id: 'c', text: 'There is no difference.', isCorrect: false }
+            { id: 'c', text: 'There is no difference.', isCorrect: false },
+            { id: 'd', text: 'LEFT JOIN requires a PRIMARY KEY; INNER JOIN does not.', isCorrect: false },
           ],
           explanation: 'LEFT JOIN keeps everything from the left table. If there is no match on the right, it just shows NULL.'
         },
@@ -1182,10 +1609,31 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
           options: [
             { id: 'a', text: 'It sorts the results alphabetically.', isCorrect: false },
             { id: 'b', text: 'It groups rows that have the same values into summary rows, like finding the total sales per city.', isCorrect: true },
-            { id: 'c', text: 'It creates a new group of users.', isCorrect: false }
+            { id: 'c', text: 'It creates a new group of users.', isCorrect: false },
+            { id: 'd', text: 'It limits results to a specific number of rows.', isCorrect: false },
           ],
           explanation: 'GROUP BY is used with functions like COUNT or SUM to group data together.'
-        }
+        },
+        {
+          question: 'You want to find users who have placed more than 5 orders. Which query is correct?',
+          options: [
+            { id: 'a', text: 'SELECT user_id FROM orders WHERE COUNT(*) > 5 GROUP BY user_id;', isCorrect: false },
+            { id: 'b', text: 'SELECT user_id, COUNT(*) FROM orders GROUP BY user_id HAVING COUNT(*) > 5;', isCorrect: true },
+            { id: 'c', text: 'SELECT user_id FROM orders GROUP BY user_id WHERE COUNT(*) > 5;', isCorrect: false },
+            { id: 'd', text: 'SELECT user_id FROM orders HAVING COUNT(*) > 5;', isCorrect: false },
+          ],
+          explanation: 'Aggregate conditions must use HAVING, not WHERE. WHERE filters individual rows before grouping; HAVING filters aggregated groups after. GROUP BY must come before HAVING.'
+        },
+        {
+          question: 'A Users table and an Orders table are joined. A user with no orders appears in a LEFT JOIN result. What value does the order_id column show for this user?',
+          options: [
+            { id: 'a', text: '0 — the default integer value.', isCorrect: false },
+            { id: 'b', text: 'NULL — no matching row exists in the Orders table.', isCorrect: true },
+            { id: 'c', text: 'The user\'s own ID is used as a fallback.', isCorrect: false },
+            { id: 'd', text: 'The row is excluded — LEFT JOIN doesn\'t include unmatched rows.', isCorrect: false },
+          ],
+          explanation: 'LEFT JOIN returns all rows from the left table. For rows with no match in the right table, all right-table columns show NULL. This is how you find users with zero orders: WHERE orders.id IS NULL in a LEFT JOIN query.'
+        },
       ]
     },
     {
@@ -1196,7 +1644,8 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
           options: [
             { id: 'a', text: 'A query nested inside another query.', isCorrect: true },
             { id: 'b', text: 'A query that runs very slowly.', isCorrect: false },
-            { id: 'c', text: 'A query that deletes a subset of data.', isCorrect: false }
+            { id: 'c', text: 'A query that deletes a subset of data.', isCorrect: false },
+            { id: 'd', text: 'A backup query stored in the database.', isCorrect: false },
           ],
           explanation: 'A subquery is a query inside a query. It calculates a value first, which the main query then uses.'
         },
@@ -1205,7 +1654,8 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
           options: [
             { id: 'a', text: 'It makes reading data (SELECT) much faster, like an index in a book.', isCorrect: true },
             { id: 'b', text: 'It automatically fixes broken queries.', isCorrect: false },
-            { id: 'c', text: 'It deletes old data automatically.', isCorrect: false }
+            { id: 'c', text: 'It deletes old data automatically.', isCorrect: false },
+            { id: 'd', text: 'It enforces unique values across a table.', isCorrect: false },
           ],
           explanation: 'An index creates a quick lookup map, so the database does not have to scan every single row.'
         },
@@ -1214,10 +1664,31 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
           options: [
             { id: 'a', text: 'Buying a license for the SQL server.', isCorrect: false },
             { id: 'b', text: 'A block of SQL commands that must ALL succeed, or ALL fail together (like transferring money).', isCorrect: true },
-            { id: 'c', text: 'A table that records user clicks.', isCorrect: false }
+            { id: 'c', text: 'A table that records user clicks.', isCorrect: false },
+            { id: 'd', text: 'A scheduled job that runs SQL at a set time.', isCorrect: false },
           ],
           explanation: 'Transactions ensure data is not left halfway changed. If an error happens, it rolls back to how it was.'
-        }
+        },
+        {
+          question: 'Adding an index to a table makes SELECT faster. What is the trade-off?',
+          options: [
+            { id: 'a', text: 'Indexes make all operations slower.', isCorrect: false },
+            { id: 'b', text: 'Indexes slow down INSERT, UPDATE, and DELETE because the index must be updated on every write.', isCorrect: true },
+            { id: 'c', text: 'Indexes only work on VARCHAR columns.', isCorrect: false },
+            { id: 'd', text: 'There is no trade-off — indexes always improve performance.', isCorrect: false },
+          ],
+          explanation: 'Indexes are a double-edged sword. Read performance improves dramatically, but every write operation must also update the index structure, adding overhead. Over-indexing a write-heavy table is a common performance mistake.'
+        },
+        {
+          question: 'In a banking app, money is being transferred from Account A to Account B. The server crashes after debiting A but before crediting B. What prevents the money from disappearing?',
+          options: [
+            { id: 'a', text: 'Foreign key constraints — they ensure the amounts match.', isCorrect: false },
+            { id: 'b', text: 'A database transaction with ROLLBACK — if the credit fails, the debit is reversed.', isCorrect: true },
+            { id: 'c', text: 'An index on the amount column — it catches inconsistencies.', isCorrect: false },
+            { id: 'd', text: 'The database automatically retries the failed operation.', isCorrect: false },
+          ],
+          explanation: 'Transactions group multiple SQL commands into an all-or-nothing unit. If any step fails, ROLLBACK undoes every previous step in the transaction. This guarantees the data is never left in an inconsistent half-changed state.'
+        },
       ]
     }
   ],

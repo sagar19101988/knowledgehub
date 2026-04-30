@@ -123,7 +123,10 @@ const ZONE_TIERS: Record<string, { id: string; label: string; color: string; mod
     },
   ],
   sql: [
-    { id: 'beginner',     label: 'Beginner',     color: 'text-emerald-400', moduleIds: ['basic']        },
+    {
+      id: 'beginner', label: 'Beginner', color: 'text-emerald-400',
+      moduleIds: ['sql-what-is-db','sql-select','sql-where','sql-order-limit','sql-insert','sql-update-delete','sql-data-types','sql-aggregations'],
+    },
     { id: 'intermediate', label: 'Intermediate', color: 'text-sky-400',     moduleIds: ['intermediate'] },
     { id: 'expert',       label: 'Expert',       color: 'text-amber-400',   moduleIds: ['expert']       },
   ],
@@ -181,86 +184,46 @@ function WelcomePage() {
   const [input, setInput] = useState('');
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const synthRef = React.useRef<SpeechSynthesis | null>(null);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
-  // ── Narrator voice-over ──────────────────────────────────────
-  const NARRATOR_LINES = [
-    { text: "Welcome.", rate: 0.88, pitch: 0.65 },
-    { text: "To the Q A Quest Arena.", rate: 0.92, pitch: 0.68 },
-    { text: "Six realms of knowledge await.", rate: 0.95, pitch: 0.70 },
-    { text: "Infinite bugs hide in the shadows.", rate: 0.93, pitch: 0.67 },
-    { text: "One tester stands between order and chaos.", rate: 0.91, pitch: 0.65 },
-    { text: "Enter your name.", rate: 0.87, pitch: 0.62 },
-    { text: "And begin... your legend.", rate: 0.85, pitch: 0.70 },
-  ];
-
-  const speakNarration = React.useCallback(() => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-    const synth = window.speechSynthesis;
-    synthRef.current = synth;
-    if (synth.speaking) synth.cancel();
-
-    const pickVoice = (voices: SpeechSynthesisVoice[]) => {
-      const preferred = [
-        'Google UK English Male',
-        'Microsoft George Online (Natural)',
-        'Microsoft George',
-        'Microsoft David Desktop',
-        'Microsoft David',
-        'Daniel',
-        'Alex',
-      ];
-      let v = voices.find(vx => preferred.some(p => vx.name.includes(p)));
-      if (!v) v = voices.find(vx => vx.lang.startsWith('en') && /male|daniel|david|alex|george|oliver|arthur/i.test(vx.name));
-      if (!v) v = voices.find(vx => vx.lang.startsWith('en'));
-      return v ?? null;
-    };
-
-    const queue = (voices: SpeechSynthesisVoice[]) => {
-      setIsSpeaking(true);
-      const voice = pickVoice(voices);
-      NARRATOR_LINES.forEach((line, i) => {
-        const utt = new SpeechSynthesisUtterance(line.text);
-        if (voice) utt.voice = voice;
-        utt.rate   = line.rate;
-        utt.pitch  = line.pitch;
-        utt.volume = 0.88;
-        if (i === NARRATOR_LINES.length - 1) {
-          utt.onend = () => setIsSpeaking(false);
-          utt.onerror = () => setIsSpeaking(false);
-        }
-        synth.speak(utt);
-      });
-    };
-
-    const voices = synth.getVoices();
-    if (voices.length > 0) {
-      queue(voices);
-    } else {
-      synth.addEventListener('voiceschanged', () => queue(synth.getVoices()), { once: true });
-    }
-  }, []);
-
-  // Auto-play on mount (slight delay so page animation settles first)
+  // ── Narrator audio (custom voice file) ──────────────────────
   React.useEffect(() => {
+    const audio = new Audio('/narrator.mpeg');
+    audio.volume = 0.92;
+    audioRef.current = audio;
+
+    audio.addEventListener('play',  () => setIsSpeaking(true));
+    audio.addEventListener('ended', () => setIsSpeaking(false));
+    audio.addEventListener('pause', () => setIsSpeaking(false));
+    audio.addEventListener('error', () => setIsSpeaking(false));
+
+    // Auto-play after a short delay so the page animation settles first
     const timer = setTimeout(() => {
-      if (!isMuted) speakNarration();
+      if (!audio.muted) audio.play().catch(() => {/* browser autoplay policy — user gesture needed */});
     }, 900);
+
     return () => {
       clearTimeout(timer);
-      synthRef.current?.cancel();
-      setIsSpeaking(false);
+      audio.pause();
+      audio.src = '';
     };
   }, []);
 
   // Toggle mute / unmute
   const handleVoiceToggle = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
     if (isMuted) {
+      // Unmute — if already ended, restart from beginning
+      audio.muted = false;
       setIsMuted(false);
-      speakNarration();
+      if (audio.ended || audio.paused) {
+        audio.currentTime = 0;
+        audio.play().catch(() => {});
+      }
     } else {
+      audio.muted = true;
       setIsMuted(true);
-      synthRef.current?.cancel();
       setIsSpeaking(false);
     }
   };
@@ -685,21 +648,26 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
       {MAP_NODES.map((node, i) => {
         const zone = ZONES.find(z => z.id === node.id)!;
         const prog = zoneProgress[node.id] || 0;
-        const isMastered = prog >= 100;
-        const isStarted  = prog > 0 && !isMastered;
-        const isLocked   = prog === 0;
+        const isMastered  = prog >= 100;
+        const isStarted   = prog > 0 && !isMastered;
+        const isUnstarted = prog === 0;
 
         const R    = 26;
         const circ = 2 * Math.PI * R;
         const dash = circ - (prog / 100) * circ;
 
         return (
-          <motion.div key={node.id}
-            className="absolute select-none z-20"
-            style={{ left: `${node.x}%`, top: `${node.y}%`, transform: 'translate(-50%,-50%)', cursor: isLocked ? 'default' : 'pointer' }}
-            onClick={() => !isLocked && onZoneClick(node.id)}
-            whileHover={isLocked ? { opacity: 0.7 } : { scale: 1.13 }}
-            whileTap={isLocked ? {} : { scale: 0.92 }}
+          // Outer div handles ONLY positioning — never touched by Framer Motion
+          <div key={node.id}
+            className="absolute z-20"
+            style={{ left: `${node.x}%`, top: `${node.y}%`, transform: 'translate(-50%,-50%)' }}
+          >
+          {/* Inner motion.div handles ONLY scale animation + click */}
+          <motion.div
+            className="select-none cursor-pointer"
+            onClick={() => onZoneClick(node.id)}
+            whileHover={{ scale: 1.13 }}
+            whileTap={{ scale: 0.92 }}
           >
             {/* Outer pulse ring for in-progress */}
             {isStarted && (
@@ -707,6 +675,14 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
                 style={{ inset: -9, border: `1.5px solid ${zone.glowColor.replace('0.28','0.55')}` }}
                 animate={{ scale:[1,1.35,1], opacity:[0.6,0,0.6] }}
                 transition={{ duration: 2.4, repeat: Infinity, ease:'easeOut', delay: i*0.4 }}
+              />
+            )}
+            {/* Subtle hover invitation ring for unstarted zones */}
+            {isUnstarted && (
+              <motion.div className="absolute rounded-full pointer-events-none"
+                style={{ inset: -6, border: `1px solid ${zone.glowColor.replace('0.28','0.22')}` }}
+                animate={{ opacity:[0.3,0.7,0.3] }}
+                transition={{ duration: 3, repeat: Infinity, ease:'easeInOut', delay: i*0.5 }}
               />
             )}
             {/* Gold ring for mastered */}
@@ -736,31 +712,39 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
             {/* Node body */}
             <div className="w-[72px] h-[72px] rounded-full flex items-center justify-center relative border-2 transition-all duration-300"
               style={{
-                background: isMastered ? 'rgba(251,191,36,0.15)' : isStarted ? zone.glowColor.replace('0.28','0.12') : 'rgba(12,9,28,0.9)',
-                borderColor: isMastered ? '#fbbf24' : isStarted ? zone.glowColor.replace('0.28','0.65') : 'rgba(71,85,105,0.35)',
-                boxShadow: isMastered ? '0 0 26px rgba(251,191,36,0.38)' : isStarted ? `0 0 22px ${zone.glowColor}` : 'none',
+                background: isMastered
+                  ? 'rgba(251,191,36,0.15)'
+                  : isStarted
+                    ? zone.glowColor.replace('0.28','0.12')
+                    : 'rgba(12,9,28,0.85)',
+                borderColor: isMastered
+                  ? '#fbbf24'
+                  : isStarted
+                    ? zone.glowColor.replace('0.28','0.65')
+                    : zone.glowColor.replace('0.28','0.2'),
+                boxShadow: isMastered
+                  ? '0 0 26px rgba(251,191,36,0.38)'
+                  : isStarted
+                    ? `0 0 22px ${zone.glowColor}`
+                    : 'none',
               }}
             >
-              {isLocked && (
-                <div className="absolute inset-0 rounded-full bg-slate-950/65 backdrop-blur-[2px] flex items-center justify-center z-10">
-                  <Lock size={17} className="text-slate-600"/>
-                </div>
-              )}
-              <div className={`[&>svg]:w-[26px] [&>svg]:h-[26px] transition-opacity ${isLocked ? 'opacity-20' : 'opacity-100'}`}>
+              <div className={`[&>svg]:w-[26px] [&>svg]:h-[26px] transition-opacity ${isUnstarted ? 'opacity-50' : 'opacity-100'}`}>
                 {zone.icon}
               </div>
             </div>
 
             {/* Label */}
             <div className="absolute top-full mt-2.5 left-1/2 -translate-x-1/2 text-center whitespace-nowrap pointer-events-none">
-              <p className={`text-[11px] font-bold leading-tight ${isMastered ? 'text-amber-400' : isStarted ? zone.colorText : 'text-slate-600'}`}>
+              <p className={`text-[11px] font-bold leading-tight ${isMastered ? 'text-amber-400' : isStarted ? zone.colorText : 'text-slate-500'}`}>
                 {zone.title}
               </p>
-              <p className={`text-[10px] mt-0.5 font-semibold ${isLocked ? 'text-slate-700' : 'text-slate-500'}`}>
-                {isMastered ? '⭐ Mastered' : prog > 0 ? `${prog}%` : 'Unexplored'}
+              <p className={`text-[10px] mt-0.5 font-semibold ${isUnstarted ? 'text-slate-600' : 'text-slate-500'}`}>
+                {isMastered ? '⭐ Mastered' : prog > 0 ? `${prog}%` : 'Click to explore'}
               </p>
             </div>
           </motion.div>
+          </div>
         );
       })}
     </div>
