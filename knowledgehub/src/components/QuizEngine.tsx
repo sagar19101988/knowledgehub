@@ -8,16 +8,20 @@ import confetti from 'canvas-confetti';
 interface QuizEngineProps {
   zoneId: string;
   level: string;
-  onComplete: () => void;
+  progressIncrement: number;
+  onComplete: (firstTime: boolean) => void;
 }
 
-export function QuizEngine({ zoneId, level, onComplete }: QuizEngineProps) {
+export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: QuizEngineProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const [wasFirstCompletion, setWasFirstCompletion] = useState(false);
   
   const updateZoneProgress = useQuestStore((state) => state.updateZoneProgress);
   const addXp = useQuestStore((state) => state.addXp);
+  const completedLevels = useQuestStore((state) => state.completedLevels);
+  const markLevelComplete = useQuestStore((state) => state.markLevelComplete);
 
   const quizzes = ZONES_QUIZZES[zoneId];
   const levelData = quizzes?.find((q) => q.level === level);
@@ -29,6 +33,7 @@ export function QuizEngine({ zoneId, level, onComplete }: QuizEngineProps) {
     setCurrentIndex(0);
     setSelectedOption(null);
     setShowResult(false);
+    setWasFirstCompletion(false);
   }, [level, zoneId]);
 
   if (!question) {
@@ -50,16 +55,20 @@ export function QuizEngine({ zoneId, level, onComplete }: QuizEngineProps) {
     
     const isCorrect = question.options.find(o => o.id === selectedOption)?.isCorrect;
     if (isCorrect && currentIndex === questions.length - 1) {
-      // Fire confetti only on the final question
       confetti({
         particleCount: 150,
         spread: 80,
         origin: { y: 0.6 },
         colors: ['#10b981', '#3b82f6', '#f59e0b']
       });
-      // Award progress and XP once per level completion
-      updateZoneProgress(zoneId, 34);
-      addXp(100);
+      const levelKey = `${zoneId}::${level}`;
+      const alreadyCompleted = completedLevels.includes(levelKey);
+      updateZoneProgress(zoneId, progressIncrement);
+      if (!alreadyCompleted) {
+        addXp(100);
+        markLevelComplete(levelKey);
+        setWasFirstCompletion(true);
+      }
     }
   };
 
@@ -69,7 +78,7 @@ export function QuizEngine({ zoneId, level, onComplete }: QuizEngineProps) {
       setSelectedOption(null);
       setShowResult(false);
     } else {
-      onComplete(); // Go back to library
+      onComplete(wasFirstCompletion);
     }
   };
 
