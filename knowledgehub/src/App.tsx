@@ -1232,6 +1232,29 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 // ── Full-screen spinner shown while Firebase checks auth session ─
+// ─── Auto-sync progress to Firestore whenever it changes ─────
+// Renders nothing. Subscribes to the quest store and debounce-writes
+// to Firestore so progress survives logout/re-login.
+function SyncToCloud() {
+  const user = useAuthStore((s) => s.user);
+
+  React.useEffect(() => {
+    if (!user) return;
+
+    // Fire once immediately on login to ensure cloud is up-to-date
+    useQuestStore.getState().syncToFirestore(user.uid);
+
+    // Then watch for any subsequent changes
+    const unsubscribe = useQuestStore.subscribe(() => {
+      useQuestStore.getState().syncToFirestore(user.uid);
+    });
+
+    return unsubscribe;
+  }, [user?.uid]);
+
+  return null;
+}
+
 function AuthSpinner() {
   const theme = useQuestStore((s) => s.theme);
   return (
@@ -1268,6 +1291,7 @@ export default function App() {
 
   return (
     <Router>
+      <SyncToCloud />
       <BadgeToast badgesMap={badgesMap} />
       <Routes>
         <Route path="/login" element={<LoginRoute />} />
