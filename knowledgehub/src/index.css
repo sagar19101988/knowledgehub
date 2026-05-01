@@ -23,6 +23,18 @@ body {
   color: #e2e8f0;
 }
 
+/* Hide browser-native password reveal eye (Chrome, Edge, IE) — we use a custom one */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-strong-password-auto-fill-button {
+  display: none !important;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .sidebar-scroll::-webkit-scrollbar {
   width: 4px;
 }

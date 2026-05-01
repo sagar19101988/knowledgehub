@@ -156,7 +156,7 @@ export function AuthPage() {
               QA Quest
             </h1>
             <p className="text-2xl font-bold text-slate-900 dark:text-white mb-3">Master QA Engineering.</p>
-            <p className="text-slate-600 dark:text-slate-400 text-base max-w-sm leading-relaxed mb-7">
+            <p className="text-slate-600 dark:text-slate-400 text-base leading-relaxed mb-7">
               Six realms of knowledge. Real XP. Boss fights. The only QA learning hub built like a game.
             </p>
             <div className="flex items-center gap-8">

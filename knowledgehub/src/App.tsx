@@ -214,7 +214,7 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
     <div className="relative w-full" style={{ minHeight: 480 }}>
 
       {/* ── Clipped art layer (bg + particles) ── */}
-      <div className="absolute inset-0 rounded-2xl overflow-hidden border border-violet-900/30 bg-[#05030f]">
+      <div className="absolute inset-0 rounded-2xl overflow-hidden border border-violet-400/40 dark:border-violet-900/30 shadow-[0_0_40px_rgba(139,92,246,0.08)] dark:shadow-none bg-[#05030f]">
         {/* dot grid */}
         <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle, rgba(148,163,184,0.07) 1px, transparent 1px)', backgroundSize: '26px 26px' }} />
         {/* per-zone region halos */}
