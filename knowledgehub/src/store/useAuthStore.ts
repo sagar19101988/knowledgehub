@@ -7,6 +7,7 @@ import {
   signInWithGoogle,
   signOutUser,
   resetPassword,
+  saveUserProgress,
   loadUserProgress,
   type User,
 } from '../lib/firebase';
@@ -27,7 +28,7 @@ interface AuthState {
   clearError:        () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => {
+export const useAuthStore = create<AuthState>((set, get) => {
 
   // ── Listen to Firebase session on startup ──────────────────
   onAuthStateChanged(auth, async (firebaseUser) => {
@@ -97,6 +98,21 @@ export const useAuthStore = create<AuthState>((set) => {
     logout: async () => {
       set({ actionLoading: true, error: null });
       try {
+        // ── Flush latest progress to Firestore BEFORE signing out ──
+        // This guarantees the cloud has the latest state even if the
+        // 2-second debounce hasn't fired yet.
+        const uid = get().user?.uid;
+        if (uid) {
+          const s = useQuestStore.getState();
+          await saveUserProgress(uid, {
+            xp:             s.xp,
+            zoneProgress:   s.zoneProgress,
+            unlockedBadges: s.unlockedBadges,
+            completedLevels: s.completedLevels,
+            lastBountyDate: s.lastBountyDate,
+            theme:          s.theme,
+          }).catch(() => { /* silent — offline */ });
+        }
         await signOutUser();
       } catch (err: unknown) {
         set({ error: friendlyError(err), actionLoading: false });

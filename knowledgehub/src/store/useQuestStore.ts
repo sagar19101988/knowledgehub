@@ -101,6 +101,9 @@ export const useQuestStore = create<QuestState>()(
 
       // ── Called on logout to wipe local state ───────────────
       resetProgress: () => {
+        // Cancel any pending debounced save — prevents wiping Firestore
+        // with zeroed-out state after logout clears the store
+        if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
         set({
           playerName:     null,
           xp:             0,
