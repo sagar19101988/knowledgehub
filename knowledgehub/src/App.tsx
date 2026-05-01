@@ -1,6 +1,6 @@
 import React, { useState, useLayoutEffect, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { BookOpen, LogOut, Sun, Moon, Loader2, Map, LayoutGrid } from 'lucide-react';
+import { BookOpen, LogOut, Sun, Moon, Loader2, Map, LayoutGrid, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BadgeToast } from './components/BadgeToast';
 import { useQuestStore } from './store/useQuestStore';
@@ -255,6 +255,19 @@ function HubMap() {
     sessionStorage.setItem('qa-hub-view', v);
     setViewMode(v);
   };
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  const avatarRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!avatarOpen) return;
+    const handle = (e: MouseEvent) => {
+      if (avatarRef.current && !avatarRef.current.contains(e.target as Node)) {
+        setAvatarOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [avatarOpen]);
 
   const { current, next, progress } = getLevel(xp);
   const earnedCount = unlockedBadges.length;
@@ -262,41 +275,93 @@ function HubMap() {
   return (
     <div className="min-h-screen bg-[#faf8ff] dark:bg-[#07050f] text-slate-700 dark:text-slate-200 font-sans flex flex-col">
 
-      {/* Top navbar */}
-      <header className="h-16 border-b border-violet-300/50 dark:border-violet-900/30 bg-[#ede8ff]/80 dark:bg-[#0a0715]/80 backdrop-blur px-6 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-3">
+      {/* Top navbar — HUD Layout: Left | Center | Right */}
+      <header className="h-16 border-b border-violet-300/50 dark:border-violet-900/30 bg-[#ede8ff]/80 dark:bg-[#0a0715]/80 backdrop-blur px-6 flex items-center sticky top-0 z-50">
+
+        {/* ── LEFT: Logo + title ── */}
+        <div className="flex items-center gap-3 flex-1">
           <BookOpen size={24} className="text-fuchsia-400 flex-shrink-0" />
           <h1 className="text-xl font-black bg-gradient-to-r from-fuchsia-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent tracking-tight drop-shadow-[0_0_12px_rgba(192,38,211,0.3)]">
             QA Quest: The Knowledge Hub
           </h1>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Theme toggle */}
-          <button
-            onClick={toggleTheme}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-violet-500 dark:hover:text-violet-400 hover:border-violet-300 dark:hover:border-violet-700 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:scale-110 active:scale-95 transition-all duration-200"
-            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-          </button>
-          {/* Logout */}
-          <div className="relative group">
+
+        {/* ── CENTER: Welcome text ── */}
+        <h1 className="text-base font-black text-slate-900 dark:text-white whitespace-nowrap">
+          Welcome back,{' '}
+          <span className="bg-gradient-to-r from-fuchsia-500 to-cyan-400 bg-clip-text text-transparent">
+            {playerName}
+          </span>{' '}
+          👋
+        </h1>
+
+        {/* ── RIGHT: Avatar dropdown ── */}
+        <div className="flex-1 flex justify-end">
+          <div className="relative" ref={avatarRef}>
             <button
-              onClick={() => {
-                if (isGuest) {
-                  resetProgress(); // clears isGuest flag — no Firebase call needed
-                } else {
-                  logout();
-                }
-                navigate('/login', { replace: true });
-              }}
-              className="w-9 h-9 flex items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-rose-400 hover:border-rose-500/50 hover:bg-rose-500/10 hover:shadow-[0_0_14px_rgba(244,63,94,0.25)] hover:scale-110 active:scale-95 transition-all duration-200"
+              onClick={() => setAvatarOpen(p => !p)}
+              className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-xl hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-all duration-200"
             >
-              <LogOut size={15} />
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-white font-black text-sm shadow-[0_0_14px_rgba(192,38,211,0.5)] ring-2 ring-fuchsia-400/30 flex-shrink-0">
+                {playerName?.[0]?.toUpperCase() ?? '?'}
+              </div>
+              <ChevronDown
+                size={13}
+                className={`text-slate-400 dark:text-slate-500 transition-transform duration-200 ${avatarOpen ? 'rotate-180' : ''}`}
+              />
             </button>
-            <span className="absolute right-11 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              Log out
-            </span>
+
+            {avatarOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.15, ease: 'easeOut' }}
+                className="absolute right-0 top-[calc(100%+8px)] w-56 bg-white dark:bg-[#0e0b1f] border border-slate-200 dark:border-violet-900/50 rounded-2xl shadow-2xl shadow-black/20 dark:shadow-black/60 overflow-hidden z-50"
+              >
+                {/* Player header */}
+                <div className="flex items-center gap-3 px-4 py-3.5 bg-gradient-to-r from-violet-500/5 to-fuchsia-500/5 dark:from-violet-900/30 dark:to-fuchsia-900/20 border-b border-slate-100 dark:border-violet-900/30">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-white font-black text-base shadow-[0_0_12px_rgba(192,38,211,0.4)] flex-shrink-0">
+                    {playerName?.[0]?.toUpperCase() ?? '?'}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{playerName}</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">{isGuest ? 'Guest Mode' : 'Explorer'}</p>
+                  </div>
+                </div>
+
+                <div className="p-1.5 space-y-0.5">
+                  {/* Theme toggle */}
+                  <button
+                    onClick={toggleTheme}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-all duration-150 group/item"
+                  >
+                    <span className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover/item:bg-violet-100 dark:group-hover/item:bg-violet-900/40 transition-colors">
+                      {theme === 'dark'
+                        ? <Sun size={14} className="text-amber-400" />
+                        : <Moon size={14} className="text-violet-500" />}
+                    </span>
+                    {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                  </button>
+
+                  <div className="h-px bg-slate-100 dark:bg-slate-800/80 mx-2" />
+
+                  {/* Logout */}
+                  <button
+                    onClick={() => {
+                      setAvatarOpen(false);
+                      if (isGuest) { resetProgress(); } else { logout(); }
+                      navigate('/login', { replace: true });
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all duration-150 group/item"
+                  >
+                    <span className="w-7 h-7 rounded-lg bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center group-hover/item:bg-rose-100 dark:group-hover/item:bg-rose-500/20 transition-colors">
+                      <LogOut size={14} />
+                    </span>
+                    Exit Realm
+                  </button>
+                </div>
+              </motion.div>
+            )}
           </div>
         </div>
       </header>
@@ -419,37 +484,28 @@ function HubMap() {
 
         {/* ── Main: zone cards ── */}
         <main className="flex-1 p-6 overflow-y-auto">
-          {/* Header row */}
-          <div className="flex items-start justify-between mb-6 gap-4">
-            <div>
-              <h2 className="text-2xl font-black text-slate-900 dark:text-white">
-                Welcome back, <span className="bg-gradient-to-r from-fuchsia-600 to-cyan-600 dark:from-fuchsia-400 dark:to-cyan-400 bg-clip-text text-transparent">{playerName}</span> 👋
-              </h2>
-              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Choose a realm to conquer.</p>
-            </div>
-            {/* View toggle */}
-            <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-violet-900/40 rounded-xl p-1 gap-1 flex-shrink-0 shadow-sm">
+          {/* View toggle — centred above content */}
+          <div className="flex justify-center mb-6">
+            <div className="flex bg-white dark:bg-slate-900 border border-slate-200 dark:border-violet-900/40 rounded-xl p-1 gap-1 shadow-sm">
               <button
                 onClick={() => handleSetViewMode('map')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 ${
+                className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${
                   viewMode === 'map'
                     ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-[0_2px_14px_rgba(139,92,246,0.45)]'
                     : 'text-slate-500 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20'
                 }`}
               >
-                <Map size={13} />
-                Realm Map
+                <Map size={14} /> Realm Map
               </button>
               <button
                 onClick={() => handleSetViewMode('grid')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 ${
+                className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${
                   viewMode === 'grid'
                     ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-[0_2px_14px_rgba(139,92,246,0.45)]'
                     : 'text-slate-500 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20'
                 }`}
               >
-                <LayoutGrid size={13} />
-                Skill Tree
+                <LayoutGrid size={14} /> Skill Tree
               </button>
             </div>
           </div>

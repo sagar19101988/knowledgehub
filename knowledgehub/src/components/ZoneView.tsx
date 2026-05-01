@@ -24,7 +24,9 @@ export default function ZoneView() {
   const [justCompleted, setJustCompleted] = useState(false);
   const [completionWasFirstTime, setCompletionWasFirstTime] = useState(false);
   const [collapsedTiers, setCollapsedTiers] = useState<Record<string, boolean>>({ beginner: true, intermediate: true, expert: true });
+  const [avatarOpen, setAvatarOpen] = useState(false);
   const mainContentRef = React.useRef<HTMLDivElement>(null);
+  const avatarRef = React.useRef<HTMLDivElement>(null);
 
   const toggleTier = (tierId: string) =>
     setCollapsedTiers((prev) => ({ ...prev, [tierId]: !prev[tierId] }));
@@ -36,7 +38,20 @@ export default function ZoneView() {
   const toggleTheme = useQuestStore((state) => state.toggleTheme);
   const isGuest = useQuestStore((state) => state.isGuest);
   const resetProgress = useQuestStore((state) => state.resetProgress);
+  const playerName = useQuestStore((state) => state.playerName);
   const { logout } = useAuthStore();
+
+  // Close avatar dropdown on outside click
+  React.useEffect(() => {
+    if (!avatarOpen) return;
+    const handle = (e: MouseEvent) => {
+      if (avatarRef.current && !avatarRef.current.contains(e.target as Node)) {
+        setAvatarOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [avatarOpen]);
 
   React.useEffect(() => {
     if (contentData && contentData.levels.length > 0 && !contentData.levels.find(l => l.id === level)) {
@@ -59,10 +74,11 @@ export default function ZoneView() {
 
   return (
     <div className="min-h-screen bg-[#faf8ff] dark:bg-[#07050f] text-slate-700 dark:text-slate-200 font-sans flex flex-col">
-      {/* Top Navbar */}
-      <nav className="h-16 border-b border-violet-300/50 dark:border-violet-900/30 bg-[#ede8ff]/80 dark:bg-[#0a0715]/80 backdrop-blur px-6 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-3">
-          {/* Back button */}
+      {/* Top Navbar — HUD Layout: Left | Center | Right */}
+      <nav className="h-16 border-b border-violet-300/50 dark:border-violet-900/30 bg-[#ede8ff]/80 dark:bg-[#0a0715]/80 backdrop-blur px-6 flex items-center sticky top-0 z-50">
+
+        {/* ── LEFT: Back + Breadcrumb ── */}
+        <div className="flex items-center gap-3 flex-1">
           <button
             onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/')}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-fuchsia-500 dark:hover:text-fuchsia-400 hover:border-fuchsia-300 dark:hover:border-fuchsia-700 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 transition-all duration-200 group"
@@ -70,56 +86,109 @@ export default function ZoneView() {
             <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
             <span className="text-sm font-semibold">Back</span>
           </button>
-
-          {/* Separator */}
           <span className="text-slate-300 dark:text-slate-700 select-none">|</span>
-
-          {/* Breadcrumb: zone icon + name */}
           <div className="flex items-center gap-2">
             <span className="[&>svg]:w-5 [&>svg]:h-5">{zoneMeta.icon}</span>
             <span className="text-sm font-bold text-slate-900 dark:text-white">{zoneMeta.title}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Theme toggle */}
+        {/* ── CENTER: Mode switcher ── */}
+        <div className="flex bg-white dark:bg-slate-900 border border-slate-200 dark:border-violet-900/40 rounded-xl p-1 gap-1 shadow-sm">
           <button
-            onClick={toggleTheme}
-            className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-violet-500 dark:hover:text-violet-400 hover:border-violet-300 dark:hover:border-violet-700 transition-all duration-200"
-            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            onClick={() => setMode('library')}
+            className={`px-5 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all duration-200 ${
+              mode === 'library'
+                ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-[0_2px_14px_rgba(109,40,217,0.45)]'
+                : 'text-slate-500 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20'
+            }`}
           >
-            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+            <BookOpen size={15} />
+            The Library
           </button>
-          {/* Logout */}
-          <div className="relative group">
+          <button
+            onClick={() => setMode('arena')}
+            className={`px-5 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all duration-200 ${
+              mode === 'arena'
+                ? 'bg-gradient-to-r from-rose-500 to-orange-500 text-white shadow-[0_2px_14px_rgba(244,63,94,0.45)]'
+                : 'text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20'
+            }`}
+          >
+            <Swords size={15} />
+            The Arena
+          </button>
+        </div>
+
+        {/* ── RIGHT: Avatar dropdown ── */}
+        <div className="flex-1 flex justify-end">
+          <div className="relative" ref={avatarRef}>
+            {/* Avatar trigger button */}
             <button
-              onClick={() => {
-                if (isGuest) { resetProgress(); } else { logout(); }
-                navigate('/login', { replace: true });
-              }}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-rose-400 hover:border-rose-400/50 hover:bg-rose-500/10 transition-all duration-200"
-              title="Log out"
+              onClick={() => setAvatarOpen(p => !p)}
+              className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-xl hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-all duration-200 group"
             >
-              <LogOut size={14} />
+              {/* Avatar circle */}
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-white font-black text-sm shadow-[0_0_14px_rgba(192,38,211,0.5)] ring-2 ring-fuchsia-400/30 flex-shrink-0">
+                {playerName?.[0]?.toUpperCase() ?? '?'}
+              </div>
+              <ChevronDown
+                size={13}
+                className={`text-slate-400 dark:text-slate-500 transition-transform duration-200 ${avatarOpen ? 'rotate-180' : ''}`}
+              />
             </button>
-            <span className="absolute right-9 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-sm">
-              Log out
-            </span>
-          </div>
-          {/* Library / Arena toggle */}
-          <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
-            <button
-              onClick={() => setMode('library')}
-              className={`px-4 py-1.5 rounded-md text-sm font-bold flex items-center gap-2 transition ${mode === 'library' ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/50' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
-            >
-              <BookOpen size={16} /> The Library
-            </button>
-            <button
-              onClick={() => setMode('arena')}
-              className={`px-4 py-1.5 rounded-md text-sm font-bold flex items-center gap-2 transition ${mode === 'arena' ? 'bg-rose-500 text-white shadow-lg' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
-            >
-              <Swords size={16} /> The Arena
-            </button>
+
+            {/* Dropdown panel */}
+            {avatarOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.15, ease: 'easeOut' }}
+                className="absolute right-0 top-[calc(100%+8px)] w-56 bg-white dark:bg-[#0e0b1f] border border-slate-200 dark:border-violet-900/50 rounded-2xl shadow-2xl shadow-black/20 dark:shadow-black/60 overflow-hidden z-50"
+              >
+                {/* Player header */}
+                <div className="flex items-center gap-3 px-4 py-3.5 bg-gradient-to-r from-violet-500/5 to-fuchsia-500/5 dark:from-violet-900/30 dark:to-fuchsia-900/20 border-b border-slate-100 dark:border-violet-900/30">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-white font-black text-base shadow-[0_0_12px_rgba(192,38,211,0.4)] flex-shrink-0">
+                    {playerName?.[0]?.toUpperCase() ?? '?'}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{playerName}</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">{isGuest ? 'Guest Mode' : 'Explorer'}</p>
+                  </div>
+                </div>
+
+                <div className="p-1.5 space-y-0.5">
+                  {/* Theme toggle */}
+                  <button
+                    onClick={() => { toggleTheme(); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-all duration-150 group/item"
+                  >
+                    <span className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover/item:bg-violet-100 dark:group-hover/item:bg-violet-900/40 transition-colors">
+                      {theme === 'dark'
+                        ? <Sun size={14} className="text-amber-400" />
+                        : <Moon size={14} className="text-violet-500" />}
+                    </span>
+                    {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                  </button>
+
+                  <div className="h-px bg-slate-100 dark:bg-slate-800/80 mx-2" />
+
+                  {/* Logout */}
+                  <button
+                    onClick={() => {
+                      setAvatarOpen(false);
+                      if (isGuest) { resetProgress(); } else { logout(); }
+                      navigate('/login', { replace: true });
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all duration-150 group/item"
+                  >
+                    <span className="w-7 h-7 rounded-lg bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center group-hover/item:bg-rose-100 dark:group-hover/item:bg-rose-500/20 transition-colors">
+                      <LogOut size={14} />
+                    </span>
+                    Exit Realm
+                  </button>
+                </div>
+              </motion.div>
+            )}
           </div>
         </div>
       </nav>
