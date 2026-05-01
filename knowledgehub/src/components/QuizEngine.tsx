@@ -177,15 +177,15 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
 
             if (showResult) {
               if (opt.isCorrect) {
-                btnClass += 'bg-emerald-500/20 border-emerald-500/50 text-emerald-200';
+                btnClass += 'bg-emerald-500/20 border-emerald-500/50 text-emerald-700 dark:text-emerald-200';
               } else if (isSelected && !opt.isCorrect) {
-                btnClass += 'bg-rose-500/20 border-rose-500/50 text-rose-200';
+                btnClass += 'bg-rose-500/20 border-rose-500/50 text-rose-700 dark:text-rose-200';
               } else {
                 btnClass += 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 opacity-50';
               }
             } else {
               if (isSelected) {
-                btnClass += 'bg-indigo-500/20 border-indigo-500 text-indigo-200 shadow-[0_0_15px_rgba(99,102,241,0.2)]';
+                btnClass += 'bg-indigo-500/20 border-indigo-500 text-indigo-700 dark:text-indigo-200 shadow-[0_0_15px_rgba(99,102,241,0.2)]';
               } else {
                 btnClass += 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-500';
               }
@@ -199,7 +199,7 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
                 className={btnClass}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-indigo-400' : 'border-slate-300 dark:border-slate-600'}`}>
+                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-indigo-500 dark:border-indigo-400' : 'border-slate-300 dark:border-slate-600'}`}>
                     {isSelected && <div className="w-3 h-3 rounded-full bg-indigo-400" />}
                   </div>
                   <span className="font-medium">{opt.text}</span>

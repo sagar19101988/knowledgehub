@@ -451,20 +451,6 @@ export function AuthPage() {
               </motion.button>
             </form>
 
-            {/* Stat strip */}
-            <div className="flex items-center justify-between pt-6 mt-5 border-t border-violet-300/50 dark:border-violet-900/30">
-              {[{ v: '6', l: 'Realms' }, { v: '50+', l: 'Modules' }, { v: '8', l: 'XP Levels' }].map(s => (
-                <div key={s.l} className="text-center">
-                  <p className="text-slate-900 dark:text-white font-black text-xl leading-tight">{s.v}</p>
-                  <p className="text-slate-500 dark:text-slate-600 text-xs mt-0.5">{s.l}</p>
-                </div>
-              ))}
-            </div>
-
-            <p className="text-slate-500 dark:text-slate-700 text-xs mt-4 text-center">
-              No credit card · Progress saved to cloud
-            </p>
-
             {/* Guest bypass */}
             <div className="mt-5 pt-4 border-t border-violet-200/40 dark:border-slate-800">
               <motion.button

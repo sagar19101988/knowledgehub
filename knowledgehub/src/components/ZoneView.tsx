@@ -9,11 +9,12 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { ArrowLeft, BookOpen, Swords, Sun, Moon, ChevronDown, CheckCircle2, Lock } from 'lucide-react';
+import { ArrowLeft, BookOpen, Swords, Sun, Moon, ChevronDown, CheckCircle2, Lock, LogOut } from 'lucide-react';
 import { ZONES_CONTENT } from '../data/analogies';
 import { ZONES, ZONE_TIERS } from '../data/zones';
 import { QuizEngine } from './QuizEngine';
 import { useQuestStore } from '../store/useQuestStore';
+import { useAuthStore } from '../store/useAuthStore';
 
 export default function ZoneView() {
   const navigate = useNavigate();
@@ -33,6 +34,9 @@ export default function ZoneView() {
   const completedLevels = useQuestStore((state) => state.completedLevels);
   const theme = useQuestStore((state) => state.theme);
   const toggleTheme = useQuestStore((state) => state.toggleTheme);
+  const isGuest = useQuestStore((state) => state.isGuest);
+  const resetProgress = useQuestStore((state) => state.resetProgress);
+  const { logout } = useAuthStore();
 
   React.useEffect(() => {
     if (contentData && contentData.levels.length > 0 && !contentData.levels.find(l => l.id === level)) {
@@ -86,6 +90,22 @@ export default function ZoneView() {
           >
             {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
           </button>
+          {/* Logout */}
+          <div className="relative group">
+            <button
+              onClick={() => {
+                if (isGuest) { resetProgress(); } else { logout(); }
+                navigate('/login', { replace: true });
+              }}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-rose-400 hover:border-rose-400/50 hover:bg-rose-500/10 transition-all duration-200"
+              title="Log out"
+            >
+              <LogOut size={14} />
+            </button>
+            <span className="absolute right-9 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-sm">
+              Log out
+            </span>
+          </div>
           {/* Library / Arena toggle */}
           <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
             <button
@@ -239,7 +259,7 @@ export default function ZoneView() {
                                     ? `${TC.activeBg} ${TC.activeGlow}`
                                     : isCompleted
                                     ? 'border-transparent hover:bg-emerald-500/5 hover:border-emerald-500/10'
-                                    : 'border-transparent hover:bg-white/70 dark:hover:bg-slate-800/60'
+                                    : 'border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/60'
                                 }`}
                               >
                                 <div className="flex items-center gap-2">
@@ -497,7 +517,7 @@ export default function ZoneView() {
                   )}
                 </>
               ) : (
-                <div className="text-slate-500 py-12 text-center border-2 border-dashed border-slate-800 rounded-xl">
+                <div className="text-slate-500 py-12 text-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl">
                   Content for this level is being scribed by the Quality Oracle...
                 </div>
               )}

@@ -1,6 +1,6 @@
-import React, { useLayoutEffect, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { BookOpen, LogOut, Sun, Moon, Loader2 } from 'lucide-react';
+import React, { useState, useLayoutEffect, Suspense } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BookOpen, LogOut, Sun, Moon, Loader2, Map, LayoutGrid } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BadgeToast } from './components/BadgeToast';
 import { useQuestStore } from './store/useQuestStore';
@@ -248,9 +248,13 @@ function HubMap() {
   const { logout } = useAuthStore();
   const today = new Date().toISOString().slice(0, 10);
   const bountyAlreadyClaimed = lastBountyDate === today;
-  const [searchParams, setSearchParams] = useSearchParams();
-  const viewMode = (searchParams.get('view') as 'map' | 'grid') ?? 'map';
-  const setViewMode = (v: 'map' | 'grid') => setSearchParams({ view: v }, { replace: true });
+  const [viewMode, setViewMode] = useState<'map' | 'grid'>(
+    () => (sessionStorage.getItem('qa-hub-view') as 'map' | 'grid') ?? 'map'
+  );
+  const handleSetViewMode = (v: 'map' | 'grid') => {
+    sessionStorage.setItem('qa-hub-view', v);
+    setViewMode(v);
+  };
 
   const { current, next, progress } = getLevel(xp);
   const earnedCount = unlockedBadges.length;
@@ -313,7 +317,7 @@ function HubMap() {
                 <p className="text-slate-900 dark:text-white font-bold text-sm truncate">{playerName}</p>
                 <p className="text-amber-400 text-xs truncate">{current.title}</p>
               </div>
-              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700px-2 py-0.5 rounded-full flex-shrink-0">
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-full flex-shrink-0">
                 Lv.{current.level}
               </span>
             </div>
@@ -321,7 +325,7 @@ function HubMap() {
               <span className="font-medium">{xp.toLocaleString()} XP</span>
               <span>{next ? `Next: ${next.min.toLocaleString()}` : 'Max Level'}</span>
             </div>
-            <div className="h-2 w-full bg-slate-100 dark:bg-slate-800rounded-full overflow-hidden">
+            <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
@@ -423,19 +427,29 @@ function HubMap() {
               </h2>
               <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Choose a realm to conquer.</p>
             </div>
-            {/* Map / Grid toggle */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 gap-1 flex-shrink-0">
+            {/* View toggle */}
+            <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-violet-900/40 rounded-xl p-1 gap-1 flex-shrink-0 shadow-sm">
               <button
-                onClick={() => setViewMode('map')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'map' ? 'bg-violet-600 text-white shadow-md shadow-violet-900/40' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
+                onClick={() => handleSetViewMode('map')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 ${
+                  viewMode === 'map'
+                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-[0_2px_14px_rgba(139,92,246,0.45)]'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20'
+                }`}
               >
-                🗺️ Map
+                <Map size={13} />
+                Realm Map
               </button>
               <button
-                onClick={() => setViewMode('grid')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'grid' ? 'bg-violet-600 text-white shadow-md shadow-violet-900/40' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
+                onClick={() => handleSetViewMode('grid')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 ${
+                  viewMode === 'grid'
+                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-[0_2px_14px_rgba(139,92,246,0.45)]'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20'
+                }`}
               >
-                ⊞ Grid
+                <LayoutGrid size={13} />
+                Skill Tree
               </button>
             </div>
           </div>
@@ -532,7 +546,7 @@ function HubMap() {
                   )}
 
                   <div className="p-6 relative z-10">
-                    <div className="w-14 h-14 rounded-xl bg-white dark:bg-slate-900shadow-xl border border-slate-200 dark:border-slate-700/50 flex items-center justify-center mb-5">
+                    <div className="w-14 h-14 rounded-xl bg-white dark:bg-slate-900 shadow-xl border border-slate-200 dark:border-slate-700/50 flex items-center justify-center mb-5">
                       {zone.icon}
                     </div>
                     <div className="flex items-center justify-between mb-2">
@@ -548,7 +562,7 @@ function HubMap() {
                           <span className="text-slate-600 dark:text-slate-400">Map Explored</span>
                           <span className={isMastered ? 'text-amber-400' : 'text-slate-600 dark:text-slate-300'}>{progress}%</span>
                         </div>
-                        <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800rounded-full overflow-hidden">
+                        <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all duration-1000 ${isMastered ? 'bg-amber-400' : zone.colorText.replace('text-', 'bg-')}`}
                             style={{ width: `${progress}%` }}
