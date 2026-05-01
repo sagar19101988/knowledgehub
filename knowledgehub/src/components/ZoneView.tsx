@@ -60,7 +60,7 @@ export default function ZoneView() {
         <div className="flex items-center gap-3">
           {/* Back button */}
           <button
-            onClick={() => navigate('/', { replace: true })}
+            onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/')}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-fuchsia-500 dark:hover:text-fuchsia-400 hover:border-fuchsia-300 dark:hover:border-fuchsia-700 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 transition-all duration-200 group"
           >
             <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform duration-200" />

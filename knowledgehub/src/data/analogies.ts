@@ -4916,71 +4916,2173 @@ LIMIT 20;
   api: {
     id: 'api',
     levels: [
+
+      // ── BEGINNER ─────────────────────────────────────────────
+
       {
-        id: 'basic',
-        title: 'Basic: API Foundations',
-        analogy: "An API is a literal messenger. You (the customer) give your order to the waiter (the API), the waiter walks into the kitchen (the server), gets the chef to make the food (data), and brings it back to your table.",
+        id: 'api-what-is-api',
+        title: 'Beginner: What is an API?',
+        analogy: "An API is a restaurant waiter. You (the app) sit at a table. The kitchen (the server) has all the food (data). You never walk into the kitchen yourself — you tell the waiter what you want, the waiter goes to the kitchen, and brings exactly what you ordered back to your table.",
         lessonMarkdown: `
-### 1. What is an API?
-*💡 Analogy: It is the universal translator that lets a French speaker and a Japanese speaker negotiate a contract.*
+### 🍽️ What is an API?
 
-API stands for Application Programming Interface. In modern web development, the visual website you click on (the Frontend) and the database where information is stored (the Backend) are completely separate programs. They don't know how to share data naturally. An API is a strict set of rules and URLs that acts as a bridge, allowing the frontend to ask the backend for data, and the backend to securely deliver it.
+*💡 Analogy: You are a customer at a restaurant. The kitchen has all the food. You can't walk into the kitchen yourself — that's dangerous and chaotic. The waiter is the middleman: you give your order to the waiter, the waiter goes to the kitchen, and brings the food back to you. The waiter is the API.*
 
-### 2. GET Requests
-*💡 Analogy: Walking into a library, asking the librarian to hand you a specific book, reading it, and handing it back. You didn't write anything new, you just read.*
+**API** stands for **Application Programming Interface**.
 
-APIs use "HTTP Methods" to declare their intentions. The most common is the \`GET\` request. A GET request is completely safe and "read-only". It is used exclusively to fetch data from the server. When you open your web browser and navigate to a URL, your browser is making a massive GET request to fetch the HTML of that page.
+In simple words: an API is a way for two software programs to talk to each other. One program (the **client**) asks for something, and another program (the **server**) responds with data.
 
-### 3. 200 OK Status
-*💡 Analogy: Getting a "Thumbs Up" from a construction worker. It means the job is done and there are no problems.*
+---
 
-Every time an API finishes a request, it replies with a 3-digit Status Code so the frontend knows what happened without having to read a long error message. Anything in the \`200\` range is a success. \`200 OK\` means a GET request successfully found the data. \`201 Created\` means a POST request successfully created a new user.
+### 🌍 Why Do We Need APIs?
+
+Every app you use every day relies on APIs:
+
+- **Weather app** on your phone: the app itself doesn't know the weather. It calls a weather API, which talks to weather satellites and sends back today's forecast.
+- **Uber**: the app calls Google Maps API to show you the map. It calls a payment API to charge your card. It calls its own backend API to find nearby drivers.
+- **"Login with Google"**: that button calls Google's Auth API. Google checks your credentials and tells the app "yes, this is a real Google user."
+
+Without APIs, every app would need to rebuild everything from scratch. APIs let apps share power.
+
+---
+
+### 🔄 How Does an API Work? Step by Step
+
+\`\`\`
+1. You open a weather app and tap "Get Today's Forecast"
+2. The app sends a REQUEST to the weather API:
+   → "Give me the forecast for London, UK"
+3. The API server receives the request
+4. The server looks up the data in its database
+5. The server sends back a RESPONSE:
+   → { "city": "London", "temp": "18°C", "condition": "Cloudy" }
+6. The app displays "18°C, Cloudy" on your screen
+\`\`\`
+
+---
+
+### 🖥️ Client vs Server
+
+| Term | Who They Are | Example |
+|---|---|---|
+| **Client** | The one who ASKS for data | Your mobile app, web browser, Postman |
+| **Server** | The one who HAS the data and responds | The backend that holds the database |
+| **API** | The rules and URLs that connect them | The defined endpoints and response format |
+
+---
+
+### 🧪 Real Example: A Public API
+
+Try this URL in your browser right now:
+
+\`\`\`
+https://jsonplaceholder.typicode.com/users/1
+\`\`\`
+
+Your browser is making an API call. The server responds with:
+
+\`\`\`json
+{
+  "id": 1,
+  "name": "Leanne Graham",
+  "username": "Bret",
+  "email": "Sincere@april.biz",
+  "phone": "1-770-736-0860"
+}
+\`\`\`
+
+That's an API in action — you asked for user #1, the server returned user #1's data.
+
+---
+
+### 🎯 As a Tester, Why Does This Matter?
+
+When you test a web or mobile app, you are testing two things:
+1. **The UI** — what you see on screen
+2. **The API** — what happens behind the scenes
+
+Most bugs live in the API layer — wrong data, missing fields, broken authentication, incorrect status codes. **API testing lets you find these bugs before the UI is even built.**
         `
       },
+
       {
-        id: 'intermediate',
-        title: 'Intermediate: Sending Data',
-        analogy: "If APIs are waiters, GET is asking for the menu. POST is handing them a brand new recipe to cook. PUT is telling them to throw away the soup they just made and replace it with a salad.",
+        id: 'api-http-methods',
+        title: 'Beginner: HTTP Methods',
+        analogy: "HTTP methods are like office actions on a document. GET = read it. POST = create a brand new one. PUT = replace the entire document with a new version. PATCH = fix a single typo. DELETE = shred the document permanently.",
         lessonMarkdown: `
-### 1. POST vs PUT
-*💡 Analogy: POST is filling out a blank piece of paper and adding it to a folder. PUT is taking a paper out of the folder, throwing it in the trash, and replacing it with a new paper.*
+### 📋 What Are HTTP Methods?
 
-Both POST and PUT are used to send data to the server, but they do completely different things. 
-- **POST** is used to CREATE new resources. Every time you hit a POST endpoint, a brand new row is created in the database.
-- **PUT** is used to REPLACE an existing resource. You target a specific ID (like User #5) and send a massive block of data. The server completely overwrites User #5 with whatever you just sent.
+*💡 Analogy: Think of a filing cabinet at work. GET = open and read a file. POST = create a brand-new file and add it to the cabinet. PUT = take a file out and replace every single page with new pages. PATCH = open the file and correct just one typo. DELETE = remove the file and shred it.*
 
-### 2. JSON Body
-*💡 Analogy: It's the standard shipping box of the internet. It doesn't matter what is inside, every post office knows how to scan the barcode on a JSON box.*
+Every request you send to an API must declare its **intention** using an HTTP Method. The method tells the server what you want to do.
 
-When you send a POST or PUT request, you have to attach the actual data you want to save. This data payload is called the "Body", and it is almost always formatted in JSON (JavaScript Object Notation). JSON is a lightweight, text-based format that uses curly braces and key-value pairs (e.g., \`{ "username": "QA_Master", "level": 99 }\`). It is so universally loved because both humans and machines can read it instantly.
+---
 
-### 3. 401 Unauthorized
-*💡 Analogy: Trying to walk into a top-secret military base without an ID badge. The guard doesn't even look at what you want to do; they just reject you instantly.*
+### 🟢 GET — Read Data
 
-Status codes in the \`400\` range mean the client (you) made a mistake. \`401 Unauthorized\` specifically means that the API requires authentication (like a secret API Key or a JWT token), and you forgot to include it in the headers of your request. The server is saying, "I don't know who you are, so I'm not giving you this data."
+**Purpose:** Fetch/retrieve data. Never changes anything on the server.
+
+\`\`\`
+GET /users          → Returns a list of all users
+GET /users/5        → Returns details of user with ID 5
+GET /products?category=electronics  → Returns electronics products
+\`\`\`
+
+**Real life:** Opening your email inbox. You're just reading — not sending or deleting anything.
+
+**Key rule:** GET requests should NEVER have side effects. Calling GET 100 times gives the same result every time.
+
+---
+
+### 🔵 POST — Create New Data
+
+**Purpose:** Send data to the server to CREATE a new resource.
+
+\`\`\`
+POST /users
+Body: { "name": "Priya", "email": "priya@test.com" }
+
+→ Server creates a new user and returns:
+{ "id": 42, "name": "Priya", "email": "priya@test.com" }
+\`\`\`
+
+**Real life:** Filling out a registration form and clicking Submit.
+
+**Key rule:** Every POST creates something NEW. Calling POST 3 times = 3 new users created.
+
+---
+
+### 🟠 PUT — Replace Entire Resource
+
+**Purpose:** COMPLETELY REPLACE an existing resource.
+
+\`\`\`
+PUT /users/42
+Body: { "name": "Priya Sharma", "email": "priya.sharma@test.com", "role": "admin" }
+
+→ User 42's entire record is overwritten with the new data
+\`\`\`
+
+**Real life:** Throwing away an old form and filling out a completely new one from scratch.
+
+**Key rule:** You must send ALL fields. If you forget to include "email", PUT will wipe it out.
+
+---
+
+### 🟡 PATCH — Update Part of a Resource
+
+**Purpose:** Partially update a resource. Only send what changed.
+
+\`\`\`
+PATCH /users/42
+Body: { "email": "new.email@test.com" }
+
+→ Only the email is updated. Name and role stay the same.
+\`\`\`
+
+**Real life:** Opening a form, erasing just your phone number, and writing a new one. Everything else stays untouched.
+
+---
+
+### 🔴 DELETE — Remove a Resource
+
+**Purpose:** Delete a resource permanently.
+
+\`\`\`
+DELETE /users/42
+
+→ User 42 is deleted from the database
+→ Server returns 204 No Content (empty body, deletion confirmed)
+\`\`\`
+
+---
+
+### 📊 Quick Reference Table
+
+| Method | Action | Has Body? | Safe? |
+|---|---|---|---|
+| GET | Read | No | Yes |
+| POST | Create | Yes | No |
+| PUT | Replace all | Yes | No |
+| PATCH | Update part | Yes | No |
+| DELETE | Remove | No | No |
+
+---
+
+### 🧪 Tester's Checklist for Each Method
+
+- **GET**: Does it return the correct data? Does it return 404 for missing IDs?
+- **POST**: Does it create exactly one record? What if required fields are missing?
+- **PUT**: Does it overwrite ALL fields? What if you send extra/unknown fields?
+- **PATCH**: Does it update only the changed field? Are other fields preserved?
+- **DELETE**: Is the resource actually deleted? Can you delete the same thing twice?
         `
       },
+
       {
-        id: 'expert',
-        title: 'Expert: API Concepts',
-        analogy: "Advanced APIs require complex traffic control. It's about protecting the server from being crushed by stampedes, and giving frontends the power to ask for exact puzzle pieces instead of whole boxes.",
+        id: 'api-request-anatomy',
+        title: 'Beginner: Anatomy of a Request',
+        analogy: "An API request is like sending a formal letter. The envelope has the address (URL). The stamp type tells the post office what kind of delivery this is (HTTP method). Post-it notes on the outside give handling instructions (headers). The letter inside is your actual message (request body).",
         lessonMarkdown: `
-### 1. Rate Limiting
-*💡 Analogy: A bouncer at a wildly popular nightclub. If one person tries to bring 50,000 friends through the door at the exact same second, the bouncer locks the door to prevent the building from collapsing.*
+### ✉️ The 4 Parts of Every API Request
 
-Rate Limiting is a critical security and stability measure. It restricts how many requests a single IP address or user account can make to an API within a specific timeframe (e.g., 100 requests per minute). Without rate limiting, a malicious hacker could write a script that hits the login API a million times a second, overwhelming the server's CPU and causing it to crash for everyone. This is known as a DDoS attack. When you hit a rate limit, the API returns a \`429 Too Many Requests\` status.
+*💡 Analogy: Sending a formal letter to a government office. The envelope has: the address (URL) and a stamp showing the delivery type (Method). On the outside are Post-it notes: "Confidential", "Handle with care", "Reply in English" — these are Headers. Inside the envelope is your actual letter — the Body.*
 
-### 2. GraphQL
-*💡 Analogy: REST APIs are like buying a pre-packaged combo meal at a drive-thru; you get a burger, fries, and a drink whether you want them or not. GraphQL is like a buffet where you hand-pick exactly two fries and a sip of cola, and that is all you are charged for.*
+---
 
-REST APIs suffer from "over-fetching" (sending back 50 fields of user data when the app only needed the user's avatar image). GraphQL solves this. It is a query language for APIs where the client sends a highly specific request outlining the exact shape of the data it wants. The server responds with exactly that shape, reducing payload sizes and making mobile apps much faster.
+### 🌐 1. The URL (Endpoint)
 
-### 3. Idempotency
-*💡 Analogy: An elevator button. If you press the "Lobby" button once, the elevator goes to the lobby. If you smash the "Lobby" button 50 times in a panic, the elevator STILL just goes to the lobby. The end result never changed.*
+The URL tells the server exactly WHERE to go and WHAT resource you want.
 
-Idempotency is a crucial concept in system design. An API endpoint is idempotent if making the exact same request multiple times produces the exact same result on the server as making it just once. A \`GET\` request is idempotent (reading data 10 times doesn't change it). A \`PUT\` request is idempotent (updating your name to "Bob" 10 times just leaves it as "Bob"). A \`POST\` request is NOT idempotent (clicking a "Create Order" button 10 times will accidentally charge your credit card 10 times!).
+\`\`\`
+https://api.myshop.com/v1/users/42/orders
+│      │              │  │      │   └─ resource: orders
+│      │              │  │      └───── user ID: 42
+│      │              │  └──────────── resource: users
+│      │              └─────────────── version: v1
+│      └────────────────────────────── domain
+└───────────────────────────────────── protocol (always https in production)
+\`\`\`
+
+---
+
+### 🔑 2. The HTTP Method
+
+GET, POST, PUT, PATCH, or DELETE — declared at the start of the request.
+
+\`\`\`
+GET https://api.myshop.com/v1/users/42
+\`\`\`
+
+---
+
+### 📝 3. The Headers
+
+Headers are key-value pairs carrying **metadata** about the request.
+
+\`\`\`
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+Accept: application/json
+\`\`\`
+
+| Header | What It Does |
+|---|---|
+| \`Content-Type\` | Format of the body you're sending (usually \`application/json\`) |
+| \`Authorization\` | Your secret token to prove who you are |
+| \`Accept\` | Format you want the response in |
+
+---
+
+### 📦 4. The Body
+
+The actual **data payload** you're sending. Only used with POST, PUT, PATCH.
+
+\`\`\`json
+{
+  "name": "Priya Sharma",
+  "email": "priya@testlab.com",
+  "role": "QA Engineer",
+  "active": true
+}
+\`\`\`
+
+GET and DELETE requests have no body — you're just pointing at a resource.
+
+---
+
+### 🧪 Full Example: Creating a New User
+
+\`\`\`
+Method:  POST
+URL:     https://api.myshop.com/v1/users
+
+Headers:
+  Content-Type: application/json
+  Authorization: Bearer my-secret-token-123
+
+Body:
+{
+  "name": "Priya Sharma",
+  "email": "priya@testlab.com",
+  "role": "QA Engineer"
+}
+\`\`\`
+
+---
+
+### 🔍 Tester's Eye: What To Check in Requests
+
+1. **Is the URL correct?** Wrong path = 404 Not Found
+2. **Is the method right?** Using GET instead of POST = 405 Method Not Allowed
+3. **Are headers present?** Missing Content-Type often causes 400 Bad Request
+4. **Is the body valid JSON?** A stray comma or missing quote = 400 Bad Request
+5. **Is the auth token valid?** Expired/missing token = 401 Unauthorized
         `
+      },
+
+      {
+        id: 'api-response-anatomy',
+        title: 'Beginner: Anatomy of a Response',
+        analogy: "An API response is like a reply letter from a company. Before you even open the envelope, a stamp tells you the result — green SUCCESS or red REJECTED (status code). Inside is the actual answer (body). Stickers on the envelope explain how to handle it — expiry date, language, size (response headers).",
+        lessonMarkdown: `
+### 📬 The 3 Parts of Every API Response
+
+*💡 Analogy: You applied for a job (sent a request). The company replies (response). Before opening the envelope, a big stamp says "ACCEPTED" or "REJECTED" — that's the status code. Inside the envelope is the offer letter or rejection reason — that's the body. On the outside are instructions: "Valid until Dec 2025", "Store in a dry place" — those are response headers.*
+
+---
+
+### 🚦 1. Status Code
+
+A 3-digit number that immediately tells you what happened.
+
+\`\`\`
+HTTP/1.1 200 OK
+HTTP/1.1 201 Created
+HTTP/1.1 400 Bad Request
+HTTP/1.1 404 Not Found
+HTTP/1.1 500 Internal Server Error
+\`\`\`
+
+**The five families:**
+- **2xx** = ✅ Success
+- **3xx** = ↪️ Redirect
+- **4xx** = ❌ Client error (you did something wrong)
+- **5xx** = 💥 Server error (server broke, not your fault)
+
+---
+
+### 📋 2. Response Headers
+
+Metadata FROM the server ABOUT the response.
+
+\`\`\`
+Content-Type: application/json; charset=utf-8
+Content-Length: 248
+X-Rate-Limit-Remaining: 87
+Cache-Control: no-cache
+\`\`\`
+
+| Header | What It Means |
+|---|---|
+| \`Content-Type\` | Format of the body (should be \`application/json\`) |
+| \`X-Rate-Limit-Remaining\` | How many API calls you have left this minute |
+| \`Cache-Control\` | Can the client cache this response? |
+
+---
+
+### 📦 3. Response Body
+
+The actual data returned — almost always JSON for modern APIs.
+
+**Successful GET:**
+\`\`\`json
+{
+  "id": 42,
+  "name": "Priya Sharma",
+  "email": "priya@testlab.com",
+  "role": "QA Engineer",
+  "createdAt": "2024-01-15T10:30:00Z"
+}
+\`\`\`
+
+**Error response:**
+\`\`\`json
+{
+  "error": "USER_NOT_FOUND",
+  "message": "No user exists with ID 999",
+  "statusCode": 404
+}
+\`\`\`
+
+Even error responses must have a helpful body — never a raw crash dump.
+
+---
+
+### 🔄 Full Request → Response Example
+
+**Request:**
+\`\`\`
+POST /v1/users
+Content-Type: application/json
+{ "name": "Rahul", "email": "rahul@test.com" }
+\`\`\`
+
+**Response:**
+\`\`\`
+Status: 201 Created
+Content-Type: application/json
+
+{
+  "id": 99,
+  "name": "Rahul",
+  "email": "rahul@test.com",
+  "createdAt": "2024-05-01T08:00:00Z"
+}
+\`\`\`
+
+---
+
+### 🧪 Tester's Checklist for Responses
+
+| What to Check | Why It Matters |
+|---|---|
+| ✅ Status code is correct | 200 vs 201 vs 204 all mean different things |
+| ✅ Body has all expected fields | Missing fields break the frontend |
+| ✅ Field data types are correct | \`"id": "99"\` (string) vs \`99\` (number) breaks code |
+| ✅ Error messages are helpful | "USER_NOT_FOUND" is good. A stack trace is not |
+| ✅ Response time is acceptable | Over 2 seconds for a simple GET is a red flag |
+| ✅ Sensitive data NOT exposed | Passwords, SSNs must never appear in responses |
+        `
+      },
+
+      {
+        id: 'api-status-codes',
+        title: 'Beginner: HTTP Status Codes',
+        analogy: "Status codes are like traffic signs. 2xx = Green light, all good. 3xx = Detour sign, go this way instead. 4xx = Stop sign with a note saying YOU made a wrong turn. 5xx = Road closed sign — the highway department broke the road, not your fault.",
+        lessonMarkdown: `
+### 🚦 HTTP Status Codes — Your Tester's Bible
+
+*💡 Analogy: You send a package via courier. The tracking app shows codes:
+200 = Delivered successfully.
+201 = Parcel accepted and logged into the system.
+301 = Address changed — package redirected.
+400 = Wrong address format — courier rejected it.
+401 = Signature required — nobody was home to sign.
+403 = Building won't accept deliveries — access restricted.
+404 = Address doesn't exist.
+500 = Courier's truck broke down — not your fault.*
+
+---
+
+### ✅ 2xx — Success
+
+| Code | Name | When You'll See It |
+|---|---|---|
+| **200** | OK | GET returned data successfully |
+| **201** | Created | POST created a new resource |
+| **204** | No Content | DELETE succeeded — no body returned |
+
+**Testing tip:** A POST that creates something should return **201**, not 200. If it returns 200, that's a REST convention bug worth logging.
+
+---
+
+### ❌ 4xx — Client Errors (You Did Something Wrong)
+
+| Code | Name | Common Cause | Tester's Action |
+|---|---|---|---|
+| **400** | Bad Request | Invalid JSON, missing required field | Check the request body and headers |
+| **401** | Unauthorized | No token, or expired token | Check the Authorization header |
+| **403** | Forbidden | Token is valid but no permission | Test role-based access control |
+| **404** | Not Found | Wrong URL or resource doesn't exist | Verify the endpoint and ID |
+| **405** | Method Not Allowed | POST to a GET-only endpoint | Check the correct HTTP method |
+| **409** | Conflict | Creating a duplicate (same email) | Test uniqueness constraints |
+| **422** | Unprocessable Entity | Right format but invalid content (negative age) | Test business rule validations |
+| **429** | Too Many Requests | Rate limit hit | Test rate limiting behaviour |
+
+---
+
+### 💥 5xx — Server Errors (Server Broke)
+
+| Code | Name | Tester's Action |
+|---|---|---|
+| **500** | Internal Server Error | Log a bug immediately — always a code defect |
+| **503** | Service Unavailable | Check if it's a known deployment/maintenance |
+| **504** | Gateway Timeout | Performance issue — log it |
+
+---
+
+### 🧪 Real Test Scenarios by Status Code
+
+\`\`\`
+POST /users with valid data           → Expect 201
+POST /users with duplicate email      → Expect 409
+POST /users with missing name field   → Expect 400 or 422
+GET  /users/99999 (doesn't exist)     → Expect 404
+GET  /users with no auth token        → Expect 401
+GET  /admin/users as a basic user     → Expect 403
+DELETE /users/5 (confirmed)           → Expect 204
+Send 200 rapid login requests         → Expect 429 eventually
+\`\`\`
+
+---
+
+### 🎯 Golden Rule
+
+**Never accept a 500 as "expected behaviour."** A 500 means the server crashed — always a bug. Good APIs should return proper 4xx errors for bad input, never crash with a 500.
+        `
+      },
+
+      {
+        id: 'api-json-basics',
+        title: 'Beginner: JSON — The Language of APIs',
+        analogy: "JSON is like a standardised customs declaration form used at every airport worldwide. No matter which country you're in, the form has the same boxes: Name (text), Age (number), Items (list), Carry-on (yes/no). Any customs officer on the planet knows exactly where to look for each piece of information.",
+        lessonMarkdown: `
+### 📋 What is JSON?
+
+*💡 Analogy: A customs declaration form at an airport has specific boxes: Name (text), Age (number), Items Carried (list), Declaration Required (yes/no). Every country uses the same format — so any customs officer anywhere knows exactly where to look. JSON is that universal declaration form for data on the internet.*
+
+**JSON** = **J**ava**S**cript **O**bject **N**otation
+
+A lightweight text format for storing and sending data. Both humans and machines can read it easily.
+
+---
+
+### 🧱 The 6 Data Types in JSON
+
+\`\`\`json
+{
+  "name":     "Priya",
+  "age":      28,
+  "isActive": true,
+  "score":    null,
+  "skills":   ["Selenium", "Postman", "SQL"],
+  "address":  { "city": "Bangalore", "country": "India" }
+}
+\`\`\`
+
+| Type | Example | Rules |
+|---|---|---|
+| String | \`"hello"\` | Always in **double** quotes |
+| Number | \`42\` or \`3.14\` | No quotes |
+| Boolean | \`true\` or \`false\` | Lowercase, no quotes |
+| null | \`null\` | Means "no value", lowercase |
+| Array | \`["a", "b", "c"]\` | Ordered list in \`[ ]\` |
+| Object | \`{ "key": "value" }\` | Nested data in \`{ }\` |
+
+---
+
+### 🪆 Nested Objects — Real-World API Response
+
+\`\`\`json
+{
+  "order": {
+    "id": "ORD-999",
+    "items": [
+      { "product": "Laptop", "qty": 1, "price": 75000 },
+      { "product": "Mouse",  "qty": 2, "price": 1200  }
+    ],
+    "total": 77400,
+    "customer": {
+      "id": 42,
+      "name": "Rahul Mehta"
+    }
+  }
+}
+\`\`\`
+
+---
+
+### ❌ Common JSON Mistakes
+
+\`\`\`json
+// ❌ WRONG — single quotes (not allowed in JSON)
+{ 'name': 'Priya' }
+
+// ✅ CORRECT — double quotes
+{ "name": "Priya" }
+
+// ❌ WRONG — trailing comma after last item
+{ "name": "Priya", "age": 28, }
+
+// ✅ CORRECT — no trailing comma
+{ "name": "Priya", "age": 28 }
+
+// ❌ WRONG — number as string
+{ "age": "28" }
+
+// ✅ CORRECT — number without quotes
+{ "age": 28 }
+
+// ❌ WRONG — comments (JSON does NOT support comments)
+{ "name": "Priya" // the user }
+\`\`\`
+
+---
+
+### 🧪 Tester's JSON Checklist
+
+When you receive a JSON response from an API, check:
+
+1. **Is it valid JSON?** Paste into [jsonlint.com](https://jsonlint.com) to validate
+2. **Are all expected fields present?** Missing \`id\` field = bug
+3. **Are data types correct?** \`"id": "42"\` (string) instead of \`"id": 42\` (number) = bug
+4. **Are arrays populated?** An order with \`"items": []\` might be missing data
+5. **Is sensitive data hidden?** Passwords, SSNs must never appear in the response body
+        `
+      },
+
+      {
+        id: 'api-postman-basics',
+        title: 'Beginner: Testing APIs with Postman',
+        analogy: "Postman is your API laboratory. Without it, testing an API would be like trying to taste soup by reading the recipe. Postman lets you fire real requests at any API and see the real response instantly — like a universal remote control that works with every server in the world.",
+        lessonMarkdown: `
+### 🧪 What is Postman?
+
+*💡 Analogy: You want to test if a restaurant kitchen is working before real customers arrive. You walk up to the serving window and shout your orders directly — "One burger!", "Show me the menu!" — and check the responses yourself. Postman is that serving window. You test the API directly, without needing a fully built app.*
+
+**Postman** is the #1 free GUI tool for API testing. It lets you:
+- Build and send HTTP requests
+- See the full response (status code, headers, body)
+- Save requests into collections
+- Write automated assertions
+- Share tests with your team
+
+---
+
+### 🚀 Your First GET Request
+
+Let's test a real public API — **JSONPlaceholder** (a free fake API for learning).
+
+**Step 1:** Open Postman → Click "New" → "HTTP Request"
+
+**Step 2:** Set method to **GET**, enter the URL:
+\`\`\`
+https://jsonplaceholder.typicode.com/posts/1
+\`\`\`
+
+**Step 3:** Click **Send**
+
+**Response you'll see:**
+\`\`\`json
+{
+  "userId": 1,
+  "id": 1,
+  "title": "sunt aut facere repellat provident",
+  "body": "quia et suscipit..."
+}
+\`\`\`
+Status: **200 OK** ✅
+
+---
+
+### ✍️ Your First POST Request
+
+**Step 1:** Change method to **POST**
+**Step 2:** URL: \`https://jsonplaceholder.typicode.com/posts\`
+**Step 3:** Click **Body** → select **raw** → choose **JSON** from the dropdown
+**Step 4:** Type this body:
+
+\`\`\`json
+{
+  "title": "My First API Test",
+  "body": "I just sent a POST and it worked!",
+  "userId": 1
+}
+\`\`\`
+
+**Step 5:** Click Send
+
+**Response:**
+\`\`\`json
+{
+  "id": 101,
+  "title": "My First API Test",
+  "body": "I just sent a POST and it worked!",
+  "userId": 1
+}
+\`\`\`
+Status: **201 Created** ✅
+
+---
+
+### 📁 Postman Interface — Key Areas
+
+\`\`\`
+┌──────────────────────────────────────────────────┐
+│  [GET ▼] [URL input                ] [ SEND ]    │ ← Request line
+├──────────────────────────────────────────────────┤
+│  Params | Auth | Headers | Body | Tests           │ ← Request tabs
+├──────────────────────────────────────────────────┤
+│  Status: 200 OK   Time: 245ms   Size: 512B        │ ← Response info
+│  Body | Cookies | Headers | Test Results          │ ← Response tabs
+│  { "id": 1, "name": "Priya" }                    │ ← Response body
+└──────────────────────────────────────────────────┘
+\`\`\`
+
+---
+
+### 📂 Collections — Save Your Work
+
+Don't lose your requests! Save them in a **Collection**:
+1. After sending → Click **Save**
+2. Create new Collection: "API Testing Practice"
+3. Name the request: "Get Post by ID"
+4. Click Save
+
+Collections are like folders for your API tests. You can re-run any test with one click.
+
+---
+
+### 💡 Quick Wins for Testers
+
+- **Check response time** (top right of response panel) — flag anything over 2 seconds
+- **Check response size** — unusually large responses may indicate over-fetching
+- **Use the Console** (View → Show Postman Console) — see the raw HTTP request for debugging
+- **Check the status code colour** — green = 2xx, orange = 4xx, red = 5xx
+        `
+      },
+
+      {
+        id: 'api-headers-params',
+        title: 'Beginner: Headers, Query Params & Path Params',
+        analogy: "Headers are like labels on a parcel — 'Fragile', 'Urgent', 'Return to sender' — extra instructions that don't change what's inside. Query params are like Amazon search filters — they narrow down a list. Path params are the exact aisle and shelf number in a warehouse — they pinpoint one specific item.",
+        lessonMarkdown: `
+### 📬 Three Ways to Pass Information in a Request
+
+When making API requests you often need to send extra information. There are 3 places to put it — choosing the wrong one is a very common beginner mistake.
+
+---
+
+### 🔖 1. Headers — Metadata About the Request
+
+*💡 Analogy: Stickers on a package. "Fragile — handle with care." "Store below 5°C." "Reply in English." These don't change what's inside the box — they tell the courier HOW to handle it.*
+
+\`\`\`
+Content-Type: application/json     → "The body I'm sending is JSON"
+Authorization: Bearer abc123       → "Here's my security badge"
+Accept: application/json           → "Please respond in JSON"
+Accept-Language: en-US             → "I want an English response"
+\`\`\`
+
+**In Postman:** Click the "Headers" tab → add key-value pairs.
+
+---
+
+### 🔍 2. Query Parameters — Filters and Options
+
+*💡 Analogy: Search filters on a shopping website. You're browsing laptops and filter by Price, RAM, and Brand. You're not changing which page you're on — you're narrowing down the results on that page.*
+
+Query params come at the **end of the URL**, after a \`?\`, separated by \`&\`:
+
+\`\`\`
+GET /products?category=laptops&maxPrice=80000&page=2&limit=20
+\`\`\`
+
+**Common uses:**
+- Pagination: \`?page=1&limit=10\`
+- Filtering: \`?status=active&role=admin\`
+- Searching: \`?q=wireless+mouse\`
+- Sorting: \`?sortBy=createdAt&order=desc\`
+
+**In Postman:** Click the "Params" tab → add Key and Value. Postman builds the URL automatically.
+
+---
+
+### 🎯 3. Path Parameters — Identifying One Specific Resource
+
+*💡 Analogy: A warehouse has aisles and shelves. "Aisle 7, Shelf 3, Box B" uniquely identifies ONE item. Path params are the aisle/shelf/box numbers in your API URL.*
+
+Path params are embedded directly inside the URL path:
+
+\`\`\`
+GET /users/42           → Get the user with ID 42
+GET /users/42/orders    → Get all orders belonging to user 42
+GET /posts/5/comments/3 → Get comment #3 on post #5
+\`\`\`
+
+In API docs they're written as: \`GET /users/{userId}\`
+
+---
+
+### 🆚 When to Use Which?
+
+| Use case | Where to put it |
+|---|---|
+| Authentication token | Header (\`Authorization\`) |
+| Format of your body | Header (\`Content-Type\`) |
+| Identifying ONE specific resource | Path param (\`/users/42\`) |
+| Filtering a list | Query param (\`?status=active\`) |
+| Pagination | Query param (\`?page=2&limit=10\`) |
+| Actual data to create/update | Request Body |
+
+---
+
+### 🧪 Tester Scenarios
+
+\`\`\`
+GET /users/0           → 0 is usually invalid → Expect 400 or 404
+GET /users/abc         → Non-numeric ID → Expect 400
+GET /users/-1          → Negative ID → Expect 400 or 404
+GET /posts?limit=0     → Zero results → Expect empty array [], not error
+GET /posts?page=-5     → Negative page → Expect 400 or default to page 1
+POST without Content-Type header → Expect 400
+GET without Authorization header → Expect 401
+\`\`\`
+
+---
+
+### 💡 Pro Security Tip
+
+Try injecting values in headers:
+\`\`\`
+X-Admin-Override: true
+X-User-Role: superadmin
+\`\`\`
+
+If the server honours these custom headers without proper auth — that's a **critical security bug**.
+        `
+      },
+
+      // ── INTERMEDIATE ─────────────────────────────────────────────
+
+      {
+        id: 'api-auth-types',
+        title: 'Intermediate: Authentication Types',
+        analogy: "API Key = a physical key to the office — just show it at the door. Bearer Token = a visitor badge that expires after 8 hours. Basic Auth = showing your employee ID and password. JWT = a tamper-proof smart badge containing your photo, role, department, and expiry — the guard reads it without calling HR.",
+        lessonMarkdown: `
+### 🔐 Why Authentication Matters
+
+*💡 Analogy: Imagine a bank with no security desk. Anyone can walk in, go to any vault, and take any money. Authentication is the security desk — it checks who you are before you can do anything.*
+
+Most real APIs require you to **prove who you are** before giving access. There are several methods, each with different trade-offs.
+
+---
+
+### 🗝️ 1. API Key
+
+The simplest form. The server gives you a secret key — include it in every request.
+
+\`\`\`
+GET /weather?city=London
+X-API-Key: sk_live_abc123def456
+\`\`\`
+
+Or as a query param:
+\`\`\`
+GET /weather?city=London&apikey=sk_live_abc123def456
+\`\`\`
+
+**Pros:** Simple. **Cons:** If it leaks (e.g., committed to GitHub), anyone can use it.
+
+**Test scenarios:**
+- Missing API key → Expect 401
+- Invalid API key → Expect 401 or 403
+- API key in wrong header name → Expect 401
+
+---
+
+### 📛 2. Basic Authentication
+
+Username and password encoded in Base64 in the Authorization header.
+
+\`\`\`
+Authorization: Basic dXNlcm5hbWU6cGFzc3dvcmQ=
+\`\`\`
+
+That string is just \`username:password\` in Base64. **NOT encrypted** — only safe over HTTPS.
+
+**In Postman:** Auth tab → Basic Auth → enter username and password.
+
+**Test scenarios:**
+- Wrong password → Expect 401
+- Empty password → Expect 400 or 401
+- SQL injection in username → Expect 401 (never 500!)
+
+---
+
+### 🎫 3. Bearer Token
+
+After login, the server gives you a token. Include it in every subsequent request.
+
+\`\`\`
+POST /auth/login
+Body: { "email": "priya@test.com", "password": "secret123" }
+Response: { "token": "tok_live_xyzabc789", "expiresIn": 3600 }
+
+Then:
+GET /users/me
+Authorization: Bearer tok_live_xyzabc789
+\`\`\`
+
+**Test scenarios:**
+- Valid token → Expect 200
+- Expired token → Expect 401
+- Random/invalid token → Expect 401
+- Missing "Bearer " prefix → Expect 401
+
+---
+
+### 🧾 4. JWT (JSON Web Token)
+
+A special bearer token that is **self-contained** — it holds your user info inside.
+
+\`\`\`
+eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOjQyLCJyb2xlIjoiYWRtaW4ifQ.abc123
+     HEADER              PAYLOAD (user data)                   SIGNATURE
+\`\`\`
+
+Decode the payload at [jwt.io](https://jwt.io):
+\`\`\`json
+{
+  "userId": 42,
+  "role": "admin",
+  "email": "priya@test.com",
+  "exp": 1716552000
+}
+\`\`\`
+
+**Test scenarios:**
+- Modify JWT payload (change role to "superadmin") → Server must reject it → Expect 401/403
+- Send JWT with past expiry → Expect 401
+- Send JWT signed with wrong secret → Expect 401
+
+---
+
+### 🔑 5. OAuth 2.0 — "Login with Google"
+
+OAuth 2.0 is the protocol behind social login buttons. It lets a user grant your app limited access to another service without giving you their password.
+
+\`\`\`
+1. User clicks "Login with Google"
+2. App redirects to Google's auth page
+3. User logs in to Google and clicks "Allow"
+4. Google gives your app an ACCESS TOKEN
+5. Your app uses that token to call Google's APIs
+\`\`\`
+
+**As a tester:** Verify the redirect works, the token has correct scopes, and expiry/refresh works.
+        `
+      },
+
+      {
+        id: 'api-test-scenarios',
+        title: 'Intermediate: Designing API Test Scenarios',
+        analogy: "Designing API test scenarios is like being a nightclub bouncer testing your own security. You test: Do real people with valid IDs get in? Are underage people blocked? What if someone shows a fake ID? What happens if 500 people arrive simultaneously? Good API testing asks the same questions about your endpoints.",
+        lessonMarkdown: `
+### 🎯 What Makes a Good API Test Plan?
+
+*💡 Analogy: You're a safety inspector testing a new bridge. You don't just drive one car across and say "looks good!" You test: maximum weight, two trucks simultaneously, an overweight car, a car driving in reverse, a car at 3am in a storm. API testing is the same — test every dimension of how the endpoint can be used.*
+
+---
+
+### 🟢 Category 1: Happy Path Tests
+
+Confirm the basic functionality works with valid, correct input.
+
+\`\`\`
+Endpoint: POST /users
+
+✅ Create user with all required fields → 201 Created
+✅ Verify the returned ID is numeric
+✅ Verify createdAt timestamp is present
+✅ Create user then immediately GET them → data matches what was sent
+\`\`\`
+
+---
+
+### 🔴 Category 2: Negative / Sad Path Tests
+
+Test what happens when something goes wrong. This is where most bugs hide.
+
+**Missing required fields:**
+\`\`\`
+POST /users with no "email"         → Expect 400 or 422
+POST /users with no "name"          → Expect 400 or 422
+POST /users with empty body {}      → Expect 400
+POST /users with no body at all     → Expect 400
+\`\`\`
+
+**Wrong data types:**
+\`\`\`
+POST /users "age": "twenty"        → Expect 400 (must be number)
+POST /users "active": "yes"        → Expect 400 (must be boolean)
+\`\`\`
+
+**Invalid values:**
+\`\`\`
+POST /users "email": "not-an-email" → Expect 400 or 422
+POST /users "age": -5               → Expect 400 (negative age)
+\`\`\`
+
+---
+
+### 🧮 Category 3: Boundary Value Tests
+
+Test the edges of acceptable values:
+
+\`\`\`
+Field: name (max 100 characters)
+name = 99 chars   → Expect 201 ✅
+name = 100 chars  → Expect 201 ✅ (boundary — must work)
+name = 101 chars  → Expect 400 ❌ (over limit)
+name = 1 char     → Expect 201 ✅
+name = ""         → Expect 400 ❌
+\`\`\`
+
+---
+
+### 🔒 Category 4: Authentication Tests
+
+\`\`\`
+GET /users/me with no token         → 401 Unauthorized
+GET /users/me with expired token    → 401 Unauthorized
+GET /users/me with invalid token    → 401 Unauthorized
+GET /users/me with valid token      → 200 OK ✅
+\`\`\`
+
+---
+
+### 🚧 Category 5: Authorization Tests
+
+Even authenticated users shouldn't be able to do everything:
+
+\`\`\`
+User A tries to read User B's private data    → Expect 403 Forbidden
+Regular user tries to call admin endpoint    → Expect 403 Forbidden
+Read-only user tries to POST new data        → Expect 403 Forbidden
+\`\`\`
+
+---
+
+### 📝 Test Scenario Template
+
+\`\`\`
+Test ID:      TC-API-001
+Endpoint:     POST /users
+Description:  Create user with missing email field
+Precondition: Valid auth token available
+
+Request:
+  Headers: Authorization: Bearer {token}
+           Content-Type: application/json
+  Body: { "name": "Priya" }  ← email intentionally missing
+
+Expected Result:
+  Status: 400 or 422
+  Body: contains error message mentioning "email" or "required"
+  Body: does NOT contain stack trace or internal code
+
+Actual Result: [fill in after testing]
+Pass/Fail: [fill in]
+\`\`\`
+        `
+      },
+
+      {
+        id: 'api-assertions',
+        title: 'Intermediate: Writing Assertions in Postman',
+        analogy: "Assertions are your quality checklist. When a pizza is delivered, you don't just accept it — you check: is it the right pizza? Right size? All toppings present? Still hot? If any check fails, you reject it. Assertions are that same checklist for API responses, running automatically every time.",
+        lessonMarkdown: `
+### ✅ What Are Assertions?
+
+*💡 Analogy: You work in a car factory quality control station. Every car that rolls past gets checked: 4 wheels? Steering wheel? Horn works? Engine starts? You don't just stare and say "looks fine." You tick a checklist. Assertions are your automated checklist for API responses.*
+
+In Postman, the **Tests** tab lets you write JavaScript that runs automatically after each request. Results appear in the "Test Results" tab.
+
+---
+
+### 🚀 The Most Common Assertions
+
+**1. Check the status code**
+\`\`\`javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Status code is 201 for creation", function () {
+    pm.response.to.have.status(201);
+});
+\`\`\`
+
+**2. Check response time**
+\`\`\`javascript
+pm.test("Response time is under 2 seconds", function () {
+    pm.expect(pm.response.responseTime).to.be.below(2000);
+});
+\`\`\`
+
+**3. Check a field exists**
+\`\`\`javascript
+const response = pm.response.json();
+
+pm.test("Response has an id field", function () {
+    pm.expect(response).to.have.property("id");
+});
+\`\`\`
+
+**4. Check a field's value**
+\`\`\`javascript
+const response = pm.response.json();
+
+pm.test("User name matches what we sent", function () {
+    pm.expect(response.name).to.equal("Priya Sharma");
+});
+\`\`\`
+
+**5. Check data types**
+\`\`\`javascript
+const response = pm.response.json();
+
+pm.test("ID is a number", function () {
+    pm.expect(response.id).to.be.a("number");
+});
+
+pm.test("Items is an array", function () {
+    pm.expect(response.items).to.be.an("array");
+});
+\`\`\`
+
+**6. Check a field is not empty**
+\`\`\`javascript
+pm.test("Name is not empty", function () {
+    pm.expect(response.name).to.not.be.empty;
+});
+\`\`\`
+
+**7. Check a header**
+\`\`\`javascript
+pm.test("Content-Type is JSON", function () {
+    pm.expect(pm.response.headers.get("Content-Type")).to.include("application/json");
+});
+\`\`\`
+
+---
+
+### 🏆 Full Test Suite: POST /users
+
+\`\`\`javascript
+const response = pm.response.json();
+
+pm.test("Status is 201 Created",    () => pm.response.to.have.status(201));
+pm.test("Response under 2s",        () => pm.expect(pm.response.responseTime).to.be.below(2000));
+pm.test("Has id field",             () => pm.expect(response.id).to.exist);
+pm.test("Has name field",           () => pm.expect(response.name).to.exist);
+pm.test("Has email field",          () => pm.expect(response.email).to.exist);
+pm.test("ID is a number",           () => pm.expect(response.id).to.be.a("number"));
+pm.test("Name matches",             () => pm.expect(response.name).to.equal("Priya Sharma"));
+pm.test("Email matches",            () => pm.expect(response.email).to.equal("priya@test.com"));
+pm.test("Password not in response", () => pm.expect(response).to.not.have.property("password"));
+\`\`\`
+
+---
+
+### 🔴 Assertions for Negative Tests
+
+\`\`\`javascript
+// For a POST with missing email field
+pm.test("Status is 400",                   () => pm.response.to.have.status(400));
+pm.test("Error message mentions email",    () => {
+    const r = pm.response.json();
+    pm.expect(r.message.toLowerCase()).to.include("email");
+});
+pm.test("No stack trace in response",      () => {
+    pm.expect(pm.response.text()).to.not.include("at Object.");
+});
+\`\`\`
+
+---
+
+### 💡 Assertion Tips
+
+1. **One assertion = one check.** If it fails, you know exactly what broke.
+2. **Name your tests clearly.** "Status is 201" beats "test 1".
+3. **Always check sensitive data does NOT appear** — passwords must never leak.
+4. **Assert on error responses too** — validate the error format is consistent.
+        `
+      },
+
+      {
+        id: 'api-chaining',
+        title: 'Intermediate: Request Chaining & Environment Variables',
+        analogy: "Request chaining is like a relay race. Runner 1 (the login request) passes the baton (the auth token) to Runner 2 (get-profile), who passes the user ID to Runner 3 (update profile). Each leg of the race depends on what the previous runner handed over. Environment variables are the baton.",
+        lessonMarkdown: `
+### 🔗 What is Request Chaining?
+
+*💡 Analogy: A restaurant token system. You get a numbered token at the entrance (login). You show that token at the food counter to get your meal (get data). Then show it again at the billing counter to pay (update). The token flows through the entire process automatically.*
+
+Most real API test flows are a sequence of steps:
+
+\`\`\`
+Step 1: POST /auth/login        → Receive auth token
+Step 2: GET /users/me           → Use token from Step 1
+Step 3: PUT /users/me           → Use token + user ID from Step 2
+Step 4: DELETE /sessions/active → Use token from Step 1
+\`\`\`
+
+Without chaining, you'd manually copy-paste the token every time. With chaining, Postman does it automatically.
+
+---
+
+### 🌍 Environment Variables
+
+Postman environments let you store and reuse values across requests.
+
+**Create an environment:**
+1. Click "Environments" in the left sidebar → "+" → name it "Dev"
+2. Add variables:
+
+| Variable | Initial Value |
+|---|---|
+| baseUrl | https://api.myapp.com |
+| authToken | (empty — filled by script) |
+| userId | (empty — filled by script) |
+
+**Use a variable in a URL:**
+\`\`\`
+{{baseUrl}}/users/{{userId}}
+\`\`\`
+
+---
+
+### ⚙️ Step 1: Extract Token from Login Response
+
+In your **Login** request → **Tests** tab:
+
+\`\`\`javascript
+const response = pm.response.json();
+
+pm.test("Login successful", () => pm.response.to.have.status(200));
+
+// Store the token in the environment
+pm.environment.set("authToken", response.token);
+pm.environment.set("userId", response.user.id);
+
+console.log("Token saved:", response.token);
+\`\`\`
+
+---
+
+### 🔐 Step 2: Use the Token in the Next Request
+
+In your **Get User Profile** request:
+
+**Auth tab:** Type → Bearer Token → Token: \`{{authToken}}\`
+
+Or in Headers manually:
+\`\`\`
+Authorization: Bearer {{authToken}}
+\`\`\`
+
+Postman automatically replaces \`{{authToken}}\` with the saved value.
+
+---
+
+### 🔄 Step 3: Generate Unique Test Data
+
+Use **Pre-request Script** to generate fresh data before each run:
+
+\`\`\`javascript
+// Prevents "duplicate email" errors on repeated runs
+const timestamp = Date.now();
+pm.environment.set("testEmail", \`testuser_\${timestamp}@qa.com\`);
+\`\`\`
+
+Then in the body:
+\`\`\`json
+{ "email": "{{testEmail}}", "name": "QA Test User" }
+\`\`\`
+
+---
+
+### 🏃 Collection Runner — Run the Full Flow
+
+1. Click **Runner** → select your collection
+2. Select your environment
+3. Click **Run**
+
+Postman runs all requests in order, passing variables between them. You get a full pass/fail report.
+
+---
+
+### 💡 Variable Scopes Quick Reference
+
+| Scope | Visible to | Best for |
+|---|---|---|
+| **Environment** | All requests in the environment | Auth tokens, base URLs |
+| **Collection** | All requests in the collection | Shared test data |
+| **Local** | Current request only | Temporary calculations |
+        `
+      },
+
+      {
+        id: 'api-schema-validation',
+        title: 'Intermediate: Schema Validation',
+        analogy: "Schema validation is like a customs declaration form. Every package entering the country must have: Name (text), Weight (number in kg), Country of Origin (text). If a package arrives with Weight listed as 'heavy' (a word instead of a number), customs rejects it. Schema validation rejects API responses that don't match the agreed structure.",
+        lessonMarkdown: `
+### 📐 What is Schema Validation?
+
+*💡 Analogy: You're hiring through a job portal that only accepts applications in a specific format: Name (text), Years of Experience (number), Skills (list of text). If someone submits Experience as "many years" (text instead of a number), the portal rejects it automatically before it reaches the recruiter. Schema validation does exactly this for API responses.*
+
+A **schema** is a blueprint that defines:
+- What fields must be present
+- What data type each field must be
+- Which fields are required vs optional
+- What constraints apply (min/max, allowed values)
+
+---
+
+### 🤔 Why Schema Validation Matters
+
+**Without it:**
+- Frontend gets \`"id": "42"\` (string) instead of \`"id": 42\` (number) → JavaScript math breaks
+- A previously present field disappears → Frontend crashes with "Cannot read property of undefined"
+- A date comes back in a different format → Date parsing fails
+
+**With it:**
+- Any structural change to the API response is caught immediately
+- Acts as a contract between frontend and backend teams
+
+---
+
+### 🏗️ JSON Schema Basics
+
+\`\`\`json
+{
+  "type": "object",
+  "required": ["id", "name", "email"],
+  "properties": {
+    "id":     { "type": "integer", "minimum": 1 },
+    "name":   { "type": "string", "minLength": 1, "maxLength": 100 },
+    "email":  { "type": "string" },
+    "role":   { "type": "string", "enum": ["admin", "user", "moderator"] },
+    "active": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}
+\`\`\`
+
+| Keyword | Meaning |
+|---|---|
+| \`type\` | Data type: string, integer, boolean, array, object |
+| \`required\` | Fields that MUST be present |
+| \`enum\` | Only these specific values are allowed |
+| \`minimum/maximum\` | Numeric range |
+| \`additionalProperties: false\` | No extra fields allowed |
+
+---
+
+### 🧪 Schema Validation in Postman
+
+\`\`\`javascript
+const schema = {
+    type: "object",
+    required: ["id", "name", "email"],
+    properties: {
+        id:     { type: "number" },
+        name:   { type: "string" },
+        email:  { type: "string" },
+        active: { type: "boolean" }
+    }
+};
+
+const response = pm.response.json();
+
+pm.test("Response matches schema", function () {
+    pm.expect(tv4.validate(response, schema)).to.be.true;
+});
+\`\`\`
+
+---
+
+### 📋 Validating Arrays and Nested Objects
+
+\`\`\`javascript
+const orderSchema = {
+    type: "object",
+    required: ["orderId", "items", "total"],
+    properties: {
+        orderId: { type: "string" },
+        total:   { type: "number", minimum: 0 },
+        items: {
+            type: "array",
+            minItems: 1,
+            items: {
+                type: "object",
+                required: ["productId", "quantity", "price"],
+                properties: {
+                    productId: { type: "string" },
+                    quantity:  { type: "integer", minimum: 1 },
+                    price:     { type: "number", minimum: 0 }
+                }
+            }
+        }
+    }
+};
+
+pm.test("Order schema is valid", () => {
+    pm.expect(tv4.validate(pm.response.json(), orderSchema)).to.be.true;
+});
+\`\`\`
+
+---
+
+### 💡 Also Validate Error Responses
+
+Good APIs have a consistent error format:
+\`\`\`json
+{ "error": "string", "message": "string", "statusCode": "number" }
+\`\`\`
+
+If your error responses don't follow a consistent structure — log that as a bug. Inconsistent error schemas make debugging a nightmare for both developers and testers.
+        `
+      },
+
+      {
+        id: 'api-mock-servers',
+        title: 'Intermediate: Mock Servers & API Stubs',
+        analogy: "A mock server is like a stunt double on a movie set. The real actor (the actual API) isn't available yet — maybe still being written. The stunt double (mock server) looks and behaves exactly like the real actor for all the scenes you need to rehearse right now, without the real actor having to show up.",
+        lessonMarkdown: `
+### 🎭 What is a Mock Server?
+
+*💡 Analogy: You're building a new house and want to test if your furniture fits before the house is finished. You put masking tape on the floor to simulate walls and rooms. The tape isn't the real wall — it's a mock. But it lets you arrange furniture today without waiting months for construction.*
+
+A **mock server** is a fake API server that:
+- Returns pre-defined responses to specific requests
+- Looks and behaves like the real API
+- Requires no real backend code
+
+---
+
+### 🤔 Why Use Mock Servers?
+
+| Situation | Without Mock | With Mock |
+|---|---|---|
+| Backend not built yet | QA can't test | QA tests immediately |
+| Unstable backend | Tests fail randomly | Tests always reliable |
+| Third-party API (costs per call) | Expensive to test | Free mock |
+| Testing 500 errors | Hard to force | Mock returns 500 instantly |
+| Parallel development | Teams block each other | Teams work independently |
+
+---
+
+### 🛠️ Option 1: Postman Mock Server
+
+**Setup:**
+1. Right-click your Collection → "Mock Collection"
+2. Postman creates a URL: \`https://abc123.mock.pstmn.io\`
+
+**Create example responses:**
+1. Open a request → "Examples" → "Add Example"
+2. Set status code + response body:
+\`\`\`
+Request: GET /users/1
+Response:
+  Status: 200
+  Body: { "id": 1, "name": "Priya", "email": "priya@test.com" }
+\`\`\`
+
+Now \`GET https://abc123.mock.pstmn.io/users/1\` returns that exact response.
+
+---
+
+### 🛠️ Option 2: JSON Server (Local Mock in 2 minutes)
+
+**Install:**
+\`\`\`bash
+npm install -g json-server
+\`\`\`
+
+**Create db.json:**
+\`\`\`json
+{
+  "users": [
+    { "id": 1, "name": "Priya", "email": "priya@test.com" },
+    { "id": 2, "name": "Rahul", "email": "rahul@test.com" }
+  ]
+}
+\`\`\`
+
+**Run:**
+\`\`\`bash
+json-server --watch db.json --port 3000
+\`\`\`
+
+**Instantly available — all CRUD works:**
+\`\`\`
+GET    /users       → all users
+GET    /users/1     → user 1
+POST   /users       → create user
+PUT    /users/1     → replace user 1
+DELETE /users/1     → delete user 1
+\`\`\`
+
+---
+
+### 🛠️ Option 3: WireMock (Enterprise Grade)
+
+WireMock supports request matching, response templating, and fault injection.
+
+**Simulate a slow response (great for timeout testing):**
+\`\`\`json
+{
+  "request": { "method": "GET", "url": "/slow-endpoint" },
+  "response": {
+    "status": 200,
+    "fixedDelayMilliseconds": 3000,
+    "jsonBody": { "data": "slow response" }
+  }
+}
+\`\`\`
+
+**Simulate a server error:**
+\`\`\`json
+{
+  "request": { "method": "POST", "url": "/payments" },
+  "response": { "status": 500, "body": "Internal Server Error" }
+}
+\`\`\`
+
+---
+
+### ⚠️ When NOT to Over-Mock
+
+| Risk | Explanation |
+|---|---|
+| Stale mocks | Real API changes but mock still returns old data |
+| Integration gaps | Mock hides integration problems between services |
+| False confidence | All mock tests pass, real API has critical bug |
+
+**Golden rule:** Mocks are for early development and isolated unit tests. Always run tests against the real API before release.
+        `
+      },
+
+      // ── EXPERT ──────────────────────────────────────────────────
+
+      {
+        id: 'api-automation',
+        title: 'Expert: API Automation with Code',
+        analogy: "Manual Postman testing is like hand-writing individual cheques for each payment. API automation with code is like setting up a direct debit — it runs automatically, every time, without lifting a finger, and sends you a failure report the moment something goes wrong.",
+        lessonMarkdown: `
+### 🤖 Why Code-Based API Testing?
+
+*💡 Analogy: A factory produces 500 products a day. Would you check each one by hand? Or build an automated inspection robot that checks all 500 in 10 seconds? Manual Postman is hand-checking. Code-based automation is the robot.*
+
+| Manual (Postman) | Automated (Code) |
+|---|---|
+| Great for exploration | Great for regression |
+| One request at a time | Thousands of tests in seconds |
+| Manual re-run every time | Runs on every code commit |
+| No version control | Test code lives in Git |
+
+---
+
+### ⚙️ Setup: Axios + Jest
+
+\`\`\`bash
+npm init -y
+npm install axios jest
+npm install --save-dev @types/jest ts-jest typescript
+\`\`\`
+
+**jest.config.js:**
+\`\`\`javascript
+module.exports = {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+};
+\`\`\`
+
+---
+
+### 🧪 Basic Test Suite
+
+\`\`\`typescript
+// users.test.ts
+import axios from 'axios';
+
+const BASE_URL = 'https://jsonplaceholder.typicode.com';
+
+describe('GET /users', () => {
+
+  it('returns 200 and a list of users', async () => {
+    const response = await axios.get(\`\${BASE_URL}/users\`);
+    expect(response.status).toBe(200);
+    expect(Array.isArray(response.data)).toBe(true);
+    expect(response.data.length).toBeGreaterThan(0);
+  });
+
+  it('returns user with required fields', async () => {
+    const response = await axios.get(\`\${BASE_URL}/users/1\`);
+    const user = response.data;
+    expect(response.status).toBe(200);
+    expect(user).toHaveProperty('id');
+    expect(user).toHaveProperty('name');
+    expect(user).toHaveProperty('email');
+    expect(typeof user.id).toBe('number');
+  });
+
+  it('returns 404 for non-existent user', async () => {
+    try {
+      await axios.get(\`\${BASE_URL}/users/99999\`);
+      fail('Expected 404 error');
+    } catch (error: any) {
+      expect(error.response.status).toBe(404);
+    }
+  });
+
+});
+\`\`\`
+
+---
+
+### ✍️ Testing POST Requests
+
+\`\`\`typescript
+describe('POST /users', () => {
+
+  it('creates a user and returns 201', async () => {
+    const newUser = { name: 'QA Tester', email: 'qa@testlab.com' };
+
+    const response = await axios.post(\`\${BASE_URL}/users\`, newUser, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.data.id).toBeDefined();
+    expect(response.data.name).toBe('QA Tester');
+    // Security: password must NOT be returned
+    expect(response.data.password).toBeUndefined();
+  });
+
+});
+\`\`\`
+
+---
+
+### 🎭 Playwright API Testing
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+test('GET /users returns list', async ({ request }) => {
+  const response = await request.get('https://jsonplaceholder.typicode.com/users');
+  expect(response.status()).toBe(200);
+  const body = await response.json();
+  expect(Array.isArray(body)).toBeTruthy();
+});
+
+test('POST creates a user', async ({ request }) => {
+  const response = await request.post('https://jsonplaceholder.typicode.com/users', {
+    data: { name: 'Priya', email: 'priya@test.com' },
+  });
+  expect(response.status()).toBe(201);
+  const user = await response.json();
+  expect(user.name).toBe('Priya');
+});
+\`\`\`
+
+---
+
+### 📁 Recommended Project Structure
+
+\`\`\`
+api-tests/
+├── tests/
+│   ├── users/
+│   │   ├── create-user.test.ts
+│   │   └── get-user.test.ts
+│   └── auth/
+│       └── login.test.ts
+├── helpers/
+│   ├── api-client.ts   ← centralised axios instance
+│   └── auth.helper.ts  ← login and token management
+└── jest.config.js
+\`\`\`
+
+**Centralised API client:**
+\`\`\`typescript
+import axios from 'axios';
+
+export const apiClient = axios.create({
+  baseURL: process.env.API_BASE_URL || 'https://api.myapp.com',
+  timeout: 10000,
+  headers: { 'Content-Type': 'application/json' }
+});
+
+export function setAuthToken(token: string) {
+  apiClient.defaults.headers.common['Authorization'] = \`Bearer \${token}\`;
+}
+\`\`\`
+
+Run: \`npx jest --watchAll\`
+        `
+      },
+
+      {
+        id: 'api-security-testing',
+        title: 'Expert: API Security Testing',
+        analogy: "API security testing is like hiring a professional burglar to break into your own house — on purpose — before the real criminals find the gaps. The professional thinks like an attacker, not like the architect who designed the building.",
+        lessonMarkdown: `
+### 🔒 Why API Security Testing?
+
+*💡 Analogy: A bank vault has thick walls and a combination lock. But what if the back door is propped open? What if the air vent is wide enough for a person? Security testing means walking around the entire bank and checking every possible entry point — not just the front door.*
+
+APIs are the #1 attack surface in modern applications. OWASP publishes the **API Security Top 10** — the most exploited vulnerabilities.
+
+---
+
+### 🏆 Top API Security Tests Every QA Should Run
+
+---
+
+**1. BOLA — Broken Object Level Authorization (Most Common)**
+
+\`\`\`
+Logged in as User A (ID: 42)
+Try: GET /users/43/private-data   ← User B's data
+
+Expected: 403 Forbidden
+Vulnerability: 200 OK — you can read someone else's data!
+\`\`\`
+
+**How to test:**
+1. Log in as User A, note your user ID
+2. Change the ID in the URL to another user's ID
+3. Expected: 403 Forbidden
+4. Bug if: 200 OK — IDOR/BOLA vulnerability
+
+---
+
+**2. Broken Authentication**
+
+\`\`\`
+Empty password login           → Must return 401, never 200
+1000 wrong password attempts   → Must be rate-limited (429) after ~5-10
+Expired JWT token              → Must return 401
+Tampered JWT payload           → Must return 401
+\`\`\`
+
+**JWT tampering test:**
+1. Get a valid JWT → go to [jwt.io](https://jwt.io)
+2. Change \`"userId": 42\` to \`"userId": 1\` (admin's ID)
+3. Set algorithm to "none" or use wrong signature
+4. Send modified token → **Must get 401**
+
+---
+
+**3. Excessive Data Exposure**
+
+\`\`\`
+GET /users/42
+
+Must return:  id, name, email
+Must NOT return: password_hash, ssn, credit_card, internal_notes
+\`\`\`
+
+**How to test:** Compare what the UI shows vs what the raw API response contains. Look for: \`passwordHash\`, \`salt\`, \`ssn\`, \`creditCard\`, \`bankAccount\`. If you find any — critical bug.
+
+---
+
+**4. Missing Rate Limiting**
+
+\`\`\`bash
+# Send 200 login attempts rapidly
+for i in $(seq 1 200); do
+  curl -X POST https://api.app.com/auth/login \
+    -d '{"email":"test@test.com","password":"wrong"}'
+done
+\`\`\`
+
+**Expected:** 429 Too Many Requests after ~5-10 attempts
+**Vulnerability:** All 200 return 401 (not rate-limited — allows brute force)
+
+---
+
+**5. SQL Injection via API**
+
+\`\`\`
+POST /users/search
+Body: { "name": "'; DROP TABLE users; --" }
+Expected: 400 Bad Request
+Vulnerability: 500 Internal Server Error ← SQL was executed!
+
+GET /users?id=1 OR 1=1
+Expected: 404 or 400
+Vulnerability: Returns ALL users
+\`\`\`
+
+---
+
+**6. Function Level Authorization**
+
+\`\`\`
+DELETE /admin/users/5    (as a regular user) → Must be 403
+POST /admin/promote-user (as a regular user) → Must be 403
+\`\`\`
+
+---
+
+### 📋 Security Test Checklist
+
+\`\`\`
+□ No auth token            → Must be 401
+□ Another user's data      → Must be 403 (not 200)
+□ Expired/tampered token   → Must be 401
+□ Sensitive fields in body → Must not appear
+□ SQL injection in fields  → Must be 400, never 500
+□ Rate limiting on login   → Must get 429 eventually
+□ Admin endpoints as user  → Must be 403
+\`\`\`
+        `
+      },
+
+      {
+        id: 'api-contract-testing',
+        title: 'Expert: Contract Testing',
+        analogy: "Contract testing is like a legal rental agreement between a tenant and a landlord. The tenant (frontend) says: I need a door, two windows, a kitchen, and Wi-Fi. The contract ensures the landlord (backend) cannot remove the kitchen during renovations without the tenant's agreement. Both sides are bound by the contract.",
+        lessonMarkdown: `
+### 📄 What is Contract Testing?
+
+*💡 Analogy: A restaurant and a food supplier have a written contract: "You will deliver 100 tomatoes every Monday, each between 80-120g, Grade A." The supplier cannot suddenly switch to Grade B without renegotiating. Contract testing is exactly this — a binding agreement between the API consumer and provider.*
+
+**Contract testing** verifies:
+1. The **consumer** (frontend) sends requests correctly
+2. The **provider** (backend) handles those requests correctly
+3. Both sides match each other's **expectations**
+
+---
+
+### 🤔 The Problem It Solves
+
+\`\`\`
+Without contract testing:
+Backend team: "We renamed 'firstName' to 'first_name' — more consistent!"
+Frontend team: "Why is production broken?! All names show as 'undefined'!"
+
+With contract testing:
+Backend tries to rename the field
+→ Contract test immediately fails
+→ "Consumer expects 'firstName' — coordinate before changing"
+→ Both teams change together safely ✅
+\`\`\`
+
+---
+
+### 🔄 Consumer vs Provider
+
+| Role | Who | Example |
+|---|---|---|
+| **Consumer** | Uses the API | React frontend, mobile app |
+| **Provider** | Provides the API | Node.js backend, microservice |
+
+---
+
+### 📝 How Pact Works
+
+**Step 1: Consumer writes expectations**
+
+\`\`\`typescript
+import { Pact } from '@pact-foundation/pact';
+import { like } from '@pact-foundation/pact/src/dsl/matchers';
+
+const provider = new Pact({
+  consumer: 'WebApp',
+  provider: 'UserService',
+  port: 8080
+});
+
+it('returns a user when GET /users/:id is called', async () => {
+  await provider.addInteraction({
+    state: 'user 42 exists',
+    uponReceiving: 'a request for user 42',
+    withRequest: {
+      method: 'GET',
+      path: '/users/42',
+    },
+    willRespondWith: {
+      status: 200,
+      body: {
+        id: like(42),           // any number is ok
+        name: like('Priya'),    // any string is ok
+        email: like('p@t.com') // any string is ok
       }
+    }
+  });
+});
+\`\`\`
+
+**Step 2: Pact generates a contract file (pact.json) automatically**
+
+**Step 3: Provider verifies the contract**
+
+\`\`\`typescript
+const { Verifier } = require('@pact-foundation/pact');
+
+it('validates WebApp expectations', () => {
+  return new Verifier({
+    provider: 'UserService',
+    providerBaseUrl: 'http://localhost:3000',
+    pactUrls: ['./pacts/WebApp-UserService.json'],
+  }).verifyProvider();
+});
+\`\`\`
+
+If the provider's API no longer matches the contract → **test fails → deployment blocked**.
+
+---
+
+### 🆚 Contract Testing vs Integration Testing
+
+| | Integration Testing | Contract Testing |
+|---|---|---|
+| Speed | Slow (needs full stack) | Fast (no real network) |
+| When runs | Pre-release | Every commit |
+| Finds | End-to-end issues | Contract mismatches early |
+
+**Use both.** Contract tests are the safety net. Integration tests are the final check.
+
+---
+
+### 🔑 Key Takeaway for Testers
+
+Contract testing is not just for developers. As a QA engineer, you should:
+1. Review the contracts to understand what the consumer expects
+2. Verify the provider tests are running in CI
+3. Flag any missing contract coverage as a quality risk
+        `
+      },
+
+      {
+        id: 'api-performance-testing',
+        title: 'Expert: API Performance Testing',
+        analogy: "Performance testing is like a fire drill. You don't wait for an actual fire to find out if the evacuation plan works. You simulate the emergency before it happens — to find bottlenecks before real users are trapped in the burning building.",
+        lessonMarkdown: `
+### ⚡ What is API Performance Testing?
+
+*💡 Analogy: You open a new restaurant. Day 1 — 5 customers, everything runs perfectly. But what if 500 customers arrive on a Saturday night? Will the kitchen cope? Will the payment system crash? Performance testing is a stress rehearsal before opening weekend.*
+
+---
+
+### 📊 Types of Performance Tests
+
+| Type | What you do | What you discover |
+|---|---|---|
+| **Load Test** | Gradually increase to expected peak | Normal performance behaviour |
+| **Stress Test** | Exceed expected load until it breaks | The breaking point |
+| **Soak Test** | Sustained load over hours | Memory leaks, gradual degradation |
+| **Spike Test** | Sudden burst of massive traffic | Recovery behaviour |
+
+---
+
+### 📏 Key Metrics
+
+| Metric | Meaning | Good Target |
+|---|---|---|
+| **p50 response time** | 50% of requests faster than this | < 200ms |
+| **p95 response time** | 95% of requests faster than this | < 1s |
+| **p99 response time** | 99% of requests faster than this | < 2s |
+| **Throughput (RPS)** | Requests per second handled | Depends on SLA |
+| **Error Rate** | % of requests that fail | < 1% |
+
+*Why p95/p99? Averages lie. Average = 300ms sounds fine — but if 5% of users wait 10 seconds, that's a terrible experience.*
+
+---
+
+### 🛠️ k6 — Load Testing Tool
+
+\`\`\`bash
+brew install k6    # macOS
+choco install k6   # Windows
+\`\`\`
+
+**Basic load test:**
+\`\`\`javascript
+// load-test.js
+import http from 'k6/http';
+import { sleep, check } from 'k6';
+
+export const options = {
+  vus: 50,           // 50 virtual users
+  duration: '30s',   // run for 30 seconds
+};
+
+export default function () {
+  const response = http.get('https://jsonplaceholder.typicode.com/users');
+
+  check(response, {
+    'status is 200':         (r) => r.status === 200,
+    'response time < 500ms': (r) => r.timings.duration < 500,
+  });
+
+  sleep(1);
+}
+\`\`\`
+
+\`\`\`bash
+k6 run load-test.js
+\`\`\`
+
+---
+
+### 📈 Reading k6 Output
+
+\`\`\`
+✓ status is 200         100% ✓ 1450
+✓ response time < 500ms  96% ✓ 1392 / ✗ 58
+
+http_req_duration: avg=180ms  p(95)=450ms  p(99)=820ms
+http_reqs:         1450  (48.33/s)
+http_req_failed:   0.00%
+\`\`\`
+
+- **p(95)=450ms** → 95% of users got a response in 450ms or less ✅
+- **48.33/s** → API handles ~48 requests per second at 50 users
+- **0% failed** → No errors ✅
+
+---
+
+### 📈 Ramping Load Test (Gradual Increase)
+
+\`\`\`javascript
+export const options = {
+  stages: [
+    { duration: '1m', target: 10  },   // ramp up
+    { duration: '3m', target: 10  },   // hold
+    { duration: '1m', target: 100 },   // ramp up more
+    { duration: '3m', target: 100 },   // hold
+    { duration: '1m', target: 0   },   // ramp down
+  ],
+  thresholds: {
+    http_req_duration: ['p(95)<1000'],  // 95% under 1 second
+    http_req_failed:   ['rate<0.01'],   // error rate under 1%
+  },
+};
+\`\`\`
+
+---
+
+### 🚨 When to Escalate
+
+| Finding | Severity |
+|---|---|
+| p95 > 3 seconds | High — dev must investigate |
+| Error rate > 5% under load | Critical — block release |
+| Memory grows during soak test | High — memory leak |
+| Crashes at 2x expected load | Medium — scalability risk |
+        `
+      },
+
+      {
+        id: 'api-ci-cd',
+        title: 'Expert: API Tests in CI/CD Pipelines',
+        analogy: "CI/CD with API tests is like having a quality inspector robot on the factory assembly line. Every time a new part rolls off the line, the robot checks it automatically and instantly. No batch testing at the end of the week. No surprises on release day. Every broken part is caught the moment it's made.",
+        lessonMarkdown: `
+### 🏭 What is CI/CD for QA?
+
+*💡 Analogy: Old factory quality control: at the end of the week, a human checks 500 finished products. If 200 are defective, a week's work is scrapped. Modern factory: a robot checks each product the instant it rolls off the line. Defect found in 5 seconds, fixed in 5 minutes. CI/CD is the quality control robot for your code.*
+
+---
+
+### 🔄 The CI/CD Flow
+
+\`\`\`
+Developer pushes code
+        ↓
+  Build the app
+        ↓
+  Run unit tests
+        ↓
+  Run API tests  ← YOUR RESPONSIBILITY
+        ↓
+  Deploy to staging
+        ↓
+  Run smoke tests  ← YOUR RESPONSIBILITY
+        ↓
+  Deploy to production
+\`\`\`
+
+---
+
+### 📦 Newman — Run Postman Collections in CI
+
+**Newman** is Postman's command-line runner.
+
+\`\`\`bash
+npm install -g newman newman-reporter-htmlextra
+\`\`\`
+
+**Run a collection:**
+\`\`\`bash
+newman run MyCollection.json \
+  --environment Dev.json \
+  --reporters cli,htmlextra \
+  --reporter-htmlextra-export report.html
+\`\`\`
+
+**Export your collection:** Postman → Collection → "..." → Export → Collection v2.1
+
+---
+
+### 🚀 GitHub Actions Workflow
+
+Create \`.github/workflows/api-tests.yml\`:
+
+\`\`\`yaml
+name: API Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Newman
+        run: npm install -g newman newman-reporter-htmlextra
+
+      - name: Run API tests
+        run: |
+          newman run ./postman/MyCollection.json \\
+            --environment ./postman/env-staging.json \\
+            --reporters cli,htmlextra \\
+            --reporter-htmlextra-export ./reports/api-report.html \\
+            --bail
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: api-test-report
+          path: reports/api-report.html
+\`\`\`
+
+The \`--bail\` flag stops the run immediately on the first failure.
+
+---
+
+### ⚡ k6 Performance Tests in CI
+
+\`\`\`yaml
+  performance-tests:
+    runs-on: ubuntu-latest
+    needs: api-tests   # only runs if API tests pass
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install k6
+        run: sudo apt-get install k6
+      - name: Run load test
+        run: k6 run ./performance/load-test.js
+\`\`\`
+
+---
+
+### 💡 QA's Responsibilities in the Pipeline
+
+| Responsibility | Action |
+|---|---|
+| Maintain Postman collection | Keep tests updated as API changes |
+| Environment files | Separate configs for dev/staging/prod |
+| Define thresholds | p95 < 1s, error rate < 1% |
+| Review CI reports | Don't ignore flaky tests |
+| Add tests for new features | Test coverage is a QA deliverable |
+
+**Remember:** A CI pipeline is only as good as the tests inside it. Weak tests = false confidence. Strong tests = genuine safety net.
+        `
+      },
+
     ]
   },
   typescript: {

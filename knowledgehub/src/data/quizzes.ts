@@ -2360,102 +2360,1054 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
     },
   ],
   api: [
+    // ── BEGINNER ──────────────────────────────────────────────────
     {
-      level: 'basic',
+      level: 'api-what-is-api',
       questions: [
         {
-          question: 'What is an API?',
+          question: 'What does API stand for?',
           options: [
-            { id: 'a', text: 'A programming language.', isCorrect: false },
-            { id: 'b', text: 'A waiter that takes your request to the kitchen (server) and brings the food (data) back to you.', isCorrect: true },
-            { id: 'c', text: 'A type of database.', isCorrect: false }
+            { id: 'a', text: 'Automated Program Instruction', isCorrect: false },
+            { id: 'b', text: 'Application Programming Interface', isCorrect: true },
+            { id: 'c', text: 'Advanced Protocol Integration', isCorrect: false },
+            { id: 'd', text: 'Automated Page Interaction', isCorrect: false },
           ],
-          explanation: 'An Application Programming Interface (API) is the messenger that lets two applications talk to each other.'
+          explanation: 'API = Application Programming Interface. It is the middleman that lets two software systems talk to each other.'
         },
         {
-          question: 'What does a GET request do?',
+          question: 'Which real-world analogy best describes how an API works?',
           options: [
-            { id: 'a', text: 'It asks the server to send data to you.', isCorrect: true },
-            { id: 'b', text: 'It deletes data.', isCorrect: false },
-            { id: 'c', text: 'It creates new data on the server.', isCorrect: false }
+            { id: 'a', text: 'A waiter who takes your order to the kitchen and brings back your food.', isCorrect: true },
+            { id: 'b', text: 'A chef who cooks the food themselves.', isCorrect: false },
+            { id: 'c', text: 'A refrigerator that stores leftover data.', isCorrect: false },
+            { id: 'd', text: 'A customer who eats the food.', isCorrect: false },
           ],
-          explanation: 'GET is just for reading data. It never changes or creates anything on the server.'
+          explanation: 'You (client) tell the waiter (API) what you want. The waiter tells the kitchen (server), and brings the result back — you never go into the kitchen directly.'
         },
         {
-          question: 'What does a 200 OK status code mean?',
+          question: 'Which of these is a real-world example of using an API?',
           options: [
-            { id: 'a', text: 'The request failed.', isCorrect: false },
-            { id: 'b', text: 'The server is down.', isCorrect: false },
-            { id: 'c', text: 'The request was successful and the server did what you asked.', isCorrect: true }
+            { id: 'a', text: 'Opening Microsoft Word on your laptop.', isCorrect: false },
+            { id: 'b', text: 'A travel website fetching live flight data from airline servers.', isCorrect: true },
+            { id: 'c', text: 'Typing text into a local Notepad file.', isCorrect: false },
+            { id: 'd', text: 'Changing your desktop wallpaper.', isCorrect: false },
           ],
-          explanation: 'A 200-level status code means everything went well.'
-        }
-      ]
+          explanation: 'The travel site uses an API to request data from the airline\'s server and display it to you — classic API consumer pattern.'
+        },
+        {
+          question: 'In API terms, what is the "client"?',
+          options: [
+            { id: 'a', text: 'The database storing user information.', isCorrect: false },
+            { id: 'b', text: 'The company that built the API.', isCorrect: false },
+            { id: 'c', text: 'The app or system that sends a request to the API.', isCorrect: true },
+            { id: 'd', text: 'The server that processes the request.', isCorrect: false },
+          ],
+          explanation: 'The client initiates requests. The server responds. As a QA tester, tools like Postman act as your client when you send API requests manually.'
+        },
+        {
+          question: 'Why do companies expose public APIs?',
+          options: [
+            { id: 'a', text: 'To allow other apps to use their data or services in a controlled way.', isCorrect: true },
+            { id: 'b', text: 'To let anyone access their private database directly.', isCorrect: false },
+            { id: 'c', text: 'To replace their website entirely.', isCorrect: false },
+            { id: 'd', text: 'To slow down competitors.', isCorrect: false },
+          ],
+          explanation: 'Public APIs let third-party developers build on top of a platform — like apps using Google Maps or the Stripe payment API. Access is controlled via keys and docs.'
+        },
+      ],
     },
     {
-      level: 'intermediate',
+      level: 'api-http-methods',
       questions: [
         {
-          question: 'What is the difference between POST and PUT?',
+          question: 'Which HTTP method is used to READ data from a server without changing anything?',
           options: [
-            { id: 'a', text: 'POST reads data, PUT deletes data.', isCorrect: false },
-            { id: 'b', text: 'POST creates a brand new item. PUT completely replaces an existing item.', isCorrect: true },
-            { id: 'c', text: 'They are exactly the same.', isCorrect: false }
+            { id: 'a', text: 'POST', isCorrect: false },
+            { id: 'b', text: 'PUT', isCorrect: false },
+            { id: 'c', text: 'GET', isCorrect: true },
+            { id: 'd', text: 'DELETE', isCorrect: false },
           ],
-          explanation: 'Use POST to make a new record. Use PUT to update an entire record that already exists.'
+          explanation: 'GET is read-only. It fetches data without modifying it. Think of it as "give me the menu, don\'t cook anything yet."'
         },
         {
-          question: 'What is a JSON Body?',
+          question: 'Which HTTP method is best for CREATING a brand new resource on the server?',
           options: [
-            { id: 'a', text: 'The data package sent with a request (like POST), formatted in a way machines easily read.', isCorrect: true },
-            { id: 'b', text: 'A visual part of the website.', isCorrect: false },
-            { id: 'c', text: 'The server\'s hardware.', isCorrect: false }
+            { id: 'a', text: 'GET', isCorrect: false },
+            { id: 'b', text: 'PATCH', isCorrect: false },
+            { id: 'c', text: 'DELETE', isCorrect: false },
+            { id: 'd', text: 'POST', isCorrect: true },
           ],
-          explanation: 'JSON (JavaScript Object Notation) is the standard format for sending data packages back and forth in APIs.'
+          explanation: 'POST sends data to the server to create something new. After a successful POST you typically get a 201 Created response.'
         },
         {
-          question: 'What does a 401 Unauthorized status mean?',
+          question: 'What is the key difference between PUT and PATCH?',
           options: [
-            { id: 'a', text: 'The URL does not exist.', isCorrect: false },
-            { id: 'b', text: 'You need to log in or provide a valid API key to access this.', isCorrect: true },
-            { id: 'c', text: 'The server crashed.', isCorrect: false }
+            { id: 'a', text: 'PUT deletes a record; PATCH retrieves it.', isCorrect: false },
+            { id: 'b', text: 'PUT replaces the entire resource; PATCH updates only specific fields.', isCorrect: true },
+            { id: 'c', text: 'They are identical — just different naming conventions.', isCorrect: false },
+            { id: 'd', text: 'PATCH creates new records; PUT reads existing ones.', isCorrect: false },
           ],
-          explanation: '401 means you are missing the secret key or token required to prove who you are.'
-        }
-      ]
+          explanation: 'PUT = full replacement (send all fields). PATCH = partial update (send only the fields you want to change). As a tester, check that missing fields in PUT don\'t wipe data.'
+        },
+        {
+          question: 'A QA tester wants to check if a resource URL is valid without downloading the full response body. Which method should they use?',
+          options: [
+            { id: 'a', text: 'GET', isCorrect: false },
+            { id: 'b', text: 'OPTIONS', isCorrect: false },
+            { id: 'c', text: 'HEAD', isCorrect: true },
+            { id: 'd', text: 'TRACE', isCorrect: false },
+          ],
+          explanation: 'HEAD returns only the headers (status code, content-type, etc.) without the body — great for checking if a resource exists or checking cache freshness efficiently.'
+        },
+        {
+          question: 'Which HTTP method should return a list of allowed operations for a given URL?',
+          options: [
+            { id: 'a', text: 'OPTIONS', isCorrect: true },
+            { id: 'b', text: 'GET', isCorrect: false },
+            { id: 'c', text: 'PUT', isCorrect: false },
+            { id: 'd', text: 'POST', isCorrect: false },
+          ],
+          explanation: 'OPTIONS returns the Allow header listing which methods (GET, POST, PUT, etc.) are permitted on an endpoint. Also used in CORS pre-flight checks.'
+        },
+      ],
     },
     {
-      level: 'expert',
+      level: 'api-request-anatomy',
       questions: [
         {
-          question: 'What is API Rate Limiting?',
+          question: 'What are the four main components of an HTTP request?',
           options: [
-            { id: 'a', text: 'Restricting how many requests a user can make in a certain timeframe to prevent crashing the server.', isCorrect: true },
-            { id: 'b', text: 'Making the API respond slower on purpose.', isCorrect: false },
-            { id: 'c', text: 'Limiting how many letters you can put in a password.', isCorrect: false }
+            { id: 'a', text: 'Method, URL, Headers, Body', isCorrect: true },
+            { id: 'b', text: 'Status Code, Headers, Body, Cookies', isCorrect: false },
+            { id: 'c', text: 'URL, Database, Response, Token', isCorrect: false },
+            { id: 'd', text: 'Client, Server, Proxy, Gateway', isCorrect: false },
           ],
-          explanation: 'Rate limiting protects servers from being overwhelmed by too many requests (like DDoS attacks or bugs).'
+          explanation: 'Every HTTP request has: a Method (GET/POST/…), a URL (where to go), Headers (metadata), and an optional Body (data to send).'
         },
         {
-          question: 'What is a GraphQL API?',
+          question: 'Where do query parameters appear in a URL?',
           options: [
-            { id: 'a', text: 'An API where you write SQL queries directly.', isCorrect: false },
-            { id: 'b', text: 'An API where the client asks for exactly the fields it wants, getting no extra data.', isCorrect: true },
-            { id: 'c', text: 'An API that only returns graphs and charts.', isCorrect: false }
+            { id: 'a', text: 'Before the domain name.', isCorrect: false },
+            { id: 'b', text: 'After a ? symbol, in key=value pairs joined by &.', isCorrect: true },
+            { id: 'c', text: 'Inside the request body.', isCorrect: false },
+            { id: 'd', text: 'In the Authorization header.', isCorrect: false },
           ],
-          explanation: 'Unlike REST which gives you a fixed structure, GraphQL lets the frontend ask for exactly the shape of data it needs.'
+          explanation: 'Example: GET /users?role=admin&active=true — the ? starts the query string and & separates parameters. They\'re used for filtering, sorting, and searching.'
         },
         {
-          question: 'What does Idempotency mean in APIs?',
+          question: 'Where should you put a Bearer token when making an authenticated API request?',
           options: [
-            { id: 'a', text: 'The API is very fast.', isCorrect: false },
-            { id: 'b', text: 'Making the same request over and over will not change the result beyond the first time.', isCorrect: true },
-            { id: 'c', text: 'The API can read minds.', isCorrect: false }
+            { id: 'a', text: 'In the URL as a query parameter.', isCorrect: false },
+            { id: 'b', text: 'In the request body.', isCorrect: false },
+            { id: 'c', text: 'In the Authorization header.', isCorrect: true },
+            { id: 'd', text: 'In the Content-Type header.', isCorrect: false },
           ],
-          explanation: 'A PUT request is idempotent: updating a name to "Bob" 5 times is the same as doing it once. A POST is NOT idempotent (it would create 5 Bobs).'
-        }
-      ]
-    }
+          explanation: 'The correct format is: Authorization: Bearer <your_token>. Putting tokens in URLs is dangerous — they end up in browser history and server logs.'
+        },
+        {
+          question: 'What is the Base URL of an API?',
+          options: [
+            { id: 'a', text: 'The unique ID assigned to each API response.', isCorrect: false },
+            { id: 'b', text: 'The root address that all endpoint paths are appended to.', isCorrect: true },
+            { id: 'c', text: 'The secret key used to authenticate requests.', isCorrect: false },
+            { id: 'd', text: 'The database connection string.', isCorrect: false },
+          ],
+          explanation: 'Example: https://api.example.com/v1 is the Base URL. Individual endpoints like /users or /orders get appended to it.'
+        },
+        {
+          question: 'Which Content-Type header value tells the server you\'re sending JSON data?',
+          options: [
+            { id: 'a', text: 'text/plain', isCorrect: false },
+            { id: 'b', text: 'application/xml', isCorrect: false },
+            { id: 'c', text: 'application/json', isCorrect: true },
+            { id: 'd', text: 'multipart/form-data', isCorrect: false },
+          ],
+          explanation: 'Content-Type: application/json tells the server: "my request body is JSON — parse it accordingly." Without this, the server may misread your data.'
+        },
+      ],
+    },
+    {
+      level: 'api-response-anatomy',
+      questions: [
+        {
+          question: 'What part of an HTTP response immediately tells you if the request succeeded or failed?',
+          options: [
+            { id: 'a', text: 'The response body.', isCorrect: false },
+            { id: 'b', text: 'The status line (status code + reason phrase).', isCorrect: true },
+            { id: 'c', text: 'The Content-Type header.', isCorrect: false },
+            { id: 'd', text: 'The request URL.', isCorrect: false },
+          ],
+          explanation: 'The status line like "200 OK" or "404 Not Found" is the first thing you check. It\'s your API\'s emoji: 😊 or 💀.'
+        },
+        {
+          question: 'What does a response body typically contain?',
+          options: [
+            { id: 'a', text: 'The HTTP method used for the request.', isCorrect: false },
+            { id: 'b', text: 'The actual data returned by the server (e.g., JSON, HTML, or an error message).', isCorrect: true },
+            { id: 'c', text: 'The server\'s IP address.', isCorrect: false },
+            { id: 'd', text: 'The authentication credentials.', isCorrect: false },
+          ],
+          explanation: 'The body is the payload — the actual content you asked for. For REST APIs this is almost always JSON. For errors, it often contains an error code and message.'
+        },
+        {
+          question: 'Which response header tells you the format of the data in the response body?',
+          options: [
+            { id: 'a', text: 'Authorization', isCorrect: false },
+            { id: 'b', text: 'Content-Type', isCorrect: true },
+            { id: 'c', text: 'Accept', isCorrect: false },
+            { id: 'd', text: 'X-Request-ID', isCorrect: false },
+          ],
+          explanation: 'Content-Type: application/json means the body is JSON. Always assert this matches what you expect — a 200 returning HTML instead of JSON is a bug.'
+        },
+        {
+          question: 'A DELETE request returns status 204 with no body. What does this mean?',
+          options: [
+            { id: 'a', text: 'The server had an error but is hiding it.', isCorrect: false },
+            { id: 'b', text: 'The request was successful and there is no content to return.', isCorrect: true },
+            { id: 'c', text: 'The resource was not found.', isCorrect: false },
+            { id: 'd', text: 'You need to retry the request.', isCorrect: false },
+          ],
+          explanation: '204 No Content = success, nothing to send back. This is the correct response for DELETE and some PUT operations. Your test should verify the body IS empty.'
+        },
+        {
+          question: 'What does the Location header in a 201 Created response typically contain?',
+          options: [
+            { id: 'a', text: 'The server\'s country of origin.', isCorrect: false },
+            { id: 'b', text: 'The URL of the newly created resource.', isCorrect: true },
+            { id: 'c', text: 'The authentication token for future requests.', isCorrect: false },
+            { id: 'd', text: 'The next page URL for pagination.', isCorrect: false },
+          ],
+          explanation: 'After POST creates a new resource, Location: /users/456 tells you exactly where to find it. You should assert this header exists and points to a valid URL.'
+        },
+      ],
+    },
+    {
+      level: 'api-status-codes',
+      questions: [
+        {
+          question: 'What does the 2xx status code range indicate?',
+          options: [
+            { id: 'a', text: 'The request was redirected to another URL.', isCorrect: false },
+            { id: 'b', text: 'There was a server-side error.', isCorrect: false },
+            { id: 'c', text: 'The request was successful.', isCorrect: true },
+            { id: 'd', text: 'The client made a bad request.', isCorrect: false },
+          ],
+          explanation: '2xx = Success family. 200 OK, 201 Created, 204 No Content all mean the server understood and handled your request correctly.'
+        },
+        {
+          question: 'A user tries to view their own profile page but is not logged in. What status code should the API return?',
+          options: [
+            { id: 'a', text: '403 Forbidden', isCorrect: false },
+            { id: 'b', text: '404 Not Found', isCorrect: false },
+            { id: 'c', text: '401 Unauthorized', isCorrect: true },
+            { id: 'd', text: '500 Internal Server Error', isCorrect: false },
+          ],
+          explanation: '401 = you haven\'t proven who you are yet. The server is saying "show me your ID first." 403 would be if you\'re logged in but still blocked.'
+        },
+        {
+          question: 'What is the difference between 401 and 403?',
+          options: [
+            { id: 'a', text: '401 = server error; 403 = client error.', isCorrect: false },
+            { id: 'b', text: '401 = not authenticated (no identity); 403 = authenticated but not authorized (no permission).', isCorrect: true },
+            { id: 'c', text: 'They mean exactly the same thing.', isCorrect: false },
+            { id: 'd', text: '401 = resource not found; 403 = resource deleted.', isCorrect: false },
+          ],
+          explanation: '401: "Who are you?" (missing/invalid token). 403: "I know who you are, but you\'re not allowed here." Critical distinction for security testing.'
+        },
+        {
+          question: 'Which status code indicates the server crashed due to an unhandled bug?',
+          options: [
+            { id: 'a', text: '400 Bad Request', isCorrect: false },
+            { id: 'b', text: '404 Not Found', isCorrect: false },
+            { id: 'c', text: '422 Unprocessable Entity', isCorrect: false },
+            { id: 'd', text: '500 Internal Server Error', isCorrect: true },
+          ],
+          explanation: '5xx = Server\'s fault. The request was fine, but the server blew up. As a tester, a 500 often means you found a bug worth reporting immediately.'
+        },
+        {
+          question: 'You submit a form with a missing required field. The server validates it and rejects it. What is the most appropriate status code?',
+          options: [
+            { id: 'a', text: '200 OK', isCorrect: false },
+            { id: 'b', text: '400 Bad Request', isCorrect: true },
+            { id: 'c', text: '500 Internal Server Error', isCorrect: false },
+            { id: 'd', text: '204 No Content', isCorrect: false },
+          ],
+          explanation: '400 = the client sent bad data. It\'s your test\'s job to check that missing/invalid fields return 400 (not 200 or 500). Never trust that the server catches everything.'
+        },
+      ],
+    },
+    {
+      level: 'api-json-basics',
+      questions: [
+        {
+          question: 'What does JSON stand for?',
+          options: [
+            { id: 'a', text: 'Java Syntax Object Notation', isCorrect: false },
+            { id: 'b', text: 'JavaScript Object Notation', isCorrect: true },
+            { id: 'c', text: 'Joint Standard Output Node', isCorrect: false },
+            { id: 'd', text: 'JSON Serialized Object Network', isCorrect: false },
+          ],
+          explanation: 'JSON = JavaScript Object Notation. Despite the name, it\'s language-agnostic and used by virtually every modern API as the standard data format.'
+        },
+        {
+          question: 'How are string values represented in JSON?',
+          options: [
+            { id: 'a', text: 'With single quotes: \'hello\'', isCorrect: false },
+            { id: 'b', text: 'With double quotes: "hello"', isCorrect: true },
+            { id: 'c', text: 'Without any quotes: hello', isCorrect: false },
+            { id: 'd', text: 'With backticks: `hello`', isCorrect: false },
+          ],
+          explanation: 'JSON requires double quotes for strings. Single quotes are NOT valid JSON. This trips up many beginners — always use double quotes for keys and string values.'
+        },
+        {
+          question: 'Which of the following is valid JSON?',
+          options: [
+            { id: 'a', text: '{ name: "Alice", age: 30 }', isCorrect: false },
+            { id: 'b', text: '{ \'name\': \'Alice\', \'age\': 30 }', isCorrect: false },
+            { id: 'c', text: '{ "name": "Alice", "age": 30 }', isCorrect: true },
+            { id: 'd', text: '{ "name": Alice, "age": 30 }', isCorrect: false },
+          ],
+          explanation: 'Valid JSON: all keys in double quotes, string values in double quotes, numbers without quotes. Option C is the only one that follows all three rules.'
+        },
+        {
+          question: 'In JSON, what data type should you use for an ordered list of items?',
+          options: [
+            { id: 'a', text: 'An object { }', isCorrect: false },
+            { id: 'b', text: 'A string " "', isCorrect: false },
+            { id: 'c', text: 'An array [ ]', isCorrect: true },
+            { id: 'd', text: 'A boolean true/false', isCorrect: false },
+          ],
+          explanation: 'Arrays use [ ] and hold ordered lists: ["apple", "banana", "cherry"] or [{"id":1}, {"id":2}]. As a QA tester always check array length and item structure.'
+        },
+        {
+          question: 'How do you represent a null (empty/absent) value in JSON?',
+          options: [
+            { id: 'a', text: '"null" (the word in quotes)', isCorrect: false },
+            { id: 'b', text: 'undefined', isCorrect: false },
+            { id: 'c', text: 'null (without quotes)', isCorrect: true },
+            { id: 'd', text: 'An empty string ""', isCorrect: false },
+          ],
+          explanation: 'JSON has the literal value null (lowercase, no quotes). "null" is the string "null". undefined is a JavaScript concept and is NOT valid JSON.'
+        },
+      ],
+    },
+    {
+      level: 'api-postman-basics',
+      questions: [
+        {
+          question: 'What is Postman primarily used for?',
+          options: [
+            { id: 'a', text: 'Writing automated unit tests for front-end components.', isCorrect: false },
+            { id: 'b', text: 'Designing and visually building databases.', isCorrect: false },
+            { id: 'c', text: 'Sending API requests and inspecting responses without writing code.', isCorrect: true },
+            { id: 'd', text: 'Monitoring server CPU and memory usage.', isCorrect: false },
+          ],
+          explanation: 'Postman is the most popular API testing tool. It lets you build requests, inspect responses, write test scripts, and organize everything in Collections — all without coding.'
+        },
+        {
+          question: 'Where in Postman do you choose the HTTP method (GET, POST, etc.) and enter the URL?',
+          options: [
+            { id: 'a', text: 'The Tests tab.', isCorrect: false },
+            { id: 'b', text: 'The request bar at the top of the request panel.', isCorrect: true },
+            { id: 'c', text: 'The Collection sidebar.', isCorrect: false },
+            { id: 'd', text: 'The Environment manager.', isCorrect: false },
+          ],
+          explanation: 'The request bar shows a dropdown for the method and a text field for the URL. It\'s the starting point for every request you build.'
+        },
+        {
+          question: 'What is a Postman Collection?',
+          options: [
+            { id: 'a', text: 'A list of saved environment variables.', isCorrect: false },
+            { id: 'b', text: 'A group of related API requests organised in folders that can be shared and run together.', isCorrect: true },
+            { id: 'c', text: 'A single API request with its test scripts.', isCorrect: false },
+            { id: 'd', text: 'A Postman account with multiple workspaces.', isCorrect: false },
+          ],
+          explanation: 'Collections organise your requests by feature or workflow (e.g., "User API", "Order API"). You can run an entire collection with the Collection Runner or Newman in CI/CD.'
+        },
+        {
+          question: 'Where in Postman do you add a Bearer token for an authenticated request?',
+          options: [
+            { id: 'a', text: 'In the Body tab, as a JSON field.', isCorrect: false },
+            { id: 'b', text: 'In the Params tab, as a query parameter.', isCorrect: false },
+            { id: 'c', text: 'In the Authorization tab, selecting "Bearer Token".', isCorrect: true },
+            { id: 'd', text: 'In the Pre-request Script tab.', isCorrect: false },
+          ],
+          explanation: 'The Auth tab handles auth automatically. Postman will add the correct Authorization: Bearer <token> header for you — no manual header entry needed.'
+        },
+        {
+          question: 'What does clicking "Send" in Postman do?',
+          options: [
+            { id: 'a', text: 'It saves the request to your Collection.', isCorrect: false },
+            { id: 'b', text: 'It sends the configured HTTP request to the server and displays the response below.', isCorrect: true },
+            { id: 'c', text: 'It exports the request as a code snippet.', isCorrect: false },
+            { id: 'd', text: 'It runs the tests written in the Tests tab without making a real request.', isCorrect: false },
+          ],
+          explanation: 'Send fires the request. The response panel then shows status code, response time, body, and headers. You can then inspect the results and check if tests pass.'
+        },
+      ],
+    },
+    {
+      level: 'api-headers-params',
+      questions: [
+        {
+          question: 'What is the difference between a path parameter and a query parameter?',
+          options: [
+            { id: 'a', text: 'Path parameters are in headers; query parameters are in the body.', isCorrect: false },
+            { id: 'b', text: 'Path parameters are part of the URL path (/users/42); query parameters come after ? (/users?role=admin).', isCorrect: true },
+            { id: 'c', text: 'Query parameters identify a specific resource; path parameters filter results.', isCorrect: false },
+            { id: 'd', text: 'There is no difference — they are interchangeable.', isCorrect: false },
+          ],
+          explanation: '/users/{id} — the {id} is a path parameter that identifies ONE specific user. /users?role=admin — the role=admin is a query param that filters a LIST.'
+        },
+        {
+          question: 'What does the Content-Type request header tell the server?',
+          options: [
+            { id: 'a', text: 'What format of response you want back.', isCorrect: false },
+            { id: 'b', text: 'What format the data in your request body is in.', isCorrect: true },
+            { id: 'c', text: 'Your authentication credentials.', isCorrect: false },
+            { id: 'd', text: 'Which API version you are using.', isCorrect: false },
+          ],
+          explanation: 'Content-Type: application/json tells the server "I\'m sending you JSON — parse it that way." Without it, the server might reject or misread your body.'
+        },
+        {
+          question: 'In the URL https://api.shop.com/orders/99/items, which part is a path parameter?',
+          options: [
+            { id: 'a', text: 'api.shop.com', isCorrect: false },
+            { id: 'b', text: 'orders', isCorrect: false },
+            { id: 'c', text: '99', isCorrect: true },
+            { id: 'd', text: 'items', isCorrect: false },
+          ],
+          explanation: '99 is the order ID — a dynamic value embedded in the path that identifies a specific order. The route template would be /orders/{orderId}/items.'
+        },
+        {
+          question: 'What is the Accept header used for?',
+          options: [
+            { id: 'a', text: 'To tell the server what authentication type you support.', isCorrect: false },
+            { id: 'b', text: 'To tell the server what response format you want (e.g., JSON or XML).', isCorrect: true },
+            { id: 'c', text: 'To accept cookies from the server.', isCorrect: false },
+            { id: 'd', text: 'To indicate which HTTP methods you support.', isCorrect: false },
+          ],
+          explanation: 'Accept: application/json tells the server "please send me JSON." The server uses this to format its response correctly. Test with wrong Accept values to see how the API handles it.'
+        },
+        {
+          question: 'You want to get a list of users filtered to only those from "London". How should you pass this filter?',
+          options: [
+            { id: 'a', text: 'As a path parameter: GET /users/London', isCorrect: false },
+            { id: 'b', text: 'As a query parameter: GET /users?city=London', isCorrect: true },
+            { id: 'c', text: 'In the Authorization header.', isCorrect: false },
+            { id: 'd', text: 'In the response body.', isCorrect: false },
+          ],
+          explanation: 'Filtering, sorting, and searching are done via query parameters. Path parameters identify a specific item. /users?city=London = "give me users, filtered by city London."'
+        },
+      ],
+    },
+    // ── INTERMEDIATE ──────────────────────────────────────────────
+    {
+      level: 'api-auth-types',
+      questions: [
+        {
+          question: 'What is an API Key?',
+          options: [
+            { id: 'a', text: 'A password stored in the database.', isCorrect: false },
+            { id: 'b', text: 'A unique secret string that identifies the calling application, sent with each request.', isCorrect: true },
+            { id: 'c', text: 'A cryptographic token issued only after login.', isCorrect: false },
+            { id: 'd', text: 'An SSH public key for server access.', isCorrect: false },
+          ],
+          explanation: 'API keys identify WHO is calling (the application). They\'re simple but should be sent in headers, not URLs. As a tester, try using an invalid key and assert 401/403.'
+        },
+        {
+          question: 'What is the correct format for sending a Bearer token in a request?',
+          options: [
+            { id: 'a', text: 'Auth: Token <token>', isCorrect: false },
+            { id: 'b', text: 'Authorization: Bearer <token>', isCorrect: true },
+            { id: 'c', text: 'X-Auth: Bearer <token>', isCorrect: false },
+            { id: 'd', text: 'Bearer: <token>', isCorrect: false },
+          ],
+          explanation: 'The exact format is: Authorization: Bearer eyJhbGci... This is the standard. APIs will reject other formats. Always copy the exact format from the API docs.'
+        },
+        {
+          question: 'What is the main weakness of Basic Authentication?',
+          options: [
+            { id: 'a', text: 'It requires a separate login step.', isCorrect: false },
+            { id: 'b', text: 'It sends credentials (username:password) Base64-encoded — easily decoded if not over HTTPS.', isCorrect: true },
+            { id: 'c', text: 'It only works with GET requests.', isCorrect: false },
+            { id: 'd', text: 'It expires after 30 minutes automatically.', isCorrect: false },
+          ],
+          explanation: 'Base64 is NOT encryption — anyone who intercepts the request can decode it instantly. Basic Auth is only safe over HTTPS. As a tester, always verify the API requires HTTPS.'
+        },
+        {
+          question: 'What is OAuth 2.0 primarily designed for?',
+          options: [
+            { id: 'a', text: 'Encrypting data stored in databases.', isCorrect: false },
+            { id: 'b', text: 'Allowing users to grant third-party apps limited access to their data without sharing passwords.', isCorrect: true },
+            { id: 'c', text: 'Signing API requests with a private key.', isCorrect: false },
+            { id: 'd', text: 'Compressing API response payloads.', isCorrect: false },
+          ],
+          explanation: 'OAuth 2.0 is the "Login with Google" mechanism. The user grants permission → Google gives a token → the app uses the token. Your password is never shared with the third-party app.'
+        },
+        {
+          question: 'Which authentication method should you test by making a request with an EXPIRED token?',
+          options: [
+            { id: 'a', text: 'Basic Auth', isCorrect: false },
+            { id: 'b', text: 'API Key', isCorrect: false },
+            { id: 'c', text: 'JWT (JSON Web Token)', isCorrect: true },
+            { id: 'd', text: 'No-auth endpoints', isCorrect: false },
+          ],
+          explanation: 'JWTs have an expiry (exp claim). A key QA test: use an expired JWT and assert the API returns 401, not 200. If it accepts expired tokens, that\'s a critical security bug.'
+        },
+      ],
+    },
+    {
+      level: 'api-test-scenarios',
+      questions: [
+        {
+          question: 'What is a "Happy Path" test scenario?',
+          options: [
+            { id: 'a', text: 'A test that intentionally crashes the server.', isCorrect: false },
+            { id: 'b', text: 'Testing the most common, expected flow with valid data — everything works as designed.', isCorrect: true },
+            { id: 'c', text: 'A test that checks error messages are user-friendly.', isCorrect: false },
+            { id: 'd', text: 'A performance test measuring response speed.', isCorrect: false },
+          ],
+          explanation: 'Happy Path = the "it works!" scenario. Example for login: valid username + valid password → 200 + token. Always test happy path first, then break it.'
+        },
+        {
+          question: 'Which scenario specifically checks what happens when a REQUIRED field is completely missing from a POST request?',
+          options: [
+            { id: 'a', text: 'Happy path test.', isCorrect: false },
+            { id: 'b', text: 'Performance test.', isCorrect: false },
+            { id: 'c', text: 'Negative / validation test.', isCorrect: true },
+            { id: 'd', text: 'Authorization test.', isCorrect: false },
+          ],
+          explanation: 'Negative tests intentionally send bad data. Missing required fields should return 400 Bad Request with a clear error message — not 200, not 500.'
+        },
+        {
+          question: 'What is an authorization test scenario?',
+          options: [
+            { id: 'a', text: 'Checking that valid users can log in.', isCorrect: false },
+            { id: 'b', text: 'Testing that users can only access resources they have permission for.', isCorrect: true },
+            { id: 'c', text: 'Verifying the API key format is correct.', isCorrect: false },
+            { id: 'd', text: 'Testing response time under load.', isCorrect: false },
+          ],
+          explanation: 'Authorization tests check permissions: can User A access User B\'s data? Can a regular user call admin-only endpoints? A 200 when 403 was expected = critical bug.'
+        },
+        {
+          question: 'Why should QA testers test API boundary values?',
+          options: [
+            { id: 'a', text: 'Because boundary values are the most common input from real users.', isCorrect: false },
+            { id: 'b', text: 'Because bugs most commonly hide at the edges — just below, at, and just above the limit.', isCorrect: true },
+            { id: 'c', text: 'Because boundary values make tests run faster.', isCorrect: false },
+            { id: 'd', text: 'Because APIs only validate boundary values automatically.', isCorrect: false },
+          ],
+          explanation: 'If the max username length is 50: test 49, 50, and 51 characters. APIs often have off-by-one errors at boundaries. 51 chars should fail; 50 should succeed.'
+        },
+        {
+          question: 'What is idempotency, and why is it a key test scenario for HTTP methods?',
+          options: [
+            { id: 'a', text: 'It means the API responds instantly — test for slow APIs.', isCorrect: false },
+            { id: 'b', text: 'Calling the same request multiple times produces the same result — test that GET, PUT, DELETE behave this way.', isCorrect: true },
+            { id: 'c', text: 'It means the API returns the same status code for all requests.', isCorrect: false },
+            { id: 'd', text: 'It means duplicate POSTs are automatically prevented by the server.', isCorrect: false },
+          ],
+          explanation: 'GET /users/1 called 10 times = same data each time. DELETE /users/1 called twice = first returns 204, second returns 404. POST is NOT idempotent — it creates a new record each time.'
+        },
+      ],
+    },
+    {
+      level: 'api-assertions',
+      questions: [
+        {
+          question: 'What is an assertion in API testing?',
+          options: [
+            { id: 'a', text: 'A statement in your test that declares a complaint about the developer.', isCorrect: false },
+            { id: 'b', text: 'A check that verifies the actual response matches what you expected.', isCorrect: true },
+            { id: 'c', text: 'The request you send to the API.', isCorrect: false },
+            { id: 'd', text: 'A type of API documentation format.', isCorrect: false },
+          ],
+          explanation: 'An assertion says "I expect status 200" and the test fails if it\'s anything else. Assertions are the heart of automated testing — no assertions = no test, just a script.'
+        },
+        {
+          question: 'Which assertion verifies that the correct data was returned in the response?',
+          options: [
+            { id: 'a', text: 'Status code assertion.', isCorrect: false },
+            { id: 'b', text: 'Response time assertion.', isCorrect: false },
+            { id: 'c', text: 'Body/payload assertion.', isCorrect: true },
+            { id: 'd', text: 'Header assertion.', isCorrect: false },
+          ],
+          explanation: 'Body assertions check the actual content: Does the name field match? Is the array non-empty? Does the price equal what you set? Status code alone doesn\'t tell you if the right data came back.'
+        },
+        {
+          question: 'Why should you always assert the response status code even on happy path tests?',
+          options: [
+            { id: 'a', text: 'Because happy path tests don\'t check the body.', isCorrect: false },
+            { id: 'b', text: 'Because a 200 response does not guarantee the body is correct.', isCorrect: false },
+            { id: 'c', text: 'Because an API might return 200 when it should return 201, or 200 with an error body.', isCorrect: true },
+            { id: 'd', text: 'Because status codes change with every API version.', isCorrect: false },
+          ],
+          explanation: 'Never assume. Some poorly designed APIs return 200 with { "error": "user not found" } in the body. Asserting the exact status code (201 for creation, 204 for delete) catches these bugs.'
+        },
+        {
+          question: 'What should a response time assertion typically guard against?',
+          options: [
+            { id: 'a', text: 'Responses that come back too quickly.', isCorrect: false },
+            { id: 'b', text: 'Responses that take longer than an acceptable threshold (e.g., > 2000ms).', isCorrect: true },
+            { id: 'c', text: 'Responses that return on weekends.', isCorrect: false },
+            { id: 'd', text: 'Responses that include too much data.', isCorrect: false },
+          ],
+          explanation: 'A slow API is a broken API for users. Assert that response time is under your SLA threshold (e.g., < 500ms for reads, < 2000ms for writes). Sudden slowdowns indicate regressions.'
+        },
+        {
+          question: 'Which of the following is NOT a typical API test assertion?',
+          options: [
+            { id: 'a', text: 'Status code is 200.', isCorrect: false },
+            { id: 'b', text: 'Response body contains a user object with an "id" field.', isCorrect: false },
+            { id: 'c', text: 'The developer\'s commit message is descriptive.', isCorrect: true },
+            { id: 'd', text: 'Content-Type header is application/json.', isCorrect: false },
+          ],
+          explanation: 'API assertions are about the response. Commit messages are a code review concern, not an API test assertion. Testable assertions: status, body content, headers, response time, schema.'
+        },
+      ],
+    },
+    {
+      level: 'api-chaining',
+      questions: [
+        {
+          question: 'What is request chaining in API testing?',
+          options: [
+            { id: 'a', text: 'Sending many identical requests in parallel.', isCorrect: false },
+            { id: 'b', text: 'Using the output (e.g., an ID or token) from one request as input for the next.', isCorrect: true },
+            { id: 'c', text: 'Linking multiple Postman collections together.', isCorrect: false },
+            { id: 'd', text: 'Chaining HTTP methods (GET then POST then DELETE).', isCorrect: false },
+          ],
+          explanation: 'Classic chain: POST /login → get token → use token in GET /profile. The second request depends on data from the first. This mirrors real user flows.'
+        },
+        {
+          question: 'In a login → get-profile chain, what do you extract from the first request (POST /login)?',
+          options: [
+            { id: 'a', text: 'The response time.', isCorrect: false },
+            { id: 'b', text: 'The status code.', isCorrect: false },
+            { id: 'c', text: 'The authentication token (e.g., JWT or session token).', isCorrect: true },
+            { id: 'd', text: 'The Content-Type header.', isCorrect: false },
+          ],
+          explanation: 'After POST /login you get { "token": "eyJ..." }. You extract that token and inject it as "Authorization: Bearer eyJ..." in all subsequent authenticated requests.'
+        },
+        {
+          question: 'Why is request chaining valuable for QA testing end-to-end flows?',
+          options: [
+            { id: 'a', text: 'Because chained requests are faster than individual ones.', isCorrect: false },
+            { id: 'b', text: 'Because it tests realistic user workflows, not just isolated endpoints in isolation.', isCorrect: true },
+            { id: 'c', text: 'Because servers require chained requests to function.', isCorrect: false },
+            { id: 'd', text: 'Because it reduces the number of tests needed.', isCorrect: false },
+          ],
+          explanation: 'Real bugs hide between steps. Testing "create order → pay → confirm → check status" as a chain catches bugs that isolated tests miss — like a payment succeeding but the order staying "pending".'
+        },
+        {
+          question: 'What Postman feature is commonly used to pass data between chained requests?',
+          options: [
+            { id: 'a', text: 'The Body tab.', isCorrect: false },
+            { id: 'b', text: 'Collection Runner.', isCorrect: false },
+            { id: 'c', text: 'Environment variables (set via pm.environment.set() in the Tests tab).', isCorrect: true },
+            { id: 'd', text: 'The Headers tab.', isCorrect: false },
+          ],
+          explanation: 'In the Tests tab of request 1: pm.environment.set("token", pm.response.json().token). Then in request 2 header: Authorization: Bearer {{token}}. Postman fills it in automatically.'
+        },
+        {
+          question: 'What breaks a request chain and how should your test handle it?',
+          options: [
+            { id: 'a', text: 'Slow response times — add a sleep between requests.', isCorrect: false },
+            { id: 'b', text: 'The first request failing — all subsequent requests should be skipped or marked as failed.', isCorrect: true },
+            { id: 'c', text: 'Different HTTP methods — chains only work with GET requests.', isCorrect: false },
+            { id: 'd', text: 'Too many requests — limit chains to 3 steps maximum.', isCorrect: false },
+          ],
+          explanation: 'If POST /login fails, the token is missing and every downstream request will fail with 401. Good test design detects this early and reports "Chain broken at step 1: login failed" rather than 10 confusing failures.'
+        },
+      ],
+    },
+    {
+      level: 'api-schema-validation',
+      questions: [
+        {
+          question: 'What does API schema validation check?',
+          options: [
+            { id: 'a', text: 'Whether the server is online.', isCorrect: false },
+            { id: 'b', text: 'Whether the response structure, field names, and data types match the agreed contract.', isCorrect: true },
+            { id: 'c', text: 'Whether the request took less than 500ms.', isCorrect: false },
+            { id: 'd', text: 'Whether the API uses HTTPS.', isCorrect: false },
+          ],
+          explanation: 'Schema validation catches structural bugs: missing fields, wrong types (string instead of number), extra unexpected fields, or nullable fields returning values when they shouldn\'t.'
+        },
+        {
+          question: 'Which specification format is widely used to define and validate JSON API response schemas?',
+          options: [
+            { id: 'a', text: 'XML DTD', isCorrect: false },
+            { id: 'b', text: 'JSON Schema', isCorrect: true },
+            { id: 'c', text: 'Markdown', isCorrect: false },
+            { id: 'd', text: 'CSV', isCorrect: false },
+          ],
+          explanation: 'JSON Schema defines the expected structure: what fields are required, what types they must be, min/max values, allowed string patterns, etc. Tools like Ajv validate responses against it automatically.'
+        },
+        {
+          question: 'A response passes schema validation but the "price" field returns 0 for every product. What kind of test would catch this?',
+          options: [
+            { id: 'a', text: 'Schema validation.', isCorrect: false },
+            { id: 'b', text: 'Response body / value assertion.', isCorrect: true },
+            { id: 'c', text: 'Header assertion.', isCorrect: false },
+            { id: 'd', text: 'Status code assertion.', isCorrect: false },
+          ],
+          explanation: 'Schema validation only checks structure (field exists, is a number). It won\'t catch wrong values. Body assertions check actual values: expect(price).toBeGreaterThan(0). Both are needed.'
+        },
+        {
+          question: 'What does a schema validation failure indicate?',
+          options: [
+            { id: 'a', text: 'The API is too slow.', isCorrect: false },
+            { id: 'b', text: 'A mismatch between what the API contract promised and what the API actually returned.', isCorrect: true },
+            { id: 'c', text: 'The user\'s internet is slow.', isCorrect: false },
+            { id: 'd', text: 'The request headers are missing.', isCorrect: false },
+          ],
+          explanation: 'Schema failures mean the contract is broken. Maybe a developer renamed a field ("userId" → "user_id") or changed a type (string → number). These silently break frontends and must be caught early.'
+        },
+        {
+          question: 'Which npm library is commonly used to validate JSON responses against a JSON Schema in automated Node.js tests?',
+          options: [
+            { id: 'a', text: 'Lodash', isCorrect: false },
+            { id: 'b', text: 'Ajv (Another JSON Validator)', isCorrect: true },
+            { id: 'c', text: 'Moment.js', isCorrect: false },
+            { id: 'd', text: 'Chalk', isCorrect: false },
+          ],
+          explanation: 'Ajv is the fastest JSON Schema validator for JavaScript. In tests: const validate = ajv.compile(schema); expect(validate(response.data)).toBe(true); — one line to enforce the entire structure.'
+        },
+      ],
+    },
+    {
+      level: 'api-mock-servers',
+      questions: [
+        {
+          question: 'What is a mock server?',
+          options: [
+            { id: 'a', text: 'A production server that runs slower than usual.', isCorrect: false },
+            { id: 'b', text: 'A simulated API that returns predefined responses without connecting to a real backend.', isCorrect: true },
+            { id: 'c', text: 'A server that blocks all incoming requests.', isCorrect: false },
+            { id: 'd', text: 'A server used only for load testing.', isCorrect: false },
+          ],
+          explanation: 'A mock server pretends to be the real API. You define what it returns for each request. Great for testing when the real API isn\'t built yet or is too flaky to rely on.'
+        },
+        {
+          question: 'When is a mock server most useful for a QA team?',
+          options: [
+            { id: 'a', text: 'When running production smoke tests.', isCorrect: false },
+            { id: 'b', text: 'When the backend API is still under development or unavailable in the test environment.', isCorrect: true },
+            { id: 'c', text: 'When testing how fast the real server responds.', isCorrect: false },
+            { id: 'd', text: 'When testing actual data integrity in the database.', isCorrect: false },
+          ],
+          explanation: 'Mock servers decouple frontend/mobile QA from backend readiness. Test teams can work in parallel — testers validate UI behaviour against mocks while developers build the real API.'
+        },
+        {
+          question: 'What is the term for a predefined response returned by a mock server for a specific request?',
+          options: [
+            { id: 'a', text: 'A fixture.', isCorrect: false },
+            { id: 'b', text: 'A stub.', isCorrect: true },
+            { id: 'c', text: 'A snapshot.', isCorrect: false },
+            { id: 'd', text: 'A payload.', isCorrect: false },
+          ],
+          explanation: 'A stub is a canned answer: "when you call GET /users/1, return this exact JSON." Stubs make tests deterministic — no real network, no flakiness, same result every time.'
+        },
+        {
+          question: 'Which tool allows you to create a mock server directly from a Postman Collection?',
+          options: [
+            { id: 'a', text: 'Newman', isCorrect: false },
+            { id: 'b', text: 'WireMock', isCorrect: false },
+            { id: 'c', text: 'Postman Mock Server', isCorrect: true },
+            { id: 'd', text: 'Swagger UI', isCorrect: false },
+          ],
+          explanation: 'Postman lets you save example responses on requests, then create a Mock Server from the Collection. The mock URL responds exactly like your saved examples — shareable with the whole team.'
+        },
+        {
+          question: 'What is the key disadvantage of relying ONLY on mock servers for API testing?',
+          options: [
+            { id: 'a', text: 'Mocks are too slow.', isCorrect: false },
+            { id: 'b', text: 'Mocks only work offline.', isCorrect: false },
+            { id: 'c', text: 'Mocks cannot break — they always return what you configured, so real backend bugs are missed.', isCorrect: true },
+            { id: 'd', text: 'Mocks require a paid subscription.', isCorrect: false },
+          ],
+          explanation: 'Mocks are great for isolation but they can\'t catch real integration bugs. If the real API changes and you only test against mocks, your tests stay green while production breaks.'
+        },
+      ],
+    },
+    // ── EXPERT ────────────────────────────────────────────────────
+    {
+      level: 'api-automation',
+      questions: [
+        {
+          question: 'Which npm package is most commonly used to make HTTP requests in Node.js automated API tests?',
+          options: [
+            { id: 'a', text: 'Lodash', isCorrect: false },
+            { id: 'b', text: 'Axios', isCorrect: true },
+            { id: 'c', text: 'Express', isCorrect: false },
+            { id: 'd', text: 'Nodemon', isCorrect: false },
+          ],
+          explanation: 'Axios is a promise-based HTTP client that works in Node.js and the browser. It\'s clean, auto-parses JSON, and handles errors predictably — perfect for pairing with Jest in automated API tests.'
+        },
+        {
+          question: 'In a Jest test suite for APIs, which hook runs ONCE before all tests and is ideal for logging in and storing a token?',
+          options: [
+            { id: 'a', text: 'beforeEach()', isCorrect: false },
+            { id: 'b', text: 'afterAll()', isCorrect: false },
+            { id: 'c', text: 'beforeAll()', isCorrect: true },
+            { id: 'd', text: 'afterEach()', isCorrect: false },
+          ],
+          explanation: 'beforeAll() runs once before the entire suite. Log in here, store the token in a variable, then all tests in the suite reuse it. beforeEach() would re-login before every single test — wasteful.'
+        },
+        {
+          question: 'Where should base URLs, API keys, and credentials be stored in automated test projects?',
+          options: [
+            { id: 'a', text: 'Hardcoded directly inside test files for reliability.', isCorrect: false },
+            { id: 'b', text: 'In environment variables (e.g., .env files not committed to git).', isCorrect: true },
+            { id: 'c', text: 'In the README so the team can find them.', isCorrect: false },
+            { id: 'd', text: 'In the package.json scripts section.', isCorrect: false },
+          ],
+          explanation: 'Never hardcode secrets. Use .env + dotenv library. Add .env to .gitignore. In CI/CD, secrets are injected as environment variables. This prevents credentials leaking into version control.'
+        },
+        {
+          question: 'What does this Jest assertion do: expect(response.status).toBe(201)?',
+          options: [
+            { id: 'a', text: 'It sends a POST request and creates a resource.', isCorrect: false },
+            { id: 'b', text: 'It verifies that the response status code is exactly 201 Created, and fails the test if it\'s anything else.', isCorrect: true },
+            { id: 'c', text: 'It waits 201 milliseconds before checking the response.', isCorrect: false },
+            { id: 'd', text: 'It retries the request 201 times.', isCorrect: false },
+          ],
+          explanation: 'expect(actual).toBe(expected) is Jest\'s strict equality check. If status is 200 or 400, this assertion fails and the test is marked red — immediately visible in your CI/CD pipeline.'
+        },
+        {
+          question: 'What is the primary benefit of running automated API tests in a CI/CD pipeline?',
+          options: [
+            { id: 'a', text: 'Tests run slower so developers have time to review changes.', isCorrect: false },
+            { id: 'b', text: 'Every code push is automatically validated, catching regressions before they reach production.', isCorrect: true },
+            { id: 'c', text: 'Developers no longer need to write unit tests.', isCorrect: false },
+            { id: 'd', text: 'API documentation is generated automatically.', isCorrect: false },
+          ],
+          explanation: 'CI/CD gives you a safety net: every commit triggers the test suite. If a developer\'s change breaks the login API, the pipeline fails and the PR is blocked — the bug never reaches users.'
+        },
+      ],
+    },
+    {
+      level: 'api-security-testing',
+      questions: [
+        {
+          question: 'What is BOLA (Broken Object Level Authorization), also known as IDOR?',
+          options: [
+            { id: 'a', text: 'When an API returns data too slowly.', isCorrect: false },
+            { id: 'b', text: 'When a user can access or modify another user\'s resource by changing an ID in the request.', isCorrect: true },
+            { id: 'c', text: 'When an API key is stored in plain text.', isCorrect: false },
+            { id: 'd', text: 'When the API documentation is incomplete.', isCorrect: false },
+          ],
+          explanation: 'Example: GET /orders/1001 returns YOUR order. Change it to GET /orders/1002 — does it return someone else\'s order? If yes, that\'s BOLA. The #1 API vulnerability per OWASP Top 10.'
+        },
+        {
+          question: 'A GET /users endpoint returns a list including hashed passwords, SSNs, and internal flags. What vulnerability is this?',
+          options: [
+            { id: 'a', text: 'BOLA (Broken Object Level Authorization)', isCorrect: false },
+            { id: 'b', text: 'Excessive Data Exposure', isCorrect: true },
+            { id: 'c', text: 'SQL Injection', isCorrect: false },
+            { id: 'd', text: 'Rate Limiting bypass', isCorrect: false },
+          ],
+          explanation: 'Excessive Data Exposure (#3 OWASP) = the API returns too much. Even hashed passwords shouldn\'t reach the client. As a tester, check every response field: does the client actually need this data?'
+        },
+        {
+          question: 'How would a QA tester test for SQL Injection via an API?',
+          options: [
+            { id: 'a', text: 'Send a very large JSON body.', isCorrect: false },
+            { id: 'b', text: 'Send SQL syntax in input fields (e.g., \' OR 1=1--) and check if the server returns unexpected data or errors.', isCorrect: true },
+            { id: 'c', text: 'Remove the Authorization header from all requests.', isCorrect: false },
+            { id: 'd', text: 'Change the Content-Type header to text/plain.', isCorrect: false },
+          ],
+          explanation: 'Inject SQL into query params or body: GET /users?name=\' OR 1=1--. A vulnerable API might return ALL users or expose a database error. A safe API sanitises input and returns 400.'
+        },
+        {
+          question: 'What status code should an API return when a user has exceeded their rate limit?',
+          options: [
+            { id: 'a', text: '400 Bad Request', isCorrect: false },
+            { id: 'b', text: '401 Unauthorized', isCorrect: false },
+            { id: 'c', text: '429 Too Many Requests', isCorrect: true },
+            { id: 'd', text: '503 Service Unavailable', isCorrect: false },
+          ],
+          explanation: '429 Too Many Requests is the correct status. The response should also include a Retry-After header telling the client when to try again. As a tester, verify rate limiting works and returns 429.'
+        },
+        {
+          question: 'What security test should you perform on JWT-protected endpoints?',
+          options: [
+            { id: 'a', text: 'Send a request with an empty body.', isCorrect: false },
+            { id: 'b', text: 'Test with an expired JWT, a tampered JWT payload, and no token at all — each should return 401.', isCorrect: true },
+            { id: 'c', text: 'Send the same JWT in all headers simultaneously.', isCorrect: false },
+            { id: 'd', text: 'Replace the JWT with an API key.', isCorrect: false },
+          ],
+          explanation: 'JWT security tests: (1) no token → 401, (2) expired token → 401, (3) tampered payload (change userId) → 401, (4) invalid signature → 401. If any return 200, it\'s a critical security bug.'
+        },
+      ],
+    },
+    {
+      level: 'api-contract-testing',
+      questions: [
+        {
+          question: 'What is contract testing?',
+          options: [
+            { id: 'a', text: 'Testing that an API meets its SLA for response time.', isCorrect: false },
+            { id: 'b', text: 'Verifying that an API\'s request/response structure matches what consumers expect, based on a shared agreement (contract).', isCorrect: true },
+            { id: 'c', text: 'Testing that legal contracts can be signed via the API.', isCorrect: false },
+            { id: 'd', text: 'Integration testing against the production database.', isCorrect: false },
+          ],
+          explanation: 'A contract is the agreed shape of requests and responses between a consumer (e.g., frontend) and a provider (e.g., backend API). Contract tests ensure both sides honor the agreement independently.'
+        },
+        {
+          question: 'In Pact consumer-driven contract testing, who defines the contract?',
+          options: [
+            { id: 'a', text: 'The backend team (API provider).', isCorrect: false },
+            { id: 'b', text: 'The QA manager.', isCorrect: false },
+            { id: 'c', text: 'The consumer (e.g., frontend or mobile app).', isCorrect: true },
+            { id: 'd', text: 'The Pact Broker server automatically.', isCorrect: false },
+          ],
+          explanation: 'Consumer-Driven = the consumer writes tests describing what it expects. These generate a pact file. The provider then verifies it can fulfill those expectations. The consumer drives the contract.'
+        },
+        {
+          question: 'What is a "pact file" in Pact contract testing?',
+          options: [
+            { id: 'a', text: 'A PDF document signed by both teams.', isCorrect: false },
+            { id: 'b', text: 'A JSON file auto-generated from consumer tests, describing the expected interactions.', isCorrect: true },
+            { id: 'c', text: 'The CI/CD pipeline configuration.', isCorrect: false },
+            { id: 'd', text: 'The API\'s OpenAPI/Swagger specification.', isCorrect: false },
+          ],
+          explanation: 'The pact file is automatically generated when consumer tests run. It lists: the request (method, path, headers, body) and the expected response (status, headers, body). The provider verifies against this file.'
+        },
+        {
+          question: 'What problem does contract testing solve that traditional end-to-end integration tests cannot?',
+          options: [
+            { id: 'a', text: 'Contract tests are faster and catch interface mismatches without requiring both systems to run simultaneously.', isCorrect: true },
+            { id: 'b', text: 'Contract tests check business logic that integration tests miss.', isCorrect: false },
+            { id: 'c', text: 'Contract tests run only in production.', isCorrect: false },
+            { id: 'd', text: 'Contract tests replace all other forms of API testing.', isCorrect: false },
+          ],
+          explanation: 'Integration tests need both systems running, are slow, and break for many reasons. Contract tests isolate the interface: each team tests their side independently, catching breaking changes before deployment.'
+        },
+        {
+          question: 'A developer renames the "userId" field to "user_id" in the API response. Which type of test catches this FIRST?',
+          options: [
+            { id: 'a', text: 'Manual exploratory testing.', isCorrect: false },
+            { id: 'b', text: 'Unit tests on the backend.', isCorrect: false },
+            { id: 'c', text: 'Contract tests / schema validation tests.', isCorrect: true },
+            { id: 'd', text: 'Performance tests.', isCorrect: false },
+          ],
+          explanation: 'The consumer\'s contract expects "userId". The provider verification step would fail immediately because the pact file says the response must contain "userId" but the API now returns "user_id".'
+        },
+      ],
+    },
+    {
+      level: 'api-performance-testing',
+      questions: [
+        {
+          question: 'What does "p95 response time of 450ms" mean?',
+          options: [
+            { id: 'a', text: '95% of requests failed.', isCorrect: false },
+            { id: 'b', text: '95% of requests completed within 450ms — only the slowest 5% took longer.', isCorrect: true },
+            { id: 'c', text: 'The average response time was 450ms.', isCorrect: false },
+            { id: 'd', text: 'The 95th request in the test took 450ms.', isCorrect: false },
+          ],
+          explanation: 'Percentiles are more useful than averages. p95 = the "almost-worst-case" experience. If p95 is 450ms, 95% of real users see sub-450ms. The remaining 5% might still be having a bad time — check p99 too.'
+        },
+        {
+          question: 'Which open-source tool is popular for API load and performance testing with a JavaScript scripting API?',
+          options: [
+            { id: 'a', text: 'JMeter', isCorrect: false },
+            { id: 'b', text: 'k6 (by Grafana)', isCorrect: true },
+            { id: 'c', text: 'Selenium', isCorrect: false },
+            { id: 'd', text: 'Newman', isCorrect: false },
+          ],
+          explanation: 'k6 uses JavaScript for test scripts, integrates with CI/CD, outputs detailed metrics (p50, p95, p99, error rate, throughput), and has a free CLI. It\'s become the go-to for modern API performance testing.'
+        },
+        {
+          question: 'What is a "spike test" in performance testing?',
+          options: [
+            { id: 'a', text: 'A test that gradually ramps up load over hours.', isCorrect: false },
+            { id: 'b', text: 'A sudden, extreme increase in load to see if the system recovers gracefully.', isCorrect: true },
+            { id: 'c', text: 'A test that measures a single request\'s maximum speed.', isCorrect: false },
+            { id: 'd', text: 'A test that runs only during off-peak hours.', isCorrect: false },
+          ],
+          explanation: 'Spike test = flash crowd simulation. 0 → 1000 users in 10 seconds, then back down. Does the server crash? Does it auto-scale? Does it return errors or just slow down? Answers these questions.'
+        },
+        {
+          question: 'Which metric measures how many requests a server successfully handles per second?',
+          options: [
+            { id: 'a', text: 'Error rate', isCorrect: false },
+            { id: 'b', text: 'Response time (ms)', isCorrect: false },
+            { id: 'c', text: 'Throughput (RPS — Requests Per Second)', isCorrect: true },
+            { id: 'd', text: 'Percentile (p95)', isCorrect: false },
+          ],
+          explanation: 'Throughput = how much work the system can handle. 500 RPS means 500 successful requests per second. Combined with response time and error rate, it paints the full performance picture.'
+        },
+        {
+          question: 'At what stage of development should performance tests ideally be introduced?',
+          options: [
+            { id: 'a', text: 'Only after a performance issue is reported by a real user in production.', isCorrect: false },
+            { id: 'b', text: 'Early — as part of the CI/CD pipeline — so regressions are caught before they reach production.', isCorrect: true },
+            { id: 'c', text: 'During the final UAT phase only.', isCorrect: false },
+            { id: 'd', text: 'Never — performance tuning is a DevOps responsibility, not QA.', isCorrect: false },
+          ],
+          explanation: 'Performance bugs are expensive to fix late. Shift left: add baseline performance tests in CI/CD so any commit that slows an endpoint by 30%+ is caught in the PR — not in production during peak traffic.'
+        },
+      ],
+    },
+    {
+      level: 'api-ci-cd',
+      questions: [
+        {
+          question: 'What is Newman in the context of API testing?',
+          options: [
+            { id: 'a', text: 'A browser automation tool.', isCorrect: false },
+            { id: 'b', text: 'The command-line runner for Postman Collections that integrates with CI/CD pipelines.', isCorrect: true },
+            { id: 'c', text: 'A mock server for Postman.', isCorrect: false },
+            { id: 'd', text: 'A JWT decoding library.', isCorrect: false },
+          ],
+          explanation: 'Newman = "Postman in your terminal." You export a Collection + Environment from Postman, then run: newman run collection.json -e env.json. Exit code 0 = pass, non-zero = fail. CI/CD tools read exit codes.'
+        },
+        {
+          question: 'In a GitHub Actions workflow, what does "on: push: branches: [main]" mean?',
+          options: [
+            { id: 'a', text: 'The workflow runs manually when you click a button.', isCorrect: false },
+            { id: 'b', text: 'The workflow triggers automatically every time code is pushed to the main branch.', isCorrect: true },
+            { id: 'c', text: 'The workflow runs only when a PR is merged to main.', isCorrect: false },
+            { id: 'd', text: 'The workflow runs on a scheduled timer.', isCorrect: false },
+          ],
+          explanation: 'The on: trigger defines when the pipeline runs. push to main = runs on every commit to main. You can also add pull_request so tests run on every PR before merging.'
+        },
+        {
+          question: 'Why should API base URLs and secrets be stored as environment secrets in CI/CD (e.g., GitHub Secrets) rather than in the code?',
+          options: [
+            { id: 'a', text: 'Because CI/CD tools can\'t read files.', isCorrect: false },
+            { id: 'b', text: 'To prevent credentials from being exposed in the repository, logs, or to unauthorized contributors.', isCorrect: true },
+            { id: 'c', text: 'Because hardcoded values cause syntax errors in YAML.', isCorrect: false },
+            { id: 'd', text: 'Because environment secrets are faster to access at runtime.', isCorrect: false },
+          ],
+          explanation: 'GitHub Secrets are encrypted and only exposed to the workflow at runtime. They don\'t appear in logs, are not visible to fork PRs, and can be rotated without changing code. Never commit secrets to git.'
+        },
+        {
+          question: 'What should happen automatically when an API test fails in a CI/CD pipeline?',
+          options: [
+            { id: 'a', text: 'The pipeline marks the build as warning and continues to deploy.', isCorrect: false },
+            { id: 'b', text: 'The pipeline fails, blocks the merge/deployment, and notifies the team.', isCorrect: true },
+            { id: 'c', text: 'The test is retried 10 times before failing.', isCorrect: false },
+            { id: 'd', text: 'The test failure is logged but does not affect deployment.', isCorrect: false },
+          ],
+          explanation: 'The whole point of CI/CD testing is to act as a gate. A failing test MUST block deployment. If failures are silently ignored, the safety net is gone and broken APIs reach production.'
+        },
+        {
+          question: 'Why should lightweight API smoke tests run on every deployment (including to staging)?',
+          options: [
+            { id: 'a', text: 'To measure performance benchmarks for every release.', isCorrect: false },
+            { id: 'b', text: 'To immediately confirm the most critical endpoints are working after a deployment — catching deployment failures fast.', isCorrect: true },
+            { id: 'c', text: 'To replace full regression test suites.', isCorrect: false },
+            { id: 'd', text: 'To generate API documentation automatically.', isCorrect: false },
+          ],
+          explanation: 'Smoke tests (5-10 critical checks: can we log in? can we create an order?) run in under 2 minutes post-deploy. If they fail, you know the deployment broke something before any user notices.'
+        },
+      ],
+    },
   ],
   typescript: [
     {

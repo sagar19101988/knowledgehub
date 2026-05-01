@@ -127,9 +127,18 @@ export const ZONE_TIERS: Record<string, { id: string; label: string; color: stri
     { id: 'expert',       label: 'Expert',       color: 'text-amber-400', moduleIds: ['sql-window-functions','sql-cte','sql-advanced-joins','sql-stored-procedures','sql-triggers-constraints','sql-query-plan'] },
   ],
   api: [
-    { id: 'beginner',     label: 'Beginner',     color: 'text-emerald-400', moduleIds: ['basic']        },
-    { id: 'intermediate', label: 'Intermediate', color: 'text-sky-400',     moduleIds: ['intermediate'] },
-    { id: 'expert',       label: 'Expert',       color: 'text-amber-400',   moduleIds: ['expert']       },
+    {
+      id: 'beginner', label: 'Beginner', color: 'text-emerald-400',
+      moduleIds: ['api-what-is-api','api-http-methods','api-request-anatomy','api-response-anatomy','api-status-codes','api-json-basics','api-postman-basics','api-headers-params'],
+    },
+    {
+      id: 'intermediate', label: 'Intermediate', color: 'text-sky-400',
+      moduleIds: ['api-auth-types','api-test-scenarios','api-assertions','api-chaining','api-schema-validation','api-mock-servers'],
+    },
+    {
+      id: 'expert', label: 'Expert', color: 'text-amber-400',
+      moduleIds: ['api-automation','api-security-testing','api-contract-testing','api-performance-testing','api-ci-cd'],
+    },
   ],
   playwright: [
     { id: 'beginner',     label: 'Beginner',     color: 'text-emerald-400', moduleIds: ['basic']        },

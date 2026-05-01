@@ -1,5 +1,5 @@
-import React, { useState, useLayoutEffect, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import React, { useLayoutEffect, Suspense } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { BookOpen, LogOut, Sun, Moon, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BadgeToast } from './components/BadgeToast';
@@ -248,7 +248,9 @@ function HubMap() {
   const { logout } = useAuthStore();
   const today = new Date().toISOString().slice(0, 10);
   const bountyAlreadyClaimed = lastBountyDate === today;
-  const [viewMode, setViewMode] = useState<'map' | 'grid'>('map');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const viewMode = (searchParams.get('view') as 'map' | 'grid') ?? 'map';
+  const setViewMode = (v: 'map' | 'grid') => setSearchParams({ view: v }, { replace: true });
 
   const { current, next, progress } = getLevel(xp);
   const earnedCount = unlockedBadges.length;
