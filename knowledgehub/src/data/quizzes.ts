@@ -1580,9 +1580,451 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ]
     },
 
-    // ─── INTERMEDIATE & EXPERT (kept for continuity) ──────────────────────────
+    // ─── INTERMEDIATE ─────────────────────────────────────────────────────────
     {
-      level: 'intermediate',
+      level: 'sql-joins',
+      questions: [
+        {
+          question: 'After a test run that creates orders, you want to verify every order is linked to a valid user. Which query detects orphaned orders?',
+          options: [
+            { id: 'a', text: 'SELECT * FROM orders WHERE user_id = NULL;', isCorrect: false },
+            { id: 'b', text: 'SELECT o.id FROM orders o LEFT JOIN users u ON o.user_id = u.id WHERE u.id IS NULL;', isCorrect: true },
+            { id: 'c', text: 'SELECT * FROM orders INNER JOIN users ON orders.user_id = users.id;', isCorrect: false },
+            { id: 'd', text: 'SELECT * FROM orders WHERE user_id NOT NULL;', isCorrect: false },
+          ],
+          explanation: 'A LEFT JOIN returns all orders regardless of whether a user exists. WHERE u.id IS NULL then filters to only the orders with no matching user — exactly the orphaned records you want to catch.'
+        },
+        {
+          question: 'A bug report says "some users show 0 orders in the dashboard even though they have orders." You want to check every user and their order count including those with zero. Which JOIN is correct?',
+          options: [
+            { id: 'a', text: 'INNER JOIN — only users with at least one order appear.', isCorrect: false },
+            { id: 'b', text: 'RIGHT JOIN from users to orders.', isCorrect: false },
+            { id: 'c', text: 'LEFT JOIN from users to orders — every user appears, even those with no orders.', isCorrect: true },
+            { id: 'd', text: 'CROSS JOIN — gives every combination of user and order.', isCorrect: false },
+          ],
+          explanation: 'LEFT JOIN keeps ALL rows from the left table (users), filling NULLs where no matching order exists. INNER JOIN would silently omit users with zero orders — hiding exactly the bug you\'re looking for.'
+        },
+        {
+          question: 'You run: SELECT u.name, o.product FROM users u INNER JOIN orders o ON u.id = o.user_id. User "Amit" has never placed an order. What happens?',
+          options: [
+            { id: 'a', text: 'Amit appears with NULL in the product column.', isCorrect: false },
+            { id: 'b', text: 'Amit does not appear in the results at all.', isCorrect: true },
+            { id: 'c', text: 'The query throws an error because Amit has no orders.', isCorrect: false },
+            { id: 'd', text: 'Amit appears with an empty string in the product column.', isCorrect: false },
+          ],
+          explanation: 'INNER JOIN only returns rows where a match exists in BOTH tables. Since Amit has no orders, there is no matching row in the orders table, so he is completely excluded from the result.'
+        },
+        {
+          question: 'You are testing a 3-table join: users → orders → payments. An order exists but has no payment record yet. You need to see ALL orders including unpaid ones. Which join should you use between orders and payments?',
+          options: [
+            { id: 'a', text: 'INNER JOIN — it is the most common and correct choice.', isCorrect: false },
+            { id: 'b', text: 'CROSS JOIN — to see all combinations.', isCorrect: false },
+            { id: 'c', text: 'LEFT JOIN from orders to payments — keeps all orders, shows NULL for missing payments.', isCorrect: true },
+            { id: 'd', text: 'RIGHT JOIN from payments to orders.', isCorrect: false },
+          ],
+          explanation: 'LEFT JOIN from orders (left) to payments (right) keeps every order row. Where no matching payment exists, payment columns are NULL. This is the correct way to find "orders missing a payment" — a common QA validation query.'
+        },
+        {
+          question: 'After a data migration, you want to verify no orders reference a deleted user. Which query finds this data integrity issue?',
+          options: [
+            { id: 'a', text: 'SELECT * FROM orders WHERE user_id IS NULL;', isCorrect: false },
+            { id: 'b', text: 'SELECT * FROM orders WHERE user_id = 0;', isCorrect: false },
+            { id: 'c', text: 'SELECT o.id FROM orders o LEFT JOIN users u ON o.user_id = u.id WHERE u.id IS NULL AND o.user_id IS NOT NULL;', isCorrect: true },
+            { id: 'd', text: 'SELECT * FROM orders INNER JOIN users ON orders.id = users.id;', isCorrect: false },
+          ],
+          explanation: 'A LEFT JOIN combined with WHERE u.id IS NULL finds orders where the JOIN found no matching user — meaning the user_id points to a user that no longer exists. Adding AND o.user_id IS NOT NULL excludes intentionally blank user_ids.'
+        },
+      ]
+    },
+    {
+      level: 'sql-group-by',
+      questions: [
+        {
+          question: 'You want to find product categories where more than 100 orders were placed this month. Which clause filters the grouped results?',
+          options: [
+            { id: 'a', text: 'WHERE COUNT(*) > 100', isCorrect: false },
+            { id: 'b', text: 'HAVING COUNT(*) > 100', isCorrect: true },
+            { id: 'c', text: 'FILTER COUNT(*) > 100', isCorrect: false },
+            { id: 'd', text: 'ORDER BY COUNT(*) > 100', isCorrect: false },
+          ],
+          explanation: 'HAVING filters groups AFTER GROUP BY collapses them. WHERE can only filter individual rows BEFORE grouping. Aggregate functions like COUNT(*) cannot appear in a WHERE clause — they must go in HAVING.'
+        },
+        {
+          question: 'A QA test needs to find duplicate email addresses in the users table. Which query is correct?',
+          options: [
+            { id: 'a', text: 'SELECT email FROM users WHERE email = email;', isCorrect: false },
+            { id: 'b', text: 'SELECT email, COUNT(*) FROM users GROUP BY email HAVING COUNT(*) > 1;', isCorrect: true },
+            { id: 'c', text: 'SELECT DISTINCT email FROM users GROUP BY email;', isCorrect: false },
+            { id: 'd', text: 'SELECT email FROM users HAVING COUNT(email) > 1;', isCorrect: false },
+          ],
+          explanation: 'GROUP BY email collapses all rows with the same email. HAVING COUNT(*) > 1 then keeps only the groups where more than one row shares that email — revealing duplicates. This is a critical data integrity check.'
+        },
+        {
+          question: 'What is the correct SQL execution order for WHERE, GROUP BY, and HAVING?',
+          options: [
+            { id: 'a', text: 'GROUP BY → WHERE → HAVING', isCorrect: false },
+            { id: 'b', text: 'HAVING → WHERE → GROUP BY', isCorrect: false },
+            { id: 'c', text: 'WHERE → GROUP BY → HAVING', isCorrect: true },
+            { id: 'd', text: 'WHERE → HAVING → GROUP BY', isCorrect: false },
+          ],
+          explanation: 'SQL processes clauses in this order: FROM → WHERE (filter rows) → GROUP BY (collapse into groups) → HAVING (filter groups) → SELECT → ORDER BY. This is why you cannot use aggregate functions in WHERE — the grouping has not happened yet at that step.'
+        },
+        {
+          question: 'You run a report to count orders by status. The result shows pending: 142, shipped: 87, delivered: 1204. You need this as a SINGLE ROW with separate columns. Which technique achieves this?',
+          options: [
+            { id: 'a', text: 'Use UNION to combine three separate queries.', isCorrect: false },
+            { id: 'b', text: 'Use CASE inside COUNT to pivot the data into columns.', isCorrect: true },
+            { id: 'c', text: 'Use a subquery for each status column.', isCorrect: false },
+            { id: 'd', text: 'Use GROUP BY status ORDER BY status.', isCorrect: false },
+          ],
+          explanation: 'COUNT(CASE WHEN status = "pending" THEN 1 END) counts only rows matching that condition, letting you create multiple aggregate columns in a single pass. This is called conditional aggregation or pivoting — a powerful QA reporting pattern.'
+        },
+        {
+          question: 'A QA query uses GROUP BY city. A developer asks: "Can I add the users.email column to the SELECT without adding it to GROUP BY?" What is the correct answer?',
+          options: [
+            { id: 'a', text: 'Yes, any column can be selected alongside GROUP BY.', isCorrect: false },
+            { id: 'b', text: 'No. In strict SQL mode, every non-aggregated column in SELECT must appear in GROUP BY.', isCorrect: true },
+            { id: 'c', text: 'Yes, but only if email has an index.', isCorrect: false },
+            { id: 'd', text: 'No, unless you add ORDER BY email.', isCorrect: false },
+          ],
+          explanation: 'SQL requires that every column in SELECT is either in the GROUP BY clause OR wrapped in an aggregate function (COUNT, SUM, etc.). If email is not grouped, the database does not know which email to show for the group — some databases error, others return an arbitrary value.'
+        },
+      ]
+    },
+    {
+      level: 'sql-subqueries',
+      questions: [
+        {
+          question: 'You want to find all users who have NEVER placed an order. Which query correctly uses a subquery for this?',
+          options: [
+            { id: 'a', text: 'SELECT * FROM users WHERE id IN (SELECT user_id FROM orders);', isCorrect: false },
+            { id: 'b', text: 'SELECT * FROM users WHERE id NOT IN (SELECT user_id FROM orders WHERE user_id IS NOT NULL);', isCorrect: true },
+            { id: 'c', text: 'SELECT * FROM users WHERE orders.user_id IS NULL;', isCorrect: false },
+            { id: 'd', text: 'SELECT * FROM users NOT JOIN orders ON users.id = orders.user_id;', isCorrect: false },
+          ],
+          explanation: 'NOT IN with a subquery finds users whose ID does not appear in the orders table. The WHERE user_id IS NOT NULL inside the subquery is critical — a single NULL in a NOT IN list causes the entire query to return zero rows.'
+        },
+        {
+          question: 'A subquery runs inside a WHERE clause. Which part of the query executes FIRST?',
+          options: [
+            { id: 'a', text: 'The outer query — it determines what data to pass to the subquery.', isCorrect: false },
+            { id: 'b', text: 'The inner (sub) query — its result is used by the outer query.', isCorrect: true },
+            { id: 'c', text: 'Both run simultaneously in parallel.', isCorrect: false },
+            { id: 'd', text: 'The ORDER BY clause at the end.', isCorrect: false },
+          ],
+          explanation: 'The database always evaluates the inner subquery first, gets a result (a value, a list, or a table), and then uses that result to evaluate the outer query. This is why subqueries are great for "first find X, then find Y based on X" patterns.'
+        },
+        {
+          question: 'You are checking whether EXISTS or IN is better for: "find users who have at least one order over ₹10,000". The orders table has 5 million rows. What is the recommendation?',
+          options: [
+            { id: 'a', text: 'IN — it is always faster because the list is computed once.', isCorrect: false },
+            { id: 'b', text: 'EXISTS — it stops scanning as soon as it finds the first match, which is faster on large tables.', isCorrect: true },
+            { id: 'c', text: 'They perform identically in all cases.', isCorrect: false },
+            { id: 'd', text: 'Neither — use a LEFT JOIN instead for large tables.', isCorrect: false },
+          ],
+          explanation: 'EXISTS short-circuits — as soon as it finds ONE matching row for a user, it stops looking and returns TRUE. IN retrieves the entire matching list upfront. For large tables, EXISTS is generally faster because it does not need to load millions of values into memory.'
+        },
+        {
+          question: 'A correlated subquery references a column from the outer query. What is the consequence of this?',
+          options: [
+            { id: 'a', text: 'The subquery runs only once, making it very fast.', isCorrect: false },
+            { id: 'b', text: 'The subquery runs once for EACH ROW in the outer query, which can be slow on large tables.', isCorrect: true },
+            { id: 'c', text: 'The subquery cannot be used in WHERE — only in SELECT.', isCorrect: false },
+            { id: 'd', text: 'It causes a syntax error in most databases.', isCorrect: false },
+          ],
+          explanation: 'A correlated subquery re-evaluates for every single row of the outer query because its condition changes based on the current outer row. On a million-row table, this means the inner query runs a million times. This is why correlated subqueries need careful use on large datasets.'
+        },
+        {
+          question: 'You need to find orders whose amount is above that SPECIFIC USER\'s personal average order value. Which approach is correct?',
+          options: [
+            { id: 'a', text: 'WHERE amount > (SELECT AVG(amount) FROM orders) — global average.', isCorrect: false },
+            { id: 'b', text: 'WHERE amount > (SELECT AVG(o2.amount) FROM orders o2 WHERE o2.user_id = o.user_id) — correlated subquery.', isCorrect: true },
+            { id: 'c', text: 'HAVING amount > AVG(amount) GROUP BY user_id.', isCorrect: false },
+            { id: 'd', text: 'WHERE amount > AVG(amount) OVER (PARTITION BY user_id).', isCorrect: false },
+          ],
+          explanation: 'The correlated subquery references o.user_id from the outer query, so it calculates each user\'s personal average — not the global one. Option A uses the global average. Option D is actually valid as a window function, but that is expert-level material.'
+        },
+      ]
+    },
+    {
+      level: 'sql-views',
+      questions: [
+        {
+          question: 'A QA team runs the same complex 4-table JOIN query every day to check order health. What is the BEST way to share this query across the team without copy-pasting?',
+          options: [
+            { id: 'a', text: 'Save it in a text file and email it to each team member.', isCorrect: false },
+            { id: 'b', text: 'Create a VIEW — then anyone can query it with a simple SELECT.', isCorrect: true },
+            { id: 'c', text: 'Create a stored procedure that only the DBA can run.', isCorrect: false },
+            { id: 'd', text: 'Add an index to every column involved in the JOIN.', isCorrect: false },
+          ],
+          explanation: 'A VIEW stores the complex query with a name. Any team member can then write SELECT * FROM order_health_view — they get the same accurate, consistent results without needing to understand or copy the 4-table JOIN underneath.'
+        },
+        {
+          question: 'A View called "user_summary" is based on: SELECT id, name, email, COUNT(orders) FROM users JOIN orders GROUP BY id. Can you run UPDATE user_summary SET name = "Priya" WHERE id = 1?',
+          options: [
+            { id: 'a', text: 'Yes, Views always support UPDATE operations.', isCorrect: false },
+            { id: 'b', text: 'No. Views containing GROUP BY, aggregates, or JOINs are read-only.', isCorrect: true },
+            { id: 'c', text: 'Yes, but only if you have admin privileges.', isCorrect: false },
+            { id: 'd', text: 'Yes, the UPDATE goes to the underlying users table automatically.', isCorrect: false },
+          ],
+          explanation: 'Views with GROUP BY, aggregate functions (COUNT, SUM), DISTINCT, or multiple base tables are generally read-only — the database cannot determine which underlying row to update. Simple single-table views without aggregates can often be updated.'
+        },
+        {
+          question: 'Does a View store a copy of the data or execute the query each time it is accessed?',
+          options: [
+            { id: 'a', text: 'It stores a snapshot of data at creation time.', isCorrect: false },
+            { id: 'b', text: 'It executes the underlying query fresh each time it is queried.', isCorrect: true },
+            { id: 'c', text: 'It caches the result for 1 hour.', isCorrect: false },
+            { id: 'd', text: 'It depends on the database — MySQL always caches, PostgreSQL never does.', isCorrect: false },
+          ],
+          explanation: 'A regular View is just a stored query definition — no data is saved. Every time you SELECT from it, the database runs the underlying SQL fresh. This means results are always up-to-date. Only Materialized Views (PostgreSQL) store data on disk.'
+        },
+        {
+          question: 'You want to let junior QA testers query user data, but the users table contains a password_hash column that must stay hidden. What is the cleanest solution?',
+          options: [
+            { id: 'a', text: 'Grant them full SELECT permission on the users table and trust them.', isCorrect: false },
+            { id: 'b', text: 'Create a View that SELECTs all columns except password_hash, then grant access to the View only.', isCorrect: true },
+            { id: 'c', text: 'Rename the column to something confusing so they ignore it.', isCorrect: false },
+            { id: 'd', text: 'Delete the password_hash column from the users table.', isCorrect: false },
+          ],
+          explanation: 'Views are an elegant security layer. CREATE VIEW public_users AS SELECT id, name, email FROM users — the password_hash column is simply not included. Junior testers get everything they need without ever seeing sensitive data.'
+        },
+        {
+          question: 'A View named "active_orders" was created last month. The definition needs a new filter added. Which command updates an existing View without dropping it first?',
+          options: [
+            { id: 'a', text: 'UPDATE VIEW active_orders SET ...', isCorrect: false },
+            { id: 'b', text: 'ALTER VIEW active_orders AS SELECT ...', isCorrect: false },
+            { id: 'c', text: 'CREATE OR REPLACE VIEW active_orders AS SELECT ...', isCorrect: true },
+            { id: 'd', text: 'MODIFY VIEW active_orders AS SELECT ...', isCorrect: false },
+          ],
+          explanation: 'CREATE OR REPLACE VIEW replaces the definition in place — no need to DROP and recreate, which would break any permissions granted on the View. ALTER VIEW exists in some databases but CREATE OR REPLACE is more universally supported.'
+        },
+      ]
+    },
+    {
+      level: 'sql-indexes',
+      questions: [
+        {
+          question: 'A query SELECT * FROM orders WHERE email = "priya@test.com" is taking 8 seconds on a 10-million row table. What is the most likely cause and fix?',
+          options: [
+            { id: 'a', text: 'The query has a syntax error. Fix the SQL.', isCorrect: false },
+            { id: 'b', text: 'No index exists on the email column — the DB scans all 10M rows. Fix: CREATE INDEX on email.', isCorrect: true },
+            { id: 'c', text: 'The table has too many columns. Remove unused columns.', isCorrect: false },
+            { id: 'd', text: 'The ORDER BY is missing — add ORDER BY email.', isCorrect: false },
+          ],
+          explanation: 'Without an index, a query with WHERE email = "..." forces a Full Table Scan — checking all 10 million rows one by one. Adding CREATE INDEX idx_email ON orders(email) lets the DB jump directly to the matching rows, typically reducing query time from seconds to milliseconds.'
+        },
+        {
+          question: 'You run EXPLAIN SELECT * FROM orders WHERE status = "pending". The output shows type: ALL and key: NULL. What does this mean?',
+          options: [
+            { id: 'a', text: 'The query is using an index efficiently — ALL means all conditions matched.', isCorrect: false },
+            { id: 'b', text: 'The database is doing a Full Table Scan (no index is being used).', isCorrect: true },
+            { id: 'c', text: 'The query returned NULL — no pending orders exist.', isCorrect: false },
+            { id: 'd', text: 'The status column has a UNIQUE constraint preventing index use.', isCorrect: false },
+          ],
+          explanation: 'In EXPLAIN output, type: ALL = Full Table Scan (bad for large tables). key: NULL = no index was used. You want to see type: ref or range and key showing an index name. Fix by adding CREATE INDEX idx_orders_status ON orders(status).'
+        },
+        {
+          question: 'You add 10 indexes to a table to speed up all SELECT queries. A developer complains that INSERT operations are now very slow. Why?',
+          options: [
+            { id: 'a', text: 'Indexes lock the table during SELECT, blocking INSERTs.', isCorrect: false },
+            { id: 'b', text: 'Each INSERT must also update all 10 index structures, adding write overhead per row.', isCorrect: true },
+            { id: 'c', text: 'INSERT and indexes are incompatible — you must drop indexes before inserting.', isCorrect: false },
+            { id: 'd', text: 'The database ran out of disk space due to all the indexes.', isCorrect: false },
+          ],
+          explanation: 'Every time a row is inserted, updated, or deleted, the database must also update every index that covers those columns. 10 indexes means 10 extra write operations per INSERT. This is the classic index trade-off: fast reads, slower writes. Index only what you frequently query.'
+        },
+        {
+          question: 'A query filters by both status AND created_at together: WHERE status = "shipped" AND created_at > "2025-01-01". Which index design is BEST?',
+          options: [
+            { id: 'a', text: 'Two separate indexes: one on status, one on created_at.', isCorrect: false },
+            { id: 'b', text: 'A composite index on (status, created_at).', isCorrect: true },
+            { id: 'c', text: 'An index on created_at only — date filters are always the bottleneck.', isCorrect: false },
+            { id: 'd', text: 'An index on status only — low-cardinality columns should be indexed first.', isCorrect: false },
+          ],
+          explanation: 'A composite index on (status, created_at) covers both filter conditions in one efficient structure. Two separate indexes may each be scanned and merged, which is less efficient. The order matters: put the equality filter column (status) first, the range filter (created_at) second.'
+        },
+        {
+          question: 'After a production performance complaint, you want to check if a specific query is using an index. What SQL command gives you this information?',
+          options: [
+            { id: 'a', text: 'DESCRIBE orders;', isCorrect: false },
+            { id: 'b', text: 'SHOW COLUMNS FROM orders;', isCorrect: false },
+            { id: 'c', text: 'EXPLAIN SELECT ... the query ...;', isCorrect: true },
+            { id: 'd', text: 'CHECK TABLE orders;', isCorrect: false },
+          ],
+          explanation: 'EXPLAIN shows the query execution plan — which indexes the optimizer chose, how many rows it estimates it will scan, and whether it uses a filesort. It is the first tool to reach for when debugging slow queries. EXPLAIN ANALYZE (PostgreSQL) also shows actual execution times.'
+        },
+      ]
+    },
+    {
+      level: 'sql-transactions',
+      questions: [
+        {
+          question: 'A payment flow runs two queries: (1) debit user wallet, (2) credit merchant account. The server crashes between them. What prevents the wallet being debited without the merchant receiving the money?',
+          options: [
+            { id: 'a', text: 'A UNIQUE constraint on the payments table.', isCorrect: false },
+            { id: 'b', text: 'Wrapping both queries in a transaction — if step 2 fails, ROLLBACK undoes step 1.', isCorrect: true },
+            { id: 'c', text: 'Adding an index on the amount column.', isCorrect: false },
+            { id: 'd', text: 'Using a LEFT JOIN between the wallet and merchant tables.', isCorrect: false },
+          ],
+          explanation: 'Transactions guarantee Atomicity — all operations succeed or none do. BEGIN → UPDATE wallet → UPDATE merchant → COMMIT. If anything fails before COMMIT, the ROLLBACK restores the wallet to its original balance, preventing money from disappearing.'
+        },
+        {
+          question: 'Which SQL command permanently saves all changes made inside an open transaction?',
+          options: [
+            { id: 'a', text: 'SAVE', isCorrect: false },
+            { id: 'b', text: 'END TRANSACTION', isCorrect: false },
+            { id: 'c', text: 'COMMIT', isCorrect: true },
+            { id: 'd', text: 'CONFIRM', isCorrect: false },
+          ],
+          explanation: 'COMMIT finalises the transaction — all changes become permanent and visible to other users. Before COMMIT, the changes are only visible to the current session. ROLLBACK is the opposite: it discards all changes and reverts the database to its state at the BEGIN.'
+        },
+        {
+          question: 'What does the "A" in ACID stand for, and what does it guarantee?',
+          options: [
+            { id: 'a', text: 'Authentication — only authorised users can write data.', isCorrect: false },
+            { id: 'b', text: 'Atomicity — a transaction is all-or-nothing; partial success is impossible.', isCorrect: true },
+            { id: 'c', text: 'Availability — the database is always online.', isCorrect: false },
+            { id: 'd', text: 'Asynchronous — transactions run in the background.', isCorrect: false },
+          ],
+          explanation: 'Atomicity means a transaction is treated as a single indivisible unit. If any statement inside it fails, the entire transaction is rolled back. This is what prevents half-executed business logic — like charging a user without creating their order.'
+        },
+        {
+          question: 'As a QA tester, you want to run a DELETE query on a test database to clean up, but you are nervous about removing the wrong rows. What is the SAFEST approach?',
+          options: [
+            { id: 'a', text: 'Run the DELETE with a LIMIT 1 first to test.', isCorrect: false },
+            { id: 'b', text: 'Wrap the DELETE in a transaction: BEGIN → DELETE → check row count → ROLLBACK (to verify) → then COMMIT if correct.', isCorrect: true },
+            { id: 'c', text: 'Duplicate the table first, then delete from the original.', isCorrect: false },
+            { id: 'd', text: 'Add a WHERE id > 0 to the DELETE to be safe.', isCorrect: false },
+          ],
+          explanation: 'Using BEGIN → DELETE → SELECT COUNT(*) to verify → ROLLBACK lets you safely "preview" the deletion. You can see exactly how many rows would be deleted without actually committing the change. Once satisfied, run it again and COMMIT. This is a standard QA database testing technique.'
+        },
+        {
+          question: 'Two transactions run simultaneously. Transaction A reads a row. Transaction B updates that same row and commits. Transaction A reads the row again and gets a different value. What read problem is this?',
+          options: [
+            { id: 'a', text: 'Dirty Read — reading uncommitted data.', isCorrect: false },
+            { id: 'b', text: 'Non-repeatable Read — the same row returns different values within one transaction.', isCorrect: true },
+            { id: 'c', text: 'Phantom Read — new rows appeared between two reads.', isCorrect: false },
+            { id: 'd', text: 'Deadlock — both transactions are waiting for each other.', isCorrect: false },
+          ],
+          explanation: 'A Non-repeatable Read happens when you read the same row twice within one transaction and get different results because another committed transaction changed it in between. This differs from a Dirty Read (reading uncommitted data) and a Phantom Read (new rows appearing between identical queries).'
+        },
+      ]
+    },
+    {
+      level: 'sql-string-date',
+      questions: [
+        {
+          question: 'Users are complaining the search for their email "Priya@Gmail.COM" is not finding their account. The database stores emails as "priya@gmail.com". Which fix makes the search case-insensitive?',
+          options: [
+            { id: 'a', text: 'WHERE email = "Priya@Gmail.COM"', isCorrect: false },
+            { id: 'b', text: 'WHERE LOWER(email) = LOWER("Priya@Gmail.COM")', isCorrect: true },
+            { id: 'c', text: 'WHERE TRIM(email) = "Priya@Gmail.COM"', isCorrect: false },
+            { id: 'd', text: 'WHERE email LIKE "Priya@Gmail.COM"', isCorrect: false },
+          ],
+          explanation: 'LOWER() converts both sides to lowercase before comparing, making the match case-insensitive. LIKE without wildcards is still case-sensitive in many databases. TRIM only removes spaces. This is a very common bug in login and search features.'
+        },
+        {
+          question: 'A QA check reveals some user phone numbers have leading/trailing spaces entered during registration. Which query finds these dirty records?',
+          options: [
+            { id: 'a', text: 'SELECT * FROM users WHERE phone = " ";', isCorrect: false },
+            { id: 'b', text: 'SELECT * FROM users WHERE phone != TRIM(phone);', isCorrect: true },
+            { id: 'c', text: 'SELECT * FROM users WHERE LENGTH(phone) = 0;', isCorrect: false },
+            { id: 'd', text: 'SELECT * FROM users WHERE phone IS NULL;', isCorrect: false },
+          ],
+          explanation: 'TRIM(phone) removes leading and trailing spaces. If TRIM(phone) is different from phone itself, the original value had spaces. This WHERE phone != TRIM(phone) condition catches any phone number with extra whitespace — a classic data quality validation.'
+        },
+        {
+          question: 'You need to find all orders placed in the last 7 days. Today\'s date is dynamic. Which query is correct?',
+          options: [
+            { id: 'a', text: 'WHERE created_at >= "2025-04-24"', isCorrect: false },
+            { id: 'b', text: 'WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)', isCorrect: true },
+            { id: 'c', text: 'WHERE DATEDIFF(created_at, NOW()) = 7', isCorrect: false },
+            { id: 'd', text: 'WHERE created_at > LAST_WEEK()', isCorrect: false },
+          ],
+          explanation: 'DATE_SUB(NOW(), INTERVAL 7 DAY) dynamically calculates 7 days ago from right now. This is the correct pattern for rolling-window queries — hardcoding a date like "2025-04-24" breaks as soon as tomorrow comes. DATEDIFF = 7 would only return exactly 7 days ago, not the last 7 days.'
+        },
+        {
+          question: 'An SLA requires orders to be delivered within 5 days of placement. Which query finds SLA breaches?',
+          options: [
+            { id: 'a', text: 'SELECT * FROM orders WHERE delivery_date > 5;', isCorrect: false },
+            { id: 'b', text: 'SELECT * FROM orders WHERE DATEDIFF(delivered_at, ordered_at) > 5;', isCorrect: true },
+            { id: 'c', text: 'SELECT * FROM orders WHERE delivered_at - ordered_at > 5;', isCorrect: false },
+            { id: 'd', text: 'SELECT * FROM orders WHERE DATE(delivered_at) > DATE(ordered_at) + 5;', isCorrect: false },
+          ],
+          explanation: 'DATEDIFF(delivered_at, ordered_at) returns the number of days between the two dates. DATEDIFF > 5 catches every order that took more than 5 days to deliver. Direct subtraction of datetime columns gives seconds in some databases, not days — DATEDIFF is the reliable, readable choice.'
+        },
+        {
+          question: 'Users reported that "search by name" is returning wrong results for names like "jose" when the stored value is "José". Which LIKE pattern finds ALL users whose name STARTS with "P"?',
+          options: [
+            { id: 'a', text: 'WHERE name = "P%"', isCorrect: false },
+            { id: 'b', text: 'WHERE name LIKE "P%"', isCorrect: true },
+            { id: 'c', text: 'WHERE name STARTS "P"', isCorrect: false },
+            { id: 'd', text: 'WHERE name CONTAINS "P%"', isCorrect: false },
+          ],
+          explanation: 'LIKE uses wildcards: % matches any sequence of characters, _ matches exactly one character. "P%" means "starts with P, followed by anything". The = operator does an exact match — "P%" would literally look for a name that is the two characters "P%". STARTS and CONTAINS are not valid SQL.'
+        },
+      ]
+    },
+    {
+      level: 'sql-case-null',
+      questions: [
+        {
+          question: 'A query checks WHERE discount = NULL to find products with no discount. It returns 0 rows even though many products have no discount. Why?',
+          options: [
+            { id: 'a', text: 'The discount column has a default value of 0, not NULL.', isCorrect: false },
+            { id: 'b', text: 'NULL cannot be compared with = in SQL. You must use IS NULL.', isCorrect: true },
+            { id: 'c', text: 'The query is missing a GROUP BY clause.', isCorrect: false },
+            { id: 'd', text: 'discount is a reserved word and cannot be used in WHERE.', isCorrect: false },
+          ],
+          explanation: 'NULL represents the absence of a value. In SQL, NULL = NULL evaluates to NULL (not TRUE), so WHERE discount = NULL never matches anything. The correct syntax is WHERE discount IS NULL. This is one of the most common SQL mistakes for beginners.'
+        },
+        {
+          question: 'A user\'s total bill is calculated as: amount + tax + shipping. Some orders have NULL shipping. What does amount + NULL return?',
+          options: [
+            { id: 'a', text: 'The amount value unchanged — NULL is treated as 0.', isCorrect: false },
+            { id: 'b', text: 'NULL — any arithmetic with NULL returns NULL.', isCorrect: true },
+            { id: 'c', text: 'An error — you cannot add NULL to a number.', isCorrect: false },
+            { id: 'd', text: '0 — NULL is converted to 0 in arithmetic.', isCorrect: false },
+          ],
+          explanation: 'Any mathematical operation involving NULL produces NULL. 5 + NULL = NULL. This is why order totals silently become NULL when any fee field is missing. The fix is: amount + COALESCE(tax, 0) + COALESCE(shipping, 0) — COALESCE substitutes a default when NULL is encountered.'
+        },
+        {
+          question: 'You want to display an order\'s discount percentage, but show 0 if no discount is set (NULL). Which function handles this?',
+          options: [
+            { id: 'a', text: 'IFNULL(discount, 0) or COALESCE(discount, 0)', isCorrect: true },
+            { id: 'b', text: 'NULLIF(discount, 0)', isCorrect: false },
+            { id: 'c', text: 'IS NOT NULL(discount, 0)', isCorrect: false },
+            { id: 'd', text: 'DEFAULT(discount, 0)', isCorrect: false },
+          ],
+          explanation: 'COALESCE(discount, 0) returns the first non-NULL value — discount if it exists, otherwise 0. NULLIF does the opposite: it returns NULL when a value equals a given value (like NULLIF(discount, 0) returns NULL when discount is 0). They solve opposite problems.'
+        },
+        {
+          question: 'A QA report needs to label orders as "High", "Medium", or "Low" based on amount: >50000 = High, >10000 = Medium, else Low. Which SQL feature generates this label column?',
+          options: [
+            { id: 'a', text: 'GROUP BY amount', isCorrect: false },
+            { id: 'b', text: 'A CASE statement in the SELECT clause', isCorrect: true },
+            { id: 'c', text: 'A subquery in the WHERE clause', isCorrect: false },
+            { id: 'd', text: 'COALESCE(amount, "Low")', isCorrect: false },
+          ],
+          explanation: 'CASE WHEN amount > 50000 THEN "High" WHEN amount > 10000 THEN "Medium" ELSE "Low" END creates a computed column with conditional logic. This is the SQL equivalent of an if-else chain and is extremely useful for categorising data in reports and QA dashboards.'
+        },
+        {
+          question: 'You need to count how many orders are in each status (pending, shipped, delivered) in a SINGLE ROW with three separate count columns. Which approach achieves this?',
+          options: [
+            { id: 'a', text: 'Three separate SELECT COUNT queries joined with UNION.', isCorrect: false },
+            { id: 'b', text: 'COUNT(CASE WHEN status = "X" THEN 1 END) for each status in one SELECT.', isCorrect: true },
+            { id: 'c', text: 'GROUP BY status — it automatically pivots into columns.', isCorrect: false },
+            { id: 'd', text: 'SELECT COUNT(*) WHERE status IN ("pending", "shipped", "delivered").', isCorrect: false },
+          ],
+          explanation: 'Conditional aggregation uses CASE inside COUNT to count only rows matching each condition. COUNT(CASE WHEN status = "pending" THEN 1 END) counts pending rows; NULLs (non-matching rows) are automatically ignored by COUNT. This runs in a single pass — far more efficient than three separate queries.'
+        },
+      ]
+    },
+
+    // ─── EXPERT (placeholder) ─────────────────────────────────────────────────
+    {
+      level: 'expert',
       questions: [
         {
           question: 'What does a JOIN do?',
@@ -1595,38 +2037,48 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
           explanation: 'JOIN acts like a bridge, connecting tables (like Users and Orders) using a common ID.'
         },
         {
-          question: 'What is the difference between LEFT JOIN and INNER JOIN?',
+          question: 'What is a Subquery?',
           options: [
-            { id: 'a', text: 'INNER gets only matching rows. LEFT gets all rows from the first table, even if there is no match.', isCorrect: true },
-            { id: 'b', text: 'LEFT JOIN is faster than INNER JOIN.', isCorrect: false },
-            { id: 'c', text: 'There is no difference.', isCorrect: false },
-            { id: 'd', text: 'LEFT JOIN requires a PRIMARY KEY; INNER JOIN does not.', isCorrect: false },
+            { id: 'a', text: 'A query nested inside another query.', isCorrect: true },
+            { id: 'b', text: 'A query that runs very slowly.', isCorrect: false },
+            { id: 'c', text: 'A query that deletes a subset of data.', isCorrect: false },
+            { id: 'd', text: 'A backup query stored in the database.', isCorrect: false },
           ],
-          explanation: 'LEFT JOIN keeps everything from the left table. If there is no match on the right, it just shows NULL.'
+          explanation: 'A subquery is a query inside a query. It calculates a value first, which the main query then uses.'
         },
         {
-          question: 'What does GROUP BY do?',
+          question: 'What does an INDEX do in a database?',
           options: [
-            { id: 'a', text: 'It sorts the results alphabetically.', isCorrect: false },
-            { id: 'b', text: 'It groups rows that have the same values into summary rows, like finding the total sales per city.', isCorrect: true },
-            { id: 'c', text: 'It creates a new group of users.', isCorrect: false },
-            { id: 'd', text: 'It limits results to a specific number of rows.', isCorrect: false },
+            { id: 'a', text: 'It makes reading data (SELECT) much faster, like an index in a book.', isCorrect: true },
+            { id: 'b', text: 'It automatically fixes broken queries.', isCorrect: false },
+            { id: 'c', text: 'It deletes old data automatically.', isCorrect: false },
+            { id: 'd', text: 'It enforces unique values across a table.', isCorrect: false },
           ],
-          explanation: 'GROUP BY is used with functions like COUNT or SUM to group data together.'
+          explanation: 'An index creates a quick lookup map, so the database does not have to scan every single row.'
         },
         {
-          question: 'You want to find users who have placed more than 5 orders. Which query is correct?',
+          question: 'What is a Transaction in SQL?',
           options: [
-            { id: 'a', text: 'SELECT user_id FROM orders WHERE COUNT(*) > 5 GROUP BY user_id;', isCorrect: false },
-            { id: 'b', text: 'SELECT user_id, COUNT(*) FROM orders GROUP BY user_id HAVING COUNT(*) > 5;', isCorrect: true },
-            { id: 'c', text: 'SELECT user_id FROM orders GROUP BY user_id WHERE COUNT(*) > 5;', isCorrect: false },
-            { id: 'd', text: 'SELECT user_id FROM orders HAVING COUNT(*) > 5;', isCorrect: false },
+            { id: 'a', text: 'Buying a license for the SQL server.', isCorrect: false },
+            { id: 'b', text: 'A block of SQL commands that must ALL succeed, or ALL fail together (like transferring money).', isCorrect: true },
+            { id: 'c', text: 'A table that records user clicks.', isCorrect: false },
+            { id: 'd', text: 'A scheduled job that runs SQL at a set time.', isCorrect: false },
           ],
-          explanation: 'Aggregate conditions must use HAVING, not WHERE. WHERE filters individual rows before grouping; HAVING filters aggregated groups after. GROUP BY must come before HAVING.'
+          explanation: 'Transactions ensure data is not left halfway changed. If an error happens, it rolls back to how it was.'
         },
         {
-          question: 'A Users table and an Orders table are joined. A user with no orders appears in a LEFT JOIN result. What value does the order_id column show for this user?',
+          question: 'Adding an index to a table makes SELECT faster. What is the trade-off?',
           options: [
+            { id: 'a', text: 'Indexes make all operations slower.', isCorrect: false },
+            { id: 'b', text: 'Indexes slow down INSERT, UPDATE, and DELETE because the index must be updated on every write.', isCorrect: true },
+            { id: 'c', text: 'Indexes only work on VARCHAR columns.', isCorrect: false },
+            { id: 'd', text: 'There is no trade-off — indexes always improve performance.', isCorrect: false },
+          ],
+          explanation: 'Indexes are a double-edged sword. Read performance improves dramatically, but every write operation must also update the index structure.'
+        },
+      ]
+    }
+  ],
             { id: 'a', text: '0 — the default integer value.', isCorrect: false },
             { id: 'b', text: 'NULL — no matching row exists in the Orders table.', isCorrect: true },
             { id: 'c', text: 'The user\'s own ID is used as a fallback.', isCorrect: false },

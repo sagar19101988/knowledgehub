@@ -129,8 +129,8 @@ const ZONE_TIERS: Record<string, { id: string; label: string; color: string; mod
       id: 'beginner', label: 'Beginner', color: 'text-emerald-400',
       moduleIds: ['sql-what-is-db','sql-select','sql-where','sql-order-limit','sql-insert','sql-update-delete','sql-data-types','sql-aggregations'],
     },
-    { id: 'intermediate', label: 'Intermediate', color: 'text-sky-400',     moduleIds: ['intermediate'] },
-    { id: 'expert',       label: 'Expert',       color: 'text-amber-400',   moduleIds: ['expert']       },
+    { id: 'intermediate', label: 'Intermediate', color: 'text-sky-400',   moduleIds: ['sql-joins','sql-group-by','sql-subqueries','sql-views','sql-indexes','sql-transactions','sql-string-date','sql-case-null'] },
+    { id: 'expert',       label: 'Expert',       color: 'text-amber-400', moduleIds: ['expert'] },
   ],
   api: [
     { id: 'beginner',     label: 'Beginner',     color: 'text-emerald-400', moduleIds: ['basic']        },

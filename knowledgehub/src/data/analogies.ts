@@ -2984,50 +2984,1086 @@ These queries take seconds to write and can catch data errors that would take ho
         `
       },
 
-      // ─── INTERMEDIATE & EXPERT (kept for continuity) ────────────────────────
+      // ─── INTERMEDIATE ────────────────────────────────────────────────────────
 
       {
-        id: 'intermediate',
-        title: 'Intermediate: Combining Data with JOINs',
-        analogy: "Data is often split up into different boxes to keep things organized. A JOIN is like taking a puzzle piece from Box A and perfectly snapping it into the matching piece from Box B.",
+        id: 'sql-joins',
+        title: 'Intermediate: JOINs — Connecting Tables',
+        analogy: "A database is like a company with different departments: HR keeps names, Finance keeps salaries, IT keeps laptops. A JOIN is the all-access badge that lets you walk between departments and pull info from all of them at once.",
         lessonMarkdown: `
-### 1. What is a JOIN?
-*💡 Analogy: Imagine you have a list of students' names, and a separate list of locker numbers. The JOIN is the master key that connects the student to their specific locker using their Student ID.*
+### 1. Why Tables Are Separated
+*💡 Analogy: Imagine a restaurant where one notebook has customer names and another has their order history. You don't copy the customer's name into every order row — you just write their customer ID. A JOIN reunites them when you need a full picture.*
 
-In relational databases, data is intentionally broken up into multiple tables to avoid repeating things (this is called normalization). You might have a \`Users\` table and an \`Orders\` table. If you want to see a user's name next to the item they bought, you use a \`JOIN\`. It acts as a bridge, merging rows from two different tables by matching up a shared identifier, like a \`user_id\`.
+Databases split data across multiple tables to avoid duplication (called **normalization**). A \`users\` table stores who the person is. An \`orders\` table stores what they bought. When you need both — the customer's name AND their order — you JOIN the tables on their shared key (\`user_id\`).
 
-### 2. INNER vs LEFT JOIN
-*💡 Analogy: An INNER JOIN is a strict club; you only get in if you have a partner. A LEFT JOIN is a casual party; everyone from the host's list (the left) gets in, even if they show up completely alone.*
+\`\`\`sql
+-- Tables
+users:   id | name       | email
+orders:  id | user_id    | product     | amount
 
-Understanding the difference is critical.
-- **INNER JOIN:** This only returns rows if there is a perfect match in BOTH tables. If a user has never made an order, they won't show up in the results at all.
-- **LEFT JOIN:** This returns EVERYTHING from the first (left) table. If the user hasn't made an order, the user still shows up in the results, but the order columns will just be completely blank (NULL).
+-- JOIN them
+SELECT users.name, orders.product, orders.amount
+FROM orders
+INNER JOIN users ON orders.user_id = users.id;
+\`\`\`
 
-### 3. GROUP BY
-*💡 Analogy: Taking a massive pile of loose change, sorting it into piles of quarters, dimes, and nickels, and then counting how much is in each pile.*
+| name       | product    | amount |
+|------------|------------|--------|
+| Priya      | Laptop     | 85000  |
+| Rohan      | Mouse      | 1200   |
 
-The \`GROUP BY\` statement is used for aggregation and reporting. It takes a massive list of rows that share a certain value and squashes them down into a single summary row. You almost always use it alongside math functions like \`COUNT()\`, \`SUM()\`, or \`AVG()\`. For example, if you want to know how many users live in each city, you would \`SELECT city, COUNT(*) FROM Users GROUP BY city\`.
+---
+
+### 2. INNER JOIN — Only Perfect Matches
+*💡 Analogy: A strict bouncer at a club. You must have BOTH a ticket AND an ID. If you only have one, you stay outside. No exceptions.*
+
+\`INNER JOIN\` returns rows only where a match exists in **both** tables. If a user has never placed an order, they won't appear. If an order has an invalid \`user_id\`, it also won't appear.
+
+\`\`\`sql
+SELECT users.name, orders.product
+FROM users
+INNER JOIN orders ON users.id = orders.user_id;
+-- User "Amit" who never ordered: NOT included
+\`\`\`
+
+**QA Use Case:** After a test creates orders, verify they're all linked to valid users:
+\`\`\`sql
+-- If this returns 0 rows, every order has a valid user ✅
+SELECT o.id FROM orders o
+LEFT JOIN users u ON o.user_id = u.id
+WHERE u.id IS NULL;
+\`\`\`
+
+---
+
+### 3. LEFT JOIN — Keep Everything from the Left
+*💡 Analogy: A class attendance sheet. Every student on the register is listed. If a student didn't show up, their row still exists — the "Present" column just says NULL.*
+
+\`LEFT JOIN\` returns ALL rows from the left table (the one after \`FROM\`), even if there's no matching row in the right table. Missing right-side values appear as \`NULL\`.
+
+\`\`\`sql
+SELECT users.name, orders.product
+FROM users
+LEFT JOIN orders ON users.id = orders.user_id;
+\`\`\`
+
+| name       | product    |
+|------------|------------|
+| Priya      | Laptop     |
+| Rohan      | Mouse      |
+| Amit       | NULL       |  ← never ordered, but still listed
+
+**QA Use Case:** Find users who registered but never placed an order:
+\`\`\`sql
+SELECT u.name, u.email
+FROM users u
+LEFT JOIN orders o ON u.id = o.user_id
+WHERE o.id IS NULL;
+\`\`\`
+
+---
+
+### 4. RIGHT JOIN and FULL OUTER JOIN
+*💡 Analogy: RIGHT JOIN is LEFT JOIN's mirror twin — same logic, opposite direction. FULL OUTER JOIN is the "nobody gets left behind" option.*
+
+- **RIGHT JOIN** keeps all rows from the RIGHT table, even without a match on the left.
+- **FULL OUTER JOIN** keeps everything from both sides. Unmatched rows get NULL on the missing side.
+
+\`\`\`sql
+-- Find orders with no matching user (orphaned data — a data integrity bug):
+SELECT o.id, o.product, u.name
+FROM orders o
+LEFT JOIN users u ON o.user_id = u.id
+WHERE u.id IS NULL;
+\`\`\`
+
+---
+
+### 5. Joining Multiple Tables
+*💡 Analogy: Connecting flight segments. You fly Delhi → Dubai → London. Each leg connects through a shared airport code.*
+
+\`\`\`sql
+-- users → orders → products (3-table join)
+SELECT u.name, p.name AS product, oi.quantity
+FROM users u
+INNER JOIN orders o   ON u.id = o.user_id
+INNER JOIN order_items oi ON o.id = oi.order_id
+INNER JOIN products p ON oi.product_id = p.id
+WHERE u.id = 42;
+\`\`\`
+
+---
+
+### 🧪 QA Validation Queries for JOINs
+\`\`\`sql
+-- 1. Orphaned orders (user_id references a deleted user)
+SELECT * FROM orders WHERE user_id NOT IN (SELECT id FROM users);
+
+-- 2. Users with duplicate email after a migration
+SELECT email, COUNT(*) FROM users GROUP BY email HAVING COUNT(*) > 1;
+
+-- 3. Orders missing a payment record
+SELECT o.id FROM orders o
+LEFT JOIN payments p ON o.id = p.order_id
+WHERE p.id IS NULL;
+\`\`\`
         `
       },
+
+      {
+        id: 'sql-group-by',
+        title: 'Intermediate: GROUP BY and HAVING',
+        analogy: "GROUP BY is like sorting your laundry into piles — all shirts together, all socks together. HAVING is the filter you apply AFTER sorting: 'show me only the piles with more than 5 items'.",
+        lessonMarkdown: `
+### 1. Why GROUP BY Exists
+*💡 Analogy: You have 10,000 sales receipts scattered on a table. GROUP BY sweeps them into neat piles by city. Then COUNT tells you how many are in each pile.*
+
+Without GROUP BY, aggregate functions like \`COUNT()\`, \`SUM()\`, \`AVG()\` operate on the entire table. GROUP BY lets you split the table into logical groups and apply those functions to each group separately.
+
+\`\`\`sql
+-- Total revenue per product category
+SELECT category, SUM(price) AS total_revenue
+FROM orders
+GROUP BY category;
+\`\`\`
+
+| category    | total_revenue |
+|-------------|---------------|
+| Electronics | 240000        |
+| Clothing    | 58000         |
+| Books       | 12000         |
+
+---
+
+### 2. The SQL Execution Order (Critical!)
+*💡 Analogy: You can't frost a cake before baking it. SQL has a strict order of operations — WHERE filters raw ingredients BEFORE they go in the oven (GROUP BY).*
+
+Understanding why you CAN'T use aggregate functions in WHERE:
+
+| Step | Clause | What Happens |
+|------|--------|--------------|
+| 1 | FROM | Get all rows from tables |
+| 2 | WHERE | Filter individual rows |
+| 3 | GROUP BY | Collapse rows into groups |
+| 4 | HAVING | Filter the groups |
+| 5 | SELECT | Pick columns |
+| 6 | ORDER BY | Sort results |
+
+\`\`\`sql
+-- ❌ WRONG — can't use COUNT() in WHERE
+SELECT category, COUNT(*) FROM orders
+WHERE COUNT(*) > 10 GROUP BY category;
+
+-- ✅ CORRECT — use HAVING after GROUP BY
+SELECT category, COUNT(*) AS total_orders
+FROM orders
+GROUP BY category
+HAVING COUNT(*) > 10;
+\`\`\`
+
+---
+
+### 3. HAVING — The WHERE for Groups
+*💡 Analogy: WHERE is the security guard at the entrance who checks IDs. HAVING is the manager inside who checks if enough staff showed up for each shift before opening that section.*
+
+\`HAVING\` filters groups **after** they are formed. You can use aggregate functions inside HAVING.
+
+\`\`\`sql
+-- Find products ordered more than 50 times this month
+SELECT product_id, COUNT(*) AS order_count
+FROM order_items
+WHERE created_at >= '2025-04-01'
+GROUP BY product_id
+HAVING COUNT(*) > 50
+ORDER BY order_count DESC;
+\`\`\`
+
+---
+
+### 4. Combining WHERE and HAVING
+*💡 Analogy: WHERE is your pre-filter ("only consider active users"), and HAVING is your post-filter ("of those, show me only the groups that ordered 3+ times").*
+
+\`\`\`sql
+SELECT u.city, COUNT(o.id) AS orders_placed
+FROM users u
+INNER JOIN orders o ON u.id = o.user_id
+WHERE u.is_active = 1          -- pre-filter: only active users
+GROUP BY u.city
+HAVING COUNT(o.id) >= 5        -- post-filter: only busy cities
+ORDER BY orders_placed DESC;
+\`\`\`
+
+---
+
+### 5. All Aggregate Functions at a Glance
+\`\`\`sql
+SELECT
+  category,
+  COUNT(*)              AS total_rows,
+  COUNT(DISTINCT user_id) AS unique_buyers,
+  SUM(amount)           AS total_revenue,
+  AVG(amount)           AS avg_order_value,
+  MIN(amount)           AS cheapest_order,
+  MAX(amount)           AS most_expensive
+FROM orders
+GROUP BY category;
+\`\`\`
+
+---
+
+### 🧪 QA Validation Queries Using GROUP BY
+\`\`\`sql
+-- 1. Find duplicate usernames (should be 0 rows in a healthy DB)
+SELECT username, COUNT(*) FROM users
+GROUP BY username HAVING COUNT(*) > 1;
+
+-- 2. Products with suspiciously high return rates
+SELECT product_id, COUNT(*) AS returns
+FROM returns
+GROUP BY product_id
+HAVING COUNT(*) > 10
+ORDER BY returns DESC;
+
+-- 3. Verify each order has exactly 1 payment
+SELECT order_id, COUNT(*) AS payment_count
+FROM payments
+GROUP BY order_id
+HAVING COUNT(*) <> 1;
+\`\`\`
+        `
+      },
+
+      {
+        id: 'sql-subqueries',
+        title: 'Intermediate: Subqueries and Nested Queries',
+        analogy: "A subquery is like a research assistant. You ask your assistant to find the average salary first, then you use their answer to ask a bigger question. The assistant's answer lives inside parentheses — the boss query reads it and acts on it.",
+        lessonMarkdown: `
+### 1. What Is a Subquery?
+*💡 Analogy: You ask a friend: "Is this restaurant more expensive than the average Bangalore restaurant?" Before answering, your friend has to calculate the average first. That internal calculation is a subquery.*
+
+A subquery is a SELECT statement **nested inside another query**. The database runs the inner query first, gets a result, and uses that result in the outer query.
+
+\`\`\`sql
+-- Find all employees earning above company average
+SELECT name, salary
+FROM employees
+WHERE salary > (SELECT AVG(salary) FROM employees);
+\`\`\`
+
+The inner query \`(SELECT AVG(salary) FROM employees)\` runs first, returns a single number (e.g., 85000), and then the outer query compares each row against it.
+
+---
+
+### 2. Subqueries in the WHERE Clause
+*💡 Analogy: "Show me all the restaurants in cities that have a population over 1 million." First you find those cities, then you filter restaurants.*
+
+\`\`\`sql
+-- Find users who have placed at least one order
+SELECT name, email
+FROM users
+WHERE id IN (
+  SELECT DISTINCT user_id FROM orders
+);
+
+-- Find users who have NEVER placed an order
+SELECT name, email
+FROM users
+WHERE id NOT IN (
+  SELECT DISTINCT user_id FROM orders WHERE user_id IS NOT NULL
+);
+\`\`\`
+
+**Important:** Always add \`WHERE user_id IS NOT NULL\` inside NOT IN subqueries — a single NULL in the subquery result makes NOT IN return no rows at all!
+
+---
+
+### 3. EXISTS vs IN
+*💡 Analogy: IN checks a full guest list for each person. EXISTS peeks through the door and stops the moment it spots one matching person — much faster for large lists.*
+
+\`\`\`sql
+-- IN: gets the full list, then searches it
+SELECT name FROM users
+WHERE id IN (SELECT user_id FROM orders WHERE amount > 10000);
+
+-- EXISTS: stops as soon as ONE match is found (faster on large tables)
+SELECT name FROM users u
+WHERE EXISTS (
+  SELECT 1 FROM orders o
+  WHERE o.user_id = u.id AND o.amount > 10000
+);
+\`\`\`
+
+Use **EXISTS** when the subquery table is very large — it short-circuits and is generally faster.
+
+---
+
+### 4. Correlated Subqueries
+*💡 Analogy: For EACH student, calculate their personal average, then compare their latest score to THEIR OWN average. The inner calculation changes for every single student.*
+
+A correlated subquery references a column from the **outer query**. It runs once per row of the outer query.
+
+\`\`\`sql
+-- For each order, find if it's above THAT USER's average order value
+SELECT o.id, o.user_id, o.amount
+FROM orders o
+WHERE o.amount > (
+  SELECT AVG(o2.amount)
+  FROM orders o2
+  WHERE o2.user_id = o.user_id  -- ← references outer query's row
+);
+\`\`\`
+
+---
+
+### 5. Subqueries in the FROM Clause (Derived Tables)
+*💡 Analogy: You create a temporary summary sheet first, then work from that sheet rather than the raw 50,000-row data.*
+
+\`\`\`sql
+-- Rank cities by their total order revenue
+SELECT city, total_revenue
+FROM (
+  SELECT u.city, SUM(o.amount) AS total_revenue
+  FROM users u
+  INNER JOIN orders o ON u.id = o.user_id
+  GROUP BY u.city
+) AS city_revenue
+WHERE total_revenue > 100000
+ORDER BY total_revenue DESC;
+\`\`\`
+
+---
+
+### 🧪 QA Validation Queries Using Subqueries
+\`\`\`sql
+-- 1. Find orders whose status was never updated after creation
+SELECT id, created_at FROM orders
+WHERE id NOT IN (
+  SELECT DISTINCT order_id FROM order_status_history
+);
+
+-- 2. Find products priced below the category average (pricing bug?)
+SELECT name, price, category
+FROM products p
+WHERE price < (
+  SELECT AVG(price) FROM products
+  WHERE category = p.category
+);
+
+-- 3. Detect double-charged payments (same order, multiple payments)
+SELECT order_id, COUNT(*) AS charge_count
+FROM payments
+GROUP BY order_id
+HAVING COUNT(*) > 1;
+\`\`\`
+        `
+      },
+
+      {
+        id: 'sql-views',
+        title: 'Intermediate: Views — Saved Queries with a Name',
+        analogy: "A View is like a window in your office building. The data (the city outside) is always live and real. The window (the View) is just a fixed frame that shows you a specific angle of it. You didn't build the city — you just named a useful vantage point.",
+        lessonMarkdown: `
+### 1. What Is a View?
+*💡 Analogy: A TV channel is a View. The broadcast towers, cameras, and cables are the actual tables. You don't need to know how any of that works — you just tune to Channel 5 and it shows you the news.*
+
+A **View** is a saved SELECT query stored in the database with a name. It looks and behaves exactly like a table, but it doesn't store any data itself — it runs the underlying query every time you reference it.
+
+\`\`\`sql
+-- Create a view: active users with their order count
+CREATE VIEW active_user_summary AS
+SELECT
+  u.id,
+  u.name,
+  u.email,
+  COUNT(o.id) AS total_orders,
+  SUM(o.amount) AS lifetime_value
+FROM users u
+LEFT JOIN orders o ON u.id = o.user_id
+WHERE u.is_active = 1
+GROUP BY u.id, u.name, u.email;
+\`\`\`
+
+Now anyone on the team can query it like a simple table:
+\`\`\`sql
+SELECT * FROM active_user_summary WHERE total_orders > 5;
+\`\`\`
+
+---
+
+### 2. Why Views Are Powerful (Especially for QA)
+*💡 Analogy: Instead of re-explaining the 15-step recipe every time, you just hand someone the printed recipe card. Views are the recipe cards of SQL.*
+
+**Benefits:**
+| Benefit | What It Means |
+|---------|---------------|
+| **Reusability** | Write the complex JOIN once; query it a hundred times |
+| **Simplicity** | Teammates don't need to know the complex underlying JOIN |
+| **Security** | Expose only certain columns (hide salary, hide passwords) |
+| **Consistency** | Everyone gets the same calculation — no copy-paste errors |
+
+\`\`\`sql
+-- Security example: show user info WITHOUT exposing password_hash
+CREATE VIEW public_users AS
+SELECT id, name, email, created_at
+FROM users;  -- password_hash column intentionally excluded
+\`\`\`
+
+---
+
+### 3. Querying and Updating Views
+*💡 Analogy: Querying a View is like reading a newspaper summary. Updating a simple View is like editing a sticky note on the window — it changes the actual wall behind it.*
+
+\`\`\`sql
+-- Query it exactly like a table
+SELECT name, lifetime_value
+FROM active_user_summary
+ORDER BY lifetime_value DESC
+LIMIT 10;
+
+-- Views can sometimes be updated (if they're simple, no aggregates)
+UPDATE public_users SET name = 'Priya S.' WHERE id = 42;
+\`\`\`
+
+**Note:** Views with GROUP BY, HAVING, DISTINCT, or aggregate functions are **read-only** — you can't UPDATE them directly.
+
+---
+
+### 4. Modifying and Dropping Views
+\`\`\`sql
+-- Replace (update) an existing view
+CREATE OR REPLACE VIEW active_user_summary AS
+SELECT u.id, u.name, u.email,
+       COUNT(o.id) AS total_orders
+FROM users u
+LEFT JOIN orders o ON u.id = o.user_id
+WHERE u.is_active = 1 AND u.created_at >= '2024-01-01'  -- added filter
+GROUP BY u.id, u.name, u.email;
+
+-- Delete a view
+DROP VIEW IF EXISTS active_user_summary;
+\`\`\`
+
+---
+
+### 5. Materialized Views (Bonus: PostgreSQL)
+*💡 Analogy: A regular View is a live camera feed. A Materialized View is a recording saved to disk — faster to play back, but you need to refresh it when the source changes.*
+
+\`\`\`sql
+-- PostgreSQL only
+CREATE MATERIALIZED VIEW monthly_revenue AS
+SELECT
+  DATE_TRUNC('month', created_at) AS month,
+  SUM(amount) AS revenue
+FROM orders
+GROUP BY month;
+
+-- Refresh it when needed
+REFRESH MATERIALIZED VIEW monthly_revenue;
+\`\`\`
+
+---
+
+### 🧪 QA Validation Queries Using Views
+\`\`\`sql
+-- Create a reusable QA validation view
+CREATE VIEW qa_order_health AS
+SELECT
+  o.id,
+  o.status,
+  o.amount,
+  u.name AS customer,
+  p.id AS payment_id,
+  p.status AS payment_status
+FROM orders o
+LEFT JOIN users u ON o.user_id = u.id
+LEFT JOIN payments p ON o.id = p.order_id;
+
+-- Now run quick checks
+SELECT * FROM qa_order_health WHERE payment_id IS NULL;
+SELECT * FROM qa_order_health WHERE status = 'delivered' AND payment_status != 'completed';
+SELECT * FROM qa_order_health WHERE amount <= 0;
+\`\`\`
+        `
+      },
+
+      {
+        id: 'sql-indexes',
+        title: 'Intermediate: Indexes and Query Performance',
+        analogy: "An index is the table of contents at the front of a 1,000-page textbook. Without it, you flip through every single page to find 'normalization'. With it, you jump directly to page 487. The book still has all the same words — you just have a smarter way to find them.",
+        lessonMarkdown: `
+### 1. The Problem Indexes Solve
+*💡 Analogy: Imagine a library with 2 million books, but no catalog, no Dewey Decimal system, no librarian. Every time you want a book, someone reads every single book title until they find yours. That's a Full Table Scan.*
+
+Without indexes, databases perform a **Full Table Scan** on every query — checking every row one-by-one. On a table with 10 million rows, a query like \`SELECT * FROM users WHERE email = 'priya@gmail.com'\` has to scan all 10 million rows. With an index on \`email\`, it jumps directly to the right row.
+
+\`\`\`sql
+-- Creating an index
+CREATE INDEX idx_users_email ON users(email);
+
+-- Now this query is FAST (uses the index instead of scanning)
+SELECT * FROM users WHERE email = 'priya@gmail.com';
+\`\`\`
+
+---
+
+### 2. Types of Indexes
+*💡 Analogy: A Primary Key index is like a student roll number — guaranteed unique. A Regular index is like an alphabetical list in a phone book — fast to search, but the same name can appear twice.*
+
+| Index Type | When to Use |
+|---|---|
+| **PRIMARY KEY** | Auto-created on the \`id\` column. Unique and not null. |
+| **UNIQUE INDEX** | Enforce uniqueness (e.g., emails, usernames) |
+| **Regular INDEX** | Speed up frequently searched columns (e.g., status, city) |
+| **Composite INDEX** | Index on multiple columns together |
+| **FULL TEXT INDEX** | For searching inside long text fields |
+
+\`\`\`sql
+-- Unique index (prevents duplicate emails)
+CREATE UNIQUE INDEX idx_users_email_unique ON users(email);
+
+-- Composite index (optimises queries filtering by both status AND created_at)
+CREATE INDEX idx_orders_status_date ON orders(status, created_at);
+
+-- Full text index (for blog post search)
+CREATE FULLTEXT INDEX idx_posts_content ON blog_posts(title, body);
+\`\`\`
+
+---
+
+### 3. EXPLAIN — See How the Database Thinks
+*💡 Analogy: EXPLAIN is like asking a taxi driver to narrate the route before you get in. You can see if they're taking the highway (index) or the scenic route through 10 million back streets (full scan).*
+
+\`\`\`sql
+-- See the query execution plan
+EXPLAIN SELECT * FROM orders WHERE status = 'pending';
+\`\`\`
+
+**Key things to look for in EXPLAIN output:**
+
+| Column | What to look for |
+|--------|-----------------|
+| \`type\` | \`ref\` or \`range\` = good (using index) ✅. \`ALL\` = bad (full scan) ❌ |
+| \`key\` | The name of the index being used (NULL means no index) |
+| \`rows\` | Estimated rows to examine — lower is better |
+| \`Extra\` | "Using index" = excellent. "Using filesort" = slow sort |
+
+\`\`\`sql
+-- Force MySQL to show you what it would do
+EXPLAIN SELECT * FROM orders
+WHERE user_id = 42 AND status = 'completed'
+ORDER BY created_at DESC;
+\`\`\`
+
+---
+
+### 4. The Index Trade-off (Read Fast, Write Slower)
+*💡 Analogy: Every time a new book arrives at the indexed library, staff must also update the catalog. More indexes = more catalog updates. For a library that gets 1,000 new books a day, too many catalogs become their own burden.*
+
+- **More indexes** = SELECT queries go faster ✅
+- **More indexes** = INSERT, UPDATE, DELETE go slower ❌ (every change must update the index)
+- **Guideline:** Index columns you frequently filter, sort, or join on. Don't index every column.
+
+\`\`\`sql
+-- BAD: indexing everything
+CREATE INDEX idx1 ON orders(id);          -- already the PK!
+CREATE INDEX idx2 ON orders(notes);       -- rarely searched
+CREATE INDEX idx3 ON orders(is_deleted);  -- low cardinality (only 0/1)
+
+-- GOOD: index high-cardinality, frequently-searched columns
+CREATE INDEX idx_orders_user ON orders(user_id);
+CREATE INDEX idx_orders_status_date ON orders(status, created_at);
+\`\`\`
+
+---
+
+### 🧪 QA Index Validation Queries
+\`\`\`sql
+-- 1. Check which indexes exist on a table (MySQL)
+SHOW INDEX FROM orders;
+
+-- 2. Find slow queries (check if an index is missing)
+EXPLAIN SELECT * FROM orders WHERE status = 'pending' AND created_at > NOW() - INTERVAL 7 DAY;
+
+-- 3. After adding an index, verify query uses it
+EXPLAIN SELECT * FROM orders WHERE user_id = 42;
+-- Look for key = 'idx_orders_user' in the result ✅
+
+-- 4. Count rows to estimate if an index is worth it
+SELECT COUNT(DISTINCT status) AS cardinality FROM orders;
+-- If cardinality is very low (like 3), index may not help much
+\`\`\`
+        `
+      },
+
+      {
+        id: 'sql-transactions',
+        title: 'Intermediate: Transactions and ACID',
+        analogy: "A transaction is a pinky promise between you and the database. Either everything in the promise happens — or none of it does. No half-done deals. If the promise breaks halfway, the database rewinds time and pretends it never started.",
+        lessonMarkdown: `
+### 1. The Problem Without Transactions
+*💡 Analogy: You're transferring ₹10,000 from your account to a friend. The bank subtracts ₹10,000 from you. The server crashes. Your friend gets nothing. You're ₹10,000 poorer. This is why transactions exist.*
+
+Imagine this sequence:
+\`\`\`sql
+UPDATE accounts SET balance = balance - 10000 WHERE id = 1;  -- your account
+-- 💥 SERVER CRASHES HERE
+UPDATE accounts SET balance = balance + 10000 WHERE id = 2;  -- friend's account
+\`\`\`
+Without a transaction, the first UPDATE is permanent. The second never runs. ₹10,000 vanishes from the system.
+
+---
+
+### 2. BEGIN, COMMIT, ROLLBACK
+*💡 Analogy: BEGIN is picking up a pen. COMMIT is signing the contract. ROLLBACK is crumpling the paper and starting over.*
+
+\`\`\`sql
+BEGIN;  -- Start the transaction
+
+UPDATE accounts SET balance = balance - 10000 WHERE id = 1;
+UPDATE accounts SET balance = balance + 10000 WHERE id = 2;
+
+-- If everything looks good:
+COMMIT;  -- Makes all changes permanent
+
+-- If something went wrong:
+ROLLBACK;  -- Undoes everything back to the BEGIN
+\`\`\`
+
+In application code, this typically looks like:
+\`\`\`sql
+BEGIN;
+
+UPDATE accounts SET balance = balance - 10000 WHERE id = 1;
+
+-- Check the balance didn't go negative
+SELECT balance FROM accounts WHERE id = 1;  -- app checks this result
+
+-- If balance >= 0:
+COMMIT;
+-- Else:
+ROLLBACK;
+\`\`\`
+
+---
+
+### 3. ACID Properties (The Four Guarantees)
+*💡 Analogy: ACID is the four-part safety certificate for database operations. Like a four-point seat belt check — all four must pass before the car moves.*
+
+| Property | Meaning | Analogy |
+|----------|---------|---------|
+| **Atomicity** | All operations succeed, or none do | The whole order ships, or nothing ships |
+| **Consistency** | DB stays valid before and after | Account balance can't go negative |
+| **Isolation** | Concurrent transactions don't see each other's work-in-progress | Two cashiers at a bank can't open the same drawer at the same time |
+| **Durability** | Committed data survives crashes | Once you get a payment receipt, the bank can't "forget" it |
+
+\`\`\`sql
+-- Atomicity example: all-or-nothing order placement
+BEGIN;
+INSERT INTO orders (user_id, total) VALUES (42, 5000);
+INSERT INTO order_items (order_id, product_id, qty) VALUES (LAST_INSERT_ID(), 7, 2);
+UPDATE inventory SET stock = stock - 2 WHERE product_id = 7;
+COMMIT;  -- Either all 3 succeed, or none do
+\`\`\`
+
+---
+
+### 4. SAVEPOINT — Partial Rollbacks
+*💡 Analogy: SAVEPOINT is a checkpoint in a video game. You can roll back to the checkpoint without starting the entire game over.*
+
+\`\`\`sql
+BEGIN;
+
+INSERT INTO orders (user_id, total) VALUES (42, 5000);
+
+SAVEPOINT after_order;  -- checkpoint
+
+INSERT INTO payments (order_id, amount) VALUES (LAST_INSERT_ID(), 5000);
+
+-- Payment failed validation:
+ROLLBACK TO after_order;  -- undo just the payment insert
+
+-- Try alternate payment method:
+INSERT INTO payments (order_id, amount, method) VALUES (LAST_INSERT_ID(), 5000, 'UPI');
+
+COMMIT;
+\`\`\`
+
+---
+
+### 5. Isolation Levels (Read Problems)
+*💡 Analogy: Should you be able to see a colleague's draft document while they're still typing it? The answer depends on your isolation level.*
+
+| Issue | What Happens |
+|-------|-------------|
+| **Dirty Read** | You read data that another transaction hasn't committed yet (then they roll back) |
+| **Non-repeatable Read** | You read a row twice; another transaction changes it between your reads |
+| **Phantom Read** | You run a query twice; new rows appear because another transaction inserted them |
+
+\`\`\`sql
+-- Set isolation level (MySQL)
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+BEGIN;
+-- Now you only see committed data, no dirty reads
+\`\`\`
+
+---
+
+### 🧪 QA Validation with Transactions
+\`\`\`sql
+-- 1. Use a transaction to safely test destructive operations
+BEGIN;
+DELETE FROM test_orders WHERE created_at < '2024-01-01';
+SELECT COUNT(*) FROM test_orders;  -- verify count looks right
+ROLLBACK;  -- undo it — the DELETE never really happened ✅
+
+-- 2. Verify atomicity: check total balance is unchanged after transfer
+SELECT SUM(balance) FROM accounts;  -- should be same before and after
+
+-- 3. Detect uncommitted locks (PostgreSQL)
+SELECT pid, state, query FROM pg_stat_activity
+WHERE state = 'idle in transaction';
+\`\`\`
+        `
+      },
+
+      {
+        id: 'sql-string-date',
+        title: 'Intermediate: String and Date Functions',
+        analogy: "SQL's built-in functions are like a Swiss Army knife for your data. Instead of pulling data into Excel and reformatting it, you ask the database to chop, slice, combine, and reformat right there — saving you hours of manual work.",
+        lessonMarkdown: `
+### 1. Essential String Functions
+*💡 Analogy: These are the autocorrect and formatting tools built into the database. You ask the DB to clean up messy user-entered text so you never have to do it by hand.*
+
+\`\`\`sql
+-- CONCAT: join strings together
+SELECT CONCAT(first_name, ' ', last_name) AS full_name FROM users;
+
+-- UPPER / LOWER: force case
+SELECT UPPER(email) FROM users;          -- 'PRIYA@GMAIL.COM'
+SELECT LOWER(username) FROM users;       -- 'priya_rocks'
+
+-- LENGTH: count characters
+SELECT name, LENGTH(name) AS name_len FROM products;
+
+-- TRIM / LTRIM / RTRIM: remove spaces
+SELECT TRIM('  hello world  ');           -- 'hello world'
+
+-- SUBSTRING: extract part of a string
+SELECT SUBSTRING(phone, 1, 4) AS country_code FROM users;
+
+-- REPLACE: swap out text
+SELECT REPLACE(description, 'old feature', 'new feature') FROM products;
+
+-- LIKE with wildcards
+SELECT * FROM users WHERE email LIKE '%@gmail.com';    -- ends with @gmail.com
+SELECT * FROM users WHERE name LIKE 'P%';              -- starts with P
+SELECT * FROM users WHERE phone LIKE '98__';           -- 4 chars starting with 98
+\`\`\`
+
+---
+
+### 2. String Functions for QA
+*💡 Analogy: User data is like produce from a market — it arrives dirty, oddly shaped, and mixed up. String functions are your washing, trimming, and sorting tools.*
+
+\`\`\`sql
+-- Find emails with leading/trailing spaces (data entry bug)
+SELECT id, email FROM users WHERE email != TRIM(email);
+
+-- Find users whose phone number length isn't exactly 10 digits
+SELECT id, phone FROM users WHERE LENGTH(TRIM(phone)) != 10;
+
+-- Find duplicate emails case-insensitively
+SELECT LOWER(email), COUNT(*) FROM users
+GROUP BY LOWER(email) HAVING COUNT(*) > 1;
+
+-- Find product names with special characters (encoding bug)
+SELECT id, name FROM products
+WHERE name REGEXP '[^a-zA-Z0-9 \\-_]';
+\`\`\`
+
+---
+
+### 3. Essential Date and Time Functions
+*💡 Analogy: Dates in a database are stored as a precise timestamp deep in the machine's brain. Date functions are the translators that turn "1714521600" into "May 1, 2025 — 3 days ago".*
+
+\`\`\`sql
+-- NOW() — current date and time
+SELECT NOW();                            -- 2025-05-01 14:32:00
+
+-- DATE() — extract just the date part
+SELECT DATE(NOW());                      -- 2025-05-01
+
+-- YEAR / MONTH / DAY
+SELECT YEAR(created_at), MONTH(created_at) FROM orders;
+
+-- DATE_FORMAT — format for display
+SELECT DATE_FORMAT(created_at, '%d %b %Y') FROM orders;  -- "01 May 2025"
+
+-- DATEDIFF — days between two dates
+SELECT DATEDIFF(delivered_at, ordered_at) AS days_to_deliver FROM orders;
+
+-- DATE_ADD / DATE_SUB — add or subtract time
+SELECT DATE_ADD(NOW(), INTERVAL 7 DAY);    -- one week from now
+SELECT DATE_SUB(NOW(), INTERVAL 1 MONTH); -- one month ago
+\`\`\`
+
+---
+
+### 4. Date Filtering (The Most Common QA Pattern)
+*💡 Analogy: Filtering by date is like asking "what happened this week?" — you define the window and the database hands you only what falls inside it.*
+
+\`\`\`sql
+-- All orders in the last 7 days
+SELECT * FROM orders
+WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY);
+
+-- All orders in April 2025
+SELECT * FROM orders
+WHERE created_at BETWEEN '2025-04-01' AND '2025-04-30 23:59:59';
+
+-- Orders grouped by week
+SELECT
+  WEEK(created_at) AS week_number,
+  COUNT(*) AS orders,
+  SUM(amount) AS revenue
+FROM orders
+WHERE YEAR(created_at) = 2025
+GROUP BY WEEK(created_at);
+\`\`\`
+
+---
+
+### 5. Timezone Handling
+\`\`\`sql
+-- Convert UTC stored time to IST (UTC+5:30)
+SELECT
+  created_at AS utc_time,
+  CONVERT_TZ(created_at, '+00:00', '+05:30') AS ist_time
+FROM orders;
+
+-- Find orders created "today" in IST (not UTC)
+SELECT * FROM orders
+WHERE DATE(CONVERT_TZ(created_at, '+00:00', '+05:30')) = CURDATE();
+\`\`\`
+
+---
+
+### 🧪 QA Date & String Validation Queries
+\`\`\`sql
+-- 1. Orders that took more than 7 days to deliver (SLA breach)
+SELECT id, ordered_at, delivered_at,
+       DATEDIFF(delivered_at, ordered_at) AS days_taken
+FROM orders
+WHERE delivered_at IS NOT NULL
+  AND DATEDIFF(delivered_at, ordered_at) > 7;
+
+-- 2. Users who registered but never verified email within 24 hours
+SELECT id, email, created_at FROM users
+WHERE email_verified_at IS NULL
+  AND created_at < DATE_SUB(NOW(), INTERVAL 24 HOUR);
+
+-- 3. Find invalid date formats in a text column
+SELECT id, birth_date FROM users
+WHERE STR_TO_DATE(birth_date, '%Y-%m-%d') IS NULL
+  AND birth_date IS NOT NULL;
+\`\`\`
+        `
+      },
+
+      {
+        id: 'sql-case-null',
+        title: 'Intermediate: CASE Statements and NULL Handling',
+        analogy: "CASE is SQL's version of an if-else chain. NULL is the database's way of saying 'this information does not exist' — not zero, not empty string, but a complete philosophical absence of a value. Confusing NULL with zero is like confusing 'I have no money' with 'I have ₹0' — they feel similar but behave completely differently.",
+        lessonMarkdown: `
+### 1. The CASE Statement
+*💡 Analogy: CASE is the traffic light of SQL. Based on the current state, it tells each row which lane to go in: red = 'Critical', yellow = 'Warning', green = 'OK'.*
+
+\`CASE\` lets you create conditional columns inline in a query — no need for separate application-level logic.
+
+**Simple CASE (match a value):**
+\`\`\`sql
+SELECT name, status,
+  CASE status
+    WHEN 'pending'   THEN 'Waiting to process'
+    WHEN 'shipped'   THEN 'On the way'
+    WHEN 'delivered' THEN 'Arrived safely'
+    ELSE                  'Unknown status'
+  END AS status_label
+FROM orders;
+\`\`\`
+
+**Searched CASE (evaluate conditions):**
+\`\`\`sql
+SELECT name, amount,
+  CASE
+    WHEN amount > 50000 THEN 'Premium'
+    WHEN amount > 10000 THEN 'Standard'
+    WHEN amount > 1000  THEN 'Basic'
+    ELSE                     'Micro'
+  END AS order_tier
+FROM orders;
+\`\`\`
+
+---
+
+### 2. CASE Inside Aggregations
+*💡 Analogy: Instead of running 3 separate queries to count pending, shipped, and delivered orders, one CASE inside COUNT does all three in one pass.*
+
+\`\`\`sql
+-- Pivot: count orders by status in a single row
+SELECT
+  COUNT(CASE WHEN status = 'pending'   THEN 1 END) AS pending_count,
+  COUNT(CASE WHEN status = 'shipped'   THEN 1 END) AS shipped_count,
+  COUNT(CASE WHEN status = 'delivered' THEN 1 END) AS delivered_count,
+  COUNT(*) AS total_orders
+FROM orders
+WHERE created_at >= '2025-01-01';
+\`\`\`
+
+| pending_count | shipped_count | delivered_count | total_orders |
+|---|---|---|---|
+| 142 | 87 | 1204 | 1433 |
+
+---
+
+### 3. Understanding NULL
+*💡 Analogy: NULL is the empty chair at the dinner table. It's not a plate with nothing on it (empty string ''). It's not a plate with zero food (0). The chair simply has no one sitting there — the concept of food doesn't apply.*
+
+**The Big NULL Rules:**
+- \`NULL = NULL\` is **FALSE** (you can't compare nothing to nothing)
+- Use \`IS NULL\` or \`IS NOT NULL\` — never \`= NULL\`
+- Any math with NULL returns NULL: \`5 + NULL = NULL\`
+- Any comparison with NULL returns NULL: \`5 > NULL = NULL\`
+
+\`\`\`sql
+-- ❌ WRONG — this never returns any rows
+SELECT * FROM users WHERE middle_name = NULL;
+
+-- ✅ CORRECT
+SELECT * FROM users WHERE middle_name IS NULL;
+SELECT * FROM users WHERE middle_name IS NOT NULL;
+
+-- Trap: NULL in math
+SELECT 100 + NULL;  -- returns NULL, not 100!
+\`\`\`
+
+---
+
+### 4. COALESCE — Handle NULL with a Default
+*💡 Analogy: COALESCE is the substitute teacher. If the regular teacher (first value) is absent (NULL), call the sub. If the sub is also absent, call the emergency backup. Return the first one who shows up.*
+
+\`COALESCE(val1, val2, val3, ...)\` returns the **first non-NULL value** in the list.
+
+\`\`\`sql
+-- Display a discount (use 0 if no discount is set)
+SELECT name, COALESCE(discount, 0) AS discount FROM products;
+
+-- Show user's preferred name, fall back to username, then email
+SELECT COALESCE(display_name, username, email) AS shown_as FROM users;
+
+-- Calculate total with NULL-safe addition
+SELECT amount + COALESCE(tax, 0) + COALESCE(shipping, 0) AS total
+FROM orders;
+\`\`\`
+
+---
+
+### 5. NULLIF — Turn a Value INTO NULL
+*💡 Analogy: NULLIF is a trap door. If a value matches a "bad" sentinel value (like 0 or 'N/A'), it falls through the trap door and becomes NULL — preventing divide-by-zero and bad aggregations.*
+
+\`NULLIF(val, bad_val)\` returns NULL if \`val = bad_val\`, otherwise returns \`val\`.
+
+\`\`\`sql
+-- Prevent divide-by-zero when calculating average order value
+SELECT
+  city,
+  total_revenue / NULLIF(order_count, 0) AS avg_order_value
+FROM city_stats;
+-- If order_count = 0, NULLIF returns NULL, so division returns NULL (not error)
+
+-- Clean up sentinel values
+SELECT NULLIF(phone, 'N/A') AS phone FROM users;
+-- Treats 'N/A' as NULL for proper NULL-aware aggregations
+\`\`\`
+
+---
+
+### 🧪 QA Validation Using CASE and NULL
+\`\`\`sql
+-- 1. Data completeness report: how many rows have NULLs in key fields
+SELECT
+  COUNT(*) AS total_users,
+  COUNT(CASE WHEN phone IS NULL      THEN 1 END) AS missing_phone,
+  COUNT(CASE WHEN address IS NULL    THEN 1 END) AS missing_address,
+  COUNT(CASE WHEN birth_date IS NULL THEN 1 END) AS missing_dob
+FROM users;
+
+-- 2. Find orders with NULL status (should not happen — bug!)
+SELECT id, created_at FROM orders WHERE status IS NULL;
+
+-- 3. NULL-safe comparison (find rows where value changed from NULL)
+SELECT id FROM audit_log
+WHERE old_value IS NULL AND new_value IS NOT NULL
+  AND field_name = 'email';
+\`\`\`
+        `
+      },
+
+      // ─── EXPERT (placeholder for future build) ───────────────────────────────
       {
         id: 'expert',
-        title: 'Expert: Database Power Tools',
-        analogy: "Expert SQL isn't just about reading data; it's about making the database do heavy math for you, building high-speed indexes, and ensuring money doesn't magically disappear during transfers.",
+        title: 'Expert: Advanced SQL Patterns',
+        analogy: "Expert SQL is about doing things that make junior devs say 'wait, SQL can do THAT?' — window functions that rank without collapsing rows, CTEs that make complex queries readable, and query optimisation that turns 30-second reports into sub-second ones.",
         lessonMarkdown: `
-### 1. Subqueries
-*💡 Analogy: It's like asking a friend to go check the weather outside, and based on their answer, you decide whether or not to pack an umbrella.*
+### 1. Window Functions
+*💡 Analogy: Aggregate functions collapse your data like a trash compactor — 1000 rows become 10. Window functions are like putting each row on a stage and shining a spotlight that shows it its rank, its running total, and its neighbours — without squashing anyone.*
 
-A subquery is literally a query nested inside another query. The database solves the inner query first, figures out the answer, and then uses that answer to solve the outer query. For example, if you want to find all employees who earn more than the company average, you have to find the average *first*. You would write: \`SELECT name FROM Employees WHERE salary > (SELECT AVG(salary) FROM Employees)\`.
+\`\`\`sql
+-- Rank users by lifetime spend (no GROUP BY needed)
+SELECT
+  name,
+  total_spent,
+  RANK() OVER (ORDER BY total_spent DESC) AS spend_rank,
+  ROW_NUMBER() OVER (ORDER BY total_spent DESC) AS row_num
+FROM user_totals;
 
-### 2. Indexes
-*💡 Analogy: An index is the glossary at the back of a 1,000-page textbook. Without it, you have to read every single page to find the word "Photosynthesis". With it, you instantly know it is on page 42.*
+-- Running total of revenue by day
+SELECT
+  order_date,
+  daily_revenue,
+  SUM(daily_revenue) OVER (ORDER BY order_date) AS running_total
+FROM daily_sales;
+\`\`\`
 
-An index is a special data structure that makes data retrieval incredibly fast. If a table has millions of rows, searching for a specific email without an index forces the database to perform a "Full Table Scan"—checking every single row one by one. An index organizes the data behind the scenes so the database can jump straight to the correct row. However, indexes are a double-edged sword: they make reading (SELECT) faster, but writing (INSERT/UPDATE) slower, because the index must be updated every time data changes.
+### 2. CTEs (Common Table Expressions)
+*💡 Analogy: A CTE is a named scratchpad. You write out a messy calculation on the scratchpad, give it a name, and then reference that clean name in your main query instead of a tangle of nested subqueries.*
 
-### 3. Transactions
-*💡 Analogy: Buying a house. You don't hand over a suitcase of cash and then hope they give you the keys a week later. Both the money and the keys swap hands at the exact same time, or the deal is cancelled.*
+\`\`\`sql
+WITH high_value_orders AS (
+  SELECT user_id, COUNT(*) as order_count, SUM(amount) AS total
+  FROM orders WHERE amount > 10000
+  GROUP BY user_id
+),
+ranked_users AS (
+  SELECT u.name, h.total,
+    RANK() OVER (ORDER BY h.total DESC) as rank
+  FROM users u
+  INNER JOIN high_value_orders h ON u.id = h.user_id
+)
+SELECT * FROM ranked_users WHERE rank <= 10;
+\`\`\`
 
-A transaction ensures data integrity by grouping multiple SQL commands into a single, all-or-nothing unit of work. If you are transferring money from Account A to Account B, two things must happen: subtract $50 from A, and add $50 to B. If the server crashes after subtracting from A but before adding to B, the money vanishes. Transactions prevent this. If any part of the transaction fails, the entire thing is "Rolled Back" as if nothing ever happened.
+### 3. Query Optimisation
+*💡 Analogy: A slow query is like a GPS routing you through every back road in the city. EXPLAIN ANALYZE shows you the route taken, and indexes are the highways you build to fix it.*
+
+\`\`\`sql
+-- EXPLAIN ANALYZE (PostgreSQL) — see actual vs estimated rows
+EXPLAIN ANALYZE
+SELECT * FROM orders WHERE user_id = 42 AND status = 'pending';
+
+-- Composite index for common query patterns
+CREATE INDEX idx_orders_user_status ON orders(user_id, status);
+\`\`\`
         `
       }
     ]
