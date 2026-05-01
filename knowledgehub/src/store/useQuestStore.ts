@@ -36,7 +36,9 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 function debouncedSave(uid: string, progress: UserProgress) {
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    saveUserProgress(uid, progress).catch(() => {/* silent — offline */});
+    saveUserProgress(uid, progress).catch((err) => {
+      console.error('[debouncedSave] Firestore write failed:', err);
+    });
   }, 2000);
 }
 

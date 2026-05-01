@@ -16,7 +16,6 @@ import {
   doc,
   getDoc,
   setDoc,
-  updateDoc,
 } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -100,7 +99,7 @@ export async function signInWithGoogle() {
     } satisfies FirestoreUser);
   } else {
     // Returning user — update last login timestamp
-    await updateDoc(userRef, { lastLoginAt: new Date().toISOString() });
+    await setDoc(userRef, { lastLoginAt: new Date().toISOString() }, { merge: true });
   }
   return cred;
 }
@@ -115,14 +114,26 @@ export async function resetPassword(email: string): Promise<void> {
 
 // ─── Firestore progress helpers ────────────────────────────────
 export async function loadUserProgress(uid: string): Promise<UserProgress | null> {
+  console.log('[Firestore] loadUserProgress →', uid);
   const snap = await getDoc(doc(db, 'users', uid));
-  if (!snap.exists()) return null;
+  if (!snap.exists()) {
+    console.warn('[Firestore] no document for uid:', uid);
+    return null;
+  }
   const data = snap.data() as FirestoreUser;
+  console.log('[Firestore] loaded progress:', data.progress);
   return data.progress ?? DEFAULT_PROGRESS;
 }
 
 export async function saveUserProgress(uid: string, progress: UserProgress): Promise<void> {
-  await updateDoc(doc(db, 'users', uid), { progress, lastLoginAt: new Date().toISOString() });
+  console.log('[Firestore] saveUserProgress →', uid, progress);
+  // Use setDoc with merge:true — safer than updateDoc (works even if doc is missing)
+  await setDoc(
+    doc(db, 'users', uid),
+    { progress, lastLoginAt: new Date().toISOString() },
+    { merge: true }
+  );
+  console.log('[Firestore] ✅ progress saved successfully');
 }
 
 export { onAuthStateChanged };
