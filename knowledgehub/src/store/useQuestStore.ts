@@ -103,8 +103,7 @@ export const useQuestStore = create<QuestState>()(
 
       // ── Called on logout to wipe local state ───────────────
       resetProgress: () => {
-        // Cancel any pending debounced save — prevents wiping Firestore
-        // with zeroed-out state after logout clears the store
+        // Cancel any pending save BEFORE wiping
         if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
         set({
           playerName:     null,
@@ -114,6 +113,11 @@ export const useQuestStore = create<QuestState>()(
           completedLevels:[],
           lastBountyDate: null,
         });
+        // CRITICAL: the set() above triggers SyncToCloud's subscription,
+        // which calls syncToFirestore → schedules a NEW debounced save
+        // with the now-zeroed state. We must cancel that too, otherwise
+        // it fires 2s later and overwrites Firestore with empty progress.
+        if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
       },
 
       // ── Debounced Firestore save ────────────────────────────
