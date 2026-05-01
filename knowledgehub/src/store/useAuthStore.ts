@@ -47,8 +47,12 @@ export const useAuthStore = create<AuthState>((set, get) => {
       }
       set({ user: firebaseUser, authLoading: false });
     } else {
-      // Logged out — clear progress
-      useQuestStore.getState().resetProgress();
+      // Logged out — clear progress UNLESS the user is in guest mode
+      // (onAuthStateChanged fires on every page load when no Firebase user exists,
+      //  so we must not wipe a guest's local progress on each refresh)
+      if (!useQuestStore.getState().isGuest) {
+        useQuestStore.getState().resetProgress();
+      }
       set({ user: null, authLoading: false });
     }
   });

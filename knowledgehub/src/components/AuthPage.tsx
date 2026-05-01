@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen, Eye, EyeOff, Loader2, Mail, Lock, User,
@@ -22,9 +23,11 @@ type Mode = 'login' | 'signup';
 const PREVIEW_MODULES = ['Data Types', 'Control Flow', 'Functions', 'Async / Await', 'Generics', 'Null Safety'];
 
 export function AuthPage() {
+  const navigate = useNavigate();
   const { loginWithEmail, signupWithEmail, loginWithGoogle, forgotPassword, actionLoading, error, clearError } = useAuthStore();
-  const theme      = useQuestStore((s) => s.theme);
-  const toggleTheme = useQuestStore((s) => s.toggleTheme);
+  const theme        = useQuestStore((s) => s.theme);
+  const toggleTheme  = useQuestStore((s) => s.toggleTheme);
+  const enterGuestMode = useQuestStore((s) => s.enterGuestMode);
 
   // ── Auth form state ───────────────────────────────────────
   const [mode, setMode]         = useState<Mode>('login');
@@ -461,6 +464,28 @@ export function AuthPage() {
             <p className="text-slate-500 dark:text-slate-700 text-xs mt-4 text-center">
               No credit card · Progress saved to cloud
             </p>
+
+            {/* Guest bypass */}
+            <div className="mt-5 pt-4 border-t border-violet-200/40 dark:border-slate-800">
+              <motion.button
+                type="button"
+                onClick={() => { enterGuestMode(); navigate('/', { replace: true }); }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full py-3 rounded-xl font-bold text-sm transition-all
+                  border-2 border-dashed border-slate-300 dark:border-slate-700
+                  text-slate-500 dark:text-slate-400
+                  hover:border-violet-400 dark:hover:border-violet-600
+                  hover:text-violet-600 dark:hover:text-violet-400
+                  hover:bg-violet-50 dark:hover:bg-violet-900/10
+                  flex items-center justify-center gap-2"
+              >
+                <span>👤</span> Continue as Guest
+              </motion.button>
+              <p className="text-center text-xs text-slate-400 dark:text-slate-600 mt-2">
+                Progress saved on this device only
+              </p>
+            </div>
           </motion.div>
         </div>
 

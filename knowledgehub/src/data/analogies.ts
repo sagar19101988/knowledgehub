@@ -4009,60 +4009,905 @@ WHERE old_value IS NULL AND new_value IS NOT NULL
         `
       },
 
-      // ─── EXPERT (placeholder for future build) ───────────────────────────────
+      // ─── EXPERT ──────────────────────────────────────────────────────────────
       {
-        id: 'expert',
-        title: 'Expert: Advanced SQL Patterns',
-        analogy: "Expert SQL is about doing things that make junior devs say 'wait, SQL can do THAT?' — window functions that rank without collapsing rows, CTEs that make complex queries readable, and query optimisation that turns 30-second reports into sub-second ones.",
+        id: 'sql-window-functions',
+        title: 'Expert: Window Functions',
+        analogy: "GROUP BY is like a trash compactor — 1,000 rows get squashed into 10 group summaries. Window functions are like shining a spotlight on every single row and whispering to it: 'You are number 3 in the ranking, your running total is ₹45,000, and the row before you had ₹8,000.' Nobody gets squashed. Everyone stays on stage.",
         lessonMarkdown: `
-### 1. Window Functions
-*💡 Analogy: Aggregate functions collapse your data like a trash compactor — 1000 rows become 10. Window functions are like putting each row on a stage and shining a spotlight that shows it its rank, its running total, and its neighbours — without squashing anyone.*
+### 1. What is a Window Function?
 
+*💡 Analogy: Imagine a classroom exam. With GROUP BY (aggregate), you'd only get the class average — individual scores disappear. With a window function, every student keeps their own score AND also sees their rank, the class average, and how many marks they are behind the topper — all in the same row.*
+
+A **window function** computes a value across a set of rows **related to the current row** — but unlike \`GROUP BY\`, it does NOT collapse those rows. You still get one output row per input row.
+
+Syntax pattern:
 \`\`\`sql
--- Rank users by lifetime spend (no GROUP BY needed)
-SELECT
-  name,
-  total_spent,
-  RANK() OVER (ORDER BY total_spent DESC) AS spend_rank,
-  ROW_NUMBER() OVER (ORDER BY total_spent DESC) AS row_num
-FROM user_totals;
-
--- Running total of revenue by day
-SELECT
-  order_date,
-  daily_revenue,
-  SUM(daily_revenue) OVER (ORDER BY order_date) AS running_total
-FROM daily_sales;
-\`\`\`
-
-### 2. CTEs (Common Table Expressions)
-*💡 Analogy: A CTE is a named scratchpad. You write out a messy calculation on the scratchpad, give it a name, and then reference that clean name in your main query instead of a tangle of nested subqueries.*
-
-\`\`\`sql
-WITH high_value_orders AS (
-  SELECT user_id, COUNT(*) as order_count, SUM(amount) AS total
-  FROM orders WHERE amount > 10000
-  GROUP BY user_id
-),
-ranked_users AS (
-  SELECT u.name, h.total,
-    RANK() OVER (ORDER BY h.total DESC) as rank
-  FROM users u
-  INNER JOIN high_value_orders h ON u.id = h.user_id
+FUNCTION_NAME() OVER (
+  PARTITION BY column   -- optional: split into groups
+  ORDER BY column       -- optional: define row order inside the window
 )
-SELECT * FROM ranked_users WHERE rank <= 10;
 \`\`\`
 
-### 3. Query Optimisation
-*💡 Analogy: A slow query is like a GPS routing you through every back road in the city. EXPLAIN ANALYZE shows you the route taken, and indexes are the highways you build to fix it.*
+---
+
+### 2. ROW_NUMBER, RANK, DENSE_RANK
+
+*💡 Analogy: Three judges at a baking contest who handle ties differently.*
+- **ROW_NUMBER** — assigns a unique number even to ties (like a strict judge who says "I'll give you 2nd and you 3rd, even though you tied").
+- **RANK** — ties get the same number, but the next number skips (1, 2, 2, 4).
+- **DENSE_RANK** — ties get the same number and the next number does NOT skip (1, 2, 2, 3).
 
 \`\`\`sql
--- EXPLAIN ANALYZE (PostgreSQL) — see actual vs estimated rows
-EXPLAIN ANALYZE
-SELECT * FROM orders WHERE user_id = 42 AND status = 'pending';
+-- QA use case: Rank test runs by failure count to find the worst build
+SELECT
+  build_id,
+  failed_tests,
+  ROW_NUMBER()  OVER (ORDER BY failed_tests DESC) AS row_num,
+  RANK()        OVER (ORDER BY failed_tests DESC) AS rank,
+  DENSE_RANK()  OVER (ORDER BY failed_tests DESC) AS dense_rank
+FROM test_runs;
+\`\`\`
 
--- Composite index for common query patterns
-CREATE INDEX idx_orders_user_status ON orders(user_id, status);
+| build_id | failed_tests | row_num | rank | dense_rank |
+|----------|-------------|---------|------|------------|
+| B-103    | 15          | 1       | 1    | 1          |
+| B-101    | 12          | 2       | 2    | 2          |
+| B-102    | 12          | 3       | 2    | 2          |
+| B-100    | 5           | 4       | 4    | 3          |
+
+---
+
+### 3. Running Totals with SUM OVER
+
+*💡 Analogy: Your bank passbook. Each row shows the transaction amount AND the cumulative balance up to that day. SUM OVER does exactly this.*
+
+\`\`\`sql
+-- QA use case: Track cumulative bugs found each day during a sprint
+SELECT
+  report_date,
+  bugs_found,
+  SUM(bugs_found) OVER (ORDER BY report_date) AS cumulative_bugs
+FROM daily_bug_report;
+\`\`\`
+
+| report_date | bugs_found | cumulative_bugs |
+|-------------|-----------|-----------------|
+| 2024-01-01  | 4         | 4               |
+| 2024-01-02  | 7         | 11              |
+| 2024-01-03  | 2         | 13              |
+| 2024-01-04  | 9         | 22              |
+
+---
+
+### 4. LAG and LEAD — Look at Neighbouring Rows
+
+*💡 Analogy: LAG is like asking "who was standing in front of me in the queue yesterday?" LEAD is asking "who will be standing after me tomorrow?" You can peek at adjacent rows without doing a JOIN.*
+
+\`\`\`sql
+-- QA use case: Compare each build's failure count to the PREVIOUS build
+SELECT
+  build_id,
+  failed_tests,
+  LAG(failed_tests,  1) OVER (ORDER BY build_id) AS prev_build_failures,
+  LEAD(failed_tests, 1) OVER (ORDER BY build_id) AS next_build_failures,
+  failed_tests - LAG(failed_tests, 1) OVER (ORDER BY build_id) AS change
+FROM test_runs
+ORDER BY build_id;
+\`\`\`
+
+If \`change\` is positive, the new build is WORSE. If negative, it improved. Great for regression tracking in your test reports.
+
+---
+
+### 5. PARTITION BY — Windows Within Groups
+
+*💡 Analogy: Instead of one big classroom, you have separate windows per class. PARTITION BY is like creating separate scoreboard spotlights for Class A, Class B, and Class C — the ranking restarts from 1 inside each group.*
+
+\`\`\`sql
+-- QA use case: Rank test cases by execution time, WITHIN each module
+SELECT
+  module_name,
+  test_case_name,
+  execution_ms,
+  RANK() OVER (
+    PARTITION BY module_name
+    ORDER BY execution_ms DESC
+  ) AS slowest_in_module
+FROM test_results;
+\`\`\`
+
+This tells you which test case is the slowest **per module** — much more actionable than a global ranking.
+
+---
+
+### 🧪 QA Validation Patterns Using Window Functions
+\`\`\`sql
+-- 1. Find the FIRST failed test in each test suite (detect earliest failure point)
+SELECT * FROM (
+  SELECT
+    suite_name, test_name, status,
+    ROW_NUMBER() OVER (PARTITION BY suite_name ORDER BY run_order) AS rn
+  FROM test_results
+  WHERE status = 'FAIL'
+) t WHERE rn = 1;
+
+-- 2. Flag test cases that REGRESSED (passed last run, failed this run)
+SELECT test_name, status,
+  LAG(status) OVER (PARTITION BY test_name ORDER BY run_date) AS prev_status
+FROM test_results
+WHERE status = 'FAIL'
+  AND LAG(status) OVER (PARTITION BY test_name ORDER BY run_date) = 'PASS';
+\`\`\`
+        `
+      },
+
+      {
+        id: 'sql-cte',
+        title: 'Expert: CTEs (Common Table Expressions)',
+        analogy: "A CTE is like a sticky note pinned on the wall before you start cooking a complex recipe. Instead of describing '3 cups of pre-roasted, salted, roughly chopped cashews' four times in the recipe, you write it once on a sticky note labelled 'roasted cashews' and just say 'see sticky note' every time. Your query becomes clean, readable, and maintainable.",
+        lessonMarkdown: `
+### 1. What is a CTE?
+
+*💡 Analogy: Before a big cricket match, the coach prepares a separate sheet for "top 5 batsmen by average", another for "bowlers with over 20 wickets", then the main strategy sheet just says "assign top batsmen to positions 1-5". The prep sheets are the CTEs. The strategy sheet is your main SELECT.*
+
+A **CTE** (Common Table Expression) is a temporary named result set you define at the top of your query using the \`WITH\` keyword. It only exists for the duration of that single query — no permanent storage, no side effects.
+
+\`\`\`sql
+WITH cte_name AS (
+  SELECT ...  -- your sub-query lives here
+)
+SELECT * FROM cte_name;  -- reference it like a table
+\`\`\`
+
+---
+
+### 2. Basic CTE Example
+
+Without CTE (hard to read):
+\`\`\`sql
+SELECT u.name, sub.total_orders
+FROM users u
+JOIN (
+  SELECT user_id, COUNT(*) AS total_orders
+  FROM orders
+  WHERE status = 'completed'
+  GROUP BY user_id
+) sub ON u.id = sub.user_id
+WHERE sub.total_orders > 5;
+\`\`\`
+
+With CTE (clean and readable):
+\`\`\`sql
+WITH completed_orders AS (
+  SELECT user_id, COUNT(*) AS total_orders
+  FROM orders
+  WHERE status = 'completed'
+  GROUP BY user_id
+)
+SELECT u.name, co.total_orders
+FROM users u
+JOIN completed_orders co ON u.id = co.user_id
+WHERE co.total_orders > 5;
+\`\`\`
+
+Same result. The CTE version reads almost like English: "First, get completed order counts per user. Then, join to users and show those with more than 5."
+
+---
+
+### 3. Chaining Multiple CTEs
+
+*💡 Analogy: An assembly line. Station 1 cuts the metal. Station 2 welds it. Station 3 paints it. Each station's output feeds the next. With CTEs, each step feeds the next cleanly.*
+
+\`\`\`sql
+-- QA use case: Multi-step test data verification
+WITH
+-- Step 1: Find all orders from this week's regression test run
+regression_orders AS (
+  SELECT id, user_id, amount, status
+  FROM orders
+  WHERE created_at >= '2024-01-15' AND created_at < '2024-01-22'
+),
+
+-- Step 2: Among those, find the ones that are still "pending" after 5 days
+stuck_orders AS (
+  SELECT *
+  FROM regression_orders
+  WHERE status = 'pending'
+    AND created_at < NOW() - INTERVAL '5 days'
+),
+
+-- Step 3: Join to users to get contact info for the report
+final_report AS (
+  SELECT u.name, u.email, so.id AS order_id, so.amount
+  FROM stuck_orders so
+  JOIN users u ON so.user_id = u.id
+)
+
+SELECT * FROM final_report ORDER BY amount DESC;
+\`\`\`
+
+Each CTE is a named, documented step. When your manager asks "what does this query do?", you can walk them through it step by step.
+
+---
+
+### 4. CTE vs Subquery — When to Use Which
+
+*💡 Analogy: A subquery is a Post-it hidden inside a folder inside a drawer. A CTE is the same Post-it pinned prominently on your whiteboard with a label.*
+
+| | CTE | Subquery |
+|---|-----|---------|
+| Readability | High — named at the top | Low — buried mid-query |
+| Reuse in same query | YES — reference multiple times | NO — must repeat |
+| Performance | Often same, sometimes better | Same |
+| When to use | Complex logic, multiple steps | Simple one-off filter |
+
+\`\`\`sql
+-- CTE shines when you need to reference the same sub-result TWICE
+WITH active_users AS (
+  SELECT id FROM users WHERE last_login > NOW() - INTERVAL '30 days'
+)
+SELECT COUNT(*) AS total_active FROM active_users
+UNION ALL
+SELECT COUNT(*) FROM orders WHERE user_id IN (SELECT id FROM active_users);
+-- ^ same CTE reused in two places — a subquery would require writing it twice
+\`\`\`
+
+---
+
+### 5. Recursive CTEs — Hierarchical Data
+
+*💡 Analogy: A family tree. To find all descendants of your great-grandfather, you start with him, then find his children, then their children, and so on — until there are no more. A recursive CTE does exactly this.*
+
+\`\`\`sql
+-- Find all employees under a manager (any depth)
+WITH RECURSIVE org_chart AS (
+  -- Base case: start with the top manager
+  SELECT id, name, manager_id, 1 AS depth
+  FROM employees
+  WHERE manager_id IS NULL
+
+  UNION ALL
+
+  -- Recursive step: find each manager's direct reports
+  SELECT e.id, e.name, e.manager_id, oc.depth + 1
+  FROM employees e
+  INNER JOIN org_chart oc ON e.manager_id = oc.id
+)
+SELECT * FROM org_chart ORDER BY depth, name;
+\`\`\`
+
+**QA use case:** Testing a hierarchical permission system — verify all users under Admin X inherit the correct permissions, regardless of how many levels deep they sit.
+
+---
+
+### 🧪 QA Patterns with CTEs
+\`\`\`sql
+-- 1. Find users who placed an order but NEVER received a confirmation email
+WITH ordered_users AS (
+  SELECT DISTINCT user_id FROM orders WHERE status = 'confirmed'
+),
+emailed_users AS (
+  SELECT DISTINCT user_id FROM email_logs WHERE email_type = 'order_confirmation'
+)
+SELECT u.name, u.email
+FROM ordered_users ou
+JOIN users u ON ou.user_id = u.id
+WHERE ou.user_id NOT IN (SELECT user_id FROM emailed_users);
+
+-- 2. Compare test results between two builds (regression delta)
+WITH build_a AS (
+  SELECT test_name, status FROM test_results WHERE build_id = 'v2.1.0'
+),
+build_b AS (
+  SELECT test_name, status FROM test_results WHERE build_id = 'v2.2.0'
+)
+SELECT a.test_name,
+  a.status AS v2_1_status,
+  b.status AS v2_2_status,
+  CASE WHEN a.status = 'PASS' AND b.status = 'FAIL' THEN 'REGRESSION'
+       WHEN a.status = 'FAIL' AND b.status = 'PASS' THEN 'FIXED'
+       ELSE 'UNCHANGED' END AS verdict
+FROM build_a a
+JOIN build_b b ON a.test_name = b.test_name
+WHERE a.status <> b.status;
+\`\`\`
+        `
+      },
+
+      {
+        id: 'sql-advanced-joins',
+        title: 'Expert: Advanced JOINs',
+        analogy: "You already know that a JOIN connects two different tables. Advanced JOINs go further: a SELF JOIN connects a table to ITSELF (like an employee-manager relationship on one table). A CROSS JOIN connects EVERY row of table A to EVERY row of table B — creating every possible combination, like a round-robin tournament bracket.",
+        lessonMarkdown: `
+### 1. SELF JOIN — A Table Joining Itself
+
+*💡 Analogy: Imagine a single Employees table with columns: \`id\`, \`name\`, \`manager_id\`. The manager_id points to another row IN THE SAME TABLE. A SELF JOIN lets you connect "employee" rows to their "manager" rows — even though it's one table.*
+
+\`\`\`sql
+-- Show each employee alongside their manager's name
+SELECT
+  e.name  AS employee,
+  m.name  AS manager
+FROM employees e
+LEFT JOIN employees m ON e.manager_id = m.id;
+\`\`\`
+
+| employee | manager   |
+|----------|-----------|
+| Priya    | Ravi      |
+| Anjali   | Ravi      |
+| Ravi     | NULL      |
+
+Ravi has no manager — he's the boss. The LEFT JOIN ensures he still appears (INNER JOIN would drop him).
+
+---
+
+### 2. Finding Duplicates with SELF JOIN
+
+*💡 Analogy: Line up all your test cases and shake hands with every other test case. If two of them have the same name but different IDs, you've found a duplicate.*
+
+\`\`\`sql
+-- QA use case: Find duplicate user accounts (same email, different IDs)
+SELECT a.id AS id_1, b.id AS id_2, a.email
+FROM users a
+JOIN users b ON a.email = b.email
+            AND a.id < b.id;  -- a.id < b.id prevents (1,2) AND (2,1) both showing
+\`\`\`
+
+The trick \`a.id < b.id\` ensures each duplicate pair is only shown once — not twice in both orders.
+
+---
+
+### 3. CROSS JOIN — Every Combination
+
+*💡 Analogy: You have 3 T-shirt sizes (S, M, L) and 4 colours (Red, Blue, Green, Yellow). A CROSS JOIN builds a row for EVERY size-colour combination: 3 × 4 = 12 rows. No conditions needed — it's a full cartesian product.*
+
+\`\`\`sql
+-- Generate all possible test environment combinations
+SELECT
+  browser.name AS browser,
+  os.name      AS operating_system
+FROM browsers browser
+CROSS JOIN operating_systems os;
+\`\`\`
+
+| browser | operating_system |
+|---------|-----------------|
+| Chrome  | Windows         |
+| Chrome  | macOS           |
+| Chrome  | Linux           |
+| Firefox | Windows         |
+| Firefox | macOS           |
+| Firefox | Linux           |
+
+**QA use case:** Generating a compatibility test matrix automatically. Instead of typing every combination by hand, CROSS JOIN builds it for you.
+
+---
+
+### 4. Chaining Multiple JOINs
+
+*💡 Analogy: A relay race with 4 runners. Runner 1 passes the baton to Runner 2, who passes it to Runner 3. Each JOIN adds another leg to the chain, building up a wider combined row.*
+
+\`\`\`sql
+-- QA use case: Full audit trail — what did each user order, which product,
+--              from which warehouse, and which courier delivered it?
+SELECT
+  u.name          AS customer,
+  o.created_at    AS order_date,
+  p.name          AS product,
+  w.city          AS dispatched_from,
+  c.name          AS courier
+FROM orders o
+INNER JOIN users      u  ON o.user_id      = u.id
+INNER JOIN order_items oi ON o.id          = oi.order_id
+INNER JOIN products   p  ON oi.product_id  = p.id
+INNER JOIN warehouses w  ON oi.warehouse_id = w.id
+LEFT  JOIN couriers   c  ON o.courier_id   = c.id;  -- LEFT because courier may not be assigned yet
+\`\`\`
+
+**Rule:** Use INNER JOIN when both sides MUST exist. Use LEFT JOIN when the right side might be missing (courier not yet assigned, payment not yet recorded, etc.).
+
+---
+
+### 5. Non-Equi JOINs — Joining on Ranges
+
+*💡 Analogy: Matching students to their grade letter based on score ranges. It is not "student.score = grade.score" — it is "student.score BETWEEN grade.min AND grade.max". That's a non-equi join.*
+
+\`\`\`sql
+-- Assign a severity label to bugs based on their impact score
+SELECT
+  b.title,
+  b.impact_score,
+  s.severity_label
+FROM bugs b
+JOIN severity_thresholds s
+  ON b.impact_score BETWEEN s.min_score AND s.max_score;
+\`\`\`
+
+| title               | impact_score | severity_label |
+|---------------------|-------------|----------------|
+| Login page crash    | 95          | Critical       |
+| Button colour wrong | 12          | Low            |
+| Checkout error      | 72          | High           |
+
+---
+
+### 🧪 QA Patterns with Advanced JOINs
+\`\`\`sql
+-- 1. SELF JOIN: find test cases that are exact duplicates (same name AND same module)
+SELECT a.id, b.id, a.test_name, a.module
+FROM test_cases a
+JOIN test_cases b ON a.test_name = b.test_name
+                  AND a.module = b.module
+                  AND a.id < b.id;
+
+-- 2. CROSS JOIN: build a full regression matrix (all test suites × all environments)
+SELECT ts.suite_name, env.environment_name
+FROM test_suites ts
+CROSS JOIN environments env
+ORDER BY ts.suite_name, env.environment_name;
+
+-- 3. Chain: Orders that were refunded but the refund record is missing
+SELECT o.id, o.user_id, o.amount, t.status AS transaction_status
+FROM orders o
+INNER JOIN transactions t ON o.id = t.order_id
+LEFT  JOIN refunds r      ON o.id = r.order_id
+WHERE t.status = 'refunded' AND r.id IS NULL;
+\`\`\`
+        `
+      },
+
+      {
+        id: 'sql-stored-procedures',
+        title: 'Expert: Stored Procedures & Functions',
+        analogy: "A stored procedure is like a vending machine. You press B3 (call the procedure with parameters). The machine internally spins motors, checks stock, and dispenses the snack — you see none of that. As a QA, your job is to press B3 with all kinds of inputs (valid, invalid, boundary) and verify the machine gives the right snack every time — and doesn't break when you press B99.",
+        lessonMarkdown: `
+### 1. What is a Stored Procedure?
+
+*💡 Analogy: A recipe card stored in the kitchen. Instead of explaining all the steps every time, the chef just says "make Recipe #7". The recipe is stored, reusable, and runs the same way every time.*
+
+A **stored procedure** is a saved collection of SQL statements in the database that you can call by name. It can accept input parameters, perform complex logic (INSERT, UPDATE, loops, IF statements), and optionally return results.
+
+\`\`\`sql
+-- Create a stored procedure that processes an order refund
+CREATE PROCEDURE process_refund(
+  IN  p_order_id   INT,
+  IN  p_reason     VARCHAR(255),
+  OUT p_result     VARCHAR(50)
+)
+BEGIN
+  -- Check if order exists and is eligible
+  IF NOT EXISTS (SELECT 1 FROM orders WHERE id = p_order_id AND status = 'completed') THEN
+    SET p_result = 'ERROR: Order not eligible';
+  ELSE
+    -- Update the order status
+    UPDATE orders SET status = 'refunded' WHERE id = p_order_id;
+    -- Create a refund record
+    INSERT INTO refunds (order_id, reason, created_at)
+    VALUES (p_order_id, p_reason, NOW());
+    SET p_result = 'SUCCESS';
+  END IF;
+END;
+
+-- Call it:
+CALL process_refund(1042, 'Item arrived damaged', @result);
+SELECT @result;  -- shows 'SUCCESS' or error message
+\`\`\`
+
+---
+
+### 2. IN, OUT, and INOUT Parameters
+
+*💡 Analogy: IN is the order you give to the vending machine (the button you press). OUT is the snack it gives back. INOUT is a magical slot where you put your order AND receive a modified version back.*
+
+\`\`\`sql
+-- IN parameter: input only (most common)
+CREATE PROCEDURE get_user_orders(IN p_user_id INT)
+BEGIN
+  SELECT * FROM orders WHERE user_id = p_user_id;
+END;
+
+-- OUT parameter: procedure sets this value, caller reads it
+CREATE PROCEDURE count_pending_orders(OUT p_count INT)
+BEGIN
+  SELECT COUNT(*) INTO p_count
+  FROM orders WHERE status = 'pending';
+END;
+
+-- Call and read the OUT parameter:
+CALL count_pending_orders(@total);
+SELECT @total;  -- e.g. 127
+\`\`\`
+
+---
+
+### 3. User-Defined Functions (UDFs)
+
+*💡 Analogy: A function is like a calculator button. You feed it numbers, it returns a result. It cannot change any data — it is purely for computation and can be used directly inside a SELECT.*
+
+Key difference vs stored procedure:
+- **Function** → always returns ONE value, can be used in SELECT/WHERE, cannot modify data
+- **Procedure** → runs a process, can modify data, called with CALL
+
+\`\`\`sql
+-- Function: calculate discount percentage for an order
+CREATE FUNCTION get_discount_pct(p_amount DECIMAL(10,2))
+RETURNS DECIMAL(5,2)
+DETERMINISTIC
+BEGIN
+  IF p_amount >= 10000 THEN RETURN 15.00;
+  ELSEIF p_amount >= 5000 THEN RETURN 10.00;
+  ELSEIF p_amount >= 1000 THEN RETURN 5.00;
+  ELSE RETURN 0.00;
+  END IF;
+END;
+
+-- Use it directly in a SELECT (just like a built-in function):
+SELECT
+  order_id,
+  amount,
+  get_discount_pct(amount) AS discount_pct,
+  amount * (1 - get_discount_pct(amount) / 100) AS final_price
+FROM orders;
+\`\`\`
+
+---
+
+### 4. Testing Stored Procedures as a QA Tester
+
+*💡 Analogy: You don't get to see inside the vending machine. But you can test EVERY button, check what comes out, and look at what changed in the stock inventory (database). That's black-box testing of a stored procedure.*
+
+**QA Test Checklist for a Stored Procedure:**
+
+1. **Happy path** — valid input, verify correct output AND correct database change
+2. **Invalid input** — non-existent IDs, wrong data types, NULL inputs
+3. **Boundary values** — amounts at exactly 1000, 4999, 5000, 9999, 10000
+4. **Side effects** — are all related tables updated? (order status AND refund record AND audit log)
+5. **Concurrent calls** — two calls at the same time, does data stay consistent?
+
+\`\`\`sql
+-- Test setup: Create known test data
+INSERT INTO orders (id, user_id, amount, status) VALUES (9999, 1, 5000, 'completed');
+
+-- Test 1: Happy path
+CALL process_refund(9999, 'Test reason', @result);
+SELECT @result;                                 -- expect: 'SUCCESS'
+SELECT status FROM orders WHERE id = 9999;      -- expect: 'refunded'
+SELECT COUNT(*) FROM refunds WHERE order_id = 9999; -- expect: 1
+
+-- Test 2: Invalid order (already refunded — second call)
+CALL process_refund(9999, 'duplicate', @result);
+SELECT @result;  -- expect: 'ERROR: Order not eligible'
+
+-- Cleanup
+DELETE FROM refunds WHERE order_id = 9999;
+DELETE FROM orders WHERE id = 9999;
+\`\`\`
+
+---
+
+### 5. Calling Procedures in Test Scripts
+
+\`\`\`sql
+-- Pattern: wrap test in a transaction so no data is permanently changed
+START TRANSACTION;
+
+  INSERT INTO orders (id, user_id, amount, status) VALUES (8888, 1, 2500, 'completed');
+  CALL process_refund(8888, 'QA test', @r);
+  SELECT @r AS result,
+         (SELECT status FROM orders WHERE id = 8888) AS order_status,
+         (SELECT COUNT(*) FROM refunds WHERE order_id = 8888) AS refund_created;
+
+ROLLBACK;  -- clean up — no permanent changes
+\`\`\`
+
+This pattern lets you run the procedure and observe results without leaving test data behind.
+        `
+      },
+
+      {
+        id: 'sql-triggers-constraints',
+        title: 'Expert: Triggers & Advanced Constraints',
+        analogy: "A trigger is like a motion-sensor light. You didn't flip the switch — walking through the door triggered it automatically. As a QA tester, your job is to walk through doors in weird ways: run backwards, crawl, jump — and make sure the light ALWAYS turns on exactly when it should, and NEVER when it shouldn't.",
+        lessonMarkdown: `
+### 1. What is a Trigger?
+
+*💡 Analogy: When a new employee joins a company (INSERT into Employees table), HR automatically creates a payroll entry, IT creates an email account, and facilities assigns a desk. Nobody manually calls these steps — they fire automatically when the INSERT happens. That's a trigger.*
+
+A **trigger** is a stored procedure that automatically executes in response to a specific database event: \`INSERT\`, \`UPDATE\`, or \`DELETE\` on a specific table.
+
+\`\`\`sql
+-- Trigger: automatically log every time an order status changes
+CREATE TRIGGER log_order_status_change
+AFTER UPDATE ON orders
+FOR EACH ROW
+BEGIN
+  IF OLD.status <> NEW.status THEN
+    INSERT INTO order_audit_log (order_id, old_status, new_status, changed_at)
+    VALUES (NEW.id, OLD.status, NEW.status, NOW());
+  END IF;
+END;
+\`\`\`
+
+Now whenever you run:
+\`\`\`sql
+UPDATE orders SET status = 'shipped' WHERE id = 1042;
+\`\`\`
+The trigger **automatically** fires and inserts a row into \`order_audit_log\`.
+
+---
+
+### 2. BEFORE vs AFTER Triggers
+
+*💡 Analogy: BEFORE is a bouncer checking IDs BEFORE you enter the club. AFTER is a security camera recording you AFTER you've gone in.*
+
+| Trigger Type | When it fires | Common use |
+|--------------|--------------|------------|
+| BEFORE INSERT | Before the row is saved | Validate/transform input data |
+| AFTER INSERT  | After the row is saved | Create related records, send notification |
+| BEFORE UPDATE | Before the change | Reject invalid state transitions |
+| AFTER UPDATE  | After the change | Write to audit log |
+| AFTER DELETE  | After row removed | Archive the deleted row |
+
+\`\`\`sql
+-- BEFORE INSERT: auto-set timestamps and default values
+CREATE TRIGGER set_order_defaults
+BEFORE INSERT ON orders
+FOR EACH ROW
+BEGIN
+  SET NEW.created_at = NOW();
+  SET NEW.status = COALESCE(NEW.status, 'pending');
+  SET NEW.currency = UPPER(NEW.currency);  -- normalise to uppercase
+END;
+
+-- AFTER DELETE: archive deleted users before removal
+CREATE TRIGGER archive_deleted_user
+AFTER DELETE ON users
+FOR EACH ROW
+BEGIN
+  INSERT INTO deleted_users_archive (user_id, email, deleted_at)
+  VALUES (OLD.id, OLD.email, NOW());
+END;
+\`\`\`
+
+---
+
+### 3. Advanced Constraints
+
+*💡 Analogy: A car factory has quality checkpoints built INTO the assembly line. If a door doesn't fit, the line stops — the car never moves to the next station. Database constraints are these built-in quality checkpoints.*
+
+Beyond basic NOT NULL and UNIQUE, you can create complex rules:
+
+\`\`\`sql
+-- CHECK constraint: amount must always be positive
+ALTER TABLE orders
+ADD CONSTRAINT chk_positive_amount CHECK (amount > 0);
+
+-- CHECK: only allowed status values
+ALTER TABLE orders
+ADD CONSTRAINT chk_valid_status
+CHECK (status IN ('pending', 'confirmed', 'shipped', 'delivered', 'refunded', 'cancelled'));
+
+-- CHECK: end_date must always be after start_date
+ALTER TABLE subscriptions
+ADD CONSTRAINT chk_date_order CHECK (end_date > start_date);
+\`\`\`
+
+What happens when a constraint is violated:
+\`\`\`sql
+INSERT INTO orders (amount, status) VALUES (-100, 'pending');
+-- ERROR 3819 (HY000): Check constraint 'chk_positive_amount' is violated.
+
+INSERT INTO orders (amount, status) VALUES (500, 'flying');
+-- ERROR 3819 (HY000): Check constraint 'chk_valid_status' is violated.
+\`\`\`
+
+---
+
+### 4. CASCADE DELETE — Cleaning Up Child Records
+
+*💡 Analogy: Deleting a user account is like closing a bank branch. You can't leave all the safe deposit boxes, ATM records, and staff contracts floating in the air — they must all be closed too. CASCADE handles this automatically.*
+
+\`\`\`sql
+-- Foreign key with CASCADE: deleting a user auto-deletes their orders
+CREATE TABLE orders (
+  id      INT PRIMARY KEY,
+  user_id INT,
+  amount  DECIMAL(10,2),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Now this single statement deletes the user AND all their orders:
+DELETE FROM users WHERE id = 42;
+\`\`\`
+
+Options for \`ON DELETE\`:
+| Option | Behaviour |
+|--------|-----------|
+| CASCADE | Delete child rows automatically |
+| SET NULL | Set child's FK column to NULL |
+| RESTRICT | Block the delete if children exist |
+| NO ACTION | Same as RESTRICT (default) |
+
+---
+
+### 5. Testing Triggers and Constraints as a QA
+
+\`\`\`sql
+-- Test 1: Verify AFTER UPDATE trigger fires and creates audit log
+UPDATE orders SET status = 'shipped' WHERE id = 1042;
+-- Assert: audit log entry exists
+SELECT * FROM order_audit_log WHERE order_id = 1042 ORDER BY changed_at DESC LIMIT 1;
+
+-- Test 2: Verify CHECK constraint rejects invalid status
+BEGIN;
+  INSERT INTO orders (amount, status) VALUES (500, 'invalid_status');
+  -- Expect: ERROR — constraint violated
+ROLLBACK;
+
+-- Test 3: Verify CASCADE DELETE removes child records
+INSERT INTO users (id, email) VALUES (9999, 'test@qa.com');
+INSERT INTO orders (id, user_id, amount) VALUES (8888, 9999, 100);
+DELETE FROM users WHERE id = 9999;
+-- Assert: order 8888 is also gone
+SELECT COUNT(*) FROM orders WHERE id = 8888;  -- expect: 0
+
+-- Test 4: Verify BEFORE INSERT trigger sets defaults
+INSERT INTO orders (user_id, amount) VALUES (1, 250);
+SELECT status, currency, created_at FROM orders ORDER BY id DESC LIMIT 1;
+-- Expect: status='pending', currency='USD' (or default), created_at is populated
+\`\`\`
+        `
+      },
+
+      {
+        id: 'sql-query-plan',
+        title: 'Expert: Reading Query Execution Plans',
+        analogy: "An execution plan is like Google Maps showing you EVERY route it considered before picking yours. 'Seq Scan' means it drove down every single street in the city looking for your destination. 'Index Scan' means it jumped straight to the highway and took the direct route. Your job as a QA tester doing performance testing is to check that the database is always taking the highway — not sightseeing through every street.",
+        lessonMarkdown: `
+### 1. Why Execution Plans Matter for QA
+
+*💡 Analogy: Two restaurants claim they can serve your meal in 10 minutes. One has a professional kitchen with organised stations. The other has one chef searching through a chaotic pantry. Both might succeed today — but under load, only one scales. EXPLAIN shows you which kitchen your query is running in.*
+
+When you do performance testing, you're not just checking "does the feature work?" — you're checking "does it work FAST, even with 100,000 rows in the database?" EXPLAIN is the tool that answers: **why is this query slow?**
+
+\`\`\`sql
+-- View the execution plan WITHOUT running the query:
+EXPLAIN SELECT * FROM orders WHERE user_id = 42;
+
+-- View the plan AND actually run the query (shows real timings):
+EXPLAIN ANALYZE SELECT * FROM orders WHERE user_id = 42;
+\`\`\`
+
+---
+
+### 2. The Two Key Scan Types
+
+*💡 Analogy: Finding a name in a phone book. Sequential Scan = reading every single page from page 1. Index Scan = opening the alphabetical index at the back and jumping straight to the right page.*
+
+**Seq Scan (Sequential Scan)**
+- Database reads EVERY row in the table
+- Acceptable for small tables (< ~10,000 rows)
+- Alarm bell for large tables — this is the most common cause of slow queries
+
+**Index Scan**
+- Database jumps directly to matching rows using the index
+- Fast even on tables with millions of rows
+
+\`\`\`sql
+-- Without index — will show Seq Scan:
+EXPLAIN SELECT * FROM orders WHERE user_id = 42;
+-- Output: Seq Scan on orders (cost=0.00..3420.50 rows=847 width=72)
+
+-- Add an index:
+CREATE INDEX idx_orders_user_id ON orders(user_id);
+
+-- Re-run — now shows Index Scan:
+EXPLAIN SELECT * FROM orders WHERE user_id = 42;
+-- Output: Index Scan using idx_orders_user_id on orders (cost=0.43..185.12 rows=847 width=72)
+\`\`\`
+
+The cost dropped from **3420** to **185** — that is an **18× improvement**.
+
+---
+
+### 3. Reading EXPLAIN Output
+
+*💡 Analogy: A project cost estimate. "cost=100..500" means: first page cost is 100 (startup cost), total cost is 500 (total work). "rows=50" is the optimizer's guess of how many rows match. "actual rows=847" (EXPLAIN ANALYZE) is what actually happened.*
+
+Key fields to understand:
+
+| Field | Meaning |
+|-------|---------|
+| \`cost=X..Y\` | X = startup cost, Y = total estimated cost |
+| \`rows=N\` | Optimizer's estimated matching rows |
+| \`actual rows=N\` | Real rows returned (EXPLAIN ANALYZE only) |
+| \`actual time=X..Y\` | Real time in milliseconds |
+| \`loops=N\` | How many times this node executed |
+
+\`\`\`sql
+EXPLAIN ANALYZE
+SELECT u.name, COUNT(o.id) AS order_count
+FROM users u
+LEFT JOIN orders o ON u.id = o.user_id
+WHERE u.country = 'India'
+GROUP BY u.name;
+
+-- Sample output:
+-- HashAggregate  (cost=4820..4920 rows=1000) (actual time=42.3..43.1 rows=847 loops=1)
+--   ->  Hash Left Join  (cost=1200..4500 rows=5000) (actual time=8.1..35.6 rows=12400 loops=1)
+--         Hash Cond: (o.user_id = u.id)
+--         ->  Seq Scan on orders  (cost=0..2100 rows=50000) (actual time=0.1..15.2 rows=50000 loops=1)
+--         ->  Hash  (cost=900..900 rows=1000) (actual time=7.8..7.8 rows=1000 loops=1)
+--               ->  Seq Scan on users (cost=0..900 rows=1000) actual time=0.1..5.4 rows=1000 loops=1)
+--                     Filter: (country = 'India')
+\`\`\`
+
+Notice: two Seq Scans. If either table had millions of rows, this would be catastrophically slow.
+
+---
+
+### 4. Common Slow Query Patterns to Catch
+
+*💡 Analogy: A home inspector has a checklist. They always check the same things: roof leaks, foundation cracks, bad wiring. As a performance QA, you have your own checklist of slow query patterns.*
+
+\`\`\`sql
+-- ❌ Pattern 1: Function call on a column in WHERE (breaks indexes)
+SELECT * FROM orders WHERE YEAR(created_at) = 2024;
+-- Fix: use a range instead
+SELECT * FROM orders WHERE created_at >= '2024-01-01' AND created_at < '2025-01-01';
+
+-- ❌ Pattern 2: Leading wildcard in LIKE (cannot use index)
+SELECT * FROM users WHERE email LIKE '%@gmail.com';
+-- (Can't fix easily — consider full-text search for this)
+
+-- ❌ Pattern 3: SELECT * on a wide table (fetches unused columns)
+SELECT * FROM orders;
+-- Fix: select only what you need
+SELECT id, user_id, amount, status FROM orders;
+
+-- ❌ Pattern 4: N+1 pattern — query inside a loop (use JOIN instead)
+-- Bad: "for each user, run a separate query to get their orders"
+-- Good: one JOIN that fetches everything at once
+
+-- ✅ Check if your index is actually being USED:
+EXPLAIN SELECT * FROM orders WHERE user_id = 42 AND status = 'pending';
+-- Look for "Index Scan using idx_orders_user_status" in output
+-- If you see "Seq Scan" despite having an index → the optimizer chose not to use it
+\`\`\`
+
+---
+
+### 5. Performance Testing Workflow for QA
+
+\`\`\`sql
+-- Step 1: Seed realistic data volume (not just 10 rows — test with production scale)
+-- (Usually done via scripts or tools like Faker)
+
+-- Step 2: Run EXPLAIN ANALYZE on every query the feature uses
+EXPLAIN ANALYZE
+SELECT p.name, SUM(oi.quantity) AS units_sold
+FROM order_items oi
+JOIN products p ON oi.product_id = p.id
+JOIN orders o ON oi.order_id = o.id
+WHERE o.status = 'delivered'
+  AND o.created_at >= '2024-01-01'
+GROUP BY p.name
+ORDER BY units_sold DESC
+LIMIT 20;
+
+-- Step 3: Check thresholds — flag if:
+-- • Any Seq Scan on a table > 10,000 rows
+-- • Total actual time > your SLA (e.g. 200ms)
+-- • estimated rows differs wildly from actual rows (stale statistics → ANALYZE table)
+
+-- Step 4: After index is added, re-run EXPLAIN and confirm:
+-- • Seq Scan changed to Index Scan
+-- • Cost and actual time both dropped
+
+-- Step 5: Document findings in your performance test report:
+-- "Query X: Before index — 1,240ms. After index — 38ms. 97% improvement."
 \`\`\`
         `
       }

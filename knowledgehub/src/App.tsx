@@ -130,7 +130,7 @@ const ZONE_TIERS: Record<string, { id: string; label: string; color: string; mod
       moduleIds: ['sql-what-is-db','sql-select','sql-where','sql-order-limit','sql-insert','sql-update-delete','sql-data-types','sql-aggregations'],
     },
     { id: 'intermediate', label: 'Intermediate', color: 'text-sky-400',   moduleIds: ['sql-joins','sql-group-by','sql-subqueries','sql-views','sql-indexes','sql-transactions','sql-string-date','sql-case-null'] },
-    { id: 'expert',       label: 'Expert',       color: 'text-amber-400', moduleIds: ['expert'] },
+    { id: 'expert',       label: 'Expert',       color: 'text-amber-400', moduleIds: ['sql-window-functions','sql-cte','sql-advanced-joins','sql-stored-procedures','sql-triggers-constraints','sql-query-plan'] },
   ],
   api: [
     { id: 'beginner',     label: 'Beginner',     color: 'text-emerald-400', moduleIds: ['basic']        },
@@ -405,6 +405,8 @@ function HubMap() {
   const claimDailyBounty = useQuestStore((state) => state.claimDailyBounty);
   const theme = useQuestStore((state) => state.theme);
   const toggleTheme = useQuestStore((state) => state.toggleTheme);
+  const isGuest = useQuestStore((state) => state.isGuest);
+  const resetProgress = useQuestStore((state) => state.resetProgress);
   const { logout } = useAuthStore();
   const today = new Date().toISOString().slice(0, 10);
   const bountyAlreadyClaimed = lastBountyDate === today;
@@ -436,7 +438,14 @@ function HubMap() {
           {/* Logout */}
           <div className="relative group">
             <button
-              onClick={() => { logout(); navigate('/login', { replace: true }); }}
+              onClick={() => {
+                if (isGuest) {
+                  resetProgress(); // clears isGuest flag — no Firebase call needed
+                } else {
+                  logout();
+                }
+                navigate('/login', { replace: true });
+              }}
               className="w-9 h-9 flex items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-rose-400 hover:border-rose-500/50 hover:bg-rose-500/10 hover:shadow-[0_0_14px_rgba(244,63,94,0.25)] hover:scale-110 active:scale-95 transition-all duration-200"
             >
               <LogOut size={15} />
@@ -484,6 +493,24 @@ function HubMap() {
               {next ? `${(next.min - xp).toLocaleString()} XP to ${next.title}` : 'You have achieved the ultimate rank.'}
             </p>
           </div>
+
+          {/* Guest mode banner */}
+          {isGuest && (
+            <div className="rounded-2xl border border-violet-400/30 bg-violet-500/5 p-3 flex flex-col gap-2">
+              <p className="text-xs text-violet-500 dark:text-violet-400 font-semibold flex items-center gap-1.5">
+                <span>🔓</span> Guest Mode
+              </p>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Progress saved locally. Sign in to sync across devices.
+              </p>
+              <button
+                onClick={() => navigate('/login')}
+                className="w-full py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-fuchsia-500 to-violet-600 text-white hover:opacity-90 transition"
+              >
+                Sign In / Sign Up →
+              </button>
+            </div>
+          )}
 
           {/* Daily Bounty */}
           <div className={`rounded-2xl border p-4 transition-all ${bountyAlreadyClaimed ? 'bg-white/60 dark:bg-slate-900/60 border-slate-800' : 'bg-amber-500/5 border-amber-500/25'}`}>
@@ -1226,8 +1253,9 @@ function LoginRoute() {
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, authLoading } = useAuthStore();
+  const isGuest = useQuestStore((s) => s.isGuest);
   if (authLoading) return <AuthSpinner />;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user && !isGuest) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 

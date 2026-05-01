@@ -23,6 +23,29 @@ body {
   color: #e2e8f0;
 }
 
+/* ── Fix browser autofill overriding our dark/light background ────────────────
+   Chrome paints a solid yellow/white box over autofilled inputs.
+   The box-shadow inset trick replaces that colour with ours without
+   triggering Chrome's autofill-detection override protection.           */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  box-shadow:         0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #0f172a !important; /* slate-900 */
+  caret-color: #0f172a;
+}
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus,
+.dark input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #1e293b inset !important; /* slate-800 */
+  box-shadow:         0 0 0 1000px #1e293b inset !important;
+  -webkit-text-fill-color: #f1f5f9 !important; /* slate-100 */
+  caret-color: #f1f5f9;
+}
+
 /* Hide browser-native password reveal eye (Chrome, Edge, IE) — we use a custom one */
 input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {

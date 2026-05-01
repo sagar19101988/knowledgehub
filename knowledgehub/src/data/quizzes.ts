@@ -2022,62 +2022,342 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ]
     },
 
-    // ─── EXPERT (placeholder) ─────────────────────────────────────────────────
+    // ─── EXPERT ──────────────────────────────────────────────────────────────
     {
-      level: 'expert',
+      level: 'sql-window-functions',
       questions: [
         {
-          question: 'What is a Subquery?',
+          question: 'Your test report needs to show each build\'s failure count AND its rank among all builds this week. Which SQL feature lets you add a rank column WITHOUT removing any rows from the result?',
           options: [
-            { id: 'a', text: 'A query nested inside another query.', isCorrect: true },
-            { id: 'b', text: 'A query that runs very slowly.', isCorrect: false },
-            { id: 'c', text: 'A query that deletes a subset of data.', isCorrect: false },
-            { id: 'd', text: 'A backup query stored in the database.', isCorrect: false },
+            { id: 'a', text: 'GROUP BY — collapse rows and show the rank per group.', isCorrect: false },
+            { id: 'b', text: 'A Window Function with RANK() OVER (ORDER BY failed_tests DESC).', isCorrect: true },
+            { id: 'c', text: 'A subquery that counts rows per build.', isCorrect: false },
+            { id: 'd', text: 'DISTINCT — it assigns a unique rank to each row.', isCorrect: false },
           ],
-          explanation: 'A subquery is a query inside a query. It calculates a value first, which the main query then uses.'
+          explanation: 'Window functions like RANK() OVER (...) compute a value across related rows without collapsing them. Every build row stays in the result AND gets its own rank column — exactly what GROUP BY cannot do.'
         },
         {
-          question: 'What does an INDEX do in a database?',
+          question: 'Three builds have failure counts of 15, 12, and 12. Using RANK() OVER (ORDER BY failures DESC), what ranks will the three builds get?',
           options: [
-            { id: 'a', text: 'It makes reading data (SELECT) much faster, like an index in a book.', isCorrect: true },
-            { id: 'b', text: 'It automatically fixes broken queries.', isCorrect: false },
-            { id: 'c', text: 'It deletes old data automatically.', isCorrect: false },
-            { id: 'd', text: 'It enforces unique values across a table.', isCorrect: false },
+            { id: 'a', text: '1, 2, 3 — RANK always assigns unique sequential numbers.', isCorrect: false },
+            { id: 'b', text: '1, 2, 2 — the tied builds share rank 2, and rank 3 is skipped.', isCorrect: true },
+            { id: 'c', text: '1, 1, 2 — the top two share rank 1.', isCorrect: false },
+            { id: 'd', text: '1, 2, 2 — the tied builds share rank 2, and the next rank is 3 (no skipping).', isCorrect: false },
           ],
-          explanation: 'An index creates a quick lookup map, so the database does not have to scan every single row.'
+          explanation: 'RANK() gives tied rows the same rank and then SKIPS the next rank(s). So 1, 2, 2, 4. If you do not want skipping, use DENSE_RANK() which gives 1, 2, 2, 3.'
         },
         {
-          question: 'What is a Transaction in SQL?',
+          question: 'You need a daily bug report that shows bugs found each day AND a running total so you can see the cumulative bugs at any point in the sprint. Which function produces the running total?',
           options: [
-            { id: 'a', text: 'Buying a license for the SQL server.', isCorrect: false },
-            { id: 'b', text: 'A block of SQL commands that must ALL succeed, or ALL fail together (like transferring money).', isCorrect: true },
-            { id: 'c', text: 'A table that records user clicks.', isCorrect: false },
-            { id: 'd', text: 'A scheduled job that runs SQL at a set time.', isCorrect: false },
+            { id: 'a', text: 'SUM(bugs_found) GROUP BY report_date', isCorrect: false },
+            { id: 'b', text: 'COUNT(*) OVER (ORDER BY report_date)', isCorrect: false },
+            { id: 'c', text: 'SUM(bugs_found) OVER (ORDER BY report_date)', isCorrect: true },
+            { id: 'd', text: 'TOTAL(bugs_found) PARTITION BY report_date', isCorrect: false },
           ],
-          explanation: 'Transactions ensure data is not left halfway changed. If an error happens, it rolls back to how it was.'
+          explanation: 'SUM() OVER (ORDER BY date) computes a cumulative running total — each row gets the sum of all rows up to and including itself. This is the bank passbook pattern: transaction amount + running balance in the same row.'
         },
         {
-          question: 'Adding an index to a table makes SELECT faster. What is the trade-off?',
+          question: 'A bug report says the checkout flow regressed in build v3. You want to compare each build\'s failure count to the PREVIOUS build to confirm. Which window function gives you the previous row\'s value?',
           options: [
-            { id: 'a', text: 'Indexes make all operations slower.', isCorrect: false },
-            { id: 'b', text: 'Indexes slow down INSERT, UPDATE, and DELETE because the index must be updated on every write.', isCorrect: true },
-            { id: 'c', text: 'Indexes only work on VARCHAR columns.', isCorrect: false },
-            { id: 'd', text: 'There is no trade-off — indexes always improve performance.', isCorrect: false },
+            { id: 'a', text: 'LEAD() — it looks at the next row.', isCorrect: false },
+            { id: 'b', text: 'LAG() — it looks at the previous row.', isCorrect: true },
+            { id: 'c', text: 'RANK() — it shows the relative position.', isCorrect: false },
+            { id: 'd', text: 'ROW_NUMBER() — it gives the row above its number.', isCorrect: false },
           ],
-          explanation: 'Indexes are a double-edged sword. Read performance improves dramatically, but every write operation must also update the index structure, adding overhead. Over-indexing a write-heavy table is a common performance mistake.'
+          explanation: 'LAG(column, 1) OVER (ORDER BY build_id) retrieves the value from the previous row. LEAD() is its mirror — it peeks at the next row. Combined with the current row\'s value, you can compute change = current_failures - LAG(failures).'
         },
         {
-          question: 'In a banking app, money is being transferred from Account A to Account B. The server crashes after debiting A but before crediting B. What prevents the money from disappearing?',
+          question: 'You want to rank test cases by execution time, but SEPARATELY for each module (so the slowest test in Module A gets rank 1, and the slowest in Module B also gets rank 1). Which clause achieves this?',
           options: [
-            { id: 'a', text: 'Foreign key constraints — they ensure the amounts match.', isCorrect: false },
-            { id: 'b', text: 'A database transaction with ROLLBACK — if the credit fails, the debit is reversed.', isCorrect: true },
-            { id: 'c', text: 'An index on the amount column — it catches inconsistencies.', isCorrect: false },
-            { id: 'd', text: 'The database automatically retries the failed operation.', isCorrect: false },
+            { id: 'a', text: 'GROUP BY module_name, then RANK().', isCorrect: false },
+            { id: 'b', text: 'RANK() OVER (ORDER BY execution_ms DESC) — ranking is always global.', isCorrect: false },
+            { id: 'c', text: 'RANK() OVER (PARTITION BY module_name ORDER BY execution_ms DESC)', isCorrect: true },
+            { id: 'd', text: 'RANK() OVER (FILTER BY module_name ORDER BY execution_ms DESC)', isCorrect: false },
           ],
-          explanation: 'Transactions group multiple SQL commands into an all-or-nothing unit. If any step fails, ROLLBACK undoes every previous step in the transaction. This guarantees the data is never left in an inconsistent half-changed state.'
+          explanation: 'PARTITION BY inside the OVER clause creates separate windows per group. The ranking resets to 1 for each partition (module). Think of it as separate leaderboards per module, all computed in one query.'
         },
       ]
-    }
+    },
+
+    {
+      level: 'sql-cte',
+      questions: [
+        {
+          question: 'You have a complex 4-step test data verification query. When you write it as nested subqueries, it becomes unreadable. Which SQL feature lets you name and extract each step so the final query reads like plain English?',
+          options: [
+            { id: 'a', text: 'A stored procedure — store each step as a separate procedure.', isCorrect: false },
+            { id: 'b', text: 'A CTE (WITH clause) — name each sub-result and reference it by name in the final SELECT.', isCorrect: true },
+            { id: 'c', text: 'A VIEW — create a permanent view for each step.', isCorrect: false },
+            { id: 'd', text: 'UNION ALL — chain all steps sequentially.', isCorrect: false },
+          ],
+          explanation: 'CTEs (WITH clause) let you name sub-results at the top of your query. The final SELECT just references those names — making multi-step queries readable, maintainable, and easy to explain to colleagues.'
+        },
+        {
+          question: 'A CTE named "active_users" is referenced TWICE in the main query. What happens — does the database compute it twice?',
+          options: [
+            { id: 'a', text: 'Yes — the CTE runs once for each reference, potentially doubling work.', isCorrect: false },
+            { id: 'b', text: 'No — the CTE is always computed exactly once and the result is reused.', isCorrect: false },
+            { id: 'c', text: 'It depends on the database — some inline CTEs (compute per reference), others materialise once.', isCorrect: true },
+            { id: 'd', text: 'CTEs cannot be referenced more than once — this would be a syntax error.', isCorrect: false },
+          ],
+          explanation: 'Behaviour varies: PostgreSQL and SQL Server may materialise (compute once and cache), but MySQL often inlines (re-runs per reference). The key benefit is readability — you avoid writing the same subquery twice regardless. For guaranteed single-execution, use a temp table.'
+        },
+        {
+          question: 'You want to find all users who completed an order but never received a confirmation email. Which pattern best solves this with CTEs?',
+          options: [
+            { id: 'a', text: 'One CTE for ordered_users, another for emailed_users, then SELECT from ordered_users WHERE user_id NOT IN emailed_users.', isCorrect: true },
+            { id: 'b', text: 'A GROUP BY on the orders table filtered by email_logs.', isCorrect: false },
+            { id: 'c', text: 'A CROSS JOIN between orders and email_logs.', isCorrect: false },
+            { id: 'd', text: 'A UNION of orders and email_logs filtered by user_id.', isCorrect: false },
+          ],
+          explanation: 'Multiple CTEs make this readable: first isolate "users who ordered" and "users who received emails" as separate named steps. Then the final query is just "who is in Step 1 but NOT Step 2" — a clean, self-documenting verification query.'
+        },
+        {
+          question: 'A QA regression check needs to compare test results between build v2.1.0 and v2.2.0 and label each test as REGRESSION, FIXED, or UNCHANGED. What is the cleanest approach?',
+          options: [
+            { id: 'a', text: 'Run two separate SELECT queries and manually compare in a spreadsheet.', isCorrect: false },
+            { id: 'b', text: 'Use CTEs to extract each build\'s results separately, then JOIN them and apply a CASE expression for the verdict.', isCorrect: true },
+            { id: 'c', text: 'Use GROUP BY on build_id and HAVING to filter changed tests.', isCorrect: false },
+            { id: 'd', text: 'Use a FULL OUTER JOIN directly without CTEs and inline the CASE.', isCorrect: false },
+          ],
+          explanation: 'CTEs named build_a and build_b let you isolate each build cleanly. The final query JOINs them on test_name and applies CASE to produce the verdict. This is far more readable than embedding both filters in a single complex JOIN condition.'
+        },
+        {
+          question: 'You need to find all employees in an org chart who report to a specific VP — including their reports, their reports\' reports, and so on (unlimited depth). Which SQL feature handles this?',
+          options: [
+            { id: 'a', text: 'A correlated subquery with CONNECT BY.', isCorrect: false },
+            { id: 'b', text: 'Multiple self-joins, one per level.', isCorrect: false },
+            { id: 'c', text: 'A RECURSIVE CTE — it starts with the VP row and repeatedly adds direct reports until no more are found.', isCorrect: true },
+            { id: 'd', text: 'A window function with PARTITION BY manager_id.', isCorrect: false },
+          ],
+          explanation: 'A RECURSIVE CTE has two parts: the base case (start with the VP) and the recursive step (join employees to the CTE on manager_id). It repeats until the join returns no new rows. This is the standard pattern for hierarchical data like org charts and permission trees.'
+        },
+      ]
+    },
+
+    {
+      level: 'sql-advanced-joins',
+      questions: [
+        {
+          question: 'Your Employees table has columns: id, name, manager_id (which references id in the SAME table). You want to list every employee next to their manager\'s name. Which JOIN type do you use?',
+          options: [
+            { id: 'a', text: 'CROSS JOIN — to combine every employee with every other employee.', isCorrect: false },
+            { id: 'b', text: 'SELF JOIN — joining the Employees table to itself using two aliases.', isCorrect: true },
+            { id: 'c', text: 'FULL OUTER JOIN — to include both employees and managers.', isCorrect: false },
+            { id: 'd', text: 'A subquery — self-joins are not possible in SQL.', isCorrect: false },
+          ],
+          explanation: 'A SELF JOIN joins a table to itself by aliasing it twice: "FROM employees e JOIN employees m ON e.manager_id = m.id". You use LEFT JOIN so top-level managers (with NULL manager_id) still appear in the results.'
+        },
+        {
+          question: 'After a user migration, you suspect duplicate accounts exist (same email, different IDs). Which query finds them using a SELF JOIN without showing each pair twice?',
+          options: [
+            { id: 'a', text: 'SELECT a.id, b.id FROM users a JOIN users b ON a.email = b.email', isCorrect: false },
+            { id: 'b', text: 'SELECT a.id, b.id FROM users a JOIN users b ON a.email = b.email AND a.id < b.id', isCorrect: true },
+            { id: 'c', text: 'SELECT a.id, b.id FROM users a CROSS JOIN users b WHERE a.email = b.email', isCorrect: false },
+            { id: 'd', text: 'SELECT email, COUNT(*) FROM users GROUP BY email HAVING COUNT(*) > 1', isCorrect: false },
+          ],
+          explanation: 'Without "AND a.id < b.id", the pair (1,2) and (2,1) would both appear. The "less than" condition ensures each pair is shown exactly once. Option D finds the emails but doesn\'t identify the duplicate IDs — you can\'t act on it without the SELF JOIN approach.'
+        },
+        {
+          question: 'You want to automatically generate a test compatibility matrix for all browser + OS combinations (3 browsers × 4 OS = 12 rows) without typing them manually. Which JOIN creates all possible combinations?',
+          options: [
+            { id: 'a', text: 'INNER JOIN with no ON condition.', isCorrect: false },
+            { id: 'b', text: 'LEFT JOIN between browsers and operating_systems.', isCorrect: false },
+            { id: 'c', text: 'CROSS JOIN between browsers and operating_systems.', isCorrect: true },
+            { id: 'd', text: 'FULL OUTER JOIN between browsers and operating_systems.', isCorrect: false },
+          ],
+          explanation: 'CROSS JOIN produces every possible combination (cartesian product) of two tables. With no ON condition needed, 3 browsers × 4 OS = 12 rows. Perfect for generating test matrices, seating charts, or any "all combinations" scenario.'
+        },
+        {
+          question: 'You are joining 4 tables: orders → users (INNER), orders → payments (LEFT), payments → refunds (LEFT). An order has no payment record yet. What happens to that order row in the result?',
+          options: [
+            { id: 'a', text: 'It is dropped — INNER JOIN with users already excludes unmatched rows.', isCorrect: false },
+            { id: 'b', text: 'It appears in the result with NULL for all payment and refund columns.', isCorrect: true },
+            { id: 'c', text: 'The LEFT JOIN to payments causes an error when no match exists.', isCorrect: false },
+            { id: 'd', text: 'It is dropped because you cannot chain LEFT JOINs after an INNER JOIN.', isCorrect: false },
+          ],
+          explanation: 'LEFT JOIN always preserves the left table\'s rows. If no matching payment exists, all payment columns become NULL, and all refund columns (which depend on payment) also become NULL. The order row survives because INNER JOIN with users succeeded.'
+        },
+        {
+          question: 'You have a bug_severity_thresholds table with columns: min_score, max_score, severity_label. You want to label each bug with its severity based on its impact_score falling within a range. Which JOIN handles this?',
+          options: [
+            { id: 'a', text: 'INNER JOIN ON bugs.impact_score = thresholds.min_score', isCorrect: false },
+            { id: 'b', text: 'LEFT JOIN ON bugs.impact_score = thresholds.severity_label', isCorrect: false },
+            { id: 'c', text: 'INNER JOIN ON bugs.impact_score BETWEEN thresholds.min_score AND thresholds.max_score', isCorrect: true },
+            { id: 'd', text: 'CROSS JOIN with a HAVING clause to filter by score range.', isCorrect: false },
+          ],
+          explanation: 'This is a non-equi JOIN — the join condition uses BETWEEN instead of equals. It matches each bug to the severity tier whose range contains its score. This pattern is common for grade-letter assignments, tax brackets, and SLA classification.'
+        },
+      ]
+    },
+
+    {
+      level: 'sql-stored-procedures',
+      questions: [
+        {
+          question: 'As a QA tester, you need to test the "process_refund" stored procedure. You call it with a valid completed order ID. What THREE things should you verify after the call?',
+          options: [
+            { id: 'a', text: 'Only the OUT parameter result — if it says SUCCESS, the procedure worked.', isCorrect: false },
+            { id: 'b', text: 'The OUT parameter result, the order\'s new status in the orders table, AND a new row in the refunds table.', isCorrect: true },
+            { id: 'c', text: 'The procedure\'s source code to confirm the logic is correct.', isCorrect: false },
+            { id: 'd', text: 'Only the refunds table — the order status is managed separately.', isCorrect: false },
+          ],
+          explanation: 'Testing a stored procedure means verifying ALL side effects, not just the return value. A procedure can say "SUCCESS" but still fail to create the refund record. Always check: (1) return/OUT value, (2) all tables that should have changed, (3) tables that should NOT have changed.'
+        },
+        {
+          question: 'A stored procedure is called twice in quick succession with the same order ID. The first call succeeds (refund created). What should the SECOND call return?',
+          options: [
+            { id: 'a', text: 'SUCCESS — it is idempotent and safe to call multiple times.', isCorrect: false },
+            { id: 'b', text: 'An error or "not eligible" message — the order is no longer in "completed" status.', isCorrect: true },
+            { id: 'c', text: 'It depends on whether a transaction is used.', isCorrect: false },
+            { id: 'd', text: 'A duplicate refund record — the procedure has no duplicate check.', isCorrect: false },
+          ],
+          explanation: 'After the first call, the order status changes to "refunded". A well-written procedure checks the status before processing, so the second call should detect the order is not "completed" and return an error. If the second call ALSO succeeds, that is a bug — a double-refund vulnerability.'
+        },
+        {
+          question: 'What is the key difference between a stored PROCEDURE and a stored FUNCTION in SQL?',
+          options: [
+            { id: 'a', text: 'Procedures are faster; functions are slower.', isCorrect: false },
+            { id: 'b', text: 'A function always returns ONE value and can be used inside SELECT. A procedure runs a process, can modify data, and is called with CALL.', isCorrect: true },
+            { id: 'c', text: 'Functions can modify tables; procedures cannot.', isCorrect: false },
+            { id: 'd', text: 'They are exactly the same — "function" and "procedure" are interchangeable.', isCorrect: false },
+          ],
+          explanation: 'Functions return a single value and plug into queries like a built-in function: SELECT get_discount_pct(5000). Procedures run complex operations (INSERT/UPDATE/loops) and are called separately: CALL process_refund(42, \'damaged\', @result). Functions cannot modify data in most databases.'
+        },
+        {
+          question: 'You want to test a stored procedure but NOT leave test data in the database permanently. What is the cleanest approach?',
+          options: [
+            { id: 'a', text: 'Delete all inserted rows manually after each test.', isCorrect: false },
+            { id: 'b', text: 'Wrap the test in START TRANSACTION ... ROLLBACK so all changes are automatically undone.', isCorrect: true },
+            { id: 'c', text: 'Only test procedures in a stored procedure, not in a plain SQL script.', isCorrect: false },
+            { id: 'd', text: 'Use a SELECT-only procedure that does not modify any data.', isCorrect: false },
+          ],
+          explanation: 'START TRANSACTION lets you run the procedure and observe all database changes. Then ROLLBACK undoes everything, leaving the database exactly as before. This is the gold standard for transactional testing — clean, repeatable, and no manual cleanup needed.'
+        },
+        {
+          question: 'A discount function is supposed to return 15% for orders over ₹10,000, 10% for ₹5,000-₹9,999, 5% for ₹1,000-₹4,999, and 0% below. Which amount is the most important boundary value to test?',
+          options: [
+            { id: 'a', text: '₹500 and ₹15,000 only — test the extremes.', isCorrect: false },
+            { id: 'b', text: '₹999, ₹1,000, ₹4,999, ₹5,000, ₹9,999, ₹10,000 — every boundary on both sides.', isCorrect: true },
+            { id: 'c', text: '₹1,000, ₹5,000, ₹10,000 only — the exact thresholds are sufficient.', isCorrect: false },
+            { id: 'd', text: 'Random values like ₹1,234, ₹6,789, ₹11,111.', isCorrect: false },
+          ],
+          explanation: 'Boundary Value Analysis (BVA) says test AT the boundary AND one on each side: ₹999 (0%), ₹1,000 (5%), ₹4,999 (5%), ₹5,000 (10%), ₹9,999 (10%), ₹10,000 (15%). The most common bugs are off-by-one errors — using > instead of >=, which only testing the exact boundary catches.'
+        },
+      ]
+    },
+
+    {
+      level: 'sql-triggers-constraints',
+      questions: [
+        {
+          question: 'Every time an order status changes, you need a row automatically created in an order_audit_log table. No application code should be responsible. What database feature handles this?',
+          options: [
+            { id: 'a', text: 'A CHECK constraint — it validates data and logs changes.', isCorrect: false },
+            { id: 'b', text: 'An AFTER UPDATE trigger on the orders table that INSERT into the audit log.', isCorrect: true },
+            { id: 'c', text: 'A VIEW that mirrors the orders table with timestamps.', isCorrect: false },
+            { id: 'd', text: 'A stored procedure that must be called manually after each update.', isCorrect: false },
+          ],
+          explanation: 'An AFTER UPDATE trigger fires automatically every time an UPDATE happens on the orders table, with no application code needed. Inside the trigger, OLD.status and NEW.status give you the before and after values to write to the audit log.'
+        },
+        {
+          question: 'You are testing an order_audit_log trigger. After running "UPDATE orders SET status = \'shipped\' WHERE id = 42", how do you verify the trigger fired correctly?',
+          options: [
+            { id: 'a', text: 'Check the application logs — triggers always write to the app log.', isCorrect: false },
+            { id: 'b', text: 'Query the order_audit_log table and confirm a new row exists with old_status=\'confirmed\' and new_status=\'shipped\' for order 42.', isCorrect: true },
+            { id: 'c', text: 'Run SHOW TRIGGERS to see if the trigger is enabled.', isCorrect: false },
+            { id: 'd', text: 'Check the orders table — the trigger result is stored there.', isCorrect: false },
+          ],
+          explanation: 'Testing a trigger means verifying its SIDE EFFECT — the row it was supposed to create. Always query the target table directly with specific assertions: correct order_id, correct old and new values, and a recent timestamp. Never assume the trigger fired just because the main UPDATE succeeded.'
+        },
+        {
+          question: 'A CHECK constraint is defined as: CHECK (status IN (\'pending\', \'confirmed\', \'shipped\', \'delivered\', \'refunded\')). What happens when you INSERT a row with status = \'processing\'?',
+          options: [
+            { id: 'a', text: 'The INSERT succeeds — CHECK constraints only work on UPDATE.', isCorrect: false },
+            { id: 'b', text: 'The value is auto-corrected to the closest valid status.', isCorrect: false },
+            { id: 'c', text: 'The INSERT fails with a constraint violation error — the row is rejected.', isCorrect: true },
+            { id: 'd', text: 'The constraint is skipped if no trigger is defined.', isCorrect: false },
+          ],
+          explanation: 'CHECK constraints are enforced at INSERT and UPDATE time. Any value not in the allowed list causes the operation to fail immediately with an error. The row is never saved. This is database-level validation — it works even if the application sends bad data.'
+        },
+        {
+          question: 'A foreign key is defined with ON DELETE CASCADE between users and orders. A test user (id=9999) has 3 orders. You delete user 9999. How many total rows are deleted?',
+          options: [
+            { id: 'a', text: '1 — only the user row; orders must be deleted separately.', isCorrect: false },
+            { id: 'b', text: '4 — the 1 user row plus the 3 order rows, automatically.', isCorrect: true },
+            { id: 'c', text: 'An error is thrown — you cannot delete a user who has orders.', isCorrect: false },
+            { id: 'd', text: '3 — only the orders are deleted; the user row needs manual deletion.', isCorrect: false },
+          ],
+          explanation: 'ON DELETE CASCADE automatically deletes all child rows (orders) when the parent row (user) is deleted. The 1 user + 3 orders = 4 rows disappear in one DELETE statement. Without CASCADE, the database would throw a foreign key constraint error to prevent orphaned order records.'
+        },
+        {
+          question: 'You want to test that a BEFORE INSERT trigger correctly normalises the currency column to uppercase. You INSERT a row with currency = \'usd\'. What should you check?',
+          options: [
+            { id: 'a', text: 'The trigger logs in the application server should show the conversion happened.', isCorrect: false },
+            { id: 'b', text: 'SELECT currency FROM orders WHERE id = <new_id> — it should return \'USD\', not \'usd\'.', isCorrect: true },
+            { id: 'c', text: 'Run DESCRIBE orders — the column type will show the normalisation rule.', isCorrect: false },
+            { id: 'd', text: 'The INSERT would fail because \'usd\' is invalid.', isCorrect: false },
+          ],
+          explanation: 'A BEFORE INSERT trigger modifies the data BEFORE it is saved. So querying the saved row should show the transformed value. If you insert \'usd\' and SELECT returns \'usd\' (not \'USD\'), the trigger either did not fire or has a bug in its UPPER() logic.'
+        },
+      ]
+    },
+
+    {
+      level: 'sql-query-plan',
+      questions: [
+        {
+          question: 'During performance testing, a feature\'s main query takes 4,200ms with 100,000 rows. Your SLA is 200ms. You run EXPLAIN ANALYZE and see "Seq Scan on orders". What does this mean?',
+          options: [
+            { id: 'a', text: 'The query is sequential — it runs multiple subqueries one after the other.', isCorrect: false },
+            { id: 'b', text: 'The database is reading EVERY row in the orders table from start to finish, with no shortcut.', isCorrect: true },
+            { id: 'c', text: 'The query uses a sequence to generate IDs.', isCorrect: false },
+            { id: 'd', text: 'Seq Scan is the fastest scan type — this is expected.', isCorrect: false },
+          ],
+          explanation: 'Seq Scan (Sequential Scan) means the database reads every single row, like a librarian reading an entire book to find one sentence. It is acceptable for small tables but disastrous on large ones. The fix is to add an index so the database can jump directly to matching rows (Index Scan).'
+        },
+        {
+          question: 'After adding an index on orders(user_id), you re-run EXPLAIN and the output changes from "Seq Scan on orders" to "Index Scan using idx_orders_user_id on orders". What does this confirm?',
+          options: [
+            { id: 'a', text: 'The query now runs faster, and the index is being used as expected.', isCorrect: true },
+            { id: 'b', text: 'The database is now reading more rows because the index is larger.', isCorrect: false },
+            { id: 'c', text: 'The index was added but the query plan has not been updated yet.', isCorrect: false },
+            { id: 'd', text: 'Only SELECT queries benefit — INSERT and UPDATE still do a Seq Scan.', isCorrect: false },
+          ],
+          explanation: 'An Index Scan means the database uses the index to jump directly to matching rows — like using a book\'s index to find the right page. Seeing this in EXPLAIN confirms your index is actively used. The cost and actual time should also drop significantly — document both before and after for your performance report.'
+        },
+        {
+          question: 'EXPLAIN shows "cost=0.00..3420.50 rows=847". After running EXPLAIN ANALYZE, the actual rows is 24,000. What problem does this indicate?',
+          options: [
+            { id: 'a', text: 'The query has a bug and is returning too many rows.', isCorrect: false },
+            { id: 'b', text: 'The optimizer\'s statistics are stale — it underestimated the row count by ~28×, likely choosing a suboptimal plan.', isCorrect: true },
+            { id: 'c', text: 'The index is broken and needs to be rebuilt.', isCorrect: false },
+            { id: 'd', text: 'The database is running in slow mode — restart it.', isCorrect: false },
+          ],
+          explanation: 'When estimated rows differs wildly from actual rows, the optimizer\'s statistics are outdated. It may choose a bad execution plan (like picking a Seq Scan thinking the table is small). The fix is to run ANALYZE on the table to refresh statistics, then re-check the plan.'
+        },
+        {
+          question: 'A WHERE clause uses: WHERE YEAR(created_at) = 2024. EXPLAIN shows a Seq Scan even though created_at has an index. Why is the index not used?',
+          options: [
+            { id: 'a', text: 'Indexes do not work on DATE columns — only VARCHAR and INT.', isCorrect: false },
+            { id: 'b', text: 'Wrapping a column in a function (YEAR()) prevents the database from using the index on that column.', isCorrect: true },
+            { id: 'c', text: 'The index needs to be rebuilt after inserting new rows.', isCorrect: false },
+            { id: 'd', text: 'YEAR() forces a full table scan by design — it is a known limitation.', isCorrect: false },
+          ],
+          explanation: 'Applying a function to an indexed column (YEAR(created_at), LOWER(email), etc.) breaks index usage because the index stores raw values, not computed ones. Fix: use a range instead — WHERE created_at >= \'2024-01-01\' AND created_at < \'2025-01-01\'. This is a very common performance bug to catch during QA.'
+        },
+        {
+          question: 'Your performance test report should document a query optimisation. Before the index, EXPLAIN ANALYZE shows actual time = 1,240ms. After the index, actual time = 38ms. How should you frame this in the report?',
+          options: [
+            { id: 'a', text: '"The query is now faster." — brief and accurate.', isCorrect: false },
+            { id: 'b', text: '"Query X improved from Seq Scan (1,240ms) to Index Scan (38ms) after adding idx_orders_user_id — a 97% reduction in execution time."', isCorrect: true },
+            { id: 'c', text: '"Index added. Performance improved." — short and to the point.', isCorrect: false },
+            { id: 'd', text: 'No documentation needed — the index is a developer\'s responsibility, not QA\'s.', isCorrect: false },
+          ],
+          explanation: 'A strong performance test report includes: the specific query, the scan type before and after, the measurable improvement (ms and percentage), and the exact index used. This gives developers actionable evidence and gives managers business impact context. Vague statements like "it\'s faster" add no value.'
+        },
+      ]
+    },
   ],
   api: [
     {

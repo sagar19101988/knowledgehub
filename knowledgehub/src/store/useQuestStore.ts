@@ -10,6 +10,7 @@ export interface QuestState {
   completedLevels: string[];
   lastBountyDate: string | null;
   theme: 'dark' | 'light';
+  isGuest: boolean;
 
   // Actions
   setPlayerName: (name: string) => void;
@@ -20,6 +21,7 @@ export interface QuestState {
   markLevelComplete: (levelKey: string) => void;
   claimDailyBounty: () => void;
   toggleTheme: () => void;
+  enterGuestMode: () => void;
 
   // Firebase sync
   hydrateFromFirestore: (progress: UserProgress, displayName: string) => void;
@@ -52,6 +54,7 @@ export const useQuestStore = create<QuestState>()(
       unlockedBadges: [],
       completedLevels: [],
       lastBountyDate: null,
+      isGuest: false,
 
       setPlayerName: (name) => set({ playerName: name.trim() }),
       clearPlayerName: () => set({ playerName: null }),
@@ -88,6 +91,8 @@ export const useQuestStore = create<QuestState>()(
         theme: state.theme === 'dark' ? 'light' : 'dark',
       })),
 
+      enterGuestMode: () => set({ isGuest: true, playerName: 'Guest' }),
+
       // ── Called by useAuthStore when user logs in ────────────
       hydrateFromFirestore: (progress, displayName) => {
         set({
@@ -98,6 +103,7 @@ export const useQuestStore = create<QuestState>()(
           completedLevels:progress.completedLevels,
           lastBountyDate: progress.lastBountyDate,
           theme:          progress.theme,
+          isGuest:        false, // real login clears guest mode
         });
       },
 
@@ -112,6 +118,7 @@ export const useQuestStore = create<QuestState>()(
           unlockedBadges: [],
           completedLevels:[],
           lastBountyDate: null,
+          isGuest:        false, // clear guest mode on any reset/logout
         });
         // CRITICAL: the set() above triggers SyncToCloud's subscription,
         // which calls syncToFirestore → schedules a NEW debounced save
@@ -142,7 +149,8 @@ export const useQuestStore = create<QuestState>()(
         completedLevels:state.completedLevels,
         lastBountyDate: state.lastBountyDate,
         theme:          state.theme,
-        // playerName intentionally excluded — always comes from Firebase auth
+        isGuest:        state.isGuest, // persist so guest survives refresh
+        // playerName intentionally excluded — always comes from Firebase auth or enterGuestMode
       }),
     }
   )
