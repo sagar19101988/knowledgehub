@@ -287,7 +287,7 @@ function HubMap() {
         </div>
 
         {/* ── CENTER: Welcome text ── */}
-        <h1 className="text-base font-black text-slate-900 dark:text-white whitespace-nowrap">
+        <h1 className="text-xl font-black text-slate-900 dark:text-white whitespace-nowrap">
           Welcome back,{' '}
           <span className="bg-gradient-to-r from-fuchsia-500 to-cyan-400 bg-clip-text text-transparent">
             {playerName}
@@ -485,7 +485,7 @@ function HubMap() {
         {/* ── Main: zone cards ── */}
         <main className="flex-1 p-6 overflow-y-auto">
           {/* View toggle — centred above content */}
-          <div className="flex justify-center mb-6">
+          <div className="flex flex-col items-center gap-2 mb-6">
             <div className="flex bg-white dark:bg-slate-900 border border-slate-200 dark:border-violet-900/40 rounded-xl p-1 gap-1 shadow-sm">
               <button
                 onClick={() => handleSetViewMode('map')}
@@ -508,6 +508,7 @@ function HubMap() {
                 <LayoutGrid size={14} /> Skill Tree
               </button>
             </div>
+            <p className="text-xs text-slate-400 dark:text-slate-500">Choose a realm to conquer.</p>
           </div>
 
           {/* ── Map View ── */}
