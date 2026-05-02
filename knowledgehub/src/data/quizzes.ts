@@ -3960,6 +3960,557 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
         },
       ]
     },
+    {
+      level: 'ts-generics',
+      questions: [
+        {
+          question: 'What does the type parameter <T> represent in a generic function?',
+          options: [
+            { id: 'a', text: 'A reserved keyword for TypeScript templates', isCorrect: false },
+            { id: 'b', text: 'A placeholder that is replaced with an actual type when the function is called', isCorrect: true },
+            { id: 'c', text: 'The return type of the function', isCorrect: false },
+            { id: 'd', text: 'A shorthand for the "any" type', isCorrect: false },
+          ],
+          explanation: 'T is simply a convention-based placeholder name. When you call getFirst([1,2,3]), TypeScript infers T = number and substitutes it everywhere T appears in the function signature. You could name it anything (U, TData, etc.) — it\'s just a variable at the type level.'
+        },
+        {
+          question: 'Which generic constraint syntax restricts T to types that have a "length" property?',
+          options: [
+            { id: 'a', text: 'function len<T: { length: number }>(val: T)', isCorrect: false },
+            { id: 'b', text: 'function len<T where T.length>(val: T)', isCorrect: false },
+            { id: 'c', text: 'function len<T extends { length: number }>(val: T)', isCorrect: true },
+            { id: 'd', text: 'function len<T implements { length: number }>(val: T)', isCorrect: false },
+          ],
+          explanation: 'The "extends" keyword in a generic context means "must be assignable to" (a structural subtype of). <T extends { length: number }> says T can be any type as long as it has a numeric length property — which covers strings, arrays, and custom objects with length.'
+        },
+        {
+          question: 'In a QA context, what is the main benefit of a generic BasePage<TSelectors> class?',
+          options: [
+            { id: 'a', text: 'It removes the need for selectors entirely', isCorrect: false },
+            { id: 'b', text: 'It forces all page objects to use the same selectors', isCorrect: false },
+            { id: 'c', text: 'It provides shared methods (goto, waitForLoad) while keeping each page\'s selectors strongly-typed', isCorrect: true },
+            { id: 'd', text: 'It automatically generates tests from selectors', isCorrect: false },
+          ],
+          explanation: 'A generic BasePage<TSelectors> lets you write shared automation logic once (goto, waitForLoad, screenshot) while each subclass passes its own selector shape as TSelectors. TypeScript then enforces that you only access selectors that actually exist on that specific page — catching typos at compile time instead of at runtime.'
+        },
+        {
+          question: 'What does a generic API response wrapper type like ApiResponse<T> = { data: T; status: number } achieve?',
+          options: [
+            { id: 'a', text: 'It makes every API call return the same hardcoded data shape', isCorrect: false },
+            { id: 'b', text: 'It eliminates the need to type API responses at all', isCorrect: false },
+            { id: 'c', text: 'It provides a reusable wrapper where the payload type is specified per call-site, preserving full type safety', isCorrect: true },
+            { id: 'd', text: 'It validates API responses at runtime automatically', isCorrect: false },
+          ],
+          explanation: 'ApiResponse<User> and ApiResponse<Order[]> share the same wrapper shape but have strongly-typed data fields. This pattern eliminates repetition while giving you autocomplete and type checking on the payload without casting to any.'
+        },
+        {
+          question: 'Which of the following best describes a keyof T constraint in generics?',
+          options: [
+            { id: 'a', text: 'It restricts T to only primitive types', isCorrect: false },
+            { id: 'b', text: 'K extends keyof T means K must be one of the property names of T', isCorrect: true },
+            { id: 'c', text: 'It converts T into a union of its value types', isCorrect: false },
+            { id: 'd', text: 'K can be any string when T is an interface', isCorrect: false },
+          ],
+          explanation: 'function getProperty<T, K extends keyof T>(obj: T, key: K) means K must be a valid key of T. This lets TypeScript infer the exact return type T[K] — if T is User and K is "email", the return type is string. Passing an invalid key ("phonenumber" when it doesn\'t exist) is a compile error.'
+        },
+      ]
+    },
+    {
+      level: 'ts-utility-types',
+      questions: [
+        {
+          question: 'What does Partial<User> produce when User has { id: number; name: string; email: string }?',
+          options: [
+            { id: 'a', text: '{ id?: number; name?: string; email?: string }', isCorrect: true },
+            { id: 'b', text: '{ id: number | undefined; name: string | undefined }', isCorrect: false },
+            { id: 'c', text: 'An empty object type {}', isCorrect: false },
+            { id: 'd', text: 'Removes the id field since it is required', isCorrect: false },
+          ],
+          explanation: 'Partial<T> makes every property optional by adding ? to each key. The resulting type accepts objects where you provide zero or more of the original fields — perfect for PATCH request bodies or test fixture factories where you only want to override specific fields.'
+        },
+        {
+          question: 'Which utility type would you use to create a type containing only "email" and "name" from a larger User interface?',
+          options: [
+            { id: 'a', text: 'Omit<User, "id" | "role" | "createdAt">', isCorrect: false },
+            { id: 'b', text: 'Pick<User, "email" | "name">', isCorrect: true },
+            { id: 'c', text: 'Partial<User>', isCorrect: false },
+            { id: 'd', text: 'Required<User>', isCorrect: false },
+          ],
+          explanation: 'Pick<T, K> constructs a type by selecting only the keys listed in K. Both Pick and Omit achieve similar things, but Pick is more explicit when you want only a few fields, while Omit is cleaner when you want all-but-a-few. Use whichever results in a shorter key list.'
+        },
+        {
+          question: 'When is Readonly<T> most useful in a testing context?',
+          options: [
+            { id: 'a', text: 'When you want to prevent test fixtures from being accidentally mutated', isCorrect: true },
+            { id: 'b', text: 'When you want to make all properties required', isCorrect: false },
+            { id: 'c', text: 'When building form state that users can edit', isCorrect: false },
+            { id: 'd', text: 'When a function needs to return multiple types', isCorrect: false },
+          ],
+          explanation: 'Readonly<T> prevents reassignment of any property after object creation. In tests, wrapping your fixture data in Readonly ensures that helper functions can\'t accidentally mutate the shared test data between tests — a common source of flaky test suites.'
+        },
+        {
+          question: 'What does Record<string, number> represent?',
+          options: [
+            { id: 'a', text: 'An array of [string, number] tuples', isCorrect: false },
+            { id: 'b', text: 'A function that maps strings to numbers', isCorrect: false },
+            { id: 'c', text: 'An object type where all keys are strings and all values are numbers', isCorrect: true },
+            { id: 'd', text: 'A Map data structure with string keys', isCorrect: false },
+          ],
+          explanation: 'Record<K, V> is equivalent to { [key: K]: V }. Record<string, number> is perfect for things like response time maps { "GET /users": 120, "POST /orders": 250 } where you don\'t know the key names in advance but know the value type is always number.'
+        },
+        {
+          question: 'What does ReturnType<typeof createTestUser> give you?',
+          options: [
+            { id: 'a', text: 'The type of the first parameter of createTestUser', isCorrect: false },
+            { id: 'b', text: 'The inferred return type of the createTestUser function', isCorrect: true },
+            { id: 'c', text: 'A new function that calls createTestUser', isCorrect: false },
+            { id: 'd', text: 'It only works with async functions', isCorrect: false },
+          ],
+          explanation: 'ReturnType<T> extracts the return type from a function type. Combined with typeof to get the function\'s type, ReturnType<typeof createTestUser> gives you the exact shape that createTestUser returns — without needing to define or import that type separately. Very useful in test helpers.'
+        },
+      ]
+    },
+    {
+      level: 'ts-keyof-typeof',
+      questions: [
+        {
+          question: 'What does "keyof User" produce when User is { id: number; name: string; email: string }?',
+          options: [
+            { id: 'a', text: '{ id: number; name: string; email: string }', isCorrect: false },
+            { id: 'b', text: 'number | string', isCorrect: false },
+            { id: 'c', text: '"id" | "name" | "email"', isCorrect: true },
+            { id: 'd', text: 'An array of property names', isCorrect: false },
+          ],
+          explanation: 'keyof T produces a union of all key names (as string literals) of the type T. For User, that is "id" | "name" | "email". This makes it impossible to reference a property name that doesn\'t exist on the type — you get a compile error instead of a silent undefined at runtime.'
+        },
+        {
+          question: 'When should you use "typeof" at the type level (not the value level)?',
+          options: [
+            { id: 'a', text: 'To check if a variable is a string at runtime', isCorrect: false },
+            { id: 'b', text: 'To extract the type of an existing variable or function without writing the type manually', isCorrect: true },
+            { id: 'c', text: 'To convert a value into its string representation', isCorrect: false },
+            { id: 'd', text: 'To assert that a variable is a specific type', isCorrect: false },
+          ],
+          explanation: 'In a type position, typeof myVar asks "what is the TypeScript type of myVar?". This is different from JavaScript\'s runtime typeof. It\'s useful when you have a value (like a complex config object or function) and want to derive a type from it rather than writing the type by hand.'
+        },
+        {
+          question: 'What problem does "as const" solve for object literals?',
+          options: [
+            { id: 'a', text: 'It makes the object immutable at runtime using Object.freeze', isCorrect: false },
+            { id: 'b', text: 'It widens all literal types to their base types (string, number)', isCorrect: false },
+            { id: 'c', text: 'It narrows all values to their literal types, preserving exact string/number constants', isCorrect: true },
+            { id: 'd', text: 'It makes all properties required', isCorrect: false },
+          ],
+          explanation: 'Without "as const", TypeScript infers { status: "active" } as { status: string } — losing the literal "active". With "as const", it becomes { readonly status: "active" }. This matters when you use keyof typeof on constants to get a union of the exact string values rather than just "string".'
+        },
+        {
+          question: 'How would you create a type that can only be one of the values in a STATUS_CODES object?',
+          options: [
+            { id: 'a', text: 'type Status = keyof typeof STATUS_CODES', isCorrect: false },
+            { id: 'b', text: 'type Status = typeof STATUS_CODES', isCorrect: false },
+            { id: 'c', text: 'type Status = (typeof STATUS_CODES)[keyof typeof STATUS_CODES]', isCorrect: true },
+            { id: 'd', text: 'type Status = keyof STATUS_CODES', isCorrect: false },
+          ],
+          explanation: '(typeof OBJ)[keyof typeof OBJ] is the standard idiom for "a union of all values in this object". keyof typeof gives you the union of keys, and then [keyof typeof] uses indexed access to get the value types at those keys. Combined with "as const" on STATUS_CODES, you get a tight union of the literal values.'
+        },
+        {
+          question: 'In a function "function getField<T, K extends keyof T>(obj: T, key: K): T[K]", what is the return type T[K]?',
+          options: [
+            { id: 'a', text: 'Always the string type', isCorrect: false },
+            { id: 'b', text: 'The type of the property K on object T — inferred automatically per call', isCorrect: true },
+            { id: 'c', text: 'A union of all value types in T', isCorrect: false },
+            { id: 'd', text: 'The same as keyof T', isCorrect: false },
+          ],
+          explanation: 'T[K] is an indexed access type — it looks up the value type at key K in type T. If T is User and K is "email", then T[K] is string. If K is "id", then T[K] is number. TypeScript resolves this per call-site, giving you precise return types instead of "any".'
+        },
+      ]
+    },
+    {
+      level: 'ts-mapped-types',
+      questions: [
+        {
+          question: 'What does the mapped type "{ [K in keyof T]: boolean }" create?',
+          options: [
+            { id: 'a', text: 'A copy of T with all values replaced by boolean', isCorrect: true },
+            { id: 'b', text: 'A type that checks if T has boolean properties', isCorrect: false },
+            { id: 'c', text: 'A function that maps T to booleans', isCorrect: false },
+            { id: 'd', text: 'Only works when T has boolean properties', isCorrect: false },
+          ],
+          explanation: '"[K in keyof T]" iterates over every key in T. Setting the value type to "boolean" replaces ALL value types with boolean. This is exactly how Partial<T> and Required<T> are implemented internally — they iterate over keys and modify the optionality of each one.'
+        },
+        {
+          question: 'What does the "-?" modifier do in a mapped type?',
+          options: [
+            { id: 'a', text: 'Makes all properties optional', isCorrect: false },
+            { id: 'b', text: 'Removes the optional modifier, making all properties required', isCorrect: true },
+            { id: 'c', text: 'Removes properties from the type', isCorrect: false },
+            { id: 'd', text: 'Makes properties nullable', isCorrect: false },
+          ],
+          explanation: '-? removes the ? (optional) modifier from properties. { [K in keyof T]-?: T[K] } is exactly how Required<T> is implemented. Conversely, +? (or just ?) adds optionality. The + prefix is the default so it\'s usually omitted; the - prefix explicitly removes the modifier.'
+        },
+        {
+          question: 'In a FormField<T> mapped type for a testing form, what would "{ [K in keyof T]: FormField }" be used for?',
+          options: [
+            { id: 'a', text: 'To validate that all fields in T are strings', isCorrect: false },
+            { id: 'b', text: 'To create a parallel structure where each field from the model has a corresponding FormField config', isCorrect: true },
+            { id: 'c', text: 'To make the form read-only', isCorrect: false },
+            { id: 'd', text: 'To flatten nested objects in the form', isCorrect: false },
+          ],
+          explanation: 'Mapped types are perfect for creating parallel structures. If your model has { username, email, password }, a mapped type can create { username: FormField, email: FormField, password: FormField } automatically — and TypeScript will enforce that your form config covers every field of the model with no extras or missing entries.'
+        },
+        {
+          question: 'What does "as" do inside a mapped type key clause like "[K in keyof T as \`get${Capitalize<string & K>}\`]"?',
+          options: [
+            { id: 'a', text: 'It asserts the value type of the property', isCorrect: false },
+            { id: 'b', text: 'It renames the output key using a template literal or other transformation', isCorrect: true },
+            { id: 'c', text: 'It filters out keys that are not strings', isCorrect: false },
+            { id: 'd', text: 'It makes the property read-only', isCorrect: false },
+          ],
+          explanation: 'Key remapping with "as" in a mapped type lets you transform the output key names. "[K in keyof T as \`get${Capitalize<string & K>}\`]" takes each key K and renames it to a getter method name. This is how libraries auto-generate getter/setter types from model interfaces.'
+        },
+        {
+          question: 'How can you exclude properties from a mapped type iteration?',
+          options: [
+            { id: 'a', text: 'Use "delete" on the key inside the mapping', isCorrect: false },
+            { id: 'b', text: 'Use "never" in the key remapping clause to filter out unwanted keys', isCorrect: true },
+            { id: 'c', text: 'Wrap the value type in Exclude<>', isCorrect: false },
+            { id: 'd', text: 'You cannot exclude keys from a mapped type', isCorrect: false },
+          ],
+          explanation: 'When the "as" remapping clause returns "never" for a key, that key is excluded from the output type entirely. For example, "[K in keyof T as T[K] extends Function ? never : K]" keeps only non-function properties. This lets you filter both what keys and what value types appear in your mapped output.'
+        },
+      ]
+    },
+    {
+      level: 'ts-conditional-types',
+      questions: [
+        {
+          question: 'What does "T extends string ? true : false" evaluate to when T = number?',
+          options: [
+            { id: 'a', text: 'true', isCorrect: false },
+            { id: 'b', text: 'false', isCorrect: true },
+            { id: 'c', text: 'never', isCorrect: false },
+            { id: 'd', text: 'A compile error', isCorrect: false },
+          ],
+          explanation: 'T extends string checks whether T is assignable to string. When T = number, number is not assignable to string, so the condition is false and the type evaluates to the "else" branch: false. Conditional types work at the type level exactly like ternary expressions work at the value level.'
+        },
+        {
+          question: 'What is the purpose of "infer" in a conditional type like "T extends Promise<infer U> ? U : T"?',
+          options: [
+            { id: 'a', text: 'To assert that T is always a Promise', isCorrect: false },
+            { id: 'b', text: 'To capture and name a sub-type within the extends clause for use in the result branches', isCorrect: true },
+            { id: 'c', text: 'To make TypeScript infer the type automatically without specifying T', isCorrect: false },
+            { id: 'd', text: 'It is equivalent to using "any" inside the type', isCorrect: false },
+          ],
+          explanation: '"infer U" tells TypeScript: "if T matches Promise<something>, name that something U and make it available in the true branch." Without infer, you could check the shape but couldn\'t extract the inner type. Awaited<T> in the standard library uses exactly this pattern to unwrap Promise layers.'
+        },
+        {
+          question: 'What is distributive behavior in conditional types?',
+          options: [
+            { id: 'a', text: 'When a conditional type distributes operations across all type parameters', isCorrect: false },
+            { id: 'b', text: 'When a union type T extends U applies the conditional to each member of the union separately', isCorrect: true },
+            { id: 'c', text: 'When TypeScript distributes a type check across multiple files', isCorrect: false },
+            { id: 'd', text: 'When infer captures multiple types at once', isCorrect: false },
+          ],
+          explanation: 'When T is a naked type parameter and you write T extends U ? X : Y, TypeScript distributes over unions: (string | number) extends string becomes (string extends string ? X : Y) | (number extends string ? X : Y) = X | Y. This allows conditional types to act as type-level filters on unions.'
+        },
+        {
+          question: 'Which built-in utility type is implemented using "T extends undefined | null ? never : T"?',
+          options: [
+            { id: 'a', text: 'Partial<T>', isCorrect: false },
+            { id: 'b', text: 'Required<T>', isCorrect: false },
+            { id: 'c', text: 'NonNullable<T>', isCorrect: true },
+            { id: 'd', text: 'Readonly<T>', isCorrect: false },
+          ],
+          explanation: 'NonNullable<T> is defined as T extends null | undefined ? never : T. Because of distributive behavior, NonNullable<string | null | undefined> distributes into (string extends null|undefined ? never : string) | (null extends null|undefined ? never : null) | (undefined extends null|undefined ? never : undefined) = string | never | never = string.'
+        },
+        {
+          question: 'In a testing utility, IsAsyncTest<T> = T extends (...args: any[]) => Promise<any> ? true : false — what does this check?',
+          options: [
+            { id: 'a', text: 'Whether T has a method called "async"', isCorrect: false },
+            { id: 'b', text: 'Whether T is a function that returns a Promise (i.e., an async test function)', isCorrect: true },
+            { id: 'c', text: 'Whether the test function has already been awaited', isCorrect: false },
+            { id: 'd', text: 'Whether T extends the test runner\'s base class', isCorrect: false },
+          ],
+          explanation: 'T extends (...args: any[]) => Promise<any> checks if T is any function that returns a Promise — the pattern for async functions. This conditional type can be used to build test utilities that behave differently for async vs sync test functions, such as automatically awaiting results only when needed.'
+        },
+      ]
+    },
+    {
+      level: 'ts-template-literal-types',
+      questions: [
+        {
+          question: 'What is the type of "\`Hello ${string}\`" in TypeScript?',
+          options: [
+            { id: 'a', text: 'string', isCorrect: false },
+            { id: 'b', text: 'A template literal type — matches any string that starts with "Hello "', isCorrect: true },
+            { id: 'c', text: 'A compile error because template literals are runtime-only', isCorrect: false },
+            { id: 'd', text: 'Equivalent to "Hello" | string', isCorrect: false },
+          ],
+          explanation: 'Template literal types work at the type level. \`Hello ${string}\` is a type that matches any string starting with "Hello " — like "Hello World" or "Hello TypeScript". This differs from the string type (which is all strings). TypeScript uses it to enforce specific string patterns in function parameters and return types.'
+        },
+        {
+          question: 'Given type Method = "GET" | "POST" | "DELETE", what does \`${Method} /api/${string}\` produce?',
+          options: [
+            { id: 'a', text: 'A single string type', isCorrect: false },
+            { id: 'b', text: 'A union of all possible combinations: "GET /api/${string}" | "POST /api/${string}" | "DELETE /api/${string}"', isCorrect: true },
+            { id: 'c', text: 'A compile error because Method is a union', isCorrect: false },
+            { id: 'd', text: 'Only "GET /api/${string}" because it takes the first member', isCorrect: false },
+          ],
+          explanation: 'Template literal types distribute over unions automatically. Each member of Method is combined with the rest of the template, producing a union of all combinations. This is how you can create strongly-typed API route patterns, event names, or CSS class names from a set of known values.'
+        },
+        {
+          question: 'What is "Capitalize<string>" as a template literal intrinsic?',
+          options: [
+            { id: 'a', text: 'A runtime function that uppercases strings', isCorrect: false },
+            { id: 'b', text: 'A type-level utility that transforms the first character of a string literal type to uppercase', isCorrect: true },
+            { id: 'c', text: 'Makes all characters uppercase', isCorrect: false },
+            { id: 'd', text: 'Only works with union types, not single string literals', isCorrect: false },
+          ],
+          explanation: 'Capitalize<T>, Uppercase<T>, Lowercase<T>, and Uncapitalize<T> are built-in template literal intrinsics that transform string literal types at the type level. They are commonly used with mapped type key remapping to generate getter names (\`get${Capitalize<string & K>}\`) or event names from model properties.'
+        },
+        {
+          question: 'In testing, what is the main benefit of a type like ApiRoute = \`/api/${string}\`?',
+          options: [
+            { id: 'a', text: 'It validates the route at runtime before the request is sent', isCorrect: false },
+            { id: 'b', text: 'It restricts function parameters to strings that start with /api/, catching typos at compile time', isCorrect: true },
+            { id: 'c', text: 'It automatically generates route handlers', isCorrect: false },
+            { id: 'd', text: 'It makes routes case-insensitive', isCorrect: false },
+          ],
+          explanation: 'By typing a fetchApi function parameter as ApiRoute = \`/api/${string}\`, TypeScript will reject any call where the path doesn\'t match the pattern — e.g., "api/users" (missing leading slash) or "/users" (missing /api/ prefix) both become compile errors. This catches an entire category of typo bugs before any test runs.'
+        },
+        {
+          question: 'How does "infer" work inside a template literal conditional type like "T extends \`on${infer Event}\` ? Event : never"?',
+          options: [
+            { id: 'a', text: 'It checks if T is an event listener function', isCorrect: false },
+            { id: 'b', text: 'It extracts the part of the string literal that matched the infer position — here, the part after "on"', isCorrect: true },
+            { id: 'c', text: 'It generates all possible strings that start with "on"', isCorrect: false },
+            { id: 'd', text: 'It only works when T is a union type', isCorrect: false },
+          ],
+          explanation: 'infer inside a template literal type captures the portion of the string that matched that position. "T extends \`on${infer Event}\`" asks: "does T start with on? If so, capture whatever follows as Event." Given T = "onClick", Event is captured as "Click". This lets you parse string literal types into their component parts.'
+        },
+      ]
+    },
+    {
+      level: 'ts-indexed-access',
+      questions: [
+        {
+          question: 'What does "User[\"email\"]" return when User = { id: number; email: string }?',
+          options: [
+            { id: 'a', text: 'The string "email"', isCorrect: false },
+            { id: 'b', text: 'The type string', isCorrect: true },
+            { id: 'c', text: 'The value of the email field', isCorrect: false },
+            { id: 'd', text: 'A copy of the User type with only the email property', isCorrect: false },
+          ],
+          explanation: 'User["email"] is an indexed access type — it looks up the type of the "email" property in the User type. The result is the type string, not a value. This is purely at the type level: User["email"] : string means "the type stored at the email key of User is string".'
+        },
+        {
+          question: 'How do you get the type of a single element from an array type T[]?',
+          options: [
+            { id: 'a', text: 'T[0]', isCorrect: false },
+            { id: 'b', text: 'T[number]', isCorrect: true },
+            { id: 'c', text: 'ElementOf<T>', isCorrect: false },
+            { id: 'd', text: 'T extends Array<infer U> ? U : never', isCorrect: false },
+          ],
+          explanation: 'T[number] uses indexed access with the number type as the index — since array indices are numbers, this returns the element type. Both T[number] and the infer approach (option d) work, but T[number] is more concise. This is useful when you have a function returning User[] and want to extract the User type from it.'
+        },
+        {
+          question: 'Given type Config = { db: { host: string; port: number } }, what is Config["db"]["port"]?',
+          options: [
+            { id: 'a', text: 'string', isCorrect: false },
+            { id: 'b', text: 'number', isCorrect: true },
+            { id: 'c', text: '{ host: string; port: number }', isCorrect: false },
+            { id: 'd', text: 'A compile error — nested access is not allowed', isCorrect: false },
+          ],
+          explanation: 'Indexed access types can be chained. Config["db"] first gives { host: string; port: number }, then ["port"] on that gives number. This allows you to reference deeply nested types without duplicating or importing intermediate type definitions — very useful in large config objects.'
+        },
+        {
+          question: 'In a test API fixture, what does "ApiResponse[\"data\"]" achieve when ApiResponse = { data: User; meta: PaginationMeta }?',
+          options: [
+            { id: 'a', text: 'It returns the User object value from ApiResponse', isCorrect: false },
+            { id: 'b', text: 'It extracts the User type so you can type individual assertions without importing User separately', isCorrect: true },
+            { id: 'c', text: 'It makes the data property required', isCorrect: false },
+            { id: 'd', text: 'It creates a new type that omits the meta property', isCorrect: false },
+          ],
+          explanation: 'ApiResponse["data"] is User — the type stored at the data key. This means in your test files you can write: const user: ApiResponse["data"] = response.data without importing User separately. The type flows from the source of truth (the ApiResponse definition) rather than being duplicated.'
+        },
+        {
+          question: 'Given "const routes = [{ path: \"/home\" }, { path: \"/login\" }] as const", how do you get the union type of all path values?',
+          options: [
+            { id: 'a', text: 'typeof routes["path"]', isCorrect: false },
+            { id: 'b', text: '(typeof routes)[number]["path"]', isCorrect: true },
+            { id: 'c', text: 'keyof typeof routes', isCorrect: false },
+            { id: 'd', text: 'routes extends { path: infer P } ? P : never', isCorrect: false },
+          ],
+          explanation: '(typeof routes)[number] gets the element type of the routes array (the union of all object shapes), then ["path"] gets the path property from that. With "as const", the paths are preserved as literal types "/home" | "/login" rather than widened to string. This idiom extracts a union of literal values from a const array of objects.'
+        },
+      ]
+    },
+    {
+      level: 'ts-classes',
+      questions: [
+        {
+          question: 'What does the "private" access modifier guarantee in TypeScript?',
+          options: [
+            { id: 'a', text: 'The property is hidden at runtime and cannot be accessed from outside the class', isCorrect: false },
+            { id: 'b', text: 'The property can only be accessed within the class body — TypeScript enforces this at compile time', isCorrect: true },
+            { id: 'c', text: 'The property cannot be read by any code', isCorrect: false },
+            { id: 'd', text: 'It is equivalent to JavaScript\'s # private fields', isCorrect: false },
+          ],
+          explanation: 'TypeScript\'s "private" is a compile-time check only. At runtime, the JavaScript output has no access restrictions. If you need true runtime privacy, use JavaScript\'s # syntax (#field). In test automation, "private" is still very valuable — it prevents test code from accidentally calling internal methods and coupling tests to implementation details.'
+        },
+        {
+          question: 'What is the purpose of an "abstract" class in TypeScript?',
+          options: [
+            { id: 'a', text: 'A class that can be instantiated but has no methods', isCorrect: false },
+            { id: 'b', text: 'A class that cannot be instantiated directly and must be subclassed, optionally with abstract methods that subclasses must implement', isCorrect: true },
+            { id: 'c', text: 'A class with only static methods', isCorrect: false },
+            { id: 'd', text: 'A class that is automatically generic', isCorrect: false },
+          ],
+          explanation: 'An abstract class is a template that establishes shared structure and behaviour, but requires a concrete subclass to complete the missing pieces (abstract methods). In a Page Object Model, abstract BasePage might define goto() and waitForLoad() concretely, while declaring abstract getSelectors() as abstract — forcing each page subclass to provide its own selector definitions.'
+        },
+        {
+          question: 'What is the difference between "implements" and "extends" in TypeScript classes?',
+          options: [
+            { id: 'a', text: '"implements" copies methods from an interface; "extends" creates a subclass', isCorrect: false },
+            { id: 'b', text: '"implements" checks that a class satisfies an interface contract (no inheritance); "extends" creates a subclass that inherits behavior', isCorrect: true },
+            { id: 'c', text: 'They are interchangeable for interfaces', isCorrect: false },
+            { id: 'd', text: '"implements" only works with abstract classes', isCorrect: false },
+          ],
+          explanation: '"implements Interface" means the class promises to have all the properties and methods the interface requires — but receives nothing from the interface. "extends Class" gives the subclass everything from the parent. A class can implement multiple interfaces but extend only one parent. In testing frameworks, implements is used to ensure service mocks conform to the real service interface.'
+        },
+        {
+          question: 'What is parameter property shorthand syntax in TypeScript constructors?',
+          options: [
+            { id: 'a', text: 'Using default parameter values in constructors', isCorrect: false },
+            { id: 'b', text: 'Declaring access modifier (public/private/protected) on a constructor parameter, which automatically creates and assigns the property', isCorrect: true },
+            { id: 'c', text: 'Making constructor parameters optional with ?', isCorrect: false },
+            { id: 'd', text: 'Destructuring objects in constructor parameters', isCorrect: false },
+          ],
+          explanation: 'constructor(private page: Page, public config: Config) automatically creates this.page and this.config and assigns the passed-in values — without needing a separate property declaration and "this.page = page" line. This shorthand is especially concise in Playwright Page Objects and dependency-injected services.'
+        },
+        {
+          question: 'When would you use a "static" method on a class in a testing context?',
+          options: [
+            { id: 'a', text: 'When the method needs access to "this" (the instance)', isCorrect: false },
+            { id: 'b', text: 'For factory methods or utility functions that belong to the class but don\'t need instance state', isCorrect: true },
+            { id: 'c', text: 'When the method should be inherited by subclasses', isCorrect: false },
+            { id: 'd', text: 'Static methods cannot be used in TypeScript classes', isCorrect: false },
+          ],
+          explanation: 'Static methods belong to the class itself, not instances. TestDataBuilder.create() is a classic factory method pattern: you call it without first instantiating the class. In testing, static methods are used for shared fixture builders, utility helpers, and configuration that shouldn\'t require creating a full object just to call one function.'
+        },
+      ]
+    },
+    {
+      level: 'ts-modules-imports',
+      questions: [
+        {
+          question: 'What is the difference between a named export and a default export?',
+          options: [
+            { id: 'a', text: 'Named exports are faster; default exports are for classes only', isCorrect: false },
+            { id: 'b', text: 'Named exports use the exact exported name and can be multiple per file; default export is one per file and can be imported with any name', isCorrect: true },
+            { id: 'c', text: 'Default exports cannot be re-exported', isCorrect: false },
+            { id: 'd', text: 'Named exports require curly braces at the export site', isCorrect: false },
+          ],
+          explanation: 'Named exports: export function foo() — imported as import { foo }. Default exports: export default class Page — imported as import AnyNameYouLike. Many style guides prefer named exports because the import name is self-documenting and IDE refactoring tools can rename it across files consistently.'
+        },
+        {
+          question: 'What does "import type { User } from \'./types\'" do differently from "import { User } from \'./types\'"?',
+          options: [
+            { id: 'a', text: 'It imports a runtime value rather than just a type', isCorrect: false },
+            { id: 'b', text: 'It tells TypeScript and bundlers that this import is type-only and can be erased from the JavaScript output', isCorrect: true },
+            { id: 'c', text: 'It makes the import available only inside type annotations', isCorrect: false },
+            { id: 'd', text: 'There is no difference — it is just a style preference', isCorrect: false },
+          ],
+          explanation: '"import type" is erased entirely from the compiled JavaScript — no runtime import statement is generated. This prevents accidental circular dependency issues, speeds up bundling, and explicitly signals to the reader that this import is purely for type checking. In large codebases, it also enables "isolatedModules" mode in tsc.'
+        },
+        {
+          question: 'What is a barrel file (index.ts) used for in a module?',
+          options: [
+            { id: 'a', text: 'The main entry point for the entire application', isCorrect: false },
+            { id: 'b', text: 'A file that re-exports multiple modules from a directory, creating a clean public API for the folder', isCorrect: true },
+            { id: 'c', text: 'A configuration file for the TypeScript compiler', isCorrect: false },
+            { id: 'd', text: 'A file that imports all modules and runs them in order', isCorrect: false },
+          ],
+          explanation: 'A barrel index.ts re-exports: export { LoginPage } from "./LoginPage"; export { DashboardPage } from "./DashboardPage". Consumers then do import { LoginPage, DashboardPage } from "./pages" instead of having to know the internal file structure. This encapsulates the folder\'s internals and provides a stable public API.'
+        },
+        {
+          question: 'What does "export * from \'./utils\'" in a barrel file do?',
+          options: [
+            { id: 'a', text: 'Imports everything from utils into the current file\'s scope', isCorrect: false },
+            { id: 'b', text: 'Re-exports all named exports from utils, making them available to anyone who imports this barrel', isCorrect: true },
+            { id: 'c', text: 'Creates a copy of utils in the current file', isCorrect: false },
+            { id: 'd', text: 'It is the same as "import * as utils from \'./utils\'"', isCorrect: false },
+          ],
+          explanation: '"export * from" is a re-export wildcard. It takes all named exports from the target module and makes them available from the current file. Note it does NOT re-export default exports. When barrel files get large, be aware that "export *" can cause tree-shaking issues in some bundlers — explicit named re-exports are safer.'
+        },
+        {
+          question: 'In a Playwright project, what problem does a shared "export type { TestFixtures } from \'./fixtures\'" solve?',
+          options: [
+            { id: 'a', text: 'It enables fixtures to run in parallel', isCorrect: false },
+            { id: 'b', text: 'It makes the fixture type available to all test files without them importing from deep paths', isCorrect: true },
+            { id: 'c', text: 'It automatically registers the fixtures with the test runner', isCorrect: false },
+            { id: 'd', text: 'It converts fixture values to read-only', isCorrect: false },
+          ],
+          explanation: 'Exporting fixture types from a central barrel means all test files can import from one well-known location rather than having brittle relative paths like \'../../../fixtures/auth\'. It also separates the type import from the value import, making it clear which consumers only need the type for type-checking vs those that need the runtime fixture.'
+        },
+      ]
+    },
+    {
+      level: 'ts-decorators',
+      questions: [
+        {
+          question: 'What is a TypeScript decorator at its most fundamental level?',
+          options: [
+            { id: 'a', text: 'A comment that documents a class or method', isCorrect: false },
+            { id: 'b', text: 'A special function applied to a class, method, or property using @ syntax to add metadata or modify behavior', isCorrect: true },
+            { id: 'c', text: 'A TypeScript keyword that makes a class abstract', isCorrect: false },
+            { id: 'd', text: 'A way to make properties private automatically', isCorrect: false },
+          ],
+          explanation: 'A decorator is simply a function that receives the target (class, method, or property) and can inspect or modify it. @Controller("/users") in NestJS is a function call that registers the class as a controller with that route prefix. The @ syntax is just syntactic sugar for Controller("/users")(UserController).'
+        },
+        {
+          question: 'What compiler option must be enabled to use decorators in TypeScript?',
+          options: [
+            { id: 'a', text: 'strict: true', isCorrect: false },
+            { id: 'b', text: 'experimentalDecorators: true in tsconfig.json', isCorrect: true },
+            { id: 'c', text: 'useDecorators: true', isCorrect: false },
+            { id: 'd', text: 'target: "ES2022" or later', isCorrect: false },
+          ],
+          explanation: 'Decorators are a Stage 3 TC39 proposal but TypeScript has supported them experimentally for years under the "experimentalDecorators": true flag in tsconfig.json. Most frameworks that use decorators heavily (NestJS, TypeORM, Angular) include this in their default tsconfig. TC39 decorators and TypeScript experimental decorators have some differences — be aware of which version a framework uses.'
+        },
+        {
+          question: 'In NestJS, what does the @Injectable() decorator primarily enable?',
+          options: [
+            { id: 'a', text: 'It makes the class serializable to JSON', isCorrect: false },
+            { id: 'b', text: 'It marks the class as a provider that can be injected into other classes via NestJS\'s dependency injection system', isCorrect: true },
+            { id: 'c', text: 'It makes all methods asynchronous', isCorrect: false },
+            { id: 'd', text: 'It prevents the class from being extended', isCorrect: false },
+          ],
+          explanation: '@Injectable() tells NestJS\'s IoC container: "I can manage the lifecycle of this class and inject it wherever it\'s declared as a dependency." In testing with NestJS, you use the Test module to create a testing module that replaces @Injectable() services with mocks, enabling unit testing without spinning up the full application.'
+        },
+        {
+          question: 'What is a method decorator\'s signature in TypeScript?',
+          options: [
+            { id: 'a', text: '(value: Function) => void', isCorrect: false },
+            { id: 'b', text: '(target: Object, propertyKey: string, descriptor: PropertyDescriptor) => PropertyDescriptor | void', isCorrect: true },
+            { id: 'c', text: '(constructor: Function) => void', isCorrect: false },
+            { id: 'd', text: '(target: any, key: string) => void', isCorrect: false },
+          ],
+          explanation: 'A method decorator receives: target (the class prototype), propertyKey (the method name as a string), and descriptor (the PropertyDescriptor containing the method\'s value, writable, enumerable, configurable). You can replace descriptor.value with a wrapper function — which is how logging, timing, retry, and caching decorators work.'
+        },
+        {
+          question: 'In TypeORM, what does "@Column({ type: \'varchar\', length: 100, nullable: false })" do?',
+          options: [
+            { id: 'a', text: 'Validates that the property is a string at runtime', isCorrect: false },
+            { id: 'b', text: 'Attaches metadata to the property so TypeORM knows how to map it to a database column with the specified constraints', isCorrect: true },
+            { id: 'c', text: 'Makes the property read-only in TypeScript', isCorrect: false },
+            { id: 'd', text: 'Encrypts the column value before storing it', isCorrect: false },
+          ],
+          explanation: 'TypeORM\'s @Column decorator stores metadata about the property using Reflect.metadata. When TypeORM generates or validates the database schema, it reads this metadata to know the column type, length, and nullability. This is the metadata pattern in action: the class is simultaneously a TypeScript type AND a database schema definition — no duplication needed.'
+        },
+      ]
+    },
+
   ],
   playwright: [
     {

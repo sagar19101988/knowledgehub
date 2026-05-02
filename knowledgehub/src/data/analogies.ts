@@ -8696,6 +8696,1630 @@ const value = "hello" as unknown as number;
 \`\`\`
         `
       }
+      ,
+      {
+        id: 'ts-generics',
+        title: 'Generics',
+        analogy: "A generic is like a one-size-fits-all box that adapts to whatever you put in it. The box itself works the same way — open, close, label — but the *contents* type is decided fresh each time you use it. You write the box once, but it works for shoes, books, or test results.",
+        lessonMarkdown: `
+### 1. The Problem Generics Solve
+
+*💡 Analogy: Imagine writing a function called \`getFirst\` that returns the first item of an array. Without generics, you'd write \`getFirstString\`, \`getFirstNumber\`, \`getFirstUser\` — copy-pasted versions of the same logic. Generics let you write it ONCE and let TypeScript figure out the type each time it's used.*
+
+**Without generics — repetitive and lossy:**
+\`\`\`typescript
+// ❌ Loses type information
+function getFirst(arr: any[]): any {
+  return arr[0];
+}
+const first = getFirst([1, 2, 3]);  // any — type info lost!
+first.toUpperCase();  // No error from TypeScript, but crashes at runtime
+\`\`\`
+
+**With generics — type information preserved:**
+\`\`\`typescript
+// ✅ T is a placeholder — TypeScript fills it in based on the argument
+function getFirst<T>(arr: T[]): T {
+  return arr[0];
+}
+const first = getFirst([1, 2, 3]);   // T = number, returns number
+const name  = getFirst(["a", "b"]);  // T = string, returns string
+\`\`\`
+
+### 2. Generic Functions — Type Parameters
+
+*💡 Analogy: A generic function is like a customisable rubber stamp. The stamp shape (the function logic) is fixed, but the colour of ink (the type \`T\`) is chosen at the moment of use.*
+
+\`\`\`typescript
+// Single type parameter
+function identity<T>(value: T): T {
+  return value;
+}
+
+const num  = identity<number>(42);     // explicit: T = number
+const str  = identity("hello");        // inferred: T = string
+const bool = identity(true);           // inferred: T = boolean
+
+// Multiple type parameters
+function pair<A, B>(first: A, second: B): [A, B] {
+  return [first, second];
+}
+
+const result = pair("Login Test", 1250);  // [string, number]
+\`\`\`
+
+### 3. Generic Constraints — \`extends\` Keyword
+
+*💡 Analogy: Constraints are like requirements on the rubber stamp. "This stamp accepts any colour, BUT only liquid inks — no glitter, no powder." We restrict \`T\` to types that have certain properties.*
+
+\`\`\`typescript
+// T must be something that has a .length property
+function logLength<T extends { length: number }>(item: T): T {
+  console.log(\\\`Length: \\\${item.length}\\\`);
+  return item;
+}
+
+logLength("hello");          // ✅ string has length
+logLength([1, 2, 3]);        // ✅ array has length
+logLength({ length: 10 });   // ✅ matches the constraint
+logLength(42);               // ❌ Error: number has no length property
+\`\`\`
+
+### 4. Generic Interfaces
+
+\`\`\`typescript
+// A reusable API response wrapper
+interface APIResponse<T> {
+  data: T;
+  status: number;
+  message: string;
+  timestamp: Date;
+}
+
+interface User {
+  id: number;
+  email: string;
+  name: string;
+}
+
+interface TestRun {
+  runId: string;
+  passed: boolean;
+}
+
+// Same wrapper, different payload types
+const userResponse: APIResponse<User> = {
+  data: { id: 1, email: "qa@test.com", name: "Sagar" },
+  status: 200,
+  message: "OK",
+  timestamp: new Date(),
+};
+
+const runResponse: APIResponse<TestRun> = {
+  data: { runId: "run-42", passed: true },
+  status: 200,
+  message: "OK",
+  timestamp: new Date(),
+};
+
+// Even works with arrays
+const usersResponse: APIResponse<User[]> = {
+  data: [{ id: 1, email: "a@a.com", name: "Alice" }],
+  status: 200,
+  message: "OK",
+  timestamp: new Date(),
+};
+\`\`\`
+
+### 5. Generic Page Object Model — Real QA Pattern
+
+*This is exactly how senior QA engineers build reusable test infrastructure.*
+
+\`\`\`typescript
+// A generic base class for ALL Page Objects
+abstract class BasePage<TLocators extends Record<string, string>> {
+  constructor(
+    protected page: Page,
+    protected locators: TLocators
+  ) {}
+
+  async clickByKey(key: keyof TLocators): Promise<void> {
+    const selector = this.locators[key];
+    await this.page.click(selector);
+  }
+
+  async fillByKey(key: keyof TLocators, value: string): Promise<void> {
+    const selector = this.locators[key];
+    await this.page.fill(selector, value);
+  }
+}
+
+// Each page provides its own typed locators
+class LoginPage extends BasePage<{
+  username: string;
+  password: string;
+  submitBtn: string;
+}> {
+  constructor(page: Page) {
+    super(page, {
+      username:  '#username',
+      password:  '#password',
+      submitBtn: '[data-testid="submit"]',
+    });
+  }
+}
+
+const login = new LoginPage(page);
+await login.fillByKey('username', 'qa@test.com');  // ✅ TypeScript knows valid keys
+await login.fillByKey('userrname', 'qa@test.com'); // ❌ Typo caught at compile time!
+\`\`\`
+
+### 6. Default Type Parameters
+
+\`\`\`typescript
+// If T isn't specified, default to string
+interface TestData<T = string> {
+  name: T;
+  value: T;
+}
+
+const stringData: TestData = { name: "env", value: "staging" };  // T defaults to string
+const numberData: TestData<number> = { name: 0, value: 42 };     // explicit override
+\`\`\`
+
+### 7. Common Mistakes
+
+**Mistake: Using \`any\` instead of a generic**
+\`\`\`typescript
+// ❌ any — type information lost
+function firstItem(arr: any[]): any { return arr[0]; }
+
+// ✅ generic — type information preserved
+function firstItem<T>(arr: T[]): T { return arr[0]; }
+\`\`\`
+        `
+      },
+      {
+        id: 'ts-utility-types',
+        title: 'Built-in Utility Types',
+        analogy: "Utility types are pre-built type transformers, like attachments for a power drill. The drill (your base type) stays the same; you snap on different bits (Partial, Pick, Omit, Readonly) to get different behaviours from the same source.",
+        lessonMarkdown: `
+### 1. Why Utility Types Matter
+
+*💡 Analogy: Imagine you have a master blueprint for a house (your base interface). To create the floorplan for an empty house, you don't redraw it — you stamp "OPTIONAL" on every room (\`Partial\`). For a security review, you stamp "READ-ONLY" on every door (\`Readonly\`). To send to the kitchen contractor, you keep only kitchen-related rooms (\`Pick\`). Same blueprint, many derivations — without rewriting.*
+
+TypeScript ships with built-in utility types that transform existing types. Master these eight and you'll handle 90% of real-world type transformations.
+
+### 2. \`Partial<T>\` — Make All Properties Optional
+
+\`\`\`typescript
+interface User {
+  id: number;
+  email: string;
+  name: string;
+  role: string;
+}
+
+// All properties become optional
+type UserUpdate = Partial<User>;
+// Equivalent to: { id?: number; email?: string; name?: string; role?: string }
+
+// Perfect for partial updates / PATCH requests
+function updateUser(id: number, changes: Partial<User>): void {
+  console.log(\\\`Updating user \\\${id} with\\\`, changes);
+}
+
+updateUser(42, { email: "new@example.com" });             // ✅ only email
+updateUser(42, { name: "New Name", role: "admin" });      // ✅ name + role
+updateUser(42, {});                                       // ✅ even empty is valid
+\`\`\`
+
+### 3. \`Required<T>\` — Make All Properties Required
+
+\`\`\`typescript
+interface TestConfig {
+  baseURL?: string;
+  timeout?: number;
+  headless?: boolean;
+}
+
+// All properties become required
+type StrictConfig = Required<TestConfig>;
+// Equivalent to: { baseURL: string; timeout: number; headless: boolean }
+
+// Use when you've validated and filled in all defaults
+const validatedConfig: StrictConfig = {
+  baseURL:  "https://staging.example.com",
+  timeout:  30000,
+  headless: true,
+};
+\`\`\`
+
+### 4. \`Readonly<T>\` — Make All Properties Immutable
+
+\`\`\`typescript
+interface ServerConfig {
+  host: string;
+  port: number;
+  apiKey: string;
+}
+
+// Locked — no property can be reassigned
+type FrozenConfig = Readonly<ServerConfig>;
+
+const config: FrozenConfig = {
+  host: "api.example.com",
+  port: 443,
+  apiKey: "secret-token",
+};
+
+config.host = "evil.com";  // ❌ Error: Cannot assign to 'host' (read-only)
+\`\`\`
+
+### 5. \`Pick<T, K>\` — Select Specific Properties
+
+*💡 Analogy: \`Pick\` is a cookie cutter. From a big sheet of dough (the full type), you stamp out a specific shape, keeping only the properties you named.*
+
+\`\`\`typescript
+interface User {
+  id: number;
+  email: string;
+  name: string;
+  password: string;
+  role: string;
+  createdAt: Date;
+}
+
+// Only the fields safe to send to the frontend
+type PublicUser = Pick<User, 'id' | 'email' | 'name'>;
+// { id: number; email: string; name: string }
+
+// Useful for API response shapes
+function getPublicUser(user: User): PublicUser {
+  return { id: user.id, email: user.email, name: user.name };
+}
+\`\`\`
+
+### 6. \`Omit<T, K>\` — Exclude Specific Properties
+
+*💡 Analogy: \`Omit\` is the opposite cookie cutter — it stamps a hole and removes only the named properties, keeping everything else.*
+
+\`\`\`typescript
+// Same User interface above
+
+// User without sensitive fields
+type SafeUser = Omit<User, 'password' | 'role'>;
+// Keeps: id, email, name, createdAt
+
+// User as input for creation (no DB-generated fields)
+type CreateUserInput = Omit<User, 'id' | 'createdAt'>;
+
+function createUser(input: CreateUserInput): User {
+  return {
+    ...input,
+    id: Math.random(),
+    createdAt: new Date(),
+  };
+}
+\`\`\`
+
+### 7. \`Record<K, V>\` — Object with Typed Keys and Values
+
+\`\`\`typescript
+type TestStatus = 'pass' | 'fail' | 'skip';
+
+// Map every status to a count
+type StatusCounts = Record<TestStatus, number>;
+// Equivalent to: { pass: number; fail: number; skip: number }
+
+const counts: StatusCounts = {
+  pass: 142,
+  fail: 8,
+  skip: 3,
+};
+
+// Common pattern: keyed test result map
+type TestResults = Record<string, { passed: boolean; durationMs: number }>;
+
+const results: TestResults = {
+  "Login Test":    { passed: true,  durationMs: 850 },
+  "Checkout Test": { passed: false, durationMs: 1200 },
+};
+\`\`\`
+
+### 8. \`ReturnType<T>\` and \`Parameters<T>\`
+
+\`\`\`typescript
+// Extract a function's return type
+function fetchTestRun(id: string) {
+  return { id, status: 'pass' as const, durationMs: 1500 };
+}
+
+type TestRun = ReturnType<typeof fetchTestRun>;
+// { id: string; status: "pass"; durationMs: number }
+
+// Extract a function's parameter types
+function login(username: string, password: string, rememberMe?: boolean) {}
+
+type LoginParams = Parameters<typeof login>;
+// [username: string, password: string, rememberMe?: boolean | undefined]
+\`\`\`
+
+### 9. Combining Utility Types — Real QA Example
+
+\`\`\`typescript
+interface TestCase {
+  id: string;
+  name: string;
+  steps: string[];
+  expected: string;
+  priority: 'low' | 'medium' | 'high';
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  authorId: string;
+}
+
+// For creating new test cases — no DB-managed fields, all required
+type CreateTestCase = Omit<TestCase, 'id' | 'createdAt' | 'updatedAt'>;
+
+// For PATCH updates — only some fields, no metadata
+type UpdateTestCase = Partial<Omit<TestCase, 'id' | 'createdAt' | 'authorId'>>;
+
+// For listing in a UI grid — minimal info
+type TestCaseListItem = Pick<TestCase, 'id' | 'name' | 'priority'>;
+\`\`\`
+        `
+      },
+      {
+        id: 'ts-keyof-typeof',
+        title: 'keyof and typeof Operators',
+        analogy: "\`keyof\` is a master key ring that contains every key for a building — you can ask it for valid door names. \`typeof\` is a mould of an existing object — it captures the exact shape of something you already have so you can use that shape elsewhere.",
+        lessonMarkdown: `
+### 1. The \`keyof\` Operator — Extract Keys as a Union Type
+
+*💡 Analogy: Think of \`keyof\` as taking a roll-call of every property name in an interface and combining them into a controlled vocabulary union.*
+
+\`\`\`typescript
+interface User {
+  id: number;
+  email: string;
+  name: string;
+  role: 'admin' | 'user';
+}
+
+// keyof extracts all property names as a union of string literal types
+type UserKey = keyof User;
+// Equivalent to: 'id' | 'email' | 'name' | 'role'
+
+// Now use it to constrain other code
+function getUserField(user: User, field: UserKey): unknown {
+  return user[field];
+}
+
+getUserField(user, 'email');     // ✅
+getUserField(user, 'password');  // ❌ Error: 'password' is not a key of User
+\`\`\`
+
+### 2. Type-Safe Property Access with \`keyof\`
+
+\`\`\`typescript
+// A type-safe property getter — works for any object and any of its keys
+function getProperty<T, K extends keyof T>(obj: T, key: K): T[K] {
+  return obj[key];
+}
+
+const user = { id: 1, email: "qa@test.com", role: "admin" } as const;
+
+const id    = getProperty(user, 'id');    // type: 1
+const email = getProperty(user, 'email'); // type: "qa@test.com"
+const bad   = getProperty(user, 'phone'); // ❌ Error — 'phone' not in user
+
+// Real QA use: type-safe Page Object element access
+class LoginPage {
+  private locators = {
+    username: '#username',
+    password: '#password',
+    submit:   '#submit',
+  };
+
+  async fill<K extends keyof typeof this.locators>(
+    key: K,
+    value: string
+  ): Promise<void> {
+    await page.fill(this.locators[key], value);
+  }
+}
+\`\`\`
+
+### 3. The \`typeof\` Type Operator
+
+*💡 Analogy: Imagine you have an existing object (a config, a constants object) and want to use its exact shape elsewhere. \`typeof\` reads the shape directly from the value — no need to manually write the type definition.*
+
+\`\`\`typescript
+// You already have this concrete config object
+const TEST_CONFIG = {
+  baseURL: "https://staging.example.com",
+  timeout: 30000,
+  retries: 3,
+  headless: true,
+};
+
+// Get the type FROM the value — no separate interface needed
+type TestConfig = typeof TEST_CONFIG;
+// { baseURL: string; timeout: number; retries: number; headless: boolean }
+
+// Use the derived type in functions
+function applyConfig(config: TestConfig): void {
+  console.log(\\\`Using \\\${config.baseURL} with timeout \\\${config.timeout}\\\`);
+}
+
+applyConfig(TEST_CONFIG);  // ✅
+\`\`\`
+
+### 4. Combining \`keyof typeof\` — A Powerful Pattern
+
+\`\`\`typescript
+// A constants object — common in QA frameworks
+const TEST_ENVIRONMENTS = {
+  dev:        "https://dev.example.com",
+  staging:    "https://staging.example.com",
+  production: "https://www.example.com",
+} as const;
+
+// Extract just the keys as a union type
+type Environment = keyof typeof TEST_ENVIRONMENTS;
+// 'dev' | 'staging' | 'production'
+
+function runTestOn(env: Environment): void {
+  const url = TEST_ENVIRONMENTS[env];
+  console.log(\\\`Running tests on \\\${url}\\\`);
+}
+
+runTestOn('staging');  // ✅
+runTestOn('local');    // ❌ Error: 'local' not in environments
+\`\`\`
+
+### 5. \`as const\` — Locks Object Values to Exact Literals
+
+\`\`\`typescript
+// WITHOUT as const — values widened to general types
+const STATUSES = {
+  pass: 'pass',
+  fail: 'fail',
+  skip: 'skip',
+};
+// type: { pass: string; fail: string; skip: string }
+type S = (typeof STATUSES)['pass'];  // string  ← too broad
+
+// WITH as const — values narrowed to exact literals
+const STATUSES2 = {
+  pass: 'pass',
+  fail: 'fail',
+  skip: 'skip',
+} as const;
+// type: { readonly pass: 'pass'; readonly fail: 'fail'; readonly skip: 'skip' }
+type S2 = (typeof STATUSES2)['pass'];  // 'pass'  ← precise literal
+\`\`\`
+
+### 6. Real QA Pattern — Type-Safe Test Data
+
+\`\`\`typescript
+// Define test data once
+const TEST_USERS = {
+  admin:   { email: "admin@test.com",   role: "admin"  },
+  manager: { email: "manager@test.com", role: "manager" },
+  reader:  { email: "reader@test.com",  role: "reader"  },
+} as const;
+
+// Derive types automatically
+type UserRole  = keyof typeof TEST_USERS;     // 'admin' | 'manager' | 'reader'
+type TestUser  = typeof TEST_USERS[UserRole]; // { email: string; role: string }
+
+// Type-safe getter
+function loginAs(role: UserRole): TestUser {
+  return TEST_USERS[role];
+}
+
+const adminUser = loginAs('admin');  // ✅
+const wrongRole = loginAs('hacker'); // ❌ Error caught at compile time
+\`\`\`
+        `
+      },
+      {
+        id: 'ts-mapped-types',
+        title: 'Mapped Types',
+        analogy: "A mapped type is a factory production line for types. You feed in an existing type, and the line transforms every property — making them all optional, all readonly, all string-typed, etc. The factory pattern is described once and applies uniformly to every property.",
+        lessonMarkdown: `
+### 1. Anatomy of a Mapped Type
+
+*💡 Analogy: A mapped type is like a typewriter that accepts a stack of property names and types one at a time, and prints each one onto a new sheet with a transformation applied (capitalised, optional, readonly, etc.).*
+
+The basic syntax:
+\`\`\`typescript
+type Mapped<T> = {
+  [K in keyof T]: TransformedType;
+};
+\`\`\`
+
+This iterates every key \`K\` of \`T\` and produces a new property with some transformation.
+
+### 2. Building Your Own \`Partial<T>\`
+
+The built-in \`Partial<T>\` is itself a mapped type. Here's how it's defined internally:
+
+\`\`\`typescript
+// TypeScript's actual definition of Partial
+type MyPartial<T> = {
+  [K in keyof T]?: T[K];
+};
+
+interface User {
+  id: number;
+  email: string;
+  name: string;
+}
+
+type OptionalUser = MyPartial<User>;
+// { id?: number; email?: string; name?: string }
+\`\`\`
+
+### 3. Property Modifiers — Adding and Removing
+
+\`\`\`typescript
+// Add readonly to every property
+type ReadonlyAll<T> = {
+  readonly [K in keyof T]: T[K];
+};
+
+// Add optional (?) to every property
+type OptionalAll<T> = {
+  [K in keyof T]?: T[K];
+};
+
+// Remove readonly with -readonly
+type Mutable<T> = {
+  -readonly [K in keyof T]: T[K];
+};
+
+// Remove optional with -?
+type Concrete<T> = {
+  [K in keyof T]-?: T[K];
+};
+
+interface FrozenConfig {
+  readonly host?: string;
+  readonly port?: number;
+}
+
+type EditableConcreteConfig = Concrete<Mutable<FrozenConfig>>;
+// { host: string; port: number }  — both readonly AND optional removed
+\`\`\`
+
+### 4. Transforming Property Types
+
+\`\`\`typescript
+interface User {
+  id: number;
+  email: string;
+  isActive: boolean;
+}
+
+// Convert every property type to a string
+type Stringified<T> = {
+  [K in keyof T]: string;
+};
+
+type StringifiedUser = Stringified<User>;
+// { id: string; email: string; isActive: string }
+
+// Wrap every property in a Promise (e.g., for async APIs)
+type AsyncProps<T> = {
+  [K in keyof T]: Promise<T[K]>;
+};
+
+type AsyncUser = AsyncProps<User>;
+// { id: Promise<number>; email: Promise<string>; isActive: Promise<boolean> }
+\`\`\`
+
+### 5. Key Remapping with \`as\` Clauses (TS 4.1+)
+
+*💡 Analogy: Key remapping is like a typewriter that not only transforms the value but also relabels the property name as it goes — turning "name" into "getName", for instance.*
+
+\`\`\`typescript
+// Generate getter method names from property names
+type Getters<T> = {
+  [K in keyof T as \\\`get\\\${Capitalize<string & K>}\\\`]: () => T[K];
+};
+
+interface User {
+  id: number;
+  email: string;
+  name: string;
+}
+
+type UserGetters = Getters<User>;
+// {
+//   getId: () => number;
+//   getEmail: () => string;
+//   getName: () => string;
+// }
+\`\`\`
+
+### 6. Filtering Out Properties
+
+\`\`\`typescript
+// Remove all properties whose value type is a function
+type DataOnly<T> = {
+  [K in keyof T as T[K] extends Function ? never : K]: T[K];
+};
+
+interface UserService {
+  id: number;
+  name: string;
+  fetchUser: () => Promise<void>;
+  saveUser:  () => Promise<void>;
+}
+
+type UserData = DataOnly<UserService>;
+// { id: number; name: string }  — methods filtered out
+\`\`\`
+
+### 7. Real QA Example — Mock Factory Type
+
+\`\`\`typescript
+interface User {
+  id: number;
+  email: string;
+  name: string;
+  role: string;
+}
+
+// A factory shape that returns each property — useful for mocking
+type Factory<T> = {
+  [K in keyof T]: () => T[K];
+};
+
+const userFactory: Factory<User> = {
+  id:    () => Math.floor(Math.random() * 1000),
+  email: () => \\\`test-\\\${Date.now()}@example.com\\\`,
+  name:  () => "Test User",
+  role:  () => "user",
+};
+
+function buildMock<T>(factory: Factory<T>): T {
+  const result = {} as T;
+  for (const key in factory) {
+    result[key] = factory[key]();
+  }
+  return result;
+}
+
+const mockUser = buildMock(userFactory);  // Fully typed User
+\`\`\`
+        `
+      },
+      {
+        id: 'ts-conditional-types',
+        title: 'Conditional Types',
+        analogy: "Conditional types are if/else statements that operate on TYPES instead of values. Just like a function returns one of two values based on a runtime condition, a conditional type produces one of two types based on a compile-time check.",
+        lessonMarkdown: `
+### 1. The Basic Syntax — \`T extends U ? X : Y\`
+
+*💡 Analogy: Read \`T extends U ? X : Y\` as a question: "Is type T assignable to U? If yes, the result is X. If no, the result is Y." It's a type-level ternary expression.*
+
+\`\`\`typescript
+// "If T is a string, the result is 'text'. Otherwise, it's 'other'."
+type IsString<T> = T extends string ? 'text' : 'other';
+
+type A = IsString<"hello">;   // 'text'
+type B = IsString<42>;        // 'other'
+type C = IsString<boolean>;   // 'other'
+\`\`\`
+
+### 2. Practical Example — Returning Different Types
+
+\`\`\`typescript
+// If the input is an array, the result is the element type. Otherwise, it's never.
+type ElementType<T> = T extends (infer E)[] ? E : never;
+
+type T1 = ElementType<string[]>;          // string
+type T2 = ElementType<number[]>;          // number
+type T3 = ElementType<{ id: number }[]>;  // { id: number }
+type T4 = ElementType<string>;            // never  (not an array)
+\`\`\`
+
+### 3. The \`infer\` Keyword — Extract Type Parts
+
+*💡 Analogy: \`infer\` is like a fishing hook that pulls a type out of a larger structure. "Inside this Promise<X>, hook out the X."*
+
+\`\`\`typescript
+// Extract the resolved type from a Promise
+type Awaited<T> = T extends Promise<infer R> ? R : T;
+
+type R1 = Awaited<Promise<string>>;          // string
+type R2 = Awaited<Promise<{ id: number }>>;  // { id: number }
+type R3 = Awaited<number>;                   // number  (not a Promise — returns input)
+
+// Extract the return type of a function
+type GetReturn<T> = T extends (...args: any[]) => infer R ? R : never;
+
+function fetchUser() {
+  return { id: 1, email: "qa@test.com" };
+}
+
+type User = GetReturn<typeof fetchUser>;  // { id: number; email: string }
+\`\`\`
+
+### 4. Distributive Conditional Types
+
+When the input type is a union, conditional types distribute over each member:
+
+\`\`\`typescript
+// "For each member of T, keep it only if it's a string."
+type StringOnly<T> = T extends string ? T : never;
+
+type Mixed = StringOnly<string | number | boolean>;
+// = (string extends string ? string : never)
+// | (number extends string ? number : never)
+// | (boolean extends string ? boolean : never)
+// = string | never | never
+// = string
+
+// Excluding members from a union
+type Without<T, U> = T extends U ? never : T;
+
+type Result = Without<'pass' | 'fail' | 'skip' | 'pending', 'pending'>;
+// 'pass' | 'fail' | 'skip'
+\`\`\`
+
+### 5. Real QA Example — Async vs Sync Function Types
+
+\`\`\`typescript
+// Determine whether a test function is async or sync
+type TestFnKind<T> = T extends () => Promise<unknown> ? 'async' : 'sync';
+
+const syncTest  = () => true;
+const asyncTest = async () => true;
+
+type K1 = TestFnKind<typeof syncTest>;   // 'sync'
+type K2 = TestFnKind<typeof asyncTest>;  // 'async'
+\`\`\`
+
+### 6. Built-in Conditional Utility Types
+
+TypeScript ships with many conditional utilities built on this pattern:
+
+\`\`\`typescript
+// Exclude<T, U> — remove members of T that are assignable to U
+type T1 = Exclude<'a' | 'b' | 'c', 'a'>;  // 'b' | 'c'
+
+// Extract<T, U> — keep only members of T assignable to U
+type T2 = Extract<'a' | 'b' | 1 | 2, string>;  // 'a' | 'b'
+
+// NonNullable<T> — remove null and undefined
+type T3 = NonNullable<string | null | undefined>;  // string
+
+// Awaited<T> — unwrap Promise types
+type T4 = Awaited<Promise<Promise<string>>>;  // string  (recursively unwraps)
+\`\`\`
+
+### 7. Common Mistakes
+
+**Mistake: Forgetting that \`extends\` here means "assignable to," not class inheritance**
+\`\`\`typescript
+// "extends" in conditional types is structural compatibility check
+type IsArray<T> = T extends any[] ? true : false;
+
+type A = IsArray<string[]>;    // true
+type B = IsArray<readonly string[]>; // false  ← because readonly arrays don't extend mutable ones
+\`\`\`
+        `
+      },
+      {
+        id: 'ts-template-literal-types',
+        title: 'Template Literal Types',
+        analogy: "Template literal types are like a copy machine that uses placeholder masks. You provide a template (\\\`event-\\\${string}\\\`) and the machine generates a controlled vocabulary of strings that match the pattern. Useful for event names, API paths, CSS class names, and more.",
+        lessonMarkdown: `
+### 1. Basic Template Literal Types
+
+*💡 Analogy: At the value level, you write \\\`Hello, \\\${name}\\\` and JavaScript inserts the variable. At the TYPE level, you write \\\`Hello, \\\${T}\\\` and TypeScript generates the union of all possible string types matching that template.*
+
+\`\`\`typescript
+// Combining literal types into new literals
+type Greeting = \\\`Hello, \\\${string}\\\`;
+
+const g1: Greeting = "Hello, World";    // ✅
+const g2: Greeting = "Hello, QA Team";  // ✅
+const g3: Greeting = "Hi, World";       // ❌ doesn't match the template
+
+// Generating combinations from unions
+type Direction = 'top' | 'bottom' | 'left' | 'right';
+type Position = \\\`\\\${Direction}-edge\\\`;
+// 'top-edge' | 'bottom-edge' | 'left-edge' | 'right-edge'
+\`\`\`
+
+### 2. Building Event Names
+
+\`\`\`typescript
+type EventName = 'click' | 'hover' | 'focus' | 'blur';
+type Element   = 'button' | 'input' | 'link';
+
+// All combinations
+type EventHandler = \\\`on\\\${Capitalize<Element>}\\\${Capitalize<EventName>}\\\`;
+// 'onButtonClick' | 'onButtonHover' | 'onButtonFocus' | ...
+// 'onInputClick'  | 'onInputHover'  | ...
+// (12 total combinations)
+
+// Type-safe event handler registration
+const handlers: Partial<Record<EventHandler, () => void>> = {
+  onButtonClick: () => console.log('Button clicked'),
+  onInputBlur:   () => console.log('Input blurred'),
+};
+\`\`\`
+
+### 3. Built-in String Manipulation Types
+
+\`\`\`typescript
+type T1 = Uppercase<'hello'>;    // 'HELLO'
+type T2 = Lowercase<'HELLO'>;    // 'hello'
+type T3 = Capitalize<'hello'>;   // 'Hello'
+type T4 = Uncapitalize<'Hello'>; // 'hello'
+
+// Combine for property name generation
+type Setter<K extends string> = \\\`set\\\${Capitalize<K>}\\\`;
+
+type T5 = Setter<'name'>;  // 'setName'
+type T6 = Setter<'email'>; // 'setEmail'
+\`\`\`
+
+### 4. Real QA Example — Type-Safe API Path Builder
+
+\`\`\`typescript
+type Resource = 'users' | 'orders' | 'products' | 'tests';
+type APIPath  = \\\`/api/\\\${Resource}\\\` | \\\`/api/\\\${Resource}/\\\${string}\\\`;
+
+async function get(path: APIPath): Promise<unknown> {
+  const response = await fetch(path);
+  return response.json();
+}
+
+await get('/api/users');           // ✅
+await get('/api/users/42');        // ✅
+await get('/api/orders/abc123');   // ✅
+await get('/api/unknown');         // ❌ Error: 'unknown' not a valid resource
+await get('/users');               // ❌ Error: doesn't start with /api/
+\`\`\`
+
+### 5. Real QA Example — Type-Safe Test ID Generator
+
+\`\`\`typescript
+type Page    = 'login' | 'dashboard' | 'profile' | 'checkout';
+type Element = 'button' | 'input' | 'link' | 'modal';
+
+// Enforces a naming convention: data-testid="<page>-<element>-<name>"
+type TestId = \\\`\\\${Page}-\\\${Element}-\\\${string}\\\`;
+
+function selectByTestId(id: TestId): string {
+  return \\\`[data-testid="\\\${id}"]\\\`;
+}
+
+selectByTestId('login-button-submit');     // ✅
+selectByTestId('dashboard-modal-confirm'); // ✅
+selectByTestId('home-button-cta');         // ❌ 'home' not a valid Page
+\`\`\`
+
+### 6. Pattern Matching with \`infer\`
+
+\`\`\`typescript
+// Extract the resource name from an API path
+type ExtractResource<T> = T extends \\\`/api/\\\${infer R}\\\` ? R : never;
+
+type R1 = ExtractResource<'/api/users'>;     // 'users'
+type R2 = ExtractResource<'/api/orders/42'>; // 'orders/42'
+type R3 = ExtractResource<'/users'>;         // never (no match)
+\`\`\`
+        `
+      },
+      {
+        id: 'ts-indexed-access',
+        title: 'Indexed Access Types',
+        analogy: "Indexed access types are like dictionary lookups for types. Just as \`obj[key]\` retrieves a value from an object at runtime, \`T[K]\` retrieves a TYPE from another type at compile time. It's a lookup table operating purely in the type system.",
+        lessonMarkdown: `
+### 1. The Basic Syntax — \`T[K]\`
+
+*💡 Analogy: If \`T\` is a filing cabinet of types and \`K\` is a drawer label, then \`T[K]\` opens that drawer and pulls out the type stored inside.*
+
+\`\`\`typescript
+interface User {
+  id: number;
+  email: string;
+  name: string;
+  role: 'admin' | 'user';
+}
+
+// Access the type of a single property
+type UserId    = User['id'];     // number
+type UserEmail = User['email'];  // string
+type UserRole  = User['role'];   // 'admin' | 'user'
+
+// Access multiple properties as a union
+type Identifier = User['id' | 'email'];  // number | string
+\`\`\`
+
+### 2. Combining \`keyof\` with Indexed Access
+
+\`\`\`typescript
+interface Config {
+  host: string;
+  port: number;
+  ssl: boolean;
+}
+
+// Get a union of ALL value types in Config
+type ConfigValue = Config[keyof Config];
+// = Config['host'] | Config['port'] | Config['ssl']
+// = string | number | boolean
+\`\`\`
+
+### 3. Looking Into Nested Types
+
+\`\`\`typescript
+interface APIResponse {
+  data: {
+    user: {
+      id: number;
+      profile: {
+        avatar: string;
+        bio: string;
+      };
+    };
+  };
+  meta: {
+    timestamp: Date;
+    version: string;
+  };
+}
+
+// Deep lookup
+type Profile = APIResponse['data']['user']['profile'];
+// { avatar: string; bio: string }
+
+type Avatar = APIResponse['data']['user']['profile']['avatar'];
+// string
+\`\`\`
+
+### 4. Array Element Type Lookup
+
+\`\`\`typescript
+const TEST_RESULTS = [
+  { name: "Login Test",    passed: true,  durationMs: 850 },
+  { name: "Checkout Test", passed: false, durationMs: 1200 },
+] as const;
+
+// Get the element type of the array
+type TestResult = (typeof TEST_RESULTS)[number];
+// { readonly name: string; readonly passed: boolean; readonly durationMs: number }
+
+function summarise(result: TestResult): void {
+  console.log(\\\`\\\${result.name}: \\\${result.passed ? 'PASS' : 'FAIL'}\\\`);
+}
+\`\`\`
+
+### 5. Real QA Example — Function Parameter Types
+
+\`\`\`typescript
+class APIClient {
+  async login(credentials: { email: string; password: string }): Promise<{ token: string }> {
+    // ...
+    return { token: "" };
+  }
+  async createOrder(payload: { userId: number; items: string[] }): Promise<{ orderId: number }> {
+    // ...
+    return { orderId: 0 };
+  }
+}
+
+// Extract the parameter type WITHOUT redeclaring it
+type LoginCredentials = Parameters<APIClient['login']>[0];
+// { email: string; password: string }
+
+type OrderPayload = Parameters<APIClient['createOrder']>[0];
+// { userId: number; items: string[] }
+
+// Now define test data using the extracted types
+const validCredentials: LoginCredentials = {
+  email: "qa@test.com",
+  password: "Pass123!",
+};
+\`\`\`
+
+### 6. Indexed Access in Generic Functions
+
+\`\`\`typescript
+// Type-safe property setter
+function setProperty<T, K extends keyof T>(obj: T, key: K, value: T[K]): void {
+  obj[key] = value;
+}
+
+const user: User = { id: 1, email: "qa@test.com", name: "Sagar", role: "admin" };
+
+setProperty(user, 'email', "new@test.com");  // ✅
+setProperty(user, 'role',  "user");          // ✅
+setProperty(user, 'role',  "guest");         // ❌ Error — not in 'admin' | 'user'
+setProperty(user, 'id',    "abc");           // ❌ Error — id must be number
+\`\`\`
+
+### 7. Pulling Out Nested Result Types
+
+\`\`\`typescript
+// Suppose you have a deeply nested API response type from an SDK
+type SDKResponse = {
+  result: {
+    data: {
+      items: Array<{
+        id: string;
+        attributes: {
+          name: string;
+          status: 'active' | 'archived';
+        };
+      }>;
+    };
+  };
+};
+
+// Extract just the item type for use in tests/assertions
+type Item = SDKResponse['result']['data']['items'][number];
+// { id: string; attributes: { name: string; status: 'active' | 'archived' } }
+
+type ItemStatus = Item['attributes']['status'];  // 'active' | 'archived'
+\`\`\`
+        `
+      },
+      {
+        id: 'ts-classes',
+        title: 'Classes with TypeScript',
+        analogy: "TypeScript classes are like blueprints with strict access control. Public rooms are open to visitors, private rooms have keypad locks (only the building owner enters), protected rooms are accessible to family members (subclasses). Abstract blueprints define the layout but cannot be built directly — you must create a concrete variant first.",
+        lessonMarkdown: `
+### 1. Class Basics with Type Annotations
+
+\`\`\`typescript
+class TestRunner {
+  // Property declarations with types
+  name: string;
+  timeout: number;
+  retries: number;
+
+  // Constructor with typed parameters
+  constructor(name: string, timeout: number = 30000, retries: number = 0) {
+    this.name = name;
+    this.timeout = timeout;
+    this.retries = retries;
+  }
+
+  // Methods with typed parameters and return types
+  async run(): Promise<boolean> {
+    console.log(\\\`Running \\\${this.name}\\\`);
+    return true;
+  }
+}
+
+const runner = new TestRunner("Login Tests", 30000, 3);
+await runner.run();
+\`\`\`
+
+### 2. Parameter Properties — Constructor Shorthand
+
+*💡 Analogy: Parameter properties are like a self-assembling chair — the moment you receive the parts, the chair assembles itself. The constructor parameter declaration also creates and assigns the property in one step.*
+
+\`\`\`typescript
+class TestRunner {
+  // Shorthand: declare AND assign properties from constructor parameters
+  constructor(
+    public name: string,
+    public timeout: number = 30000,
+    public retries: number = 0
+  ) {}
+  // No need for explicit "this.name = name" — TypeScript does it automatically
+}
+
+// Equivalent to the longer version above
+\`\`\`
+
+### 3. Access Modifiers — public, private, protected
+
+\`\`\`typescript
+class APIClient {
+  public  baseURL: string;          // Accessible everywhere (default)
+  private apiKey: string;            // Only inside this class
+  protected sessionToken: string;    // This class + subclasses
+
+  constructor(baseURL: string, apiKey: string) {
+    this.baseURL      = baseURL;
+    this.apiKey       = apiKey;
+    this.sessionToken = "";
+  }
+
+  // private method — internal implementation detail
+  private buildHeaders(): Record<string, string> {
+    return { Authorization: \\\`Bearer \\\${this.apiKey}\\\` };
+  }
+
+  // public method — part of the API
+  public async get(path: string): Promise<unknown> {
+    const headers = this.buildHeaders();
+    const res = await fetch(\\\`\\\${this.baseURL}\\\${path}\\\`, { headers });
+    return res.json();
+  }
+}
+
+const client = new APIClient("https://api.test.com", "secret");
+client.baseURL;     // ✅ public
+client.apiKey;      // ❌ Error: private
+client.buildHeaders(); // ❌ Error: private
+\`\`\`
+
+### 4. Readonly Properties
+
+\`\`\`typescript
+class TestEnvironment {
+  constructor(
+    public readonly id: string,           // Cannot be reassigned after construction
+    public readonly createdAt: Date,
+    public name: string,                   // Mutable
+    public isActive: boolean
+  ) {}
+}
+
+const env = new TestEnvironment("env-001", new Date(), "Staging", true);
+env.name = "Staging-v2";       // ✅ Fine
+env.isActive = false;          // ✅ Fine
+env.id = "env-002";            // ❌ Error: readonly
+\`\`\`
+
+### 5. Implementing Interfaces
+
+\`\`\`typescript
+interface ILoginPage {
+  navigate(): Promise<void>;
+  enterCredentials(email: string, password: string): Promise<void>;
+  submit(): Promise<void>;
+  getErrorMessage(): Promise<string | null>;
+}
+
+class LoginPage implements ILoginPage {
+  constructor(private page: Page) {}
+
+  async navigate(): Promise<void> {
+    await this.page.goto("/login");
+  }
+
+  async enterCredentials(email: string, password: string): Promise<void> {
+    await this.page.fill('#email', email);
+    await this.page.fill('#password', password);
+  }
+
+  async submit(): Promise<void> {
+    await this.page.click('[data-testid="submit"]');
+  }
+
+  async getErrorMessage(): Promise<string | null> {
+    const el = this.page.locator('.error-message');
+    if (await el.isVisible()) return el.textContent();
+    return null;
+  }
+}
+\`\`\`
+
+### 6. Abstract Classes — Templates That Cannot Be Instantiated
+
+*💡 Analogy: An abstract class is like a partial blueprint — it defines the building structure but with some rooms left empty. You cannot build a house from it directly; you must inherit and fill in the missing pieces first.*
+
+\`\`\`typescript
+abstract class BasePage {
+  constructor(protected page: Page) {}
+
+  // Concrete method — shared by all pages
+  async waitForLoad(): Promise<void> {
+    await this.page.waitForLoadState('networkidle');
+  }
+
+  // Abstract method — every subclass MUST implement this
+  abstract navigate(): Promise<void>;
+  abstract assertLoaded(): Promise<void>;
+}
+
+class HomePage extends BasePage {
+  async navigate(): Promise<void> {
+    await this.page.goto("/");
+  }
+
+  async assertLoaded(): Promise<void> {
+    await this.page.waitForSelector('[data-testid="hero-banner"]');
+  }
+}
+
+const home = new HomePage(page);  // ✅
+const base = new BasePage(page);  // ❌ Error: cannot instantiate abstract class
+\`\`\`
+
+### 7. Static Members — Class-Level Properties
+
+\`\`\`typescript
+class TestData {
+  static readonly DEFAULT_TIMEOUT = 30000;
+  static readonly MAX_RETRIES     = 3;
+
+  static randomEmail(): string {
+    return \\\`test-\\\${Date.now()}@example.com\\\`;
+  }
+}
+
+// No instance needed — accessed on the class itself
+const timeout = TestData.DEFAULT_TIMEOUT;
+const email   = TestData.randomEmail();
+\`\`\`
+        `
+      },
+      {
+        id: 'ts-modules-imports',
+        title: 'Modules, Imports & Exports',
+        analogy: "Modules are like rooms in a building, each with its own door. Public files (named exports) are doors with name labels — visitors must use the exact name to enter. The default export is the building's main entrance — visitors can call it whatever they like once inside. Type-only imports are blueprint copies — they describe shape but bring no actual content with them.",
+        lessonMarkdown: `
+### 1. Named Exports — Multiple Things from One File
+
+\`\`\`typescript
+// src/test-helpers.ts
+
+export const DEFAULT_TIMEOUT = 30000;
+export const MAX_RETRIES = 3;
+
+export function randomEmail(): string {
+  return \\\`test-\\\${Date.now()}@example.com\\\`;
+}
+
+export class TestUser {
+  constructor(public email: string, public role: string) {}
+}
+
+export interface TestConfig {
+  baseURL: string;
+  timeout: number;
+}
+\`\`\`
+
+\`\`\`typescript
+// src/login.test.ts
+
+// Named imports — must use the exact exported name
+import { DEFAULT_TIMEOUT, randomEmail, TestUser } from './test-helpers';
+
+const user = new TestUser(randomEmail(), 'admin');
+console.log(\\\`Timeout: \\\${DEFAULT_TIMEOUT}\\\`);
+\`\`\`
+
+### 2. Default Exports — One Main Thing per File
+
+\`\`\`typescript
+// src/login-page.ts
+
+export default class LoginPage {
+  async navigate() { /* ... */ }
+  async login(email: string, password: string) { /* ... */ }
+}
+\`\`\`
+
+\`\`\`typescript
+// src/login.test.ts
+
+// Default import — you can name it anything
+import LoginPage from './login-page';
+import LoginPg   from './login-page';   // ✅ Same thing, different local name
+
+const page = new LoginPage();
+\`\`\`
+
+### 3. Mixing Default and Named Exports
+
+\`\`\`typescript
+// src/api-client.ts
+
+export default class APIClient {
+  // Main export
+}
+
+export const DEFAULT_TIMEOUT = 5000;
+export const MAX_RETRIES = 3;
+
+export interface RequestConfig {
+  timeout?: number;
+  retries?: number;
+}
+\`\`\`
+
+\`\`\`typescript
+// Importing both kinds in one statement
+import APIClient, { DEFAULT_TIMEOUT, RequestConfig } from './api-client';
+\`\`\`
+
+### 4. Renaming on Import — \`as\`
+
+\`\`\`typescript
+import { TestUser as User, DEFAULT_TIMEOUT as TIMEOUT } from './test-helpers';
+
+const u = new User("qa@test.com", "admin");
+console.log(TIMEOUT);
+\`\`\`
+
+### 5. Type-Only Imports (TS 3.8+)
+
+*💡 Analogy: A regular import is like ordering a real product. A type-only import is like ordering just the product's spec sheet — you get the description but no physical item, and the bundle stays smaller because the import is erased entirely after compilation.*
+
+\`\`\`typescript
+// Importing types — these are stripped at compile time, zero runtime cost
+import type { User, TestConfig } from './types';
+
+// Importing both values and types in one statement
+import { runTest, type TestRunner } from './test-runner';
+
+function login(user: User): void {
+  // 'user' parameter type comes from import — but no runtime import is generated
+}
+\`\`\`
+
+**Why type-only imports matter for QA:**
+- Smaller bundles — types are erased, not bundled
+- Avoids circular dependency issues — types-only references don't create runtime cycles
+- Clearer intent — readers see immediately that an import is type-only
+
+### 6. Re-Exports — Building a Public API
+
+\`\`\`typescript
+// src/pages/index.ts — barrel file
+
+export { default as LoginPage }     from './login-page';
+export { default as DashboardPage } from './dashboard-page';
+export { default as CheckoutPage }  from './checkout-page';
+
+// Re-export types from another file
+export type { TestConfig, TestUser } from '../types';
+
+// Re-export everything from another file
+export * from './page-helpers';
+\`\`\`
+
+\`\`\`typescript
+// Now a single import gets everything
+import { LoginPage, DashboardPage, TestConfig } from './pages';
+\`\`\`
+
+### 7. Module Organisation for QA Projects
+
+\`\`\`
+src/
+├── pages/
+│   ├── login-page.ts        — export default LoginPage
+│   ├── dashboard-page.ts    — export default DashboardPage
+│   └── index.ts             — barrel: re-exports all pages
+├── fixtures/
+│   ├── users.ts             — export const TEST_USERS
+│   └── test-data.ts         — export functions for generating data
+├── helpers/
+│   ├── api-client.ts        — export default APIClient
+│   └── retry.ts             — export named utility functions
+├── types/
+│   └── index.ts             — export type/interface declarations only
+└── tests/
+    └── login.spec.ts        — imports from above
+\`\`\`
+
+### 8. Common Mistakes
+
+**Mistake 1: Mixing default-export style with named-export style inconsistently**
+\`\`\`typescript
+// ❌ Confusing — sometimes default, sometimes named, no convention
+export default class LoginPage {}     // file 1
+export class DashboardPage {}         // file 2
+
+// ✅ Pick one style and apply it across the project
+\`\`\`
+
+**Mistake 2: Forgetting \`type\` when importing only types in environments that strip imports**
+\`\`\`typescript
+// Without 'type' — bundlers might generate runtime imports for types
+import { User } from './types';
+
+// ✅ Type-only import — guarantees zero runtime cost
+import type { User } from './types';
+\`\`\`
+        `
+      },
+      {
+        id: 'ts-decorators',
+        title: 'Decorators',
+        analogy: "Decorators are like stickers you slap on classes and methods to attach extra behaviour without modifying the original code. Add an \\\`@retry\\\` sticker to a test method, and it automatically retries on failure. Add an \\\`@logged\\\` sticker, and it auto-logs every call. The class itself stays simple; the stickers handle the cross-cutting concerns.",
+        lessonMarkdown: `
+### 1. What Are Decorators?
+
+*💡 Analogy: A decorator is a function that "wraps" a class, method, or property to add behaviour. Imagine wrapping a present — the present (your class) is unchanged, but the wrapping paper (the decorator) adds a layer of presentation, logging, validation, or metadata.*
+
+Decorators are heavily used by frameworks: **NestJS**, **Angular**, **TypeORM**, **Inversify**. Understanding them lets you read and write modern TypeScript code in real projects.
+
+**Important note:** As of TypeScript 5+, "Stage 3 decorators" are the standard. Older "experimental" decorators (\`experimentalDecorators: true\` in tsconfig) are still common in NestJS/Angular projects but the syntax is similar.
+
+### 2. Class Decorators
+
+\`\`\`typescript
+// A simple class decorator — adds a property to the class
+function Logged<T extends new (...args: any[]) => any>(constructor: T) {
+  return class extends constructor {
+    isLogged = true;
+    constructor(...args: any[]) {
+      super(...args);
+      console.log(\\\`Created instance of \\\${constructor.name}\\\`);
+    }
+  };
+}
+
+@Logged
+class TestRunner {
+  constructor(public name: string) {}
+}
+
+const runner = new TestRunner("Login Tests");
+// Logs: "Created instance of TestRunner"
+\`\`\`
+
+### 3. Method Decorators — The Most Common QA Use Case
+
+\`\`\`typescript
+// Auto-retry decorator — perfect for flaky test steps
+function Retry(maxAttempts: number) {
+  return function (
+    _target: any,
+    propertyKey: string,
+    descriptor: PropertyDescriptor
+  ) {
+    const original = descriptor.value;
+    descriptor.value = async function (...args: any[]) {
+      let lastError: unknown;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          return await original.apply(this, args);
+        } catch (err) {
+          lastError = err;
+          console.log(\\\`Attempt \\\${attempt} of \\\${propertyKey} failed. Retrying...\\\`);
+        }
+      }
+      throw lastError;
+    };
+  };
+}
+
+class CheckoutTests {
+  @Retry(3)
+  async addToCart(): Promise<void> {
+    // If this throws, it'll automatically retry up to 3 times
+    await page.click('[data-testid="add-to-cart"]');
+  }
+
+  @Retry(5)
+  async submitPayment(): Promise<void> {
+    await page.click('[data-testid="submit-payment"]');
+  }
+}
+\`\`\`
+
+### 4. Method Decorators — Logging Example
+
+\`\`\`typescript
+// Log every method invocation with arguments and result
+function Logged(_target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  const original = descriptor.value;
+  descriptor.value = async function (...args: any[]) {
+    console.log(\\\`▶ \\\${propertyKey}(\\\${JSON.stringify(args)})\\\`);
+    const result = await original.apply(this, args);
+    console.log(\\\`◀ \\\${propertyKey} returned\\\`, result);
+    return result;
+  };
+}
+
+class APIClient {
+  @Logged
+  async login(email: string, password: string): Promise<{ token: string }> {
+    // Your real implementation
+    return { token: "abc123" };
+  }
+}
+
+const client = new APIClient();
+await client.login("qa@test.com", "secret");
+// ▶ login(["qa@test.com","secret"])
+// ◀ login returned { token: "abc123" }
+\`\`\`
+
+### 5. Real-World Examples — Framework Decorators
+
+These are decorators you'll see in real codebases:
+
+\`\`\`typescript
+// NestJS controller (server-side TypeScript framework)
+@Controller('users')
+class UserController {
+  @Get(':id')
+  async getUser(@Param('id') id: string) { /* ... */ }
+
+  @Post()
+  async createUser(@Body() dto: CreateUserDto) { /* ... */ }
+}
+
+// TypeORM entity (database ORM)
+@Entity()
+class User {
+  @PrimaryGeneratedColumn() id!: number;
+  @Column({ unique: true }) email!: string;
+  @Column() name!: string;
+}
+
+// Angular service
+@Injectable({ providedIn: 'root' })
+class TestDataService {
+  constructor(private http: HttpClient) {}
+}
+\`\`\`
+
+### 6. Property Decorators
+
+\`\`\`typescript
+// Mark a property for validation
+function MinLength(min: number) {
+  return function (target: any, propertyKey: string) {
+    let value: string;
+    Object.defineProperty(target, propertyKey, {
+      get: () => value,
+      set: (newValue: string) => {
+        if (newValue.length < min) {
+          throw new Error(\\\`\\\${propertyKey} must be at least \\\${min} chars\\\`);
+        }
+        value = newValue;
+      },
+    });
+  };
+}
+
+class TestUser {
+  @MinLength(8)
+  password!: string;
+}
+
+const u = new TestUser();
+u.password = "abc";          // ❌ Throws: must be at least 8 chars
+u.password = "SecurePass1!"; // ✅ Fine
+\`\`\`
+
+### 7. Enabling Decorators in Your Project
+
+\`\`\`json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "experimentalDecorators": true,        // For older-style decorators (NestJS, Angular)
+    "emitDecoratorMetadata": true          // Allows runtime type info via reflect-metadata
+  }
+}
+\`\`\`
+
+For TS 5+ stage 3 decorators (modern), no special flag is needed.
+
+### 8. When NOT to Use Decorators
+
+- **Simple cases** — if a regular function call is clearer, use that
+- **One-off behaviour** — decorators shine for repeated, declarative patterns
+- **Performance-critical paths** — decorators add a function-call layer per invocation
+        `
+      }
+
     ]
   },
   playwright: {
