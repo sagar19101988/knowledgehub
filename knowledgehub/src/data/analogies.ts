@@ -7210,8 +7210,885 @@ node src/hello.ts  // Syntax error — TypeScript not recognised
 // ✅ Use ts-node for development (compiles on the fly)
 npx ts-node src/hello.ts
 \`\`\`
+
+### 8. Structural Typing — TypeScript's Core Philosophy
+
+*💡 Analogy: TypeScript is like a custom suit tailor who only cares about measurements, not your name. If the suit fits your body shape perfectly, you can wear it — the tailor doesn't check your passport. Two completely different people with identical measurements are interchangeable from the tailor's perspective.*
+
+TypeScript uses **structural typing** (also called "duck typing"): it only cares about the **shape** of an object — the names and types of its properties — not what class it came from or what it is named.
+
+\`\`\`typescript
+interface HasName {
+  name: string;
+}
+
+function greet(person: HasName): void {
+  console.log(\`Hello, \${person.name}!\`);
+}
+
+// ✅ Any object with a 'name: string' property is accepted
+greet({ name: "Sagar" });                              // Works
+greet({ name: "QA Bot", role: "tester", level: 5 });  // Works — extra fields are fine
+\`\`\`
+
+**This matters especially for beginners from Java/C#** where types are *nominal* (based on the class name):
+
+\`\`\`typescript
+class Cat {
+  name: string = "Whiskers";
+  sound(): string { return "meow"; }
+}
+
+class Dog {
+  name: string = "Rex";
+  sound(): string { return "woof"; }
+}
+
+function petAnimal(animal: Cat): void {
+  console.log(\`\${animal.name} says \${animal.sound()}\`);
+}
+
+// ✅ A Dog works here — because it has the same shape as Cat
+// In Java this would be a compile error. In TypeScript: fine.
+const dog = new Dog();
+petAnimal(dog);  // ✅ TypeScript only checks shape, not class name
+\`\`\`
+
+**The practical rule:** If you give a function an object that has all the required properties with the right types, TypeScript accepts it — even if you didn't explicitly declare it as that type.
         `
       },
+      {
+        id: 'ts-variables',
+        title: 'Variables & Declarations',
+        analogy: "A variable is like a labelled jar on a kitchen shelf. The label says what it holds ('Sugar'), the jar is the storage space, and the contents are the value. With TypeScript, the label also declares what is allowed inside — a Sugar jar can never hold motor oil. `const` seals the jar permanently after first fill; `let` lets you pour it out and refill it later.",
+        lessonMarkdown: `
+### 1. What is a Variable?
+
+*💡 Analogy: Imagine your test automation needs to remember the URL of the staging server so it can visit it in every test. Instead of typing "https://staging.example.com" forty times across forty test files, you store it once in a labelled container — a variable — and refer to the label everywhere. Change the URL in one place and all forty tests update automatically.*
+
+A variable is a **named storage location** in computer memory. You give it a name, and you can store a value there, read it later, and (depending on how you declared it) change it.
+
+\`\`\`typescript
+// Declaring a variable with a name and a value
+const baseURL = "https://staging.example.com";
+
+// Now you can use the name everywhere instead of the raw value
+console.log(baseURL);  // "https://staging.example.com"
+\`\`\`
+
+### 2. const — Use This by Default
+
+*💡 Analogy: \`const\` is like a concrete post hammered into the ground and bolted shut. Once the concrete sets, you cannot pull the post out and move it. It points to that exact spot forever.*
+
+\`const\` declares a variable whose **binding cannot be reassigned**. Once you set it, the name always points to that value.
+
+\`\`\`typescript
+const testEnvironment: string = "staging";
+const maxRetries: number = 3;
+const isHeadless: boolean = true;
+const baseURL: string = "https://staging.example.com";
+
+// ❌ Cannot reassign a const
+testEnvironment = "production";  // Error: Assignment to constant variable
+maxRetries = 5;                  // Error: Assignment to constant variable
+\`\`\`
+
+**Important: \`const\` fixes the binding, NOT the contents of objects/arrays:**
+\`\`\`typescript
+const config = { timeout: 30000, headless: true };
+
+// ❌ Cannot reassign the variable itself
+config = { timeout: 60000, headless: false };  // Error!
+
+// ✅ BUT you CAN modify properties of a const object
+config.timeout = 60000;   // Fine — the object itself is mutable
+config.headless = false;  // Fine
+\`\`\`
+
+**Rule: Use \`const\` for everything unless you specifically need to reassign.** Most variables in well-written TypeScript are \`const\`.
+
+### 3. let — When You Need to Reassign
+
+*💡 Analogy: \`let\` is like a whiteboard. You write something on it, then erase and rewrite as needed. The whiteboard stays in the same spot — only its contents change.*
+
+\`let\` declares a variable that **can be reassigned** after its initial declaration.
+
+\`\`\`typescript
+let currentTestName: string = "Login Test";
+let passCount: number = 0;
+let lastError: string | null = null;
+
+// ✅ Reassignment is allowed with let
+currentTestName = "Checkout Test";
+passCount = passCount + 1;
+lastError = "Element not found";
+\`\`\`
+
+**Real QA example — a counter that changes during a loop:**
+\`\`\`typescript
+let failCount: number = 0;
+
+const results = ["pass", "fail", "pass", "fail", "fail"];
+
+for (const result of results) {
+  if (result === "fail") {
+    failCount = failCount + 1;  // Reassigning — needs let
+  }
+}
+
+console.log(\`Failed: \${failCount} / \${results.length}\`);  // Failed: 3 / 5
+\`\`\`
+
+### 4. var — The Legacy Keyword (Never Use)
+
+*💡 Analogy: \`var\` is like a contractor who ignores the floor plan and puts furniture wherever they feel like it. Technically it works, but the results are unpredictable and everyone else is confused.*
+
+\`var\` is the original JavaScript variable declaration — it predates \`let\` and \`const\`. It has two serious problems:
+
+**Problem 1: Function-scoped, not block-scoped**
+\`\`\`typescript
+// ❌ var leaks out of if/for/while blocks
+if (true) {
+  var leaked = "I escaped the block!";
+}
+console.log(leaked);  // "I escaped the block!" — var ignored the {} boundary
+
+// ✅ let stays inside its block
+if (true) {
+  let contained = "I stay here";
+}
+console.log(contained);  // ❌ ReferenceError — let respects the block
+\`\`\`
+
+**Problem 2: Hoisting causes silent bugs**
+\`\`\`typescript
+// ❌ var is "hoisted" to the top of its function — allows use before declaration
+console.log(myVar);  // undefined (not an error!) — confusing and dangerous
+var myVar = "hello";
+
+// ✅ let/const are NOT hoisted
+console.log(myLet);  // ❌ ReferenceError — clear and honest
+let myLet = "hello";
+\`\`\`
+
+**Rule: Never use \`var\` in TypeScript. Use \`const\` or \`let\` exclusively.**
+
+### 5. Block Scope — Where Variables Live
+
+*💡 Analogy: Scope is like an office building with rooms. A variable declared inside a meeting room only exists in that room — people in the hallway cannot see it. But a variable declared in the hallway is visible from every room that opens onto it.*
+
+\`let\` and \`const\` are **block-scoped** — they only exist within the nearest enclosing \`{}\` braces.
+
+\`\`\`typescript
+const testSuites = ["auth", "checkout", "profile"];
+
+for (const suite of testSuites) {
+  const logLine = \`Running suite: \${suite}\`;  // Only exists inside the loop body
+  console.log(logLine);  // ✅ Accessible here
+}
+
+console.log(logLine);  // ❌ Error: 'logLine' is not defined — it's out of scope
+console.log(suite);    // ❌ Error: 'suite' is not defined — also out of scope
+
+// ✅ Variables declared before the loop are visible inside it
+const prefix = "SUITE";
+for (const suite of testSuites) {
+  console.log(\`\${prefix}: \${suite}\`);  // ✅ prefix is from outer scope
+}
+\`\`\`
+
+### 6. Declaration vs Initialisation
+
+You can declare a variable with \`let\` without giving it a value immediately. TypeScript infers the type as \`undefined\` until assigned.
+
+\`\`\`typescript
+// Declared but NOT yet initialised
+let loginResult: string;
+
+// ... some code runs ...
+loginResult = "success";  // Now initialised
+
+// TypeScript will warn if you try to use it before assignment (with strict mode)
+console.log(loginResult);  // OK only after the assignment above
+\`\`\`
+
+**With \`const\` you MUST initialise at declaration — no value means no const:**
+\`\`\`typescript
+const timeout: number;  // ❌ Error: 'const' declarations must be initialised
+const timeout: number = 30000;  // ✅ Must assign immediately
+\`\`\`
+
+### 7. Type Annotations on Variables
+
+TypeScript can **infer** the type from the assigned value, or you can be **explicit** with an annotation.
+
+\`\`\`typescript
+// Inferred — TypeScript reads the value and decides the type
+const siteName  = "QA Quest";   // TypeScript infers: string
+const retries   = 3;             // TypeScript infers: number
+const headless  = true;          // TypeScript infers: boolean
+
+// Explicit annotation — you declare the type yourself
+const siteName: string  = "QA Quest";
+const retries: number   = 3;
+const headless: boolean = true;
+
+// When to use explicit annotations:
+// ✅ When the variable starts as null/undefined
+let currentUser: string | null = null;
+
+// ✅ When inference would be too broad (any)
+let responseData: { id: number; email: string };
+
+// ✅ When you want to document intent for complex types
+const config: TestConfig = loadConfig();
+\`\`\`
+
+### 8. Naming Conventions
+
+\`\`\`typescript
+// camelCase for variables and functions — standard TypeScript convention
+const testSuiteName = "Authentication Suite";
+let currentRetryCount = 0;
+const isTestPassing = true;
+
+// UPPER_SNAKE_CASE for true constants that never change
+const MAX_RETRIES = 3;
+const BASE_URL = "https://staging.example.com";
+const DEFAULT_TIMEOUT_MS = 30000;
+
+// PascalCase for classes, interfaces, types, enums
+interface TestResult { ... }
+class LoginPage { ... }
+type BrowserName = 'chromium' | 'firefox';
+
+// Descriptive names over short names — code is read far more than written
+const x = 30000;              // ❌ What is x?
+const defaultTimeoutMs = 30000;  // ✅ Crystal clear
+\`\`\`
+
+### 9. Common Mistakes
+
+**Mistake 1: Using \`let\` when \`const\` is appropriate**
+\`\`\`typescript
+// ❌ This never changes — should be const
+let baseURL = "https://staging.example.com";
+
+// ✅ Signals clearly that this value is fixed
+const baseURL = "https://staging.example.com";
+\`\`\`
+
+**Mistake 2: Forgetting block scope**
+\`\`\`typescript
+// ❌ Trying to use a loop variable after the loop
+for (let i = 0; i < 3; i++) {
+  const message = \`Attempt \${i + 1}\`;
+}
+console.log(message);  // ❌ ReferenceError — message only lives inside the loop
+\`\`\`
+
+**Mistake 3: Confusing const for objects**
+\`\`\`typescript
+const user = { name: "Sagar", role: "QA" };
+user = { name: "Someone else" };  // ❌ Cannot reassign the variable
+user.name = "Sagar Nayak";        // ✅ Modifying the object is fine
+\`\`\`
+        `
+      },
+      {
+        id: 'ts-control-flow',
+        title: 'Control Flow',
+        analogy: "Control flow is the traffic management system of your code. Without it, every instruction executes in the exact same order every single time — like a road with no traffic lights, no roundabouts, and no exits. `if/else` adds traffic lights (take this road only if the condition is green), loops add roundabouts (keep going around until the exit condition is met), and `switch` adds motorway junctions (choose the exit matching your destination).",
+        lessonMarkdown: `
+### 1. if / else — Conditional Execution
+
+*💡 Analogy: An \`if\` statement is exactly like a quality gate in a factory: "If this part passes inspection, send it to packaging. Else, send it to rework." The factory only does ONE of those two things for each part — never both.*
+
+\`\`\`typescript
+const httpStatus: number = 404;
+
+if (httpStatus === 200) {
+  console.log("✅ Request succeeded");
+} else if (httpStatus === 404) {
+  console.log("❌ Resource not found");
+} else if (httpStatus >= 500) {
+  console.log("💥 Server error — retry");
+} else {
+  console.log(\`⚠️ Unexpected status: \${httpStatus}\`);
+}
+\`\`\`
+
+**Real QA example — login verification:**
+\`\`\`typescript
+async function verifyLogin(
+  username: string,
+  password: string
+): Promise<string> {
+  if (!username || !password) {
+    return "error: credentials required";
+  }
+
+  const response = await fetch("/api/login", {
+    method: "POST",
+    body: JSON.stringify({ username, password }),
+  });
+
+  if (response.status === 200) {
+    return "success";
+  } else if (response.status === 401) {
+    return "error: invalid credentials";
+  } else {
+    return \`error: unexpected status \${response.status}\`;
+  }
+}
+\`\`\`
+
+### 2. Ternary Operator — Inline if/else
+
+*💡 Analogy: The ternary is the express checkout lane. You have one simple condition with two possible outcomes — it doesn't need a full \`if/else\` structure, just a quick inline decision.*
+
+**Syntax: \`condition ? valueIfTrue : valueIfFalse\`**
+
+\`\`\`typescript
+const passed = true;
+
+// Instead of:
+let status: string;
+if (passed) {
+  status = "PASS";
+} else {
+  status = "FAIL";
+}
+
+// Write this:
+const status = passed ? "PASS" : "FAIL";
+
+// Real QA examples
+const icon     = passed    ? "✅" : "❌";
+const logLevel = hasFailed ? "error" : "info";
+const retries  = isFlaky   ? 3      : 0;
+
+// In template literals
+console.log(\`Test \${testName}: \${passed ? "PASSED" : "FAILED"} in \${durationMs}ms\`);
+\`\`\`
+
+**⚠️ Don't nest ternaries — they become unreadable:**
+\`\`\`typescript
+// ❌ Nested ternary — impossible to read
+const label = a ? "A" : b ? "B" : c ? "C" : "D";
+
+// ✅ Use if/else chains for 3+ conditions
+let label: string;
+if (a)      label = "A";
+else if (b) label = "B";
+else if (c) label = "C";
+else        label = "D";
+\`\`\`
+
+### 3. switch / case — Multiple Exact Matches
+
+*💡 Analogy: A \`switch\` statement is like a hotel reception routing guests. When a guest gives their booking type, the receptionist directs them without checking every possibility one by one: "Business? → Floor 5. Standard? → Floor 3. Suite? → Floor 8. Anything else? → Check with manager."*
+
+\`\`\`typescript
+type TestStatus = 'pass' | 'fail' | 'skip' | 'running';
+
+function describeStatus(status: TestStatus): string {
+  switch (status) {
+    case 'pass':
+      return "✅ Test passed";
+    case 'fail':
+      return "❌ Test failed";
+    case 'skip':
+      return "⏭️ Test skipped";
+    case 'running':
+      return "⏳ Test in progress";
+    default:
+      return \`Unknown status: \${status}\`;
+  }
+}
+
+console.log(describeStatus('pass'));   // "✅ Test passed"
+console.log(describeStatus('fail'));   // "❌ Test failed"
+\`\`\`
+
+**⚠️ Always include \`break\` or \`return\` — without it, execution "falls through" to the next case:**
+\`\`\`typescript
+switch (status) {
+  case 'fail':
+    console.log("Logging failure...");
+    // ❌ No break! Falls through into 'skip' case too
+  case 'skip':
+    console.log("This runs for both fail AND skip");
+    break;
+}
+\`\`\`
+
+### 4. for...of — Iterate Array Values (Most Common in QA)
+
+*💡 Analogy: \`for...of\` is like a conveyor belt. Each item comes to you one at a time — you process it, then the next one arrives. You never deal with position numbers; you just process each item in order.*
+
+\`\`\`typescript
+const browsers: string[] = ["chromium", "firefox", "webkit"];
+
+// for...of gives you each VALUE directly
+for (const browser of browsers) {
+  console.log(\`Running tests in: \${browser}\`);
+}
+// Running tests in: chromium
+// Running tests in: firefox
+// Running tests in: webkit
+
+// Works with any iterable — strings, Sets, Maps
+for (const char of "QA") {
+  console.log(char);  // Q, then A
+}
+\`\`\`
+
+**Real QA example — data-driven tests:**
+\`\`\`typescript
+const testCases = [
+  { username: "admin@test.com",  password: "Secure123!", shouldPass: true  },
+  { username: "user@test.com",   password: "WrongPass",  shouldPass: false },
+  { username: "",                password: "Secure123!", shouldPass: false },
+];
+
+for (const tc of testCases) {
+  const result = await attemptLogin(tc.username, tc.password);
+  const outcome = result.success === tc.shouldPass ? "✅ PASS" : "❌ FAIL";
+  console.log(\`\${outcome} | user: \${tc.username || "(empty)"}\`);
+}
+\`\`\`
+
+### 5. for — Traditional Index-Based Loop
+
+*💡 Analogy: A traditional \`for\` loop is like a production line worker counting pieces manually: "I've done piece 1, piece 2, piece 3... stop when I reach 100." You always know exactly which position you're at.*
+
+\`\`\`typescript
+// Syntax: for (initialise; condition; increment)
+for (let i = 0; i < 5; i++) {
+  console.log(\`Retry attempt \${i + 1}\`);
+}
+// Retry attempt 1
+// Retry attempt 2
+// ...
+// Retry attempt 5
+
+// Counting down
+for (let i = 3; i >= 1; i--) {
+  console.log(\`Retrying in \${i}...\`);
+}
+
+// Iterating with index (when you need the position)
+const results = ["pass", "fail", "pass"];
+for (let i = 0; i < results.length; i++) {
+  console.log(\`Test \${i + 1}: \${results[i]}\`);
+}
+\`\`\`
+
+### 6. while — Repeat Until Condition Changes
+
+*💡 Analogy: A \`while\` loop is like a waiter checking if your food is ready: keep checking, keep checking, keep checking — stop the moment it's done. You don't know how many times you'll check; you just keep going until the condition is false.*
+
+\`\`\`typescript
+let attempts = 0;
+const maxAttempts = 5;
+let success = false;
+
+while (!success && attempts < maxAttempts) {
+  attempts++;
+  console.log(\`Attempt \${attempts}...\`);
+  success = await tryLogin();  // Imagine this returns true eventually
+}
+
+if (success) {
+  console.log("Login succeeded!");
+} else {
+  console.log(\`Login failed after \${maxAttempts} attempts\`);
+}
+\`\`\`
+
+### 7. for...in — Iterate Object Keys
+
+*💡 Analogy: \`for...in\` is like reading the table of contents of a book — you're getting the chapter TITLES (keys), not the chapter content (values).*
+
+\`\`\`typescript
+const testConfig = {
+  baseURL:  "https://staging.example.com",
+  timeout:  30000,
+  headless: true,
+};
+
+// for...in gives you each KEY (property name)
+for (const key in testConfig) {
+  console.log(\`\${key}: \${testConfig[key as keyof typeof testConfig]}\`);
+}
+// baseURL: https://staging.example.com
+// timeout: 30000
+// headless: true
+\`\`\`
+
+**Note: For arrays, always prefer \`for...of\` over \`for...in\`. \`for...in\` on arrays gives you index strings ("0", "1", "2"), not values.**
+
+### 8. break and continue
+
+\`\`\`typescript
+const testResults = ["pass", "pass", "fail", "pass", "pass"];
+
+// break — exit the loop immediately
+for (const result of testResults) {
+  if (result === "fail") {
+    console.log("🛑 Stopping on first failure");
+    break;  // No more iterations
+  }
+  console.log(\`✅ \${result}\`);
+}
+// ✅ pass
+// ✅ pass
+// 🛑 Stopping on first failure
+
+// continue — skip THIS iteration, continue to the next
+for (const result of testResults) {
+  if (result === "fail") {
+    console.log("⏭️ Skipping failure");
+    continue;  // Jump to next iteration
+  }
+  console.log(\`✅ \${result}\`);
+}
+// ✅ pass
+// ✅ pass
+// ⏭️ Skipping failure
+// ✅ pass
+// ✅ pass
+\`\`\`
+
+### 9. Common Mistakes
+
+**Mistake 1: Off-by-one errors in traditional for loops**
+\`\`\`typescript
+const items = ["a", "b", "c"];  // Length: 3, valid indices: 0, 1, 2
+
+// ❌ <= instead of < — accesses items[3] which is undefined
+for (let i = 0; i <= items.length; i++) {
+  console.log(items[i]);  // Last iteration: undefined
+}
+
+// ✅ Always use < items.length
+for (let i = 0; i < items.length; i++) {
+  console.log(items[i]);
+}
+\`\`\`
+
+**Mistake 2: Forgetting to update the while condition**
+\`\`\`typescript
+// ❌ Infinite loop — attempts never increases
+let attempts = 0;
+while (attempts < 5) {
+  console.log("Trying...");
+  // Forgot: attempts++
+}
+
+// ✅ Always ensure the condition changes
+while (attempts < 5) {
+  attempts++;
+  console.log(\`Trying... attempt \${attempts}\`);
+}
+\`\`\`
+        `
+      },
+      {
+        id: 'ts-template-destructuring',
+        title: 'Template Literals, Destructuring & Spread',
+        analogy: "Template literals are a mail-merge system — you write the letter once with blank slots, and names/values are poured in at print time. Destructuring is like unpacking a moving box by label — instead of pulling everything out one item at a time, you tell the unpacking crew exactly which items go where by name. Spread is like tipping a box of building blocks onto an existing pile — the contents merge together.",
+        lessonMarkdown: `
+### 1. Template Literals — Dynamic Strings
+
+*💡 Analogy: Old-style string concatenation is like cutting words from a magazine and gluing them together one letter at a time. Template literals are a modern mail merge: you write the template once, and variables are poured into the blank slots automatically.*
+
+**Old way (string concatenation):**
+\`\`\`typescript
+const testName = "Login Test";
+const duration = 1250;
+const passed   = true;
+
+// ❌ Messy, error-prone, hard to read
+const log = "[" + (passed ? "PASS" : "FAIL") + "] " + testName + " completed in " + duration + "ms";
+\`\`\`
+
+**Template literal (backtick strings):**
+\`\`\`typescript
+// ✅ Clean, readable, exactly what you see is what you get
+const log = \`[\${passed ? "PASS" : "FAIL"}] \${testName} completed in \${duration}ms\`;
+// [PASS] Login Test completed in 1250ms
+\`\`\`
+
+**Syntax rules:**
+\`\`\`typescript
+// Use BACKTICKS (the key to the left of 1), not quotes
+const greeting = \`Hello, \${username}!\`;
+
+// Any JavaScript expression goes inside \${}
+const summary = \`Tests: \${passed} passed, \${failed} failed, \${Math.round((passed / total) * 100)}% pass rate\`;
+
+// Multi-line strings — no \n needed
+const htmlReport = \`
+<div class="test-result">
+  <h2>\${testName}</h2>
+  <p>Status: \${status}</p>
+  <p>Duration: \${durationMs}ms</p>
+</div>
+\`;
+\`\`\`
+
+### 2. Multi-line Strings
+
+\`\`\`typescript
+// ❌ Old way — \n escape sequences are ugly
+const sqlQuery = "SELECT users.email, orders.total\n" +
+                 "FROM users\n" +
+                 "JOIN orders ON users.id = orders.user_id\n" +
+                 "WHERE users.active = true";
+
+// ✅ Template literal — multi-line naturally
+const sqlQuery = \`
+  SELECT users.email, orders.total
+  FROM users
+  JOIN orders ON users.id = orders.user_id
+  WHERE users.active = true
+\`;
+
+// QA: building dynamic SQL for test data validation
+const findUser = \`
+  SELECT id, email, status
+  FROM users
+  WHERE email = '\${testEmail}'
+    AND created_at > '\${startDate}'
+\`;
+\`\`\`
+
+### 3. Array Destructuring — Unpack by Position
+
+*💡 Analogy: Array destructuring is like a conveyor belt with labelled collection boxes. The first box on the left catches whatever comes first, the second catches the second item. You give each box a name and it automatically receives the matching item.*
+
+\`\`\`typescript
+const testResult: [string, number, boolean] = ["Login Test", 1250, true];
+
+// ❌ Old way — verbose index access
+const name      = testResult[0];
+const duration  = testResult[1];
+const passed    = testResult[2];
+
+// ✅ Array destructuring — unpack in one line
+const [name, duration, passed] = testResult;
+console.log(name);     // "Login Test"
+console.log(duration); // 1250
+console.log(passed);   // true
+\`\`\`
+
+**Skipping elements — use a comma with no name:**
+\`\`\`typescript
+const scores = [85, 92, 78, 95, 88];
+
+// Only care about first and third — skip second
+const [first, , third] = scores;
+console.log(first);  // 85
+console.log(third);  // 78
+\`\`\`
+
+**Default values — used when the element is undefined:**
+\`\`\`typescript
+const partial = ["Login Test"];
+
+const [testName, timeout = 30000] = partial;
+console.log(testName);  // "Login Test"
+console.log(timeout);   // 30000 — default used because index 1 is undefined
+\`\`\`
+
+**Rest in array destructuring:**
+\`\`\`typescript
+const allBrowsers = ["chromium", "firefox", "webkit", "edge"];
+
+const [primary, ...remainingBrowsers] = allBrowsers;
+console.log(primary);            // "chromium"
+console.log(remainingBrowsers);  // ["firefox", "webkit", "edge"]
+\`\`\`
+
+### 4. Object Destructuring — Unpack by Name
+
+*💡 Analogy: Object destructuring is like a smart baggage claim where bags are labelled by owner name. Instead of lifting every bag off the belt and checking the tag manually, you call your name and only your bags come to you — directly into your hands, already labelled.*
+
+\`\`\`typescript
+const testConfig = {
+  baseURL:  "https://staging.example.com",
+  timeout:  30000,
+  headless: true,
+  retries:  3,
+};
+
+// ❌ Old way — repetitive
+const baseURL  = testConfig.baseURL;
+const timeout  = testConfig.timeout;
+const headless = testConfig.headless;
+
+// ✅ Object destructuring — grab by property name
+const { baseURL, timeout, headless } = testConfig;
+console.log(baseURL);   // "https://staging.example.com"
+console.log(timeout);   // 30000
+console.log(headless);  // true
+\`\`\`
+
+**Renaming while destructuring:**
+\`\`\`typescript
+const apiResponse = { status: 200, data: { userId: 42, email: "qa@test.com" } };
+
+// Property is called 'status' but you want to call it 'httpStatus' locally
+const { status: httpStatus, data: responseBody } = apiResponse;
+console.log(httpStatus);    // 200
+console.log(responseBody);  // { userId: 42, email: "qa@test.com" }
+\`\`\`
+
+**Default values in object destructuring:**
+\`\`\`typescript
+function runTest({ testName, timeout = 30000, retries = 0 }: {
+  testName: string;
+  timeout?: number;
+  retries?: number;
+}): void {
+  console.log(\`Running "\${testName}" | timeout: \${timeout}ms | retries: \${retries}\`);
+}
+
+runTest({ testName: "Login Flow" });                   // timeout: 30000, retries: 0
+runTest({ testName: "Checkout", timeout: 60000 });     // timeout: 60000, retries: 0
+runTest({ testName: "Smoke", timeout: 10000, retries: 2 }); // all explicit
+\`\`\`
+
+**Nested destructuring:**
+\`\`\`typescript
+const user = {
+  id: 1,
+  profile: {
+    name: "Sagar",
+    email: "sagar@qa.com",
+  },
+};
+
+// Destructure nested object in one step
+const { id, profile: { name, email } } = user;
+console.log(id);     // 1
+console.log(name);   // "Sagar"
+console.log(email);  // "sagar@qa.com"
+// Note: 'profile' is NOT a variable here — it's just the path
+\`\`\`
+
+### 5. Spread Operator — Copy and Merge
+
+*💡 Analogy: The spread operator \`...\` is like an "explode" button. It takes a container and pours all its contents out individually into the surrounding context — into a new array, a new object, or a function call's argument list.*
+
+**Spread with arrays — combine or copy:**
+\`\`\`typescript
+const smokeTests   = ["Login", "Logout", "Dashboard"];
+const regressionTests = ["Checkout", "Payment", "Profile"];
+
+// Merge two arrays into a new one
+const allTests = [...smokeTests, ...regressionTests];
+console.log(allTests);
+// ["Login", "Logout", "Dashboard", "Checkout", "Payment", "Profile"]
+
+// Copy an array (safe — modifications don't affect the original)
+const originalResults = [true, false, true];
+const resultsCopy = [...originalResults];
+resultsCopy.push(true);
+console.log(originalResults);  // [true, false, true] — unchanged
+console.log(resultsCopy);      // [true, false, true, true]
+
+// Add an element without mutating the original
+const moreTests = [...smokeTests, "Register"];
+\`\`\`
+
+**Spread with objects — merge configurations:**
+\`\`\`typescript
+const defaultConfig = {
+  timeout:  30000,
+  headless: true,
+  retries:  0,
+};
+
+const ciOverrides = {
+  headless: true,
+  retries:  3,
+};
+
+// Merge: later properties override earlier ones for same keys
+const ciConfig = { ...defaultConfig, ...ciOverrides };
+console.log(ciConfig);
+// { timeout: 30000, headless: true, retries: 3 }
+// timeout comes from defaultConfig; headless and retries from ciOverrides
+\`\`\`
+
+**Spread to pass array as individual function arguments:**
+\`\`\`typescript
+const numbers = [10, 25, 3, 98, 47];
+
+const max = Math.max(...numbers);  // Equivalent to Math.max(10, 25, 3, 98, 47)
+console.log(max);  // 98
+\`\`\`
+
+### 6. Real QA Patterns Combining All Three
+
+\`\`\`typescript
+// Pattern: Merge test fixture with overrides
+const baseUser = { email: "base@test.com", role: "user", verified: true };
+
+function createTestUser(overrides: Partial<typeof baseUser> = {}) {
+  return { ...baseUser, ...overrides };
+}
+
+const adminUser   = createTestUser({ role: "admin" });
+const unverified  = createTestUser({ email: "new@test.com", verified: false });
+
+// Pattern: Destructure API response and log with template literal
+async function logAPIResult(endpoint: string) {
+  const response = await fetch(endpoint);
+  const { status, statusText } = response;
+  const data = await response.json();
+  const { id, email } = data;
+  console.log(\`[\${status} \${statusText}] User #\${id}: \${email}\`);
+}
+\`\`\`
+
+### 7. Common Mistakes
+
+**Mistake 1: Forgetting \${} in template literals**
+\`\`\`typescript
+const name = "Sagar";
+
+// ❌ Forgot the curly braces — prints the literal text "$name"
+console.log(\`Hello, $name!\`);     // "Hello, $name!" — wrong!
+
+// ✅ Must use \${} for interpolation
+console.log(\`Hello, \${name}!\`);   // "Hello, Sagar!" — correct
+\`\`\`
+
+**Mistake 2: Destructuring a property that doesn't exist**
+\`\`\`typescript
+const response = { status: 200 };
+
+const { status, data } = response;
+console.log(data);  // undefined — no error from TypeScript without strict mode
+                    // With strict mode this would be caught at compile time
+\`\`\`
+
+**Mistake 3: Spread does a SHALLOW copy**
+\`\`\`typescript
+const original = { name: "Test", config: { timeout: 30000 } };
+const copy = { ...original };
+
+copy.config.timeout = 99999;  // ⚠️ Also modifies original.config.timeout!
+// Spread only copies the top level — nested objects are still shared references
+console.log(original.config.timeout);  // 99999 — mutated!
+\`\`\`
+        `
+      },
+
       {
         id: 'ts-basic-types',
         title: 'Core Types',
@@ -7715,6 +8592,54 @@ results["Password reset flow"] = "pass";
 // All values are correctly typed
 const loginResult = results["Login with valid credentials"]; // 'pass' | 'fail' | 'skip'
 \`\`\`
+
+### 8. object vs {} vs Record — Clearing Up the Confusion
+
+*💡 Analogy: \`object\` is like being told "there's a parcel in the warehouse" — you know it exists but cannot open it or see what's inside. \`{}\` is a nearly empty label that matches almost everything. \`Record<string, unknown>\` is a properly labelled shelf where you know what kind of items live there, even if you don't know the specific names.*
+
+This trips up almost every beginner — three seemingly similar things that behave very differently:
+
+\`\`\`typescript
+// ── object (lowercase) ──────────────────────────────────────────
+// Accepts any non-primitive value (objects, arrays, functions)
+// BUT gives you no access to any properties
+
+let x: object = { id: 1, name: "Sagar" };
+x.id;    // ❌ Error: Property 'id' does not exist on type 'object'
+x.name;  // ❌ Error — object type has NO accessible properties
+
+// ── {} (empty object type) ───────────────────────────────────────
+// Matches anything that is NOT null or undefined
+// Even primitives! Very rarely what you actually want.
+
+let y: {} = "hello";   // ✅ String is accepted — probably not what you meant
+let z: {} = 42;        // ✅ Number is accepted — almost certainly wrong
+let w: {} = null;      // ❌ null is rejected (with strictNullChecks)
+
+// ── Record<string, unknown> ─────────────────────────────────────
+// The correct type for "an object with unknown string keys"
+// Gives you access to properties (as unknown, requiring narrowing)
+
+let config: Record<string, unknown> = { timeout: 30000, headless: true };
+const timeout = config["timeout"];  // ✅ type is unknown — you must narrow it before use
+
+// ── Use a specific interface whenever you know the shape ─────────
+// This is always the best option when the shape is known
+interface TestConfig {
+  timeout: number;
+  headless: boolean;
+}
+const cfg: TestConfig = { timeout: 30000, headless: true };
+cfg.timeout;  // ✅ number — fully typed
+\`\`\`
+
+**Quick decision guide:**
+| If you want... | Use... |
+|---|---|
+| An object with a known fixed shape | \`interface\` or \`type\` |
+| An object with unknown string keys | \`Record<string, unknown>\` |
+| To pass any non-primitive | \`object\` (rare) |
+| Almost never | \`{}\` |
         `
       },
       {
@@ -8361,6 +9286,54 @@ const structure: TestTree = {
   ],
 };
 \`\`\`
+
+### 8. as const — Preserving Literal Types
+
+*💡 Analogy: Without \`as const\`, TypeScript sees a string value and thinks "this could change to any string later." With \`as const\`, you're stamping the value with a permanent seal: "This is specifically and only \`"staging"\` — not just any string."*
+
+By default, TypeScript **widens** literal values to their base type:
+
+\`\`\`typescript
+const env = "staging";
+// TypeScript infers: string  ← widened, loses the "staging" literal
+// This means env could theoretically be "anything" in TypeScript's view
+
+// TypeScript also widens object values:
+const config = { env: "staging", timeout: 30000 };
+// TypeScript infers: { env: string; timeout: number }
+// The "staging" literal is lost
+\`\`\`
+
+**\`as const\` narrows all values to their exact literal types:**
+
+\`\`\`typescript
+const env = "staging" as const;
+// TypeScript infers: "staging"  ← exact literal preserved
+
+const config = { env: "staging", timeout: 30000 } as const;
+// TypeScript infers: { readonly env: "staging"; readonly timeout: 30000 }
+// All values are literal types AND all properties become readonly
+\`\`\`
+
+**Why this matters in QA — creating valid union members from config objects:**
+
+\`\`\`typescript
+// Without as const — TypeScript just sees strings
+const BROWSERS = { chrome: "chromium", ff: "firefox", wk: "webkit" };
+type BrowserValue = typeof BROWSERS[keyof typeof BROWSERS];
+// BrowserValue = string  ← not useful
+
+// With as const — TypeScript preserves the literal values
+const BROWSERS = { chrome: "chromium", ff: "firefox", wk: "webkit" } as const;
+type BrowserValue = typeof BROWSERS[keyof typeof BROWSERS];
+// BrowserValue = "chromium" | "firefox" | "webkit"  ← exactly right!
+
+function launchBrowser(browser: BrowserValue): void { /* ... */ }
+launchBrowser("chromium");  // ✅
+launchBrowser("safari");    // ❌ Error — not in the union
+\`\`\`
+
+**Rule: Use \`as const\` on config objects and lookup tables where the literal values matter.**
         `
       },
       {

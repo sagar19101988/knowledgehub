@@ -3466,6 +3466,172 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ]
     },
     {
+      level: 'ts-variables',
+      questions: [
+        {
+          question: 'What is the key difference between `const` and `let` in TypeScript?',
+          options: [
+            { id: 'a', text: '`const` is for strings only; `let` is for numbers only', isCorrect: false },
+            { id: 'b', text: '`const` creates a binding that cannot be reassigned; `let` allows reassignment', isCorrect: true },
+            { id: 'c', text: '`const` variables are accessible everywhere; `let` variables are block-scoped', isCorrect: false },
+            { id: 'd', text: 'They are identical — `const` is just a style preference', isCorrect: false },
+          ],
+          explanation: '`const` means the variable binding is fixed — the name always points to the same value. `let` allows you to reassign the variable to a new value later. Both are block-scoped. The rule: use `const` by default for everything, and only reach for `let` when you know you need to reassign (e.g., loop counters, accumulating values).'
+        },
+        {
+          question: 'Why should you avoid using `var` in modern TypeScript?',
+          options: [
+            { id: 'a', text: '`var` is not valid TypeScript syntax', isCorrect: false },
+            { id: 'b', text: '`var` is function-scoped (not block-scoped) and is hoisted, causing unpredictable behaviour', isCorrect: true },
+            { id: 'c', text: '`var` only works with string types', isCorrect: false },
+            { id: 'd', text: '`var` requires an explicit type annotation', isCorrect: false },
+          ],
+          explanation: '`var` predates modern JavaScript. Its two problems: it is function-scoped (so it leaks out of `if`, `for`, and `while` blocks), and it is hoisted (meaning you can reference it before the line it is declared without an error). Both behaviours cause silent bugs. `let` and `const` are block-scoped and not hoisted in the same way — always use them instead.'
+        },
+        {
+          question: 'Given: `const config = { timeout: 30000, headless: true }`. Which operation is valid?',
+          options: [
+            { id: 'a', text: 'config = { timeout: 60000, headless: false }', isCorrect: false },
+            { id: 'b', text: 'config.timeout = 60000', isCorrect: true },
+            { id: 'c', text: 'Both — `const` has no restrictions', isCorrect: false },
+            { id: 'd', text: 'Neither — `const` objects are completely immutable', isCorrect: false },
+          ],
+          explanation: '`const` prevents reassigning the variable itself — you cannot make `config` point to a different object. But the object the variable points to is still mutable: you can modify its properties freely. To make an object deeply immutable, you need `Object.freeze()` or the `Readonly<T>` type (which enforces immutability at the TypeScript type level).'
+        },
+        {
+          question: 'What is "block scope" in the context of `let` and `const`?',
+          options: [
+            { id: 'a', text: 'Variables can only be declared once per file', isCorrect: false },
+            { id: 'b', text: 'Variables declared with `let` or `const` only exist within the `{}` block they are declared in', isCorrect: true },
+            { id: 'c', text: 'Variables are shared between all functions in the same block', isCorrect: false },
+            { id: 'd', text: 'Variables declared in a block are automatically exported', isCorrect: false },
+          ],
+          explanation: 'Block scope means the variable lives and dies within the nearest `{}` braces. A variable declared inside a `for` loop body, `if` block, or function body is invisible outside those braces. This is predictable and safe. `var` has function scope instead — it ignores `{}` boundaries and exists throughout the enclosing function, which frequently causes hard-to-find bugs.'
+        },
+        {
+          question: 'When writing test configuration constants in TypeScript, which naming convention is most appropriate?',
+          options: [
+            { id: 'a', text: 'camelCase — e.g., defaultTimeoutMs', isCorrect: false },
+            { id: 'b', text: 'UPPER_SNAKE_CASE — e.g., DEFAULT_TIMEOUT_MS', isCorrect: false },
+            { id: 'c', text: 'Either is acceptable, but UPPER_SNAKE_CASE signals "this never changes" while camelCase is used for regular variables', isCorrect: true },
+            { id: 'd', text: 'PascalCase — e.g., DefaultTimeoutMs', isCorrect: false },
+          ],
+          explanation: 'Both conventions work, but UPPER_SNAKE_CASE (e.g., MAX_RETRIES, BASE_URL) is the community convention for module-level constants that truly never change — it signals to readers "this is a fixed configuration value, not a variable that gets updated". camelCase (e.g., retryCount, currentBrowser) is used for regular variables. PascalCase is reserved for classes, interfaces, and types.'
+        },
+      ]
+    },
+    {
+      level: 'ts-control-flow',
+      questions: [
+        {
+          question: 'In TypeScript, when should you prefer `for...of` over a traditional `for` loop for iterating arrays?',
+          options: [
+            { id: 'a', text: '`for...of` is only for strings, not arrays', isCorrect: false },
+            { id: 'b', text: 'When you need the index position of each element', isCorrect: false },
+            { id: 'c', text: 'When you only need the values (not the index), `for...of` is cleaner and less error-prone', isCorrect: true },
+            { id: 'd', text: '`for...of` is always slower so it should be avoided', isCorrect: false },
+          ],
+          explanation: '`for...of` gives you each VALUE directly without managing an index variable — no risk of off-by-one errors (`< length` vs `<= length`). Use `for...of` whenever you only need the values (which is the majority of cases). Use a traditional `for` loop when you genuinely need the index position (e.g., to compare adjacent elements or build a numbered list).'
+        },
+        {
+          question: 'What happens if you forget to add `break` or `return` inside a `switch` case?',
+          options: [
+            { id: 'a', text: 'TypeScript throws a compile error', isCorrect: false },
+            { id: 'b', text: 'Execution "falls through" to the next case and runs that code too', isCorrect: true },
+            { id: 'c', text: 'The switch statement exits normally after the matched case', isCorrect: false },
+            { id: 'd', text: 'The default case runs instead', isCorrect: false },
+          ],
+          explanation: 'Fall-through is one of the most common switch bugs. Without `break` or `return`, JavaScript/TypeScript continues executing into the next case\'s code regardless of whether it matches. For example, if the "fail" case has no break, it will also execute the "skip" case. Always end each case with `break`, `return`, or `throw`.'
+        },
+        {
+          question: 'In a QA test suite, you want to run tests across multiple browsers. Which loop is most appropriate for "for each browser in the list, run the test suite"?',
+          options: [
+            { id: 'a', text: 'while loop', isCorrect: false },
+            { id: 'b', text: 'for...in loop', isCorrect: false },
+            { id: 'c', text: 'for...of loop', isCorrect: true },
+            { id: 'd', text: 'Traditional for loop with index', isCorrect: false },
+          ],
+          explanation: '`for...of` is the right tool for iterating over an array of values when you need each value (not its position). `const browsers = ["chromium", "firefox", "webkit"]; for (const browser of browsers) { runSuite(browser); }` reads naturally and provides each browser name directly. `for...in` gives property keys (not array values), and `while` is better for unknown iteration counts.'
+        },
+        {
+          question: 'What is the ternary operator and when is it most appropriately used?',
+          options: [
+            { id: 'a', text: 'A loop that runs three times', isCorrect: false },
+            { id: 'b', text: 'A shorthand for if/else that evaluates to a value — best for simple two-outcome conditions', isCorrect: true },
+            { id: 'c', text: 'A way to declare three variables at once', isCorrect: false },
+            { id: 'd', text: 'A switch statement with three cases', isCorrect: false },
+          ],
+          explanation: 'The ternary `condition ? valueIfTrue : valueIfFalse` is ideal when you have a simple two-option condition and want to assign a value or embed logic in a template literal: `const label = passed ? "PASS" : "FAIL"`. It should NOT be used for complex conditions or nested decisions — those should use `if/else` chains for readability.'
+        },
+        {
+          question: 'What does `continue` do inside a loop?',
+          options: [
+            { id: 'a', text: 'Exits the loop entirely and continues with the code after the loop', isCorrect: false },
+            { id: 'b', text: 'Pauses the loop for one iteration before resuming', isCorrect: false },
+            { id: 'c', text: 'Skips the rest of the current iteration and immediately moves to the next one', isCorrect: true },
+            { id: 'd', text: 'Restarts the loop from the beginning', isCorrect: false },
+          ],
+          explanation: '`continue` says "I am done with this item — move to the next one." It skips any remaining code in the current iteration without exiting the loop. `break` exits the loop entirely. For example, `if (result === "skip") continue;` in a results loop will skip processing for skipped tests but continue processing all remaining results.'
+        },
+      ]
+    },
+    {
+      level: 'ts-template-destructuring',
+      questions: [
+        {
+          question: 'What syntax is required for a template literal in TypeScript?',
+          options: [
+            { id: 'a', text: 'Double quotes with + concatenation: "Hello " + name', isCorrect: false },
+            { id: 'b', text: 'Backtick strings with ${} for expressions: `Hello ${name}`', isCorrect: true },
+            { id: 'c', text: 'Single quotes with %s placeholders: \'Hello %s\'', isCorrect: false },
+            { id: 'd', text: 'Any string type supports ${} automatically', isCorrect: false },
+          ],
+          explanation: 'Template literals use backtick characters (` — the key left of 1) instead of quotes. Expressions are embedded using `${}`. Any valid JavaScript expression goes inside the braces: variables, arithmetic, ternary operators, function calls. Single and double quoted strings do NOT support `${}` interpolation — the `$` is treated as a literal character.'
+        },
+        {
+          question: 'Given `const [first, , third] = ["a", "b", "c"]`, what are the values of `first` and `third`?',
+          options: [
+            { id: 'a', text: 'first = "a", third = "b"', isCorrect: false },
+            { id: 'b', text: 'first = "a", third = "c"', isCorrect: true },
+            { id: 'c', text: 'first = "b", third = "c"', isCorrect: false },
+            { id: 'd', text: 'A compile error — you cannot skip array positions', isCorrect: false },
+          ],
+          explanation: 'The double comma `[first, , third]` intentionally skips the second element. Array destructuring is position-based: `first` maps to index 0 ("a"), the empty slot skips index 1 ("b"), and `third` maps to index 2 ("c"). This is valid syntax for when you need some elements but not others.'
+        },
+        {
+          question: 'In object destructuring `const { status: httpStatus } = response`, what does "status: httpStatus" mean?',
+          options: [
+            { id: 'a', text: 'Checks if status equals httpStatus', isCorrect: false },
+            { id: 'b', text: 'Creates a variable called `httpStatus` with the value of the `status` property', isCorrect: true },
+            { id: 'c', text: 'Creates two variables: `status` and `httpStatus`, both with the same value', isCorrect: false },
+            { id: 'd', text: 'A TypeScript type assertion on the status field', isCorrect: false },
+          ],
+          explanation: 'In destructuring, `{ propertyName: localName }` means "take the property called `propertyName` from the object and store it in a local variable called `localName`". The original property name (`status`) is not available as a variable — only the renamed version (`httpStatus`) is. This is useful when the property name would conflict with an existing variable, or when you want a more descriptive local name.'
+        },
+        {
+          question: 'What does the spread operator do in `const merged = { ...defaultConfig, ...overrides }`?',
+          options: [
+            { id: 'a', text: 'Mutates defaultConfig by adding properties from overrides', isCorrect: false },
+            { id: 'b', text: 'Creates a new object with all properties from both objects; overrides properties win on key conflicts', isCorrect: true },
+            { id: 'c', text: 'Creates a nested object with defaultConfig and overrides as sub-objects', isCorrect: false },
+            { id: 'd', text: 'Only copies the first-level keys from defaultConfig', isCorrect: false },
+          ],
+          explanation: 'Spread creates a NEW object by copying properties from each spread source in order. When the same key appears in both objects (e.g., `timeout`), the LATER spread wins. `{ ...defaultConfig, ...overrides }` means "start with all of defaultConfig\'s properties, then apply overrides — overrides win on conflicts". Neither original object is mutated. This is the standard pattern for building environment-specific configs from a base config.'
+        },
+        {
+          question: 'What is a key limitation of the spread operator when copying objects?',
+          options: [
+            { id: 'a', text: 'It cannot copy more than 10 properties', isCorrect: false },
+            { id: 'b', text: 'It only works with arrays, not objects', isCorrect: false },
+            { id: 'c', text: 'It performs a shallow copy — nested objects are still shared by reference', isCorrect: true },
+            { id: 'd', text: 'It removes all methods from the original object', isCorrect: false },
+          ],
+          explanation: 'Spread copies only the top-level properties. If an object has a nested object (e.g., `config.database = { host: "localhost" }`), spreading creates a new outer object but the nested `database` object is the SAME reference in both original and copy. Mutating `copy.database.host` will also change `original.database.host`. For deep copies you need a library (like lodash\'s cloneDeep) or JSON.parse(JSON.stringify(obj)) for simple cases.'
+        },
+      ]
+    },
+
+    {
       level: 'ts-basic-types',
       questions: [
         {
