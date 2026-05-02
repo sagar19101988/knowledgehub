@@ -7089,902 +7089,1611 @@ The \`--bail\` flag stops the run immediately on the first failure.
     id: 'typescript',
     levels: [
       {
-        id: 'data-types',
-        title: 'Variables & Data Types',
-        analogy: "Think of variables like moving boxes. You need a place to store your stuff, and you need to label the box so you don't accidentally put soup in the 'Books Only' box.",
+        id: 'ts-intro',
+        title: 'What is TypeScript?',
+        analogy: "TypeScript is JavaScript wearing a hard hat and a safety harness. JavaScript lets you build anything freely with no rulebook; TypeScript enforces strict safety codes so nothing collapses at runtime.",
         lessonMarkdown: `
-### 1. What is a Variable?
-*💡 Analogy: Imagine you are moving into a new apartment. You don't just throw your shirts on the floor. You put them in a cardboard box, and you write "Shirts" on the outside with a Sharpie. A variable is just a digital cardboard box with a name written on it, used to store data.*
+### 1. The Big Picture — JavaScript vs TypeScript
+
+*💡 Real-Life Analogy: Imagine two construction crews. The first crew (JavaScript) works fast with no rulebook — they eyeball measurements and figure out problems as walls start cracking. The second crew (TypeScript) reviews blueprints, uses standardised tools, and runs inspections before laying a single brick. The first crew ships faster today; the second crew never has a wall collapse at 3am on a Friday.*
 
 **Deep Explanation:**
-Before we can automate a browser, we need a way to remember things. If we want our robot to log in, it needs to remember a username. We create a "variable" (a box) and put the username inside it. Whenever we need the username later, we just ask for the box by its name.
 
-### 2. Line-by-Line Syntax Breakdown
-Let's look at how to create a variable in TypeScript.
+TypeScript is NOT a different language. It is a **superset of JavaScript** — meaning every line of valid JavaScript is already valid TypeScript. TypeScript just *adds* a layer on top: a type system.
+
+When you write TypeScript, you are still writing JavaScript, but with extra annotations that describe *what kind of data* each variable, function parameter, and return value is allowed to hold.
+
+**Key insight:** TypeScript only exists during development. Before your code runs in a browser or Node.js, TypeScript is compiled (translated) down to plain JavaScript. The type annotations vanish completely at runtime.
+
+### 2. Why Does a QA Engineer Need TypeScript?
+
+*💡 Analogy: A QA engineer using plain JavaScript for test automation is like a surgeon operating in the dark. They might get lucky. TypeScript turns on the lights.*
+
+**Practical benefits for QA:**
+
+**1. Catch bugs before they run**
+If your Playwright test calls \`page.click(undefined)\` because a selector variable was never assigned, TypeScript screams at you in your editor *before* you even run the test.
+
+**2. Self-documenting test code**
+A function signature like \`async function login(username: string, password: string): Promise<void>\` tells every team member exactly what it accepts — zero guessing, zero Slack messages asking "what does this parameter mean?"
+
+**3. Refactoring safety**
+Rename a property in your Page Object Model and TypeScript instantly highlights every test file that needs updating. In plain JavaScript you'd find out when tests start failing at 2am.
+
+**4. Autocomplete in your editor**
+TypeScript knows the exact shape of every object, giving you accurate IntelliSense suggestions. No more guessing property names.
+
+### 3. TypeScript vs JavaScript — Side-by-Side
 
 \`\`\`typescript
-let username: string = "QA_Ninja";
-\`\`\`
-
-Here is exactly what every single piece of that line means:
-*   \`let\` -> This tells the computer, "Hey, I am about to create a new box, and I might want to change what's inside it later."
-*   \`username\` -> This is the label we are writing on the outside of the box with our Sharpie.
-*   \`: string\` -> This is TypeScript's strict rule. We are telling the computer, "This box is ONLY allowed to hold text. If I try to put a number in here, stop me and throw an error."
-*   \`=\` -> This is the assignment operator. It means "take the thing on the right, and put it inside the box on the left."
-*   \`"QA_Ninja"\` -> This is the actual data going into the box. Notice the quote marks! Quotes are how we tell the computer "this is a word, not code."
-*   \`;\` -> The semicolon is a period at the end of a sentence. It tells the computer we are done with this instruction.
-
-### 3. let vs const
-*💡 Analogy: 'let' is a box sealed with easily removable tape. 'const' is a box sealed with titanium superglue.*
-
-If you create a variable with \`let\`, you are allowed to open the box later and swap out the contents. If you use \`const\` (which stands for constant), the box is permanently sealed the moment you put something in it. We use \`const\` for things that should NEVER change, like a website URL.
-
-### 4. Common Beginner Mistakes
-
-**Mistake: Forgetting Quotes around Text**
-\`\`\`typescript
-// ❌ Error: Cannot find name 'QA_Ninja'
-let username: string = QA_Ninja; 
-
-// ✅ Correct
-let username: string = "QA_Ninja";
-\`\`\`
-*Why it happens:* If you don't use quotes, the computer thinks \`QA_Ninja\` is the name of *another* variable box, and it panics because it can't find it.
-        `
-      },
-      {
-        id: 'objects-arrays',
-        title: 'Objects & Arrays',
-        analogy: "An array is like a bookshelf where books are lined up in order. An object is like a filing cabinet where every folder has a highly specific name tab on it.",
-        lessonMarkdown: `
-### 1. What is an Array?
-*💡 Analogy: A numbered pill organizer. Monday is slot 0, Tuesday is slot 1. You don't have a specific name for the pill, you just know it's the 3rd one in the row.*
-
-**Deep Explanation:**
-Sometimes you need to store a *list* of things, like 5 different email addresses to test. Instead of creating 5 separate boxes, we create an **Array**. An array is a single variable that holds a list of items.
-
-**Line-by-Line Breakdown:**
-\`\`\`typescript
-const testUsers: string[] = ["alice", "bob", "charlie"];
-console.log(testUsers[0]); // Prints: "alice"
-\`\`\`
-*   \`string[]\` -> This means "An array of strings". It's a box that only holds a list of text.
-*   \`[...]\` -> Square brackets are the universal symbol for "This is an array".
-*   \`testUsers[0]\` -> Computers start counting at Zero. To get the first name, we ask for index 0.
-
-### 2. What is an Object?
-*💡 Analogy: A contact card in your phone. It doesn't just have a list of random words. It has specific labels: "First Name: John", "Phone: 555-1234".*
-
-**Deep Explanation:**
-Arrays are bad when you have complex data. If you have the array \`["John", 25, true]\`, what does the 25 mean? Age? Score? 
-An **Object** solves this by using "Key-Value pairs". You provide a specific name (the Key) for every piece of data (the Value).
-
-**Line-by-Line Breakdown:**
-\`\`\`typescript
-const userObject = {
-    name: "John",
-    age: 25,
-    isAdmin: true
-};
-console.log(userObject.name); // Prints: "John"
-\`\`\`
-*   \`{...}\` -> Curly braces are the universal symbol for "This is an Object".
-*   \`name: "John"\` -> "name" is the Key. "John" is the Value. They are separated by a colon.
-*   \`userObject.name\` -> We use the "dot" operator to look inside the object and grab a specific piece of data.
-
-### 3. Common Beginner Mistakes
-**Mistake: Using = instead of : inside an Object**
-\`\`\`typescript
-// ❌ Error
-const user = { name = "John" };
-
-// ✅ Correct
-const user = { name: "John" };
-\`\`\`
-*Why it happens:* Beginners are used to using \`=\` to assign variables. But inside an object, you MUST use a colon \`:\` to assign a value to a key!
-        `
-      },
-      {
-        id: 'control-flow',
-        title: 'Logic & Decisions',
-        analogy: "Control flow is like a train switchyard. The code is the train, and 'if/else' statements are the physical tracks that forcefully route the train to Chicago instead of New York.",
-        lessonMarkdown: `
-### 1. What is an If-Statement?
-*💡 Analogy: A bouncer at a club checking an ID. "IF you are over 21, you go inside. ELSE, you go home."*
-
-**Deep Explanation:**
-Code normally runs straight down from top to bottom. But sometimes, we only want code to run *under certain conditions*. For example, IF the user is an admin, show the dashboard. IF they are not, show an error.
-
-**Line-by-Line Breakdown:**
-\`\`\`typescript
-const userAge: number = 25;
-
-if (userAge >= 21) {
-    console.log("Welcome to the club!");
-} else {
-    console.log("Go home!");
+// ── JAVASCRIPT (no types — no safety net) ──────────────────────
+function calculateTotal(price, quantity) {
+  return price * quantity;
 }
-\`\`\`
-*   \`if (...)\` -> The word 'if' followed by parentheses. Inside the parentheses is the "condition" we are checking.
-*   \`userAge >= 21\` -> The condition. It asks a True/False question: "Is 25 greater than or equal to 21?" The answer is True.
-*   \`{ ... }\` -> The curly braces define the "block" of code that will execute ONLY if the answer is True.
-*   \`else { ... }\` -> This is the backup plan. If the answer was False, this block runs instead.
+// Nothing stops this bug from happening:
+calculateTotal("10", 5); // Returns "1010101010" — string repetition, not math!
+// Bug ships silently to production
 
-### 2. Triple Equals (===)
-*💡 Analogy: '==' asks "Do these two people have the same name?" '===' asks "Are these two people literally the exact same human being?"*
-
-**Deep Explanation:**
-When asking "Is A equal to B?", beginners often use a single equals sign (\`=\`). But \`=\` is for *assigning* variables! To compare things, you must use triple equals (\`===\`). 
-
-\`\`\`typescript
-// ❌ Single equals assigns a value. This will cause terrible bugs!
-if (userAge = 21) 
-
-// ✅ Triple equals asks a question!
-if (userAge === 21) 
-\`\`\`
-
-### 3. Common Beginner Mistakes
-**Mistake: Forgetting the curly braces**
-\`\`\`typescript
-// ❌ Messy and prone to bugs
-if (userAge > 18) console.log("Adult");
-console.log("This always runs!");
-
-// ✅ Always use curly braces!
-if (userAge > 18) {
-    console.log("Adult");
+// ── TYPESCRIPT (types = compile-time safety) ───────────────────
+function calculateTotal(price: number, quantity: number): number {
+  return price * quantity;
 }
-\`\`\`
-*Why it happens:* You can technically write a one-line if-statement without braces, but the moment you try to add a second line of code, the logic completely breaks. Always use braces.
-        `
-      },
-      {
-        id: 'loops',
-        title: 'Loops & Iteration',
-        analogy: "A loop is like a printing press. You don't build 500 separate printing presses to print a 500-page book. You build one press, and tell it to stamp paper exactly 500 times in a row.",
-        lessonMarkdown: `
-### 1. What is a Loop?
-*💡 Analogy: A track coach telling a runner: "Start at lap 0. Keep running as long as you haven't reached lap 10. After every lap, add 1 to your counter."*
-
-**Deep Explanation:**
-In QA, you often need to do the exact same thing multiple times. E.g., clicking 5 checkboxes. Instead of copying and pasting the "click" code 5 times, we write a Loop. A loop runs a block of code repeatedly until a specific condition tells it to stop.
-
-### 2. Line-by-Line Breakdown (The 'for' Loop)
-\`\`\`typescript
-for (let i = 0; i < 5; i++) {
-    console.log("Checking box number " + i);
-}
-\`\`\`
-This looks scary, but it's just a sentence broken into 3 parts, separated by semicolons:
-*   \`let i = 0\` -> Part 1: The Start. We create a counter variable named 'i' and set it to 0.
-*   \`i < 5\` -> Part 2: The Condition. Before every loop, the computer asks, "Is i still less than 5?" If True, run the loop. If False, stop completely.
-*   \`i++\` -> Part 3: The Step. After the loop finishes one round, we add 1 to 'i' (\`i++\` is a shortcut for \`i = i + 1\`).
-
-### 3. The Easier Way: for...of
-*💡 Analogy: Looking inside a carton of eggs and physically pulling out the eggs one by one.*
-
-If you have an Array, the classic 'for' loop is ugly and easy to mess up. TypeScript gives us the \`for...of\` loop, which is much cleaner. It automatically goes through the list from start to finish.
-
-\`\`\`typescript
-const users = ["Alice", "Bob", "Charlie"];
-
-// "For every user inside the users array..."
-for (const user of users) {
-    console.log("Hello, " + user);
-}
+// TypeScript catches this immediately, before code even runs:
+calculateTotal("10", 5);
+// ❌ Error: Argument of type 'string' is not assignable to parameter of type 'number'
 \`\`\`
 
-### 4. Common Beginner Mistakes
-**Mistake: The Infinite Loop**
-\`\`\`typescript
-// ❌ Error: 'i' gets smaller, so it will ALWAYS be less than 5!
-for (let i = 0; i < 5; i--) {
-    console.log(i);
-}
+### 4. How TypeScript Compiles
+
 \`\`\`
-*Why it happens:* If you accidentally type \`i--\` (subtract 1) instead of \`i++\` (add 1), the counter goes to -1, -2, -3... It will *never* reach 5. The loop will run forever until your computer crashes!
-        `
-      },
-      {
-        id: 'functions',
-        title: 'Functions & Scope',
-        analogy: "A function is like a recipe in a cookbook. The recipe just sits there doing nothing. It only springs into action when you actually decide to 'call' it and give it ingredients.",
-        lessonMarkdown: `
-### 1. What is a Function?
-*💡 Analogy: A vending machine. You put specific ingredients in (coins), the machine performs a hidden action, and it spits a specific result out (a soda).*
-
-**Deep Explanation:**
-As your test files grow, you will find yourself writing the exact same 10 lines of code to log into the website over and over again. A Function allows you to package those 10 lines of code into a single, reusable block with a name. 
-
-### 2. Line-by-Line Breakdown
-\`\`\`typescript
-// 1. Defining the recipe
-function calculateTax(price: number): number {
-    const taxAmount = price * 0.10;
-    return taxAmount;
-}
-
-// 2. Actually using the recipe
-const myTax = calculateTax(50);
-\`\`\`
-*   \`function calculateTax\` -> We are defining a new function named "calculateTax".
-*   \`(price: number)\` -> These are the **Parameters** (the ingredients). We are telling the function, "When someone uses you, they MUST give you a number, and internally we will call that number 'price'."
-*   \`: number {\` -> This is the **Return Type**. We promise TypeScript that when this function finishes, it will spit out a number.
-*   \`return taxAmount;\` -> The \`return\` keyword is the vending machine spitting the soda out. It hands the final answer back to whoever asked for it.
-
-### 3. Arrow Functions
-*💡 Analogy: A modern sports car. It does the exact same thing as the old function, but it's sleeker, faster to type, and looks cooler.*
-
-In modern automation (especially Playwright), we almost never use the word \`function\`. We use "Arrow Functions" (\`() => {}\`). They do the exact same thing, just with different punctuation.
-
-\`\`\`typescript
-// ✅ The modern Arrow Function
-const calculateTax = (price: number): number => {
-    return price * 0.10;
-};
+You write .ts file  →  tsc compiles it  →  .js file produced  →  Browser/Node runs .js
+  (type-checked)      (errors caught!)      (types stripped)
 \`\`\`
 
-### 4. Common Beginner Mistakes
-**Mistake: Forgetting to "Call" the function**
-\`\`\`typescript
-const login = () => { console.log("Logging in!"); }
+TypeScript errors are **compile-time** errors. Your code will not compile if types do not match. This is the entire point — fail loudly during development, not silently in production.
 
-// ❌ This does nothing! It just references the recipe.
-login;
+### 5. Setting Up TypeScript
 
-// ✅ You must use parentheses to actually run it!
-login();
-\`\`\`
-*Why it happens:* Typing the name of a function is just pointing at the recipe book. You must add the parentheses \`()\` to tell the computer, "Go execute the recipe right now!"
-        `
-      },
-      {
-        id: 'async',
-        title: 'Async/Await & Promises',
-        analogy: "Asynchronous code is like ordering at a restaurant. You don't stand frozen staring at the chef for 20 minutes while they cook. You sit down, check your phone, and the waiter brings the food when it's ready.",
-        lessonMarkdown: `
-### 1. What is Asynchronous Code?
-*💡 Analogy: Sending a letter in the mail. You drop it in the box, but you have absolutely no idea if it will take 2 days or 5 days to reach the destination.*
+\`\`\`bash
+# Step 1: Install TypeScript globally
+npm install -g typescript
+tsc --version          # Verify installation
 
-**Deep Explanation:**
-This is the single most important concept in UI Automation! When Playwright clicks a "Login" button, it sends a network request to a server. That server might take 10 milliseconds or 5 seconds to respond. The internet is unpredictable. If our code runs synchronously (instantly moving to the next line), it will try to click the "Dashboard" button before the page has even loaded, causing the test to crash immediately. 
+# Step 2: Initialise a project
+tsc --init             # Creates tsconfig.json
 
-### 2. The Solution: 'await'
-*💡 Analogy: A remote control that can pause time. You press 'await', and time freezes until the chef finishes cooking.*
-
-To fix this, we use the \`await\` keyword. It tells our super-fast code to STOP and wait patiently until the browser finishes what it's doing.
-
-**Line-by-Line Breakdown:**
-\`\`\`typescript
-const runTest = async () => {
-    console.log("Starting...");
-    await page.click("#login-button");
-    console.log("Finished!");
-};
-\`\`\`
-*   \`async () =>\` -> Before you can use 'await' inside a function, you MUST label the function with the word \`async\`. This warns TypeScript that this function contains time-traveling magic.
-*   \`await page.click(...)\` -> The code reaches this line and completely freezes. It will not move to the next line until the button is physically clicked and the browser confirms it.
-
-### 3. What is a Promise?
-*💡 Analogy: A pager given to you at a busy restaurant. It represents food that doesn't exist yet.*
-
-When you use \`await\`, what you are actually waiting on is a **Promise**. A Promise is a special JavaScript object that says, "I don't have the data yet, but I promise I will tell you if I succeed (Resolve) or if I fail (Reject)."
-
-### 4. Common Beginner Mistakes
-**Mistake: Forgetting 'await' on an action**
-\`\`\`typescript
-// ❌ Error: The script will crash instantly!
-page.goto("https://google.com");
-page.click("#search");
-
-// ✅ Correct
-await page.goto("https://google.com");
-await page.click("#search");
-\`\`\`
-*Why it happens:* If you forget \`await\`, Playwright tells the browser to go to Google, but then the script instantly races to the next line and tries to click the search bar before Google has even begun to load!
-        `
-      },
-      {
-        id: 'error-handling',
-        title: 'Try/Catch & Debugging',
-        analogy: "A try/catch block is like having a safety net under a tightrope walker. If everything goes well, the net isn't used. But if they slip (an error occurs), the net catches them so the entire circus doesn't burn down.",
-        lessonMarkdown: `
-### 1. What is Error Handling?
-*💡 Analogy: Driving a car and getting a flat tire. If you don't know how to handle the error, you just sit in the middle of the highway forever. If you handle the error, you pull over, put on a spare tire, and keep driving.*
-
-**Deep Explanation:**
-In automation, things fail constantly. APIs go down, buttons disappear, networks timeout. When an error happens in code, it "Throws an Exception". If you don't catch that exception, your entire test suite will crash violently. We use a **Try/Catch block** to gracefully handle these failures.
-
-### 2. Line-by-Line Breakdown
-\`\`\`typescript
-try {
-    // We try to do something dangerous
-    await page.click("#broken-button");
-    console.log("Success!");
-} catch (error) {
-    // If it fails, we teleport here immediately
-    console.log("Oh no, something broke!");
-    console.error(error.message);
-} finally {
-    // This always runs, no matter what
-    await page.close();
-}
-\`\`\`
-*   \`try { ... }\` -> We wrap our dangerous code inside this block. The computer executes it normally.
-*   \`catch (error) { ... }\` -> If ANY line inside the 'try' block fails, the code immediately stops and jumps straight into the 'catch' block. The \`error\` variable holds the exact error message that caused the crash.
-*   \`finally { ... }\` -> (Optional) This block runs at the very end, regardless of whether the try succeeded or failed. It is perfect for closing the browser or cleaning up test data.
-
-### 3. Throwing your own Errors
-Sometimes, you want to trigger a crash on purpose! If you notice the database is empty before a test even starts, you should throw an error to stop the test immediately.
-\`\`\`typescript
-if (database === null) {
-    throw new Error("Cannot run test: Database is empty!");
-}
+# Step 3: Compile and run
+tsc                    # Compile all .ts files to .js
+node dist/index.js     # Run the compiled JavaScript
 \`\`\`
 
-### 4. Common Beginner Mistakes
-**Mistake: Putting too much code in the Try block**
-\`\`\`typescript
-// ❌ Bad practice
-try {
-    let x = 5;
-    let y = 10;
-    await page.click("#btn");
-} catch (e) { ... }
-\`\`\`
-*Why it happens:* Beginners sometimes wrap their entire 100-line test in a massive try/catch block. This makes it incredibly difficult to figure out *which* line actually failed! Only wrap the specific lines that are prone to network or UI failures.
-        `
-      },
-      {
-        id: 'oop',
-        title: 'Object-Oriented Programming',
-        analogy: "OOP is like designing a blueprint for a robot factory. You don't build robots one by one from scratch. You design a 'Robot Class' blueprint, and then stamp out 1,000 individual robot 'instances' that all share the same laser eyes but have different serial numbers.",
-        lessonMarkdown: `
-### 1. What is a Class?
-*💡 Analogy: A 'Class' is the architectural blueprint on paper. An 'Instance' is the actual physical house built out of wood.*
-
-**Deep Explanation:**
-When writing automation frameworks, you end up with hundreds of functions and variables. **Object-Oriented Programming (OOP)** is a way to organize your code. A "Class" is a master container that bundles related variables (properties) and functions (methods) together into a single blueprint.
-
-### 2. Line-by-Line Breakdown
-Let's build a class for a Login Page.
-
-\`\`\`typescript
-class LoginPage {
-    // 1. Properties (Variables attached to the class)
-    url: string = "https://myapp.com/login";
-
-    // 2. Methods (Functions attached to the class)
-    async performLogin() {
-        console.log("Navigating to " + this.url);
-    }
-}
-
-// 3. Creating an Instance
-const login = new LoginPage();
-await login.performLogin();
-\`\`\`
-*   \`class LoginPage { ... }\` -> This defines the blueprint.
-*   \`url: string = ...\` -> This is a property. It's just a variable that lives permanently inside the class.
-*   \`performLogin() { ... }\` -> This is a method. It's just a function that lives inside the class.
-*   \`this.url\` -> The **'this'** keyword is crucial. It means "look inside MYSELF". It tells the class to grab its own internal 'url' variable.
-*   \`new LoginPage()\` -> The \`new\` keyword takes the blueprint and actually builds the physical object in the computer's memory.
-
-### 3. Public vs Private
-*💡 Analogy: 'Public' means anyone can walk into your front yard. 'Private' means locking your diary in a vault so nobody except you can read or change it.*
-
-In TypeScript, you can secure your classes. If you mark a property as \`private\`, no other code outside of that specific class is allowed to touch it. This stops junior developers from accidentally changing crucial test data!
-\`\`\`typescript
-class BankAccount {
-    private balance: number = 100;
-}
-const myBank = new BankAccount();
-// myBank.balance = 5000000; // 🛑 ERROR! TypeScript prevents this!
-\`\`\`
-
-### 4. Common Beginner Mistakes
-**Mistake: Forgetting the 'this' keyword**
-\`\`\`typescript
-class User {
-    name = "John";
-    printName() {
-        // ❌ Error: Cannot find name 'name'
-        console.log(name); 
-        
-        // ✅ Correct
-        console.log(this.name); 
-    }
-}
-\`\`\`
-*Why it happens:* If you just type \`name\`, the computer looks for a normal, standalone variable. You MUST use \`this.name\` to tell the computer, "Look inside the class properties!"
-        `
-      },
-      {
-        id: 'modules',
-        title: 'Imports & Exports',
-        analogy: "Exporting is like putting a tool in a shared toolbox. Importing is like walking over to the toolbox and taking out exactly the hammer you need for your current job.",
-        lessonMarkdown: `
-### 1. What are Modules?
-*💡 Analogy: A massive encyclopedia isn't printed as one giant, 10,000-page scroll. It is broken into multiple Volumes (files) so it is easy to read and carry.*
-
-**Deep Explanation:**
-If you put all of your test code, locators, and classes into one single file, that file will eventually become 5,000 lines long and impossible to read. Modern TypeScript solves this with the Module System. Every file is completely isolated. If you create a \`LoginPage\` class in File A, File B literally has no idea it exists—until you explicitly "Export" it and "Import" it.
-
-### 2. Line-by-Line Breakdown (Exporting)
-Let's say we create a file called \`LoginPage.ts\`.
-
-\`\`\`typescript
-// File: LoginPage.ts
-
-export class LoginPage {
-    login() { console.log("Logging in!"); }
-}
-
-export const TIMEOUT = 5000;
-\`\`\`
-*   \`export class ...\` -> The \`export\` keyword unlocks the door. It tells TypeScript, "It is okay if other files want to use this class."
-*   Notice we exported both a Class and a regular constant variable!
-
-### 3. Line-by-Line Breakdown (Importing)
-Now we create our actual test file, \`login.test.ts\`.
-
-\`\`\`typescript
-// File: login.test.ts
-
-import { LoginPage, TIMEOUT } from './LoginPage';
-
-const page = new LoginPage();
-console.log("Max timeout is: " + TIMEOUT);
-\`\`\`
-*   \`import { ... }\` -> Inside the curly braces, we type the exact, case-sensitive names of the things we want to borrow.
-*   \`from './LoginPage'\` -> This is the relative path to the file. \`./\` means "look in the exact same folder I am currently in." 
-
-### 4. Common Beginner Mistakes
-**Mistake: Messing up the file path**
-\`\`\`typescript
-// ❌ Error: Cannot find module
-import { LoginPage } from 'LoginPage';
-
-// ✅ Correct
-import { LoginPage } from './LoginPage';
-\`\`\`
-*Why it happens:* If you don't use \`./\` or \`../\` at the start of your path, TypeScript thinks you are trying to import an external library you downloaded from the internet (like Playwright or React), rather than one of your own local files!
-        `
-      },
-      {
-        id: 'ts-types',
-        title: 'TypeScript Strict Types',
-        analogy: "Strict Types are like a bouncer with a clipboard at a VIP party. It doesn't matter how nice your suit is; if your name isn't exactly spelled right on the 'Interface' clipboard, you are not getting in.",
-        lessonMarkdown: `
-### 1. What is an Interface?
-*💡 Analogy: A blueprint for a Lego character. The blueprint dictates that every character MUST have 1 head, 1 torso, and 2 legs. If you try to build a character with 3 arms, the factory rejects it.*
-
-**Deep Explanation:**
-We learned earlier that Objects hold key-value pairs (like \`{name: "John", age: 25}\`). But what if a junior tester accidentally types \`{name: "John", agge: 25}\`? The test will break! An **Interface** allows you to define a strict, unbreakable rule for exactly what an object must look like.
-
-### 2. Line-by-Line Breakdown
-\`\`\`typescript
-// 1. Defining the Rule
-interface User {
-    name: string;
-    age: number;
-    isAdmin?: boolean;
-}
-
-// 2. Enforcing the Rule
-const myUser: User = {
-    name: "Alice",
-    age: 30
-};
-\`\`\`
-*   \`interface User { ... }\` -> We are creating a custom rule named "User".
-*   \`name: string;\` -> Rule #1: Any object using this rule MUST have a property called 'name', and it MUST be text.
-*   \`isAdmin?: boolean;\` -> Notice the question mark (**?**)! This makes the property **Optional**. The object is perfectly valid whether it includes 'isAdmin' or leaves it out entirely.
-*   \`const myUser: User\` -> We apply the rule to our variable exactly like we apply \`: string\`. 
-
-### 3. What is an Enum?
-*💡 Analogy: A multiple-choice dropdown menu on a website. You cannot invent a new country. You must click a country from the strict list provided.*
-
-If you have an order status that can only be "Pending", "Shipped", or "Delivered", you shouldn't use raw text strings in your code. You create an **Enum** (Enumeration).
-\`\`\`typescript
-enum Status {
-    PENDING = "PENDING",
-    SHIPPED = "SHIPPED"
-}
-
-// You MUST select from the Enum. You cannot type random strings!
-let orderStatus: Status = Status.SHIPPED; 
-\`\`\`
-
-### 4. Common Beginner Mistakes
-**Mistake: Missing a required property in an Interface**
-\`\`\`typescript
-interface Car {
-    brand: string;
-    wheels: number;
-}
-
-// ❌ Error: Property 'wheels' is missing!
-const myCar: Car = {
-    brand: "Toyota"
-};
-\`\`\`
-*Why it happens:* If a property in an Interface does NOT have a question mark \`?\`, it is 100% mandatory. TypeScript will refuse to compile your code if you forget it. This is how TypeScript saves you from massive bugs!
-        `
-      },
-      {
-        id: 'template-literals',
-        title: 'Dynamic Strings',
-        analogy: "String concatenation (+) is like cutting letters out of a magazine and gluing them together on a ransom note. Template Literals (``) are like a fill-in-the-blank mad-libs book. It is much cleaner and easier to read.",
-        lessonMarkdown: `
-### 1. What is a Template Literal?
-*💡 Analogy: A name tag at a conference that says "Hello, my name is [BLANK]". You just write the variable in the blank space.*
-
-**Deep Explanation:**
-In UI automation, you constantly need to find dynamic elements on the screen. For example, clicking a button with the ID \`#user-123-delete\`, where "123" is a variable. Beginners often use the plus sign (\`+\`) to glue text together, but this quickly becomes an unreadable mess of quotes and pluses. Modern TypeScript uses **Template Literals** (backticks) to instantly inject variables into strings.
-
-### 2. Line-by-Line Breakdown
-\`\`\`typescript
-const userId = 55;
-
-// ❌ The old, messy way (String Concatenation)
-const oldLocator = "#user-" + userId + "-delete-btn";
-
-// ✅ The modern way (Template Literal)
-const newLocator = \`#user-\${userId}-delete-btn\`;
-\`\`\`
-*   \`\`\` (Backticks) -> Notice we are NOT using single or double quotes! We are using the backtick key (usually next to the 1 key on your keyboard).
-*   \`\${userId}\` -> The dollar sign and curly braces act as a portal. They tell the string, "Hey, temporarily stop being text, and go grab the value of this variable."
-
-### 3. Common Beginner Mistakes
-**Mistake: Using regular quotes with \${}**
-\`\`\`typescript
-// ❌ Error: This literally prints the text "\${userId}" to the screen!
-const badString = "Hello \${userId}"; 
-
-// ✅ Correct
-const goodString = \`Hello \${userId}\`;
-\`\`\`
-*Why it happens:* The \`\${\` portal ONLY activates if the string is wrapped in backticks. If you use normal quotes, TypeScript just assumes it is part of the text!
-        `
-      },
-      {
-        id: 'destructuring',
-        title: 'Destructuring & Any',
-        analogy: "Destructuring is like having a giant toolbox, but instead of carrying the whole heavy box to the worksite, you just instantly pop out the hammer and the screwdriver and leave the box behind.",
-        lessonMarkdown: `
-### 1. What is Destructuring?
-*💡 Analogy: Walking into a buffet. You don't take the entire metal tray of lasagna back to your table. You just scoop out the specific piece you want.*
-
-**Deep Explanation:**
-This is the #1 concept that confuses beginners starting Playwright! Often, an object has 50 properties, but you only need 1 of them. Instead of typing \`userObject.firstName\` 100 times, you can "Destructure" the object, extracting the exact variables you need in a single line.
-
-### 2. Line-by-Line Breakdown
-\`\`\`typescript
-const employee = { name: "Alice", id: 99, department: "QA" };
-
-// ❌ The old way
-const empName = employee.name;
-const empDept = employee.department;
-
-// ✅ The modern way (Destructuring)
-const { name, department } = employee;
-console.log(name); // Prints: "Alice"
-\`\`\`
-*   \`const { name } = employee\` -> We are telling the computer, "Look inside the employee object, find a key called 'name', rip its value out, and create a brand new standalone variable called 'name'."
-
-### Why Playwright Looks Weird:
-Now you can understand why Playwright tests look like this:
-\`\`\`typescript
-test('My test', async ({ page }) => { ... })
-\`\`\`
-Playwright is handing you a massive "TestContext" object with 50 tools inside it. But you only want the browser \`page\` tool. So you destructure it directly inside the function parentheses!
-
-### 3. The Danger of 'any'
-*💡 Analogy: Telling the strict VIP bouncer to completely abandon his post and let literally anyone into the club.*
-
-When TypeScript throws a red squiggly error because types don't match, beginners get frustrated and use the \`any\` keyword to force the code to compile. 
-\`\`\`typescript
-let username: any = "John";
-username = 55; // ❌ No error thrown! You just ruined the database.
-\`\`\`
-**NEVER use \`any\`.** It completely disables TypeScript's safety net. If you don't know exactly what a type will be, use **Union Types** instead:
-\`\`\`typescript
-// ✅ This variable is allowed to be a string OR a number, but nothing else.
-let score: string | number;
-\`\`\`
-        `
-      },
-      {
-        id: 'type-aliases',
-        title: 'Type Aliases & Unions',
-        analogy: "A Type Alias is like creating a custom combo meal at a fast-food restaurant. Instead of ordering 'a burger, fries, and a drink' every single time, you just say 'I want the Combo #1'. A Union Type is like saying 'I want a drink, and it can be *either* Coke *or* Sprite, but nothing else'.",
-        lessonMarkdown: `
-### 1. The Core Concept
-*💡 Analogy: Custom combo meals and strict menus.*
-
-**Deep Explanation:**
-In TypeScript, you don't always want to type out \`{ name: string, age: number }\` every single time you create a new variable. A **Type Alias** lets you save that shape under a custom name so you can reuse it.
-A **Union Type** (using the \`|\` pipe character) acts like an exclusive club. It forces a variable to strictly be one of a few specific options, preventing typos and invalid data.
-
-### 2. Basic Example: Type Aliases
-\`\`\`typescript
-// ❌ The repetitive way
-let user1: { name: string, age: number } = { name: "John", age: 30 };
-let user2: { name: string, age: number } = { name: "Jane", age: 25 };
-
-// ✅ The modern way (Type Alias)
-type User = {
-  name: string;
-  age: number;
-};
-
-let betterUser: User = { name: "Bob", age: 40 };
-\`\`\`
-*   \`type User = ...\` -> We are inventing a brand new data type called "User". It doesn't create any data yet, it just creates the blueprint.
-
-### 3. Automation Example: Union Types
-In test automation, you constantly deal with configuration. If you pass a typo into your environment variable, your entire test suite will crash. Union types fix this.
-\`\`\`typescript
-// ❌ Dangerous string type (Allows typos!)
-let environment: string = "stagingg"; // Typo! 
-
-// ✅ Strict Union Type
-type Environment = "qa" | "staging" | "prod";
-let currentEnv: Environment = "qa";
-
-currentEnv = "testing"; // ❌ Error: Type '"testing"' is not assignable to type 'Environment'.
-\`\`\`
-*   \`"qa" | "staging" | "prod"\` -> The pipe \`|\` means "OR". The variable MUST be one of these exact three strings.
-
-### 4. Common Beginner Mistakes
-**Mistake: Using \`type\` vs \`interface\` interchangeably**
-\`\`\`typescript
-// Both work for objects:
-type PointType = { x: number, y: number };
-interface PointInterface { x: number, y: number }
-
-// ❌ But Interfaces CANNOT do Unions!
-interface Status = "pass" | "fail"; // ERROR!
-
-// ✅ You MUST use Type Aliases for Unions
-type Status = "pass" | "fail";
-\`\`\`
-*Why it happens:* Beginners see \`type\` and \`interface\` doing the same thing for objects and get confused. **Rule of thumb**: Use \`interface\` for object shapes, use \`type\` for Unions and advanced types.
-        `
-      },
-      {
-        id: 'type-narrowing',
-        title: 'Type Narrowing & Guards',
-        analogy: "Type Narrowing is like a bouncer at a club checking IDs. Once the bouncer verifies you are over 21 (the \`if\` block), you are allowed into the bar. TypeScript watches the bouncer, and magically unlocks specific features only inside that room.",
-        lessonMarkdown: `
-### 1. The Core Concept
-*💡 Analogy: The Bouncer checking your ID.*
-
-**Deep Explanation:**
-When a variable can be multiple things (e.g., \`string | number\`), TypeScript locks down its features because it isn't safe to use. You can't use \`.toUpperCase()\` because the variable might be a number! 
-**Type Narrowing** is the process of using \`if\` statements (Type Guards) to prove to TypeScript exactly what the variable is right now.
-
-### 2. Basic Example: \`typeof\`
-\`\`\`typescript
-function printID(id: string | number) {
-  // ❌ Error: Property 'toUpperCase' does not exist on type 'number'.
-  console.log(id.toUpperCase()); 
-
-  // ✅ The Bouncer (Type Guard)
-  if (typeof id === "string") {
-    // Inside this block, TS knows \`id\` is 100% a string!
-    console.log(id.toUpperCase());
-  } else {
-    // Inside this block, TS knows \`id\` MUST be a number!
-    console.log(id.toFixed(2));
-  }
-}
-\`\`\`
-*   \`typeof id === "string"\` -> This is the Type Guard. TypeScript is smart enough to read your \`if\` logic and apply it to the variable's type inside the curly braces.
-
-### 3. Automation Example: The \`in\` Operator
-In UI automation, you often fetch elements that might be different shapes (e.g., an Input field vs a Dropdown).
-\`\`\`typescript
-type InputField = { value: string; clear: () => void };
-type Dropdown = { selectedOption: string; select: (opt: string) => void };
-
-function interactWithElement(element: InputField | Dropdown) {
-  // Use the 'in' operator to check if a specific property exists!
-  if ("clear" in element) {
-    // TS narrows this down to an InputField!
-    element.clear();
-  } else {
-    // TS knows it MUST be a Dropdown!
-    element.select("Option A");
+**Essential tsconfig.json settings:**
+\`\`\`json
+{
+  "compilerOptions": {
+    "target": "ES2020",        // Which JavaScript version to compile to
+    "strict": true,            // Enable ALL strict checks — ALWAYS use this
+    "outDir": "./dist",        // Where compiled .js files go
+    "rootDir": "./src",        // Where your .ts source files live
+    "esModuleInterop": true    // Fixes default import issues
   }
 }
 \`\`\`
 
-### 4. Common Beginner Mistakes
-**Mistake: Forgetting that \`typeof null\` is "object"**
-\`\`\`typescript
-function process(data: string[] | null) {
-  if (typeof data === "object") {
-    // ❌ Error! If data is null, typeof null is "object".
-    // This will crash when you try to loop over null!
-    data.forEach(d => console.log(d));
-  }
-}
+### 6. Your First TypeScript File
 
-// ✅ Correct
-function processSafe(data: string[] | null) {
-  if (data !== null) {
-    data.forEach(d => console.log(d));
-  }
-}
+\`\`\`typescript
+// src/config.ts
+const testEnvironment: string = "staging";
+const maxRetries: number = 3;
+const isHeadless: boolean = true;
+
+console.log(\`Running on \${testEnvironment}, headless: \${isHeadless}, retries: \${maxRetries}\`);
+\`\`\`
+
+### 7. Common Beginner Mistakes
+
+**Mistake 1: Using \`any\` to silence every error**
+\`\`\`typescript
+// ❌ You've defeated the entire purpose of TypeScript
+let data: any = fetchFromAPI();
+
+// ✅ Describe what the data actually looks like
+let data: { userId: number; email: string } = fetchFromAPI();
+\`\`\`
+
+**Mistake 2: Forgetting that TypeScript needs compilation**
+\`\`\`typescript
+// ❌ Running .ts directly (old Node versions)
+node src/hello.ts  // Syntax error — TypeScript not recognised
+
+// ✅ Use ts-node for development (compiles on the fly)
+npx ts-node src/hello.ts
 \`\`\`
         `
       },
       {
-        id: 'generics',
-        title: 'Generics (<T>)',
-        analogy: "A Generic is like a blank, customizable shipping box. The factory doesn't know if you're putting shoes or laptops inside. But once you slap a \`<Shoes>\` label on it, the box magically reshapes itself to only accept shoes.",
+        id: 'ts-basic-types',
+        title: 'Core Types',
+        analogy: "TypeScript's types are like labelled containers in a chemistry lab. A beaker labelled 'Acid' cannot have water poured into it without triggering an alarm — the label enforces exactly what goes in, preventing catastrophic mix-ups.",
         lessonMarkdown: `
-### 1. The Core Concept
-*💡 Analogy: The magic, shape-shifting shipping box.*
+### 1. The Core Types — Overview
 
-**Deep Explanation:**
-Functions often need to work with many different types of data. Instead of writing 10 different functions (one for strings, one for numbers, one for Users), we write **ONE Generic Function**. 
-We use the diamond syntax \`<T>\` (which stands for Type) as a placeholder. It means "I don't know what type this is yet, but whoever calls this function will tell me."
+*💡 Analogy: Think of types like different sections in a specialist hardware store. The 'Bolts' aisle only stocks bolts. The 'Paint' aisle only stocks paint. TypeScript assigns every variable to its own section and refuses to mix inventory.*
 
-### 2. Basic Example
+TypeScript has eight core types you'll use constantly. Understanding each one properly is the foundation of everything else.
+
+### 2. string — For All Text Data
+
 \`\`\`typescript
-// A generic function that takes an item and returns an array of that item
-function makeArray<T>(item: T): T[] {
-  return [item];
+const testSuiteName: string = "Checkout Flow Tests";
+const baseURL: string       = "https://staging.example.com";
+const cssSelector: string   = "#submit-button";
+const apiKey: string        = "Bearer eyJhbGciOiJIUzI1NiJ9";
+
+// Template literals are also strings
+const logLine: string = \`Suite: \${testSuiteName} | URL: \${baseURL}\`;
+\`\`\`
+
+**QA use cases:** Test descriptions, CSS selectors, URLs, expected page text, API endpoints.
+
+### 3. number — For All Numeric Values
+
+*💡 Analogy: Unlike Java or C#, TypeScript has ONE numeric type for both whole numbers and decimals. It's a single 'Numbers' drawer — 42 and 42.5 live side by side.*
+
+\`\`\`typescript
+const timeout: number    = 30000;     // milliseconds (integer)
+const retryCount: number = 3;         // whole number
+const successRate: number = 98.5;     // decimal percentage
+const httpStatusOK: number = 200;     // HTTP status code
+
+const timeoutInSeconds: number = timeout / 1000;  // Arithmetic: 30
+\`\`\`
+
+### 4. boolean — For True/False Logic
+
+\`\`\`typescript
+const isLoggedIn: boolean  = false;
+const isHeadless: boolean  = true;
+const skipSlowTests: boolean = process.env.CI === 'true';
+
+// Computed boolean — result of a comparison
+const testPassed: boolean = actualTitle === expectedTitle;
+
+if (!testPassed) {
+  throw new Error(\`Title mismatch: expected "\${expectedTitle}", got "\${actualTitle}"\`);
+}
+\`\`\`
+
+### 5. null and undefined — The "Nothing" Types
+
+*💡 Analogy: \`undefined\` is a mailbox that was never set up — the address exists in the system but no box was ever installed. \`null\` is a mailbox that was deliberately emptied and sealed with a sign saying "Nothing here by design."*
+
+\`\`\`typescript
+// undefined: declared but not yet assigned a value
+let currentUser: string | undefined;
+console.log(currentUser);  // undefined
+
+// null: explicitly set to "intentionally empty"
+let sessionToken: string | null = null;
+// After logout, we deliberately clear it:
+sessionToken = null;
+\`\`\`
+
+**With \`"strict": true\` in tsconfig:** You cannot accidentally assign \`null\` to a plain \`string\` variable. You must explicitly declare \`string | null\` to allow it — forcing you to handle the absent case.
+
+### 6. any — The Escape Hatch (Avoid It!)
+
+*💡 Analogy: \`any\` is a master key that opens every door in the building. Yes, it works — but it means anyone can go anywhere. You have turned off all the security cameras and unplugged the burglar alarm.*
+
+\`\`\`typescript
+// ❌ any disables ALL type checking on this variable
+let apiResponse: any = await fetch("/api/data");
+apiResponse.nonExistentProperty.deeperNested; // TypeScript says nothing — bug ships silently
+
+// ✅ Prefer unknown — forces you to validate before using
+let apiResponse: unknown = await fetch("/api/data");
+// apiResponse.someProperty; // ❌ Error! Must narrow the type first — you're forced to be safe
+\`\`\`
+
+**Rule:** If you're typing \`: any\`, pause. Every \`any\` is a TypeScript-free bug corridor.
+
+### 7. unknown — The Safe Version of any
+
+*💡 Analogy: \`any\` is a mystery box you open blindly and grab from without looking. \`unknown\` is a mystery box you must X-ray and verify before your hand goes in.*
+
+\`\`\`typescript
+function processAPIResponse(data: unknown): string {
+  if (typeof data === 'string') {
+    return data.toUpperCase();  // ✅ Safe — confirmed it's a string
+  }
+  if (typeof data === 'object' && data !== null && 'message' in data) {
+    return String((data as { message: string }).message);
+  }
+  return "Unrecognised response format";
+}
+\`\`\`
+
+### 8. never — The Impossible Type
+
+*💡 Analogy: \`never\` is a door labelled "This door can never open." If execution somehow reaches it, the universe has made a mistake.*
+
+\`\`\`typescript
+// A function that ALWAYS throws — it never returns normally
+function failTest(reason: string): never {
+  throw new Error(\`TEST FAILED: \${reason}\`);
 }
 
-// Slapping the label on the box!
-const numArr = makeArray<number>(55); // Returns number[]
-const strArr = makeArray<string>("hello"); // Returns string[]
+// Exhaustive switch — ensures all union cases are handled
+type TestStatus = 'pass' | 'fail' | 'skip';
+
+function describe(status: TestStatus): string {
+  switch (status) {
+    case 'pass': return '✅ Passed';
+    case 'fail': return '❌ Failed';
+    case 'skip': return '⏭️ Skipped';
+    default:
+      // If you add a new status and forget to handle it, TypeScript errors HERE
+      const _unreachable: never = status;
+      return _unreachable;
+  }
+}
 \`\`\`
-*   \`<T>\` -> This creates a "Type Variable". Just like \`item\` holds data, \`T\` holds a Type.
-*   \`(item: T)\` -> We say "the item must be of type T".
-*   \`: T[]\` -> We say "this function returns an array of type T".
 
-### 3. Automation Example: API Fetching
-This is the **most important use case for Generics** in test automation. When you make an API request, the code doesn't know what the JSON response looks like. Generics let you strictly type your API calls!
+### 9. void — For Functions That Return Nothing
+
 \`\`\`typescript
-// 1. Define what we expect the API to return
-type UserResponse = { id: number; name: string };
+// Logs to console — no value returned
+function logResult(testName: string, passed: boolean): void {
+  console.log(\`[\${passed ? 'PASS' : 'FAIL'}] \${testName}\`);
+  // Implicit return — no return statement needed
+}
+\`\`\`
 
-// 2. A generic fetch function
-async function apiGet<T>(url: string): Promise<T> {
+### 10. Type Inference — TypeScript Reads Your Mind
+
+*💡 Analogy: A sharp assistant who says "You handed me a book — I don't need you to say 'this is a book.' I can see that."*
+
+\`\`\`typescript
+// TypeScript INFERS the type from the assigned value — no annotation needed
+const siteName  = "QA Quest";   // inferred: string
+const maxRetries = 3;           // inferred: number
+const isActive   = true;        // inferred: boolean
+
+// When to annotate explicitly:
+// ✅ Function parameters (TypeScript cannot infer these)
+// ✅ Function return types (makes intent explicit)
+// ✅ When the inferred type would be too broad (e.g., any)
+\`\`\`
+        `
+      },
+      {
+        id: 'ts-arrays-tuples',
+        title: 'Arrays & Tuples',
+        analogy: "An array is a bag of fruit where every piece must be the same type — a bag of apples, only apples, as many as you like. A tuple is a precise meal-kit box: slot 1 MUST be the protein, slot 2 MUST be the vegetable, slot 3 MUST be the sauce — position and type are both locked.",
+        lessonMarkdown: `
+### 1. Typed Arrays — Lists Where Every Element Has the Same Type
+
+*💡 Analogy: A typed array is like a professional test report spreadsheet where every row must follow the exact same column structure. You cannot mix test result rows with screenshot attachments and raw HTML — each array holds one declared type of thing.*
+
+**Two equivalent syntaxes:**
+\`\`\`typescript
+// Syntax 1: TypeName[] — most common, easier to read
+const testNames: string[]   = ["Login Test", "Checkout Test", "Logout Test"];
+const statusCodes: number[] = [200, 201, 404, 500];
+const results: boolean[]    = [true, true, false, true];
+
+// Syntax 2: Array<TypeName> — more explicit, identical result
+const selectors: Array<string> = ["#username", "#password", "#submit"];
+const timeouts: Array<number>  = [5000, 10000, 30000];
+\`\`\`
+
+**TypeScript enforces the element type:**
+\`\`\`typescript
+const urls: string[] = ["https://staging.com", "https://prod.com"];
+urls.push(42);              // ❌ Error: Argument of type 'number' not assignable to 'string'
+urls.push("https://dev.com"); // ✅ Fine
+\`\`\`
+
+### 2. Arrays of Objects — The Most Common Pattern in QA
+
+\`\`\`typescript
+// A typed array of test case objects
+const testCases: { name: string; url: string; expectedStatus: number }[] = [
+  { name: "Home page",    url: "/",        expectedStatus: 200 },
+  { name: "Login page",   url: "/login",   expectedStatus: 200 },
+  { name: "Missing page", url: "/missing", expectedStatus: 404 },
+];
+
+for (const tc of testCases) {
+  // TypeScript knows tc.name is string, tc.expectedStatus is number
+  console.log(\`Testing \${tc.name}: expect \${tc.expectedStatus}\`);
+}
+\`\`\`
+
+### 3. Array Methods — TypeScript Tracks Return Types
+
+\`\`\`typescript
+const scores: number[] = [85, 92, 78, 95, 88];
+
+const passing  = scores.filter(s => s >= 80);         // TypeScript knows: number[]
+const grades   = scores.map(s => s >= 80 ? 'P' : 'F'); // TypeScript knows: string[]
+const total    = scores.reduce((sum, s) => sum + s, 0); // TypeScript knows: number
+const topScore = Math.max(...scores);                    // TypeScript knows: number
+
+// Destructuring — TypeScript infers each element type
+const [first, second, ...rest] = scores;
+// first: number, second: number, rest: number[]
+\`\`\`
+
+### 4. Readonly Arrays — Immutable Test Data
+
+*💡 Analogy: A \`readonly\` array is a laminated reference card. You can read every item on it, but you cannot write on it, add to it, or remove anything. It's a permanent record.*
+
+\`\`\`typescript
+const VALID_ENVIRONMENTS: readonly string[] = ["dev", "staging", "production"];
+// Also written as: ReadonlyArray<string>
+
+VALID_ENVIRONMENTS.push("local");    // ❌ Error: Property 'push' does not exist on readonly array
+VALID_ENVIRONMENTS[0] = "test";      // ❌ Error: Index signature is read-only
+console.log(VALID_ENVIRONMENTS[1]);  // ✅ Reading is fine — "staging"
+\`\`\`
+
+### 5. Tuples — Fixed-Length, Positionally-Typed Arrays
+
+*💡 Analogy: A tuple is like a table row in a database with a strict schema. Column 1 is ALWAYS a DATE, column 2 is ALWAYS a VARCHAR test name, column 3 is ALWAYS a BOOLEAN result. Mixing up the order is a schema violation.*
+
+\`\`\`typescript
+// A tuple: the type AND position of each element is fixed
+const testResult: [string, number, boolean] = ["Login Flow", 1250, true];
+
+// TypeScript knows the exact type at each index:
+const name: string  = testResult[0];  // ✅ string
+const ms: number    = testResult[1];  // ✅ number
+const pass: boolean = testResult[2];  // ✅ boolean
+
+// TypeScript catches wrong order immediately:
+const bad: [string, number, boolean] = [true, "Login", 1250];
+// ❌ Error: Type 'boolean' is not assignable to type 'string' at position 0
+\`\`\`
+
+### 6. Named Tuples — Self-Documenting Data Structures
+
+\`\`\`typescript
+// Naming each position makes the intent obvious
+type TestOutcome = [
+  testName: string,
+  durationMs: number,
+  passed: boolean,
+  errorMessage?: string   // Optional last element
+];
+
+const outcome1: TestOutcome = ["Login Test", 850, true];
+const outcome2: TestOutcome = ["Checkout Test", 2400, false, "Submit button not found"];
+\`\`\`
+
+### 7. Real QA Example — Data-Driven Testing with Typed Tuples
+
+\`\`\`typescript
+type LoginTestCase = [
+  username: string,
+  password: string,
+  shouldSucceed: boolean,
+  expectedError?: string
+];
+
+const loginTests: LoginTestCase[] = [
+  ["admin@test.com",  "SecurePass123!", true],
+  ["user@test.com",   "WrongPassword",  false, "Invalid credentials"],
+  ["",                "SomePassword",   false, "Email is required"],
+  ["notanemail",      "Password123",    false, "Invalid email format"],
+];
+
+for (const [username, password, shouldSucceed, expectedError] of loginTests) {
+  console.log(\`Testing \${username} — expects \${shouldSucceed ? 'success' : 'failure'}\`);
+  if (!shouldSucceed && expectedError) {
+    console.log(\`  Expected error: \${expectedError}\`);
+  }
+}
+\`\`\`
+
+### 8. Tuples vs Arrays — Decision Guide
+
+| Scenario | Use Array | Use Tuple |
+|----------|-----------|-----------|
+| List of test names (variable length) | ✅ | |
+| Function returning [value, error] | | ✅ |
+| CSV row with fixed columns | | ✅ |
+| Collection of identical objects | ✅ | |
+| [x, y] coordinates | | ✅ |
+| Test data table rows | | ✅ |
+        `
+      },
+      {
+        id: 'ts-objects-interfaces',
+        title: 'Objects & Interfaces',
+        analogy: "An interface is like a formal job description. It lists exactly what skills, qualifications, and responsibilities a candidate MUST have. Any person (object) who meets every item on the list qualifies — TypeScript doesn't care who they are, only that they match the specification.",
+        lessonMarkdown: `
+### 1. Typing Objects Inline
+
+*💡 Analogy: An inline object type is like writing your shopping checklist directly on the receipt: 'This bag must contain: 1x milk, 1x bread, 2x eggs.' Any bag matching this exactly gets accepted.*
+
+\`\`\`typescript
+// Describing the shape of an object directly in the annotation
+const testConfig: {
+  baseURL: string;
+  timeout: number;
+  headless: boolean;
+} = {
+  baseURL:  "https://staging.example.com",
+  timeout:  30000,
+  headless: true,
+};
+\`\`\`
+
+This works for one-off objects, but it's verbose and hard to reuse. For anything used in more than one place, use an **Interface**.
+
+### 2. Interfaces — Reusable Object Shape Contracts
+
+\`\`\`typescript
+// Define the shape once
+interface TestConfig {
+  baseURL: string;
+  timeout: number;
+  headless: boolean;
+}
+
+// Reuse everywhere
+const stagingConfig: TestConfig = {
+  baseURL:  "https://staging.example.com",
+  timeout:  30000,
+  headless: true,
+};
+
+const prodConfig: TestConfig = {
+  baseURL:  "https://www.example.com",
+  timeout:  10000,
+  headless: false,
+};
+
+// Any function that accepts TestConfig works with any matching object
+function printConfig(config: TestConfig): void {
+  console.log(\`[\${config.headless ? 'headless' : 'headed'}] \${config.baseURL} @ \${config.timeout}ms\`);
+}
+\`\`\`
+
+**TypeScript enforces the contract:**
+\`\`\`typescript
+const badConfig: TestConfig = {
+  baseURL: "https://staging.example.com",
+  timeout: "thirty seconds",  // ❌ Error: string not assignable to number
+  // headless is missing      // ❌ Error: Property 'headless' is missing
+};
+\`\`\`
+
+### 3. Optional Properties — The ? Modifier
+
+*💡 Analogy: Optional properties are like the 'Special Requests' field on a hotel check-in form. Name and check-in date are mandatory. Special requests are welcome but the form is valid without them.*
+
+\`\`\`typescript
+interface UserProfile {
+  email: string;         // Required — must always be present
+  displayName: string;   // Required
+  avatarUrl?: string;    // Optional — may be present or absent
+  bio?: string;          // Optional
+  lastLoginAt?: Date;    // Optional
+}
+
+// Valid with only required fields
+const user1: UserProfile = {
+  email: "qa@example.com",
+  displayName: "QA Ninja",
+};
+
+// Valid with some optional fields included
+const user2: UserProfile = {
+  email: "dev@example.com",
+  displayName: "Dev Hero",
+  avatarUrl: "https://cdn.example.com/avatar.png",
+  bio: "Breaking things professionally since 2015",
+};
+\`\`\`
+
+### 4. Readonly Properties — Immutable After Creation
+
+\`\`\`typescript
+interface TestEnvironment {
+  readonly id: string;       // Cannot be changed after object creation
+  readonly createdAt: Date;
+  name: string;              // Can be changed
+  isActive: boolean;         // Can be changed
+}
+
+const env: TestEnvironment = {
+  id: "env-staging-01",
+  createdAt: new Date(),
+  name: "Staging",
+  isActive: true,
+};
+
+env.name = "Staging-v2";   // ✅ Fine — not readonly
+env.isActive = false;       // ✅ Fine
+env.id = "env-staging-02"; // ❌ Error: Cannot assign to 'id' because it is read-only
+\`\`\`
+
+### 5. Extending Interfaces — Building Richer Shapes
+
+*💡 Analogy: Extending is like a company's employment contract system. Every employee has a base contract (name, email, start date). A senior engineer's contract EXTENDS the base with additional clauses (tech stack, review responsibilities). The senior contract doesn't rewrite the base — it adds to it.*
+
+\`\`\`typescript
+interface Person {
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+interface Employee extends Person {
+  employeeId: string;
+  department: string;
+  startDate: Date;
+}
+
+interface QAEngineer extends Employee {
+  testFrameworks: string[];
+  canReviewCode: boolean;
+  certifications?: string[];
+}
+
+const lead: QAEngineer = {
+  firstName: "Sagar",
+  lastName:  "Nayak",
+  email:     "sagar@qa.com",
+  employeeId: "EMP-042",
+  department: "Quality Assurance",
+  startDate:  new Date("2022-01-15"),
+  testFrameworks: ["Playwright", "Jest"],
+  canReviewCode: true,
+  certifications: ["ISTQB Foundation"],
+};
+\`\`\`
+
+### 6. Page Object Model — Interfaces in Real QA Projects
+
+*💡 This is exactly how professional QA engineers use TypeScript interfaces in production automation frameworks.*
+
+\`\`\`typescript
+// Define the contract — what a login page MUST be able to do
+interface ILoginPage {
+  navigate(): Promise<void>;
+  enterUsername(value: string): Promise<void>;
+  enterPassword(value: string): Promise<void>;
+  clickSubmit(): Promise<void>;
+  getErrorMessage(): Promise<string | null>;
+}
+
+// The implementation must satisfy the interface
+class LoginPage implements ILoginPage {
+  constructor(private page: Page) {}
+
+  async navigate(): Promise<void> {
+    await this.page.goto("/login");
+  }
+  async enterUsername(value: string): Promise<void> {
+    await this.page.fill('[data-testid="username"]', value);
+  }
+  async enterPassword(value: string): Promise<void> {
+    await this.page.fill('[data-testid="password"]', value);
+  }
+  async clickSubmit(): Promise<void> {
+    await this.page.click('[data-testid="submit"]');
+  }
+  async getErrorMessage(): Promise<string | null> {
+    const el = this.page.locator('.error-message');
+    if (await el.isVisible()) return el.textContent();
+    return null;
+  }
+}
+\`\`\`
+
+### 7. Index Signatures — Objects with Dynamic Keys
+
+\`\`\`typescript
+// When property names are unknown at design time
+interface TestResultMap {
+  [testName: string]: 'pass' | 'fail' | 'skip';
+}
+
+const results: TestResultMap = {
+  "Login with valid credentials": "pass",
+  "Login with wrong password":    "fail",
+  "Register with existing email": "skip",
+};
+
+// Add results dynamically
+results["Password reset flow"] = "pass";
+
+// All values are correctly typed
+const loginResult = results["Login with valid credentials"]; // 'pass' | 'fail' | 'skip'
+\`\`\`
+        `
+      },
+      {
+        id: 'ts-functions',
+        title: 'Functions with TypeScript',
+        analogy: "A typed function is like a vending machine with labelled slots: insert a coin (number) in slot A and a product code (string) in slot B, and receive a specific Snack (Snack object). The machine physically cannot accept a banana leaf in the coin slot — the shape simply doesn't fit.",
+        lessonMarkdown: `
+### 1. Parameter Type Annotations
+
+*💡 Analogy: Function parameters with type annotations are like labelled input ports on professional equipment. The USB-C port accepts USB-C only. The HDMI port accepts HDMI only. Wrong cable, wrong shape — it physically cannot connect.*
+
+\`\`\`typescript
+// Without types — anything can sneak in silently
+function retryTest(testFn, count) {
+  // Is testFn a function? A string? A number? Unknown!
+  // Is count a string "3" or a number 3? Who knows?
+}
+
+// With types — the contract is explicit and enforced
+function retryTest(
+  testFn: () => Promise<void>,
+  count: number
+): Promise<void> {
+  // testFn is definitively a function returning a Promise
+  // count is definitively a number
+}
+\`\`\`
+
+### 2. Return Type Annotations
+
+\`\`\`typescript
+// Returning a string
+function getBaseURL(environment: string): string {
+  if (environment === "staging")    return "https://staging.example.com";
+  if (environment === "production") return "https://www.example.com";
+  return "https://dev.example.com";
+}
+
+// Returning nothing (side effects only)
+function logResult(testName: string, passed: boolean): void {
+  console.log(\`[\${passed ? '✅ PASS' : '❌ FAIL'}] \${testName}\`);
+}
+
+// Returning a Promise — standard for async Playwright tests
+async function getPageTitle(url: string): Promise<string> {
   const response = await fetch(url);
-  const data = await response.json();
-  return data; // Returns whatever type <T> we passed in!
+  return response.statusText;
+}
+\`\`\`
+
+### 3. Optional Parameters — The ? Modifier
+
+*💡 Analogy: An optional parameter is like the 'notes' field on a delivery form. The delivery is valid and complete with or without notes — the customer decides whether to fill it in.*
+
+\`\`\`typescript
+function runTest(
+  testName: string,
+  timeout: number,
+  retries?: number      // Optional — callers can omit this
+): void {
+  const maxRetries = retries ?? 0;  // Default to 0 if not provided
+  console.log(\`Running: \${testName} | timeout: \${timeout}ms | retries: \${maxRetries}\`);
 }
 
-// 3. The Magic: Using the generic
-const user = await apiGet<UserResponse>("/api/v1/user/1");
+runTest("Login Test", 30000);        // ✅ retries not provided — that's fine
+runTest("Checkout Test", 30000, 3);  // ✅ retries = 3
 
-// ✅ TypeScript provides full autocomplete!
-console.log(user.name); 
+// ⚠️ Rule: optional parameters MUST come AFTER all required ones
+function invalid(optional?: string, required: number): void {}  // ❌ Syntax error
 \`\`\`
 
-### 4. Common Beginner Mistakes
-**Mistake: Using \`any\` instead of Generics**
-\`\`\`typescript
-// ❌ Using any ruins TypeScript
-function badReturn(item: any): any { return item; }
-const result = badReturn("hello"); // result is 'any', no autocomplete!
+### 4. Default Parameters
 
-// ✅ Generics preserve the exact type!
-function goodReturn<T>(item: T): T { return item; }
-const result2 = goodReturn("hello"); // result2 is strictly 'string'!
+\`\`\`typescript
+function launchBrowser(
+  browserType: string  = "chromium",
+  headless: boolean    = true,
+  timeout: number      = 30000
+): void {
+  console.log(\`Launching \${browserType} | headless: \${headless} | timeout: \${timeout}ms\`);
+}
+
+launchBrowser();                            // chromium, true, 30000
+launchBrowser("firefox");                   // firefox, true, 30000
+launchBrowser("webkit", false);             // webkit, false, 30000
+launchBrowser("chromium", false, 60000);    // chromium, false, 60000
+\`\`\`
+
+### 5. Rest Parameters — Variable Number of Arguments
+
+\`\`\`typescript
+// Accept any number of tag strings
+function tagTest(testName: string, ...tags: string[]): void {
+  console.log(\`[\${tags.join(', ')}] \${testName}\`);
+}
+
+tagTest("Login Test", "smoke", "auth");
+tagTest("Checkout", "regression", "payment", "slow", "critical");
+
+// Rest parameters are always typed as an array
+function sumAll(...numbers: number[]): number {
+  return numbers.reduce((total, n) => total + n, 0);
+}
+\`\`\`
+
+### 6. Function Type Annotations — Functions as Values
+
+\`\`\`typescript
+// Describing the TYPE signature of a function
+type TestCallback    = (testName: string, duration: number) => void;
+type AsyncTestFn     = () => Promise<void>;
+type ValidatorFn<T>  = (value: T) => boolean;
+
+// Using function types as parameters
+function withRetry(
+  fn: AsyncTestFn,
+  maxAttempts: number
+): AsyncTestFn {
+  return async () => {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        await fn();
+        return;  // Success — exit loop
+      } catch (err) {
+        if (attempt === maxAttempts) throw err;
+        console.log(\`Attempt \${attempt} failed. Retrying...\`);
+      }
+    }
+  };
+}
+\`\`\`
+
+### 7. Arrow Functions with Types
+
+\`\`\`typescript
+// Full type annotation on an arrow function
+const multiply = (a: number, b: number): number => a * b;
+
+const isValidEmail = (email: string): boolean =>
+  /^[^s@]+@[^s@]+.[^s@]+$/.test(email);
+
+// Async arrow function — very common in test helpers
+const fetchTestData = async (
+  endpoint: string
+): Promise<{ id: number; name: string }[]> => {
+  const res = await fetch(endpoint);
+  return res.json();
+};
+\`\`\`
+
+### 8. Common Mistakes
+
+**Mistake 1: Forgetting return type on async functions**
+\`\`\`typescript
+// ❌ TypeScript infers Promise<any> — unsafe
+async function getUser(id: number) {
+  const res = await fetch(\`/api/users/\${id}\`);
+  return res.json();  // any — type safety lost
+}
+
+// ✅ Explicit return type catches shape mismatches at compile time
+async function getUser(id: number): Promise<{ id: number; email: string }> {
+  const res = await fetch(\`/api/users/\${id}\`);
+  return res.json();
+}
+\`\`\`
+
+**Mistake 2: Mixing up void and undefined**
+\`\`\`typescript
+// void means "this function doesn't return a meaningful value"
+// undefined is an actual value
+function logMessage(msg: string): void {
+  console.log(msg);
+  // return undefined; — this is fine, but redundant
+  // return "done";    — ❌ Error: Type 'string' not assignable to 'void'
+}
 \`\`\`
         `
       },
       {
-        id: 'utility-types',
-        title: 'Utility Types',
-        analogy: "Utility Types are like Photoshop filters for your data. If you have a beautiful HD photo of a user profile, \`Partial<>\` makes everything optional, \`Pick<>\` is the crop tool, and \`Readonly<>\` laminates the photo so it can never be changed.",
+        id: 'ts-union-intersection',
+        title: 'Union & Intersection Types',
+        analogy: "A union type is an OR gate — this variable can hold type A OR type B. An intersection type is an AND gate — this object must satisfy BOTH type A AND type B simultaneously. Union gives flexibility; intersection demands completeness.",
         lessonMarkdown: `
-### 1. The Core Concept
-*💡 Analogy: Photoshop filters and Laminating machines.*
+### 1. Union Types — Accepting Multiple Types
 
-**Deep Explanation:**
-In testing, you rarely use the *exact* same data model everywhere. Sometimes you need a massive \`User\` object, but for a Login API test, you only need their username and password. 
-Instead of writing 5 different versions of the \`User\` type, TypeScript gives you **Utility Types** to instantly transform existing types on the fly!
+*💡 Analogy: A union type is like an international travel adapter. The socket accepts a US plug OR a UK plug OR a EU plug. You declare upfront which shapes are acceptable — anything else is rejected.*
 
-### 2. Basic Example: Partial & Pick
 \`\`\`typescript
-type User = { id: number; name: string; email: string; age: number };
+// A variable that accepts string OR number
+let testId: string | number;
+testId = "TC-001";   // ✅ string
+testId = 42;         // ✅ number
+testId = true;       // ❌ Error: boolean is not in the union
 
-// ❌ Bad: Creating a duplicate type just for updates
-type UserUpdate = { name?: string; email?: string; age?: number };
+// Function accepting string OR string array
+function runTests(tests: string | string[]): void {
+  if (typeof tests === 'string') {
+    console.log(\`Running: \${tests}\`);
+  } else {
+    console.log(\`Running \${tests.length} tests: \${tests.join(', ')}\`);
+  }
+}
 
-// ✅ Good: Using Partial (makes all properties optional!)
-type BetterUpdate = Partial<User>;
-
-// ✅ Good: Using Pick (Crops the type to just specific keys!)
-type LoginPayload = Pick<User, "email" | "name">;
+runTests("Login Test");
+runTests(["Login Test", "Checkout Test", "Logout Test"]);
 \`\`\`
 
-### 3. Automation Example: Omit & Readonly
-In test automation, you often want to ensure your global test configurations are never accidentally modified by a rogue test.
+### 2. Literal Union Types — Controlled Vocabularies
+
+*💡 Analogy: Literal unions are like a dropdown menu on a form. You cannot free-type — you MUST choose from the predefined options. This eliminates entire classes of typo bugs.*
+
 \`\`\`typescript
-type TestConfig = { baseUrl: string; timeout: number; retries: number };
+type TestStatus  = 'pass' | 'fail' | 'skip' | 'running';
+type Environment = 'dev' | 'staging' | 'production';
+type BrowserType = 'chromium' | 'firefox' | 'webkit';
+type HttpMethod  = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
-// 1. Omit: Removes specific keys. Great for creating data!
-// We omit 'timeout' because the system generates it automatically.
-type CreateConfigPayload = Omit<TestConfig, "timeout">;
-const newConf: CreateConfigPayload = { baseUrl: "http://qa", retries: 2 };
+function scheduleTest(
+  name: string,
+  env: Environment,
+  browser: BrowserType
+): void {
+  console.log(\`[\${browser}] Scheduling "\${name}" on \${env}\`);
+}
 
-// 2. Readonly: Laminates the object!
-const globalConf: Readonly<TestConfig> = { baseUrl: "http://qa", timeout: 5000, retries: 1 };
-
-// ❌ Error: Cannot assign to 'timeout' because it is a read-only property.
-globalConf.timeout = 10000; 
+scheduleTest("Login Test", "staging", "chromium");  // ✅
+scheduleTest("Login Test", "local",   "chrome");    // ❌ 'local' and 'chrome' not in unions
 \`\`\`
 
-### 4. Common Beginner Mistakes
-**Mistake: Creating duplicate types instead of Utilities**
-Beginners will often create \`TypeA\`, \`TypeB\`, and \`TypeC\` that share 90% of the same properties. When a requirement changes, they have to update it in 3 different places. Always build a "Master Type" and use Utility Types to derive the rest!
+### 3. Discriminated Unions — TypeScript's Most Powerful Pattern
+
+*💡 Analogy: Think of customer support tickets. A 'billing' ticket has account number and charge amount. A 'technical' ticket has error code and browser version. A 'general' ticket just has a message. The \`type\` field on each ticket is the discriminant — it tells you which variant you have and unlocks the fields specific to that variant.*
+
+\`\`\`typescript
+type PassResult = {
+  status: 'pass';            // The discriminant
+  durationMs: number;
+  screenshotPath?: string;
+};
+
+type FailResult = {
+  status: 'fail';            // The discriminant
+  durationMs: number;
+  errorMessage: string;      // Only on failures
+  stackTrace: string;        // Only on failures
+};
+
+type SkipResult = {
+  status: 'skip';            // The discriminant
+  reason: string;            // Only on skips
+};
+
+type TestResult = PassResult | FailResult | SkipResult;
+
+function report(result: TestResult): string {
+  switch (result.status) {
+    case 'pass':
+      return \`✅ Passed in \${result.durationMs}ms\`;
+    case 'fail':
+      // TypeScript KNOWS result has errorMessage and stackTrace here
+      return \`❌ Failed: \${result.errorMessage}\`;
+    case 'skip':
+      // TypeScript KNOWS result has reason here
+      return \`⏭️ Skipped: \${result.reason}\`;
+  }
+}
+\`\`\`
+
+### 4. Intersection Types — Combining Multiple Shapes
+
+*💡 Analogy: An intersection is like a job requiring someone who is BOTH a software developer AND a test engineer AND speaks Spanish. The candidate must fully satisfy ALL three requirements — no partial credit.*
+
+\`\`\`typescript
+interface HasId {
+  id: string;
+}
+
+interface HasTimestamps {
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface TestCase {
+  name: string;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  steps: string[];
+}
+
+// Intersection: MUST have all properties from all three types
+type FullTestCase = TestCase & HasId & HasTimestamps;
+
+const tc: FullTestCase = {
+  id: "TC-001",
+  name: "Login with valid credentials",
+  priority: "high",
+  steps: ["Navigate to /login", "Enter credentials", "Click submit", "Verify dashboard"],
+  createdAt: new Date("2025-01-01"),
+  updatedAt: new Date("2025-03-15"),
+};
+\`\`\`
+
+### 5. typeof Type Guards — Narrowing at Runtime
+
+\`\`\`typescript
+// TypeScript narrows the type inside each branch
+function formatId(id: string | number): string {
+  if (typeof id === 'number') {
+    // TypeScript KNOWS: id is number in this block
+    return \`TC-\${id.toString().padStart(4, '0')}\`;  // TC-0042
+  }
+  // TypeScript KNOWS: id is string here
+  return id.startsWith('TC-') ? id : \`TC-\${id}\`;
+}
+
+console.log(formatId(42));       // "TC-0042"
+console.log(formatId("007"));    // "TC-007"
+console.log(formatId("TC-001")); // "TC-001"
+\`\`\`
+
+### 6. Common Mistakes
+
+**Mistake: Accessing type-specific methods without narrowing**
+\`\`\`typescript
+function shout(value: string | number): void {
+  // ❌ Error: 'toUpperCase' doesn't exist on type 'number'
+  console.log(value.toUpperCase());
+
+  // ✅ Narrow the type first
+  if (typeof value === 'string') {
+    console.log(value.toUpperCase());
+  } else {
+    console.log(value.toLocaleString());
+  }
+}
+\`\`\`
         `
       },
       {
-        id: 'null-safety',
+        id: 'ts-enums',
+        title: 'Enums',
+        analogy: "An enum is like a set of official traffic signals. You don't say 'the light is emitting red wavelengths at 700nm' — you say RED. Enums give memorable, readable names to a fixed set of related constants, making code self-explanatory and typo-proof.",
+        lessonMarkdown: `
+### 1. The Problem Enums Solve
+
+*💡 Analogy: Imagine your test code is full of magic numbers like \`200\`, \`404\`, \`503\`. Six months later, a new team member reads \`if (status === 503)\` and has to look up what 503 means. With an enum, it reads \`if (status === HttpStatus.ServiceUnavailable)\` — the intent is self-documenting.*
+
+**Without enums — fragile magic strings:**
+\`\`\`typescript
+// ❌ Typos become silent bugs
+function handleResult(status: string): void {
+  if (status === "pass") { /* ... */ }
+  if (status === "PASS") { /* ... */ }  // Typo — silently does nothing
+  if (status === "passe") { /* ... */ } // Typo — silently does nothing
+}
+\`\`\`
+
+**With enums — compile-time safety:**
+\`\`\`typescript
+// ✅ Typos become compile errors — caught before running
+enum TestStatus {
+  Pass = "pass",
+  Fail = "fail",
+  Skip = "skip",
+}
+
+function handleResult(status: TestStatus): void {
+  if (status === TestStatus.Pass) { /* ... */ }
+}
+
+handleResult(TestStatus.Pass);  // ✅
+handleResult("passs");          // ❌ Error: string not assignable to TestStatus
+\`\`\`
+
+### 2. String Enums — The Recommended Choice for QA
+
+\`\`\`typescript
+enum Environment {
+  Dev        = "dev",
+  Staging    = "staging",
+  Production = "production",
+}
+
+enum Browser {
+  Chromium = "chromium",
+  Firefox  = "firefox",
+  WebKit   = "webkit",
+}
+
+enum Priority {
+  Low      = "low",
+  Medium   = "medium",
+  High     = "high",
+  Critical = "critical",
+}
+
+// Benefits of string enums:
+// 1. Values are human-readable in logs and reports
+// 2. JSON serialisation looks clean: "staging" not 1
+// 3. Debugger shows "staging" not an opaque number
+\`\`\`
+
+### 3. Numeric Enums — Auto-Incrementing Numbers
+
+\`\`\`typescript
+enum HttpStatus {
+  OK           = 200,
+  Created      = 201,
+  NoContent    = 204,
+  BadRequest   = 400,
+  Unauthorized = 401,
+  Forbidden    = 403,
+  NotFound     = 404,
+  ServerError  = 500,
+  ServiceUnavailable = 503,
+}
+
+// Very natural for API test assertions
+async function verifyEndpoint(
+  url: string,
+  expectedStatus: HttpStatus
+): Promise<void> {
+  const response = await fetch(url);
+  if (response.status !== expectedStatus) {
+    throw new Error(\`Expected \${expectedStatus}, got \${response.status}\`);
+  }
+}
+
+await verifyEndpoint("/api/users",   HttpStatus.OK);
+await verifyEndpoint("/api/missing", HttpStatus.NotFound);
+\`\`\`
+
+### 4. Using Enums in Interfaces
+
+\`\`\`typescript
+interface TestRun {
+  id: string;
+  environment: Environment;
+  browser: Browser;
+  status: TestStatus;
+  priority: Priority;
+  startedAt: Date;
+}
+
+const latestRun: TestRun = {
+  id: "run-42",
+  environment: Environment.Staging,
+  browser: Browser.Chromium,
+  status: TestStatus.Pass,
+  priority: Priority.High,
+  startedAt: new Date(),
+};
+\`\`\`
+
+### 5. Iterating Over Enum Values
+
+\`\`\`typescript
+enum Browser {
+  Chromium = "chromium",
+  Firefox  = "firefox",
+  WebKit   = "webkit",
+}
+
+// Run the same test across all browsers
+const allBrowsers = Object.values(Browser) as Browser[];
+
+for (const browser of allBrowsers) {
+  console.log(\`Queuing run: \${browser}\`);
+}
+// Output:
+// Queuing run: chromium
+// Queuing run: firefox
+// Queuing run: webkit
+\`\`\`
+
+### 6. Const Enums — Zero Runtime Cost
+
+\`\`\`typescript
+// const enums are inlined at compile time — the enum object doesn't exist at runtime
+const enum Direction {
+  Up    = "UP",
+  Down  = "DOWN",
+  Left  = "LEFT",
+  Right = "RIGHT",
+}
+
+const move = Direction.Up;
+// Compiles to: const move = "UP";
+// No Direction object is created — smaller, faster bundle
+\`\`\`
+
+### 7. Enums vs Literal Unions — When to Choose Which
+
+\`\`\`typescript
+// Literal union — simpler, no import needed
+type Status = 'pass' | 'fail' | 'skip';
+
+// Enum — better when:
+// ✅ You need to iterate over all values programmatically
+// ✅ The enum is used across many files
+// ✅ The values might change (change in one place)
+// ✅ You want the label to differ from the value
+
+// For simple cases, literal unions are usually enough
+\`\`\`
+        `
+      },
+      {
+        id: 'ts-type-aliases',
+        title: 'Type Aliases',
+        analogy: "A type alias is like giving a nickname to a complex description. Instead of writing 'the function that accepts a test name string and a duration in milliseconds and returns a formatted string report line' every time, you call it ReportFormatter. The alias doesn't create anything new — it's just a short, memorable label for an existing shape.",
+        lessonMarkdown: `
+### 1. The type Keyword
+
+*💡 Analogy: \`interface\` is like a formal legal contract template in a law firm — structured, official, extendable. \`type\` is like a flexible shorthand notation — it can describe anything: objects, primitives, functions, unions, intersections — not just objects.*
+
+\`\`\`typescript
+// type alias for primitives — gives semantic meaning to raw types
+type URL         = string;
+type Email       = string;
+type Milliseconds = number;
+type Percentage  = number;
+type TestName    = string;
+
+const baseURL: URL         = "https://staging.example.com";
+const userEmail: Email     = "qa@example.com";
+const timeout: Milliseconds = 30000;
+const passRate: Percentage = 98.5;
+\`\`\`
+
+Even though these are all just \`string\` or \`number\` underneath, the aliases communicate **intent** clearly to every reader of the code.
+
+### 2. Type Aliases for Object Shapes
+
+\`\`\`typescript
+type Credentials = {
+  username: string;
+  password: string;
+};
+
+type TestConfig = {
+  baseURL: URL;
+  timeout: Milliseconds;
+  headless: boolean;
+  retries?: number;
+};
+
+// Usage
+const stagingCreds: Credentials = {
+  username: "qa-user@example.com",
+  password: "SecurePass123!",
+};
+\`\`\`
+
+### 3. Type Aliases for Unions — The Killer Use Case
+
+\`\`\`typescript
+// Define once — reuse everywhere
+type TestStatus  = 'pass' | 'fail' | 'skip' | 'running' | 'queued';
+type BrowserName = 'chromium' | 'firefox' | 'webkit';
+type HttpMethod  = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+type LogLevel    = 'debug' | 'info' | 'warn' | 'error';
+type Priority    = 'low' | 'medium' | 'high' | 'critical';
+
+// Change in ONE place — propagates everywhere the alias is used
+function setTestStatus(id: string, status: TestStatus): void { /* ... */ }
+function launchBrowser(browser: BrowserName): void { /* ... */ }
+function logMessage(level: LogLevel, msg: string): void { /* ... */ }
+\`\`\`
+
+### 4. Type Aliases for Function Signatures
+
+\`\`\`typescript
+// Give complex function signatures a readable name
+type AsyncTestFn       = () => Promise<void>;
+type BeforeHook        = (testName: string) => Promise<void>;
+type AfterHook         = (testName: string, passed: boolean) => Promise<void>;
+type ValidatorFn<T>    = (actual: T, expected: T) => boolean;
+type TransformerFn<T>  = (input: T) => T;
+
+// Much more readable than repeating the full signature every time
+interface TestSuite {
+  name: string;
+  beforeAll?:  () => Promise<void>;
+  beforeEach?: BeforeHook;
+  afterEach?:  AfterHook;
+  tests: AsyncTestFn[];
+}
+\`\`\`
+
+### 5. Type Aliases for Intersections
+
+\`\`\`typescript
+type WithId         = { id: string };
+type WithTimestamps = { createdAt: Date; updatedAt: Date };
+type WithAuthor     = { createdBy: string };
+
+// Build composite types using intersections
+type AuditedRecord  = WithId & WithTimestamps & WithAuthor;
+
+type TestCase = AuditedRecord & {
+  name: string;
+  priority: Priority;
+  steps: string[];
+};
+\`\`\`
+
+### 6. type vs interface — The Definitive Guide
+
+*💡 Analogy: \`interface\` is a club membership form that can be amended and extended over time (declaration merging). \`type\` is a stamped, sealed certificate — once issued, no one can add extra clauses to it from outside.*
+
+| Feature | \`type\` | \`interface\` |
+|---------|------|-----------|
+| Object shapes | ✅ | ✅ |
+| Primitive aliases | ✅ | ❌ |
+| Union types | ✅ | ❌ |
+| Intersection / extending | \`&\` operator | \`extends\` keyword |
+| Declaration merging | ❌ | ✅ |
+| Implementing in a class | ✅ | ✅ |
+| Recursive self-reference | ✅ | ✅ |
+
+**Practical rule for QA engineers:**
+- Use \`interface\` for Page Objects, domain entities (User, TestCase, APIResponse)
+- Use \`type\` for unions, primitives, function signatures, and complex combinations
+
+### 7. Recursive Type Aliases
+
+\`\`\`typescript
+// A test suite tree — can nest indefinitely
+type TestTree =
+  | string                                        // Leaf: single test name
+  | { suiteName: string; children: TestTree[] };  // Branch: nested suite
+
+const structure: TestTree = {
+  suiteName: "Authentication",
+  children: [
+    "Login with valid credentials",
+    {
+      suiteName: "OAuth",
+      children: ["Google OAuth", "GitHub OAuth", "Microsoft SSO"],
+    },
+    "Logout",
+    "Session timeout",
+  ],
+};
+\`\`\`
+        `
+      },
+      {
+        id: 'ts-null-safety',
         title: 'Null & Undefined Safety',
-        analogy: "Null safety is like a bomb disposal robot. Trying to click a button that doesn't exist causes an explosion (a crash). Optional Chaining (\`?.\`) sends the robot in: if the button doesn't exist, it safely powers down instead of blowing up the test.",
+        analogy: "Null safety is like a package delivery system with mandatory signature confirmation. Without it, packages get silently left at the door and anyone can walk off with them. With TypeScript strict mode, the recipient must be present — no silent deliveries to empty houses, no surprises.",
         lessonMarkdown: `
-### 1. The Core Concept
-*💡 Analogy: The bomb disposal robot.*
+### 1. Why Null Safety Matters
 
-**Deep Explanation:**
-The number one crash in JavaScript is: **"Cannot read properties of undefined (reading 'xyz')"**. This happens when you try to access data inside an object that doesn't exist. 
-TypeScript provides powerful operators to safely navigate broken data without crashing your automation framework.
+*💡 Analogy: A null reference error is like reaching for your car keys on the hook by the door and grabbing thin air. You assumed the keys would be there — they weren't. TypeScript's \`strictNullChecks\` forces you to check whether the keys are actually on the hook before you try to grab them.*
 
-### 2. Basic Example: Optional Chaining (\`?.\`)
+**The most common runtime error in JavaScript:**
+\`\`\`
+TypeError: Cannot read properties of null (reading 'click')
+TypeError: Cannot read properties of undefined (reading 'textContent')
+\`\`\`
+
+These happen because code assumes a value exists when it might be \`null\` or \`undefined\`. TypeScript with \`strictNullChecks\` forces you to handle these cases at compile time.
+
+### 2. strictNullChecks — The Safety Switch
+
+In \`tsconfig.json\`, setting \`"strict": true\` enables \`strictNullChecks\` automatically:
+
 \`\`\`typescript
-type User = { profile?: { address?: { city: string } } };
-const user1: User = {}; // Empty user!
+// ❌ Without strictNullChecks — null sneaks in silently (old default)
+let element: HTMLElement = null;  // No error — dangerous
 
-// ❌ Old way: Massive if-statements to prevent crashes
-if (user1 && user1.profile && user1.profile.address) {
-  console.log(user1.profile.address.city);
+// ✅ With strictNullChecks — you MUST explicitly allow null
+let element: HTMLElement | null = null;  // Forces you to handle the null case
+\`\`\`
+
+### 3. Optional Chaining — The ?. Operator
+
+*💡 Analogy: Optional chaining is like a GPS that quietly stops and returns "no route" when a road doesn't exist, instead of driving you off a cliff. Each \`?.\` is a safe step that returns \`undefined\` rather than throwing an error.*
+
+\`\`\`typescript
+interface User {
+  name: string;
+  address?: {
+    city?: string;
+    postcode?: string;
+  };
 }
 
-// ✅ Modern way: Optional Chaining
-// If any step is missing, it immediately stops and returns 'undefined' without crashing!
-console.log(user1?.profile?.address?.city);
+const user: User = { name: "Sagar" };
+
+// ❌ Without optional chaining — runtime crash if address is undefined
+const city = user.address.city;
+// TypeError: Cannot read properties of undefined (reading 'city')
+
+// ✅ With optional chaining — returns undefined safely at any missing step
+const city = user?.address?.city;
+console.log(city ?? "City unknown");  // "City unknown"
 \`\`\`
 
-### 3. Automation Example: Nullish Coalescing (\`??\`)
-In testing, you often extract text from the DOM. If the element isn't there, you want a fallback value, not a crash.
+**Optional chaining in test automation:**
 \`\`\`typescript
-// Let's pretend we are querying the webpage
-const toastMessage = document.querySelector('.toast')?.textContent;
+interface TestRun {
+  result?: {
+    error?: {
+      message: string;
+      stack?: string;
+    };
+  };
+}
 
-// ❌ Bad fallback using OR (||). 
-// Fails if the text is legitimately an empty string ""!
-const message1 = toastMessage || "Default Error";
+const run: TestRun = {};
 
-// ✅ Good fallback using Nullish Coalescing (??)
-// ONLY falls back if the left side is strictly null or undefined!
-const message2 = toastMessage ?? "Default Error";
+// Safe deep access — no crash even if every level is absent
+const errorMsg = run.result?.error?.message;  // undefined
+const stack    = run.result?.error?.stack;    // undefined
+
+console.log(\`Error: \${errorMsg ?? "None"}\`);  // "Error: None"
 \`\`\`
 
-### 4. Common Beginner Mistakes
-**Mistake: Abusing the Non-Null Assertion (\`!\`)**
-The exclamation mark tells TypeScript: *"Shut up, I promise this is not null."*
+### 4. Nullish Coalescing — The ?? Operator
+
+*💡 Analogy: \`??\` is a smart fallback rule: "Use the main value, BUT if it is specifically \`null\` or \`undefined\` (not just falsy), switch to the backup." It ignores perfectly valid falsy values like \`0\`, \`false\`, or \`""\`.*
+
 \`\`\`typescript
-const button = document.querySelector('#submit-btn');
+// ?? only triggers for null or undefined — never for 0, false, ""
+const retries: number | null = null;
+const maxRetries = retries ?? 3;           // 3 — retries is null
 
-// ❌ Dangerous! If the button is missing, your test violently crashes!
-button!.click();
+const timeout: number | undefined = 0;
+const effectiveTimeout = timeout ?? 5000;  // 0 — 0 is NOT null/undefined
+// Compare: 0 || 5000 = 5000  ← Wrong! || treats 0 as falsy
 
-// ✅ Safe! Only clicks if the button actually exists.
-button?.click();
+// Chaining fallbacks elegantly
+const delay = userConfig?.delay ?? envConfig?.delay ?? 1000;
 \`\`\`
-*Why it happens:* Beginners get annoyed by the "Object is possibly null" red squiggly error and use \`!\` to force it away. You should almost NEVER use \`!\`. Always handle the null case!
+
+### 5. Optional Properties vs Explicit undefined
+
+\`\`\`typescript
+interface SearchOptions {
+  query: string;
+  maxResults?: number;   // Optional: omitting is fine
+  offset?: number;       // Optional: omitting is fine
+}
+
+function search(options: SearchOptions): void {
+  const max    = options.maxResults ?? 10;
+  const offset = options.offset ?? 0;
+  console.log(\`Searching "\${options.query}" (max: \${max}, from: \${offset})\`);
+}
+
+search({ query: "Playwright tutorial" });                     // max:10, offset:0
+search({ query: "TypeScript", maxResults: 5 });               // max:5, offset:0
+search({ query: "API testing", maxResults: 20, offset: 40 }); // max:20, offset:40
+\`\`\`
+
+### 6. Non-Null Assertion Operator — ! (Use Very Sparingly)
+
+*💡 Analogy: The \`!\` operator is telling your GPS "I KNOW this road exists — stop asking me to confirm." If you're wrong, you drive into the ocean. Use it only when you have absolute certainty.*
+
+\`\`\`typescript
+// ! tells TypeScript "I guarantee this is not null/undefined"
+const submitBtn = document.getElementById("submit")!;
+submitBtn.click();  // TypeScript trusts you — no error
+// BUT if the element doesn't exist at runtime: crash
+
+// ✅ Much safer: check explicitly
+const submitBtn = document.getElementById("submit");
+if (submitBtn !== null) {
+  submitBtn.click();  // TypeScript now KNOWS it's not null
+}
+
+// ✅ In Playwright — the locator API handles nulls gracefully
+await page.locator("#submit").click();  // Throws a proper Playwright error if missing
+\`\`\`
+
+### 7. Narrowing null with if Checks
+
+\`\`\`typescript
+function describeDuration(result: { durationMs: number | null }): string {
+  if (result.durationMs === null) {
+    return "Test did not complete — no duration recorded";
+  }
+  // TypeScript now KNOWS durationMs is number — null is ruled out
+  return \`Completed in \${result.durationMs.toLocaleString()}ms\`;
+}
+\`\`\`
+
+### 8. Common Mistakes
+
+**Mistake: Using ! to silence "possibly null" errors without understanding why**
+\`\`\`typescript
+// ❌ Silences the error but creates a time bomb
+const element = document.querySelector(".loading-spinner")!;
+element.remove();  // Crashes at runtime if spinner doesn't exist
+
+// ✅ Handle the null case properly
+const element = document.querySelector(".loading-spinner");
+if (element) {
+  element.remove();
+}
+\`\`\`
+        `
+      },
+      {
+        id: 'ts-type-assertions',
+        title: 'Type Assertions & Guards',
+        analogy: "A type assertion is a security badge override — you tell the system 'I know this person has clearance, just let them through.' A type guard is the proper ID check — you actually verify their identity with evidence before granting access. Both achieve the goal; only one is truly safe.",
+        lessonMarkdown: `
+### 1. Type Assertions — Telling TypeScript What You Know
+
+*💡 Analogy: You receive an unmarked box. You open it and clearly see it's full of oranges, but the box has no label. A type assertion is you writing "ORANGES" on the box so the rest of your team treats it correctly. You are not changing the contents — you are providing the label TypeScript cannot figure out on its own.*
+
+\`\`\`typescript
+// TypeScript treats API response JSON as 'unknown'
+const response = await fetch("/api/users/1");
+const data: unknown = await response.json();
+
+// Assert the shape you know it has
+const user = data as { id: number; email: string; name: string };
+console.log(user.email);  // TypeScript now accepts this
+
+// ⚠️ Type assertions don't validate at runtime
+// If data is actually null, your code still crashes
+\`\`\`
+
+### 2. The as Keyword — Preferred Syntax
+
+\`\`\`typescript
+const rawElement = document.getElementById("username");
+
+// ✅ Modern as syntax (works everywhere, including JSX)
+const inputElement = rawElement as HTMLInputElement;
+inputElement.value = "testuser@example.com";
+
+// ❌ Angle-bracket syntax (avoid in .tsx files — conflicts with JSX)
+const inputElement = <HTMLInputElement>rawElement;
+\`\`\`
+
+### 3. typeof Type Guards — Runtime Verification
+
+*💡 Analogy: A \`typeof\` guard is like a sorting conveyor belt at a warehouse. Each item goes through a sensor: "Is this a letter or a parcel?" — and gets routed to the correct section based on what it actually is.*
+
+\`\`\`typescript
+type Input = string | number | boolean;
+
+function describe(value: Input): string {
+  if (typeof value === 'string') {
+    // TypeScript KNOWS: value is string in this block
+    return \`Text (\${value.length} chars): \${value.toUpperCase()}\`;
+  } else if (typeof value === 'number') {
+    // TypeScript KNOWS: value is number here
+    return \`Number: \${value.toFixed(2)}\`;
+  } else {
+    // TypeScript KNOWS: value is boolean here
+    return \`Flag: \${value ? 'enabled' : 'disabled'}\`;
+  }
+}
+
+// Works with null check too
+function safeLength(value: string | null): number {
+  if (typeof value === 'string') return value.length;
+  return 0;
+}
+\`\`\`
+
+### 4. instanceof Type Guards — For Classes and Error Handling
+
+\`\`\`typescript
+class NetworkError extends Error {
+  constructor(message: string, public statusCode: number) {
+    super(message);
+    this.name = 'NetworkError';
+  }
+}
+
+class ValidationError extends Error {
+  constructor(message: string, public field: string) {
+    super(message);
+    this.name = 'ValidationError';
+  }
+}
+
+// Robust error handling — exactly what QA automation needs
+function handleTestError(error: unknown): void {
+  if (error instanceof NetworkError) {
+    // TypeScript KNOWS: error has statusCode
+    console.error(\`Network error (\${error.statusCode}): \${error.message}\`);
+    if (error.statusCode >= 500) console.log("Retrying after server error...");
+  } else if (error instanceof ValidationError) {
+    // TypeScript KNOWS: error has field
+    console.error(\`Validation failed on '\${error.field}': \${error.message}\`);
+  } else if (error instanceof Error) {
+    console.error(\`Unexpected error: \${error.message}\`);
+  } else {
+    console.error("Non-Error thrown:", error);
+  }
+}
+\`\`\`
+
+### 5. in Operator Type Guard — Check Property Existence
+
+\`\`\`typescript
+interface PassResult { status: 'pass'; durationMs: number }
+interface FailResult { status: 'fail'; errorMessage: string; screenshotPath?: string }
+
+type TestResult = PassResult | FailResult;
+
+function summarise(result: TestResult): string {
+  if ('errorMessage' in result) {
+    // TypeScript KNOWS: result is FailResult
+    return \`❌ FAILED: \${result.errorMessage}\`;
+  }
+  // TypeScript KNOWS: result is PassResult
+  return \`✅ PASSED in \${result.durationMs}ms\`;
+}
+\`\`\`
+
+### 6. Custom Type Predicates — The is Keyword
+
+*💡 Analogy: A type predicate function is like a certified inspector who issues official clearance. When they say "yes, this package is hazardous material," everyone trusts the certification and acts accordingly. The \`is\` keyword makes a function an official TypeScript type certifier.*
+
+\`\`\`typescript
+interface TestCase {
+  name: string;
+  steps: string[];
+  priority: 'low' | 'medium' | 'high';
+}
+
+// Return type "value is TestCase" is the type predicate
+function isTestCase(value: unknown): value is TestCase {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'name' in value &&
+    'steps' in value &&
+    'priority' in value &&
+    typeof (value as TestCase).name === 'string' &&
+    Array.isArray((value as TestCase).steps)
+  );
+}
+
+// Usage — parsing untrusted external data
+const rawData: unknown = JSON.parse(await readFile("test-cases.json", "utf-8"));
+
+if (Array.isArray(rawData)) {
+  const validCases = rawData.filter(isTestCase);  // TestCase[] — type safe!
+  validCases.forEach(tc => {
+    console.log(\`Loaded: \${tc.name} (\${tc.steps.length} steps)\`);
+  });
+}
+\`\`\`
+
+### 7. Common Mistakes
+
+**Mistake: Using as to silence legitimate TypeScript errors**
+\`\`\`typescript
+// ❌ Bypassing type safety — the error was telling you something important
+function getUser(): User | null { return null; }
+const user = getUser() as User;
+user.email;  // TypeScript is silent — but crashes at runtime
+
+// ✅ Handle the null case properly
+const user = getUser();
+if (user !== null) {
+  user.email;  // TypeScript knows it's safe here
+}
+\`\`\`
+
+**Mistake: Using double assertion (as unknown as X) without understanding why**
+\`\`\`typescript
+// ❌ Double assertion = complete bypass of type system
+const value = "hello" as unknown as number;
+// This is a red flag — if you need this, re-examine your design
+
+// ✅ Usually means you need a proper union type or runtime validation
+\`\`\`
         `
       }
     ]

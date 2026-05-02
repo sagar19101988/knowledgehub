@@ -89,13 +89,13 @@ export const ZONE_TIERS: Record<string, { id: string; label: string; color: stri
       id: 'beginner',
       label: 'Beginner',
       color: 'text-emerald-400',
-      moduleIds: ['data-types','objects-arrays','control-flow','loops','functions','async','error-handling','oop','modules','ts-types','template-literals','destructuring'],
+      moduleIds: ['ts-intro','ts-basic-types','ts-arrays-tuples','ts-objects-interfaces','ts-functions','ts-union-intersection','ts-enums','ts-type-aliases','ts-null-safety','ts-type-assertions'],
     },
     {
       id: 'intermediate',
       label: 'Intermediate',
       color: 'text-sky-400',
-      moduleIds: ['type-aliases','type-narrowing','generics','utility-types','null-safety'],
+      moduleIds: [],
     },
     {
       id: 'expert',

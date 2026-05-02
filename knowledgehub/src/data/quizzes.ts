@@ -3411,549 +3411,555 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
   ],
   typescript: [
     {
-      level: 'data-types',
+      level: 'ts-intro',
       questions: [
         {
-          question: 'Which keyword creates a variable that CANNOT be changed later?',
+          question: 'TypeScript is best described as which of the following?',
           options: [
-            { id: 'a', text: 'let', isCorrect: false },
-            { id: 'b', text: 'var', isCorrect: false },
-            { id: 'c', text: 'const', isCorrect: true }
+            { id: 'a\', text: \'A completely different language that replaces JavaScript', isCorrect: false },
+            { id: 'b\', text: \'A superset of JavaScript that adds a static type system', isCorrect: true },
+            { id: 'c\', text: \'A runtime that executes .ts files directly in the browser', isCorrect: false },
+            { id: 'd\', text: \'A JavaScript testing framework', isCorrect: false },
           ],
-          explanation: 'const creates a constant, permanently sealing the digital box so the data cannot be accidentally overwritten.'
+          explanation: 'TypeScript is a superset of JavaScript  --  every valid JS file is already valid TypeScript. TypeScript adds a type system on top, which is stripped away during compilation, leaving plain JavaScript that runs everywhere JS runs.'
         },
         {
-          question: 'Why do we need quotes around text like "QA_Ninja"?',
+          question: 'When exactly does TypeScript catch type errors?',
           options: [
-            { id: 'a', text: 'To look pretty', isCorrect: false },
-            { id: 'b', text: 'To tell the computer it is text, not code', isCorrect: true },
-            { id: 'c', text: 'To make it a number', isCorrect: false }
+            { id: 'a\', text: \'Only at runtime, when the code executes in the browser', isCorrect: false },
+            { id: 'b\', text: \'At compile time, before the code ever runs', isCorrect: true },
+            { id: 'c\', text: \'Only when you run your test suite', isCorrect: false },
+            { id: 'd\', text: \'Only in production environments', isCorrect: false },
           ],
-          explanation: 'Without quotes, the computer thinks QA_Ninja is a variable name or a command, and it will panic and throw an error.'
+          explanation: 'TypeScript errors are compile-time errors. The tsc compiler (or your IDE) catches them before execution. The goal is to fail loudly during development, not silently in production.'
         },
         {
-          question: 'If you try to put a number into a variable labeled as string, what will TypeScript do?',
+          question: 'What does the "strict": true option in tsconfig.json do?',
           options: [
-            { id: 'a', text: 'Convert it automatically', isCorrect: false },
-            { id: 'b', text: 'Crash the browser', isCorrect: false },
-            { id: 'c', text: 'Throw a strict Type Error', isCorrect: true }
+            { id: 'a\', text: \'Makes TypeScript run slower but more accurately', isCorrect: false },
+            { id: 'b\', text: \'Enables all strict type-checking flags including strictNullChecks', isCorrect: true },
+            { id: 'c\', text: \'Prevents any JavaScript from being written', isCorrect: false },
+            { id: 'd\', text: \'Forces every variable to have an explicit type annotation', isCorrect: false },
           ],
-          explanation: 'TypeScript is strict. If you declare a box is strictly for strings, trying to put a number in it will throw a loud error before the code even runs.'
-        }
+          explanation: '"strict": true is an umbrella option that enables all strict checks, most importantly strictNullChecks (prevents null/undefined bugs) and strictFunctionTypes. Always use it  --  it catches real bugs.'
+        },
+        {
+          question: 'What happens to TypeScript type annotations when the code is compiled?',
+          options: [
+            { id: 'a\', text: \'They are kept and interpreted by the browser at runtime', isCorrect: false },
+            { id: 'b\', text: \'They are converted to JavaScript comments', isCorrect: false },
+            { id: 'c\', text: \'They are completely stripped away  --  only plain JavaScript remains', isCorrect: true },
+            { id: 'd\', text: \'They are stored in a separate .types file', isCorrect: false },
+          ],
+          explanation: 'TypeScript types exist only at design time. The tsc compiler erases all type annotations when producing JavaScript. The output .js file has zero type information  --  browsers and Node.js never see them.'
+        },
+        {
+          question: 'Why is TypeScript particularly valuable for QA engineers writing automation?',
+          options: [
+            { id: 'a\', text: \'It makes tests run 10x faster than JavaScript', isCorrect: false },
+            { id: 'b\', text: \'It eliminates the need for test assertions', isCorrect: false },
+            { id: 'c\', text: \'It catches selector and property name bugs before the test even runs, and self-documents test code', isCorrect: true },
+            { id: 'd\', text: \'It automatically generates test cases from the UI', isCorrect: false },
+          ],
+          explanation: 'For QA, TypeScript\'s biggest wins are: (1) catching undefined variable bugs before running tests, (2) making Page Object Model contracts explicit and enforced, (3) enabling safe refactoring, and (4) providing accurate autocomplete in editors.'
+        },
       ]
     },
     {
-      level: 'objects-arrays',
+      level: 'ts-basic-types',
       questions: [
         {
-          question: 'What symbol is used to create an Array?',
+          question: 'What is the key difference between "any" and "unknown" in TypeScript?',
           options: [
-            { id: 'a', text: '{ }', isCorrect: false },
-            { id: 'b', text: '( )', isCorrect: false },
-            { id: 'c', text: '[ ]', isCorrect: true }
+            { id: 'a\', text: \'They are identical  --  both accept any value without restrictions', isCorrect: false },
+            { id: 'b\', text: \'"any" disables all type checking; "unknown" requires type verification before use', isCorrect: true },
+            { id: 'c\', text: \'"unknown" is only for numbers; "any" is for all types', isCorrect: false },
+            { id: 'd\', text: \'"any" requires type verification; "unknown" disables checking', isCorrect: false },
           ],
-          explanation: 'Square brackets [ ] are the universal symbol for creating a list of items (an Array).'
+          explanation: '"any" is a complete escape hatch  --  TypeScript turns off all checking for that variable. "unknown" is the safe alternative: it accepts any value, but forces you to verify the type (via typeof or instanceof) before calling any methods on it.'
         },
         {
-          question: 'Inside an Object, what symbol separates the Key from the Value?',
+          question: 'Which TypeScript type is used for a function that ALWAYS throws an error and never returns normally?',
           options: [
-            { id: 'a', text: '=', isCorrect: false },
-            { id: 'b', text: ':', isCorrect: true },
-            { id: 'c', text: ';', isCorrect: false }
+            { id: 'a\', text: \'void', isCorrect: false },
+            { id: 'b\', text: \'undefined', isCorrect: false },
+            { id: 'c\', text: \'null', isCorrect: false },
+            { id: 'd\', text: \'never', isCorrect: true },
           ],
-          explanation: 'Inside an object, you must use a colon (:) to assign a value to a key, not an equals sign.'
+          explanation: '"never" is the type for values that never occur. A function returning "never" either always throws an error or runs an infinite loop  --  it can never complete normally. It\'s also used in exhaustive switch checks to ensure all union cases are handled.'
         },
         {
-          question: 'If users = ["Alice", "Bob"], what is the index of "Alice"?',
+          question: 'What is "type inference" in TypeScript?',
           options: [
-            { id: 'a', text: '1', isCorrect: false },
-            { id: 'b', text: '0', isCorrect: true },
-            { id: 'c', text: '-1', isCorrect: false }
+            { id: 'a\', text: \'TypeScript converting types at runtime', isCorrect: false },
+            { id: 'b\', text: \'TypeScript automatically detecting the type from the assigned value without explicit annotation', isCorrect: true },
+            { id: 'c\', text: \'The programmer manually specifying every type annotation', isCorrect: false },
+            { id: 'd\', text: \'TypeScript guessing types randomly', isCorrect: false },
           ],
-          explanation: 'Computers always start counting arrays at zero. So the first item is at index 0.'
-        }
+          explanation: 'Type inference means TypeScript reads your code and figures out the type from context. When you write "const name = \"Alice\"", TypeScript infers name as string without you writing ": string". This reduces annotation noise while keeping full type safety.'
+        },
+        {
+          question: 'What is the difference between null and undefined in TypeScript?',
+          options: [
+            { id: 'a\', text: \'They are completely identical and interchangeable', isCorrect: false },
+            { id: 'b\', text: \'undefined means a variable was declared but never assigned; null is an intentional "no value" assignment', isCorrect: true },
+            { id: 'c\', text: \'null is for numbers; undefined is for strings', isCorrect: false },
+            { id: 'd\', text: \'undefined only exists in TypeScript; null is a JavaScript concept', isCorrect: false },
+          ],
+          explanation: 'undefined: the variable exists but was never given a value (or the value was never returned). null: an explicit, intentional "this value is empty." In practice: null is for "I cleared this on purpose" (e.g., after logout); undefined is for "not yet set."'
+        },
+        {
+          question: 'Which type should you use for a function that performs a side effect (like console.log) and returns nothing?',
+          options: [
+            { id: 'a\', text: \'null', isCorrect: false },
+            { id: 'b\', text: \'undefined', isCorrect: false },
+            { id: 'c\', text: \'void', isCorrect: true },
+            { id: 'd\', text: \'never', isCorrect: false },
+          ],
+          explanation: '"void" is the correct return type for functions that do not return a meaningful value. It signals to callers "this function is called for its side effects only  --  do not try to use its return value."'
+        },
       ]
     },
     {
-      level: 'control-flow',
+      level: 'ts-arrays-tuples',
       questions: [
         {
-          question: 'Which operator checks if two things are strictly identical in both Value AND Type?',
+          question: 'What are the two equivalent ways to declare a typed array of strings in TypeScript?',
           options: [
-            { id: 'a', text: '==', isCorrect: false },
-            { id: 'b', text: '===', isCorrect: true },
-            { id: 'c', text: '=', isCorrect: false }
+            { id: 'a\', text: \'string[] and Array<string>', isCorrect: true },
+            { id: 'b\', text: \'string[] and StringArray', isCorrect: false },
+            { id: 'c\', text: \'Array<string> and [string]', isCorrect: false },
+            { id: 'd\', text: \'string{} and Array[string]', isCorrect: false },
           ],
-          explanation: 'Triple equals (===) enforces strict equality, meaning it prevents confusing bugs where JavaScript thinks "5" and 5 are the same.'
+          explanation: 'Both "string[]" (shorthand) and "Array<string>" (generic syntax) declare the same thing: a typed array where every element must be a string. They are completely interchangeable; most teams prefer "string[]" for readability.'
         },
         {
-          question: 'What is the purpose of the else block?',
+          question: 'What is a key characteristic of a readonly array in TypeScript?',
           options: [
-            { id: 'a', text: 'To repeat code', isCorrect: false },
-            { id: 'b', text: 'It runs only if the if condition is False', isCorrect: true },
-            { id: 'c', text: 'It always runs', isCorrect: false }
+            { id: 'a\', text: \'It can only be read by admin users', isCorrect: false },
+            { id: 'b\', text: \'push(), pop(), and splice() methods are not available on it', isCorrect: true },
+            { id: 'c\', text: \'It cannot contain more than 10 elements', isCorrect: false },
+            { id: 'd\', text: \'It must be initialised with values and cannot be empty', isCorrect: false },
           ],
-          explanation: 'The else block is the backup plan. It executes immediately if the initial if condition evaluates to False.'
+          explanation: 'A readonly array (e.g., "readonly string[]" or "ReadonlyArray<string>") disables all mutation methods: push, pop, splice, shift, unshift. You can still read elements and iterate  --  you just cannot modify the array. Perfect for immutable test configuration.'
         },
         {
-          question: 'Why should you always use { } curly braces for an if-statement?',
+          question: 'How is a tuple fundamentally different from a regular array?',
           options: [
-            { id: 'a', text: 'It makes it run faster', isCorrect: false },
-            { id: 'b', text: 'It prevents logic bugs when adding more lines of code', isCorrect: true },
-            { id: 'c', text: 'TypeScript enforces it', isCorrect: false }
+            { id: 'a\', text: \'Tuples can only contain numbers; arrays can contain any type', isCorrect: false },
+            { id: 'b\', text: \'Tuples have a fixed length and a specific type for each position; arrays have variable length and one type for all elements', isCorrect: true },
+            { id: 'c\', text: \'Tuples are mutable; arrays are immutable', isCorrect: false },
+            { id: 'd\', text: \'Tuples use {} syntax; arrays use [] syntax', isCorrect: false },
           ],
-          explanation: 'While single-line if-statements work without braces, adding a second line later will completely break the logic flow if you forgot the braces.'
-        }
+          explanation: 'A tuple is like a strict database row with a fixed schema. [string, number, boolean] means: position 0 MUST be string, position 1 MUST be number, position 2 MUST be boolean  --  and there are exactly 3 elements. Arrays have variable length and all elements share one type.'
+        },
+        {
+          question: 'You define: const point: [number, number] = [10, 20]. What does TypeScript infer about point[0]?',
+          options: [
+            { id: 'a\', text: \'any', isCorrect: false },
+            { id: 'b\', text: \'number | string', isCorrect: false },
+            { id: 'c\', text: \'number', isCorrect: true },
+            { id: 'd\', text: \'unknown', isCorrect: false },
+          ],
+          explanation: 'Because the tuple type [number, number] explicitly declares position 0 as number, TypeScript knows point[0] is a number. You can call number-specific methods on it without any type assertions.'
+        },
+        {
+          question: 'In a data-driven test using tuples, what is the main advantage over using a plain any[] array?',
+          options: [
+            { id: 'a\', text: \'Tuples run test faster', isCorrect: false },
+            { id: 'b\', text: \'TypeScript enforces the correct type and order of each parameter in every test row at compile time', isCorrect: true },
+            { id: 'c\', text: \'Tuples automatically generate test names', isCorrect: false },
+            { id: 'd\', text: \'Tuples allow more test cases per file', isCorrect: false },
+          ],
+          explanation: 'With typed tuples (e.g., [username: string, password: string, shouldPass: boolean]), TypeScript catches it immediately if you accidentally swap a string and boolean, or add an extra element. With any[], all such bugs run silently.'
+        },
       ]
     },
     {
-      level: 'loops',
+      level: 'ts-objects-interfaces',
       questions: [
         {
-          question: 'What is the danger of writing i-- instead of i++ in a standard loop counting to 5?',
+          question: 'In an interface, what does the "?" after a property name signify?',
           options: [
-            { id: 'a', text: 'It runs backwards', isCorrect: false },
-            { id: 'b', text: 'It creates an infinite loop', isCorrect: true },
-            { id: 'c', text: 'It crashes the compiler', isCorrect: false }
+            { id: 'a\', text: \'The property type is unknown', isCorrect: false },
+            { id: 'b\', text: \'The property is optional and may be omitted when creating an object', isCorrect: true },
+            { id: 'c\', text: \'The property is readonly', isCorrect: false },
+            { id: 'd\', text: \'The property is deprecated', isCorrect: false },
           ],
-          explanation: 'If i starts at 0 and goes down (-1, -2), it will NEVER reach 5, causing the loop to run forever until the computer crashes.'
+          explanation: '"property?: type" declares an optional property. Objects implementing the interface are valid with or without this property. TypeScript types it as "type | undefined" internally, which means you must handle the undefined case before using it safely.'
         },
         {
-          question: 'Which loop is cleanest for pulling values directly out of an Array?',
+          question: 'What happens if you try to reassign a property marked "readonly" in an interface?',
           options: [
-            { id: 'a', text: 'for...in', isCorrect: false },
-            { id: 'b', text: 'for...of', isCorrect: true },
-            { id: 'c', text: 'while', isCorrect: false }
+            { id: 'a\', text: \'It silently ignores the reassignment', isCorrect: false },
+            { id: 'b\', text: \'It creates a new copy of the object with the new value', isCorrect: false },
+            { id: 'c\', text: \'TypeScript raises a compile-time error', isCorrect: true },
+            { id: 'd\', text: \'It only prevents reassignment if the object is also const', isCorrect: false },
           ],
-          explanation: 'The for...of loop elegantly goes through an array from start to finish, handing you the actual values without messy index numbers.'
+          explanation: '"readonly" is enforced by TypeScript at compile time. Attempting to write "obj.id = newValue" after creation raises: "Cannot assign to \'id\' because it is a read-only property." This is purely a TypeScript guarantee  --  at runtime (plain JS), the property is still technically writable.'
         },
         {
-          question: 'What does the break keyword do?',
+          question: 'Interface B extends Interface A. Which statement is true about objects of type B?',
           options: [
-            { id: 'a', text: 'Pauses the loop', isCorrect: false },
-            { id: 'b', text: 'Skips to the next iteration', isCorrect: false },
-            { id: 'c', text: 'Violently destroys the loop permanently', isCorrect: true }
+            { id: 'a\', text: \'Objects of type B only need the properties defined in B, not A', isCorrect: false },
+            { id: 'b\', text: \'Objects of type B must have all properties from both A and B', isCorrect: true },
+            { id: 'c\', text: \'Extending replaces A\'s properties with B\'s properties', isCorrect: false },
+            { id: 'd\', text: \'B can only be used where A is expected, not vice versa', isCorrect: false },
           ],
-          explanation: 'The break keyword instantly stops the loop completely, ignoring any remaining items.'
-        }
+          explanation: 'Extending combines shapes. If A has { name: string } and B extends A with { age: number }, then type B requires BOTH name AND age. Any object of type B can also be used where type A is expected (structural subtyping).'
+        },
+        {
+          question: 'What is an "index signature" in a TypeScript interface used for?',
+          options: [
+            { id: 'a\', text: \'Sorting the properties alphabetically', isCorrect: false },
+            { id: 'b\', text: \'Typing objects where property names are dynamic and not known at design time', isCorrect: true },
+            { id: 'c\', text: \'Defining the order in which properties must be assigned', isCorrect: false },
+            { id: 'd\', text: \'Creating numbered arrays inside interfaces', isCorrect: false },
+          ],
+          explanation: 'An index signature like "[key: string]: number" says: "this object can have any string keys, but all values must be numbers." Useful for things like test result maps where you don\'t know the exact test names upfront but know all values will be pass/fail/skip.'
+        },
+        {
+          question: 'In a Page Object Model, why is defining an ILoginPage interface before writing the LoginPage class considered best practice?',
+          options: [
+            { id: 'a\', text: \'Interfaces make the class compile faster', isCorrect: false },
+            { id: 'b\', text: \'The interface forces the class to implement every required method, and allows swapping implementations without changing test code', isCorrect: true },
+            { id: 'c\', text: \'Interfaces add runtime validation to the page object', isCorrect: false },
+            { id: 'd\', text: \'Without an interface, TypeScript cannot detect the class', isCorrect: false },
+          ],
+          explanation: 'The interface defines the contract (what the page can do) separately from the implementation (how it does it). Tests depend on the interface, not the class. This means you can swap LoginPage for a MockLoginPage in unit tests without touching any test code.'
+        },
       ]
     },
     {
-      level: 'functions',
+      level: 'ts-functions',
       questions: [
         {
-          question: 'What must you add to a function name to actually execute it?',
+          question: 'An async function in TypeScript always has what return type?',
           options: [
-            { id: 'a', text: 'Quotes', isCorrect: false },
-            { id: 'b', text: 'Parentheses ()', isCorrect: true },
-            { id: 'c', text: 'Semicolon', isCorrect: false }
+            { id: 'a\', text: \'void', isCorrect: false },
+            { id: 'b\', text: \'Promise<T> where T is the type of the resolved value', isCorrect: true },
+            { id: 'c\', text: \'unknown', isCorrect: false },
+            { id: 'd\', text: \'AsyncReturn<T>', isCorrect: false },
           ],
-          explanation: 'Typing a function name just references the recipe. You must add () to tell the computer to actually cook it!'
+          explanation: 'async functions always return a Promise. If you write "async function getTitle(): Promise<string>", it returns a Promise that resolves to a string. Annotating this explicitly is important  --  without it, TypeScript infers Promise<any> which loses type safety.'
         },
         {
-          question: 'What is the modern, sleeker way to write a function in Playwright automation?',
+          question: 'What is the rule about positioning optional parameters in a function signature?',
           options: [
-            { id: 'a', text: 'Arrow Functions () => {}', isCorrect: true },
-            { id: 'b', text: 'The function keyword', isCorrect: false },
-            { id: 'c', text: 'Classes', isCorrect: false }
+            { id: 'a\', text: \'Optional parameters must come before all required parameters', isCorrect: false },
+            { id: 'b\', text: \'Optional parameters must come after all required parameters', isCorrect: true },
+            { id: 'c\', text: \'Optional parameters can be placed anywhere in the signature', isCorrect: false },
+            { id: 'd\', text: \'TypeScript does not support optional function parameters', isCorrect: false },
           ],
-          explanation: 'Arrow functions are less verbose and fix scoping issues, making them the standard for modern TypeScript.'
+          explanation: 'Required parameters must come first. Placing an optional parameter before a required one is a syntax error: "function bad(optional?: string, required: number)" will fail to compile. Optional and default parameters always go at the end.'
         },
         {
-          question: 'What does the return keyword do?',
+          question: 'What does "...tags: string[]" as a function parameter mean?',
           options: [
-            { id: 'a', text: 'Goes back a line', isCorrect: false },
-            { id: 'b', text: 'Spits the final answer out of the function', isCorrect: true },
-            { id: 'c', text: 'Restarts the loop', isCorrect: false }
+            { id: 'a\', text: \'tags is a single string split by "..."', isCorrect: false },
+            { id: 'b\', text: \'tags is a rest parameter  --  the function accepts any number of string arguments collected into an array called tags', isCorrect: true },
+            { id: 'c\', text: \'tags is an optional array parameter', isCorrect: false },
+            { id: 'd\', text: \'The "..." operator spreads the array before the function runs', isCorrect: false },
           ],
-          explanation: 'A function calculates a result internally. The return keyword hands that result back to the rest of the program.'
-        }
+          explanation: 'Rest parameters (prefixed with ...) capture all remaining arguments into a typed array. "function tag(name: string, ...tags: string[])" can be called as tag("Test", "smoke", "auth", "critical")  --  the three strings after name are collected into tags: string[].'
+        },
+        {
+          question: 'You have: type Handler = (event: string, data: unknown) => void. What does this define?',
+          options: [
+            { id: 'a\', text: \'An interface with two methods', isCorrect: false },
+            { id: 'b\', text: \'A type alias describing the signature of a function  --  its parameter types and return type', isCorrect: true },
+            { id: 'c\', text: \'A class with an event and data property', isCorrect: false },
+            { id: 'd\', text: \'A generic type that creates functions', isCorrect: false },
+          ],
+          explanation: 'Type aliases can describe function signatures. "type Handler = (event: string, data: unknown) => void" means: any function that accepts a string and an unknown value, and returns nothing, satisfies the Handler type. This is how you type callbacks and higher-order functions.'
+        },
+        {
+          question: 'What is the difference between a default parameter and an optional parameter?',
+          options: [
+            { id: 'a\', text: \'They are identical  --  both use the ? syntax', isCorrect: false },
+            { id: 'b\', text: \'A default parameter provides a fallback value when omitted; an optional parameter receives undefined when omitted', isCorrect: true },
+            { id: 'c\', text: \'Default parameters must always be strings', isCorrect: false },
+            { id: 'd\', text: \'Optional parameters cannot be the last parameter in a function', isCorrect: false },
+          ],
+          explanation: 'Optional parameter (timeout?: number): if caller omits it, the value inside the function is undefined. Default parameter (timeout: number = 30000): if caller omits it, the value inside is 30000. Default parameters are generally preferable because they avoid the need for "?? fallback" inside the function body.'
+        },
       ]
     },
     {
-      level: 'async',
+      level: 'ts-union-intersection',
       questions: [
         {
-          question: 'What does the await keyword do?',
+          question: 'What does the | symbol mean when used between types in TypeScript?',
           options: [
-            { id: 'a', text: 'Speeds up the internet', isCorrect: false },
-            { id: 'b', text: 'Freezes code execution until the browser finishes its task', isCorrect: true },
-            { id: 'c', text: 'Repeats the task', isCorrect: false }
+            { id: 'a\', text: \'Intersection  --  the value must satisfy both types', isCorrect: false },
+            { id: 'b\', text: \'Union  --  the value can be any one of the listed types', isCorrect: true },
+            { id: 'c\', text: \'Pipe  --  the output of one type feeds into the next', isCorrect: false },
+            { id: 'd\', text: \'Bitwise OR  --  only valid for number types', isCorrect: false },
           ],
-          explanation: 'Because the internet is slow, await forces our fast code to wait patiently for a button click or page load to completely finish.'
+          explanation: '"string | number" is a union type meaning the variable can hold a string OR a number  --  either is valid. TypeScript will only allow you to call methods that exist on ALL members of the union (without narrowing).'
         },
         {
-          question: 'What happens if you forget await before navigating to a URL?',
+          question: 'In a discriminated union, what is the "discriminant"?',
           options: [
-            { id: 'a', text: 'Nothing', isCorrect: false },
-            { id: 'b', text: 'The script races ahead and tries to click things before the page loads', isCorrect: true },
-            { id: 'c', text: 'It waits automatically', isCorrect: false }
+            { id: 'a\', text: \'The | symbol that joins the union members', isCorrect: false },
+            { id: 'b\', text: \'A common literal type property (e.g., status: "pass") that uniquely identifies which variant of the union you have', isCorrect: true },
+            { id: 'c\', text: \'The first property listed in each union member', isCorrect: false },
+            { id: 'd\', text: \'Any optional property shared between variants', isCorrect: false },
           ],
-          explanation: 'Without await, the script instantly moves to the next line, trying to interact with a page that has not even downloaded yet.'
+          explanation: 'The discriminant is a shared property with a unique literal type per variant. When you check result.status === "fail", TypeScript narrows the type to FailResult and unlocks that variant\'s exclusive properties (errorMessage, stackTrace). This is the cornerstone of type-safe state machines.'
         },
         {
-          question: 'What must you put in front of a function before you are allowed to use await inside it?',
+          question: 'What does the & symbol mean when used between types in TypeScript?',
           options: [
-            { id: 'a', text: 'export', isCorrect: false },
-            { id: 'b', text: 'const', isCorrect: false },
-            { id: 'c', text: 'async', isCorrect: true }
+            { id: 'a\', text: \'Union  --  the value can be either type', isCorrect: false },
+            { id: 'b\', text: \'Intersection  --  the value must satisfy ALL of the combined types simultaneously', isCorrect: true },
+            { id: 'c\', text: \'Address-of  --  it returns the memory reference of the type', isCorrect: false },
+            { id: 'd\', text: \'Optional  --  makes all properties in the combined type optional', isCorrect: false },
           ],
-          explanation: 'You must label the function with async to warn TypeScript that it contains time-delaying code.'
-        }
+          explanation: '"TypeA & TypeB" is an intersection: the resulting type has ALL properties from both TypeA and TypeB. An object must satisfy every property from every member of the intersection. It\'s commonly used to build composite types from smaller, reusable pieces.'
+        },
+        {
+          question: 'What is typeof used for in the context of TypeScript type guards?',
+          options: [
+            { id: 'a\', text: \'It converts a value from one type to another at runtime', isCorrect: false },
+            { id: 'b\', text: \'It narrows a union type at runtime by checking if the value is "string", "number", "boolean", etc.', isCorrect: true },
+            { id: 'c\', text: \'It removes a type from a union', isCorrect: false },
+            { id: 'd\', text: \'It creates a new type based on the shape of an existing variable', isCorrect: false },
+          ],
+          explanation: 'typeof is a runtime JavaScript operator. In an if-block ("if (typeof x === \'string\')"), TypeScript recognises this as a type guard and narrows x\'s type to string inside that block. This allows safe use of string-only methods like .toUpperCase() without errors.'
+        },
+        {
+          question: 'type Status = "pass" | "fail" | "skip" defines what kind of type?',
+          options: [
+            { id: 'a\', text: \'A string enum', isCorrect: false },
+            { id: 'b\', text: \'A union of string literal types', isCorrect: true },
+            { id: 'c\', text: \'An array of strings', isCorrect: false },
+            { id: 'd\', text: \'A template literal type', isCorrect: false },
+          ],
+          explanation: 'This is a union of string literal types  --  also called a "string literal union." It\'s different from an enum in that no enum object is created. The variable typed as Status can only hold exactly "pass", "fail", or "skip"  --  any other string is a compile error.'
+        },
       ]
     },
     {
-      level: 'error-handling',
+      level: 'ts-enums',
       questions: [
         {
-          question: 'What happens when code inside the try block fails?',
+          question: 'What is the main advantage of using a string enum over plain string constants?',
           options: [
-            { id: 'a', text: 'The test crashes', isCorrect: false },
-            { id: 'b', text: 'It immediately teleports into the catch block', isCorrect: true },
-            { id: 'c', text: 'It ignores the error', isCorrect: false }
+            { id: 'a\', text: \'String enums run faster than string constants', isCorrect: false },
+            { id: 'b\', text: \'Enum values appear human-readable in logs AND typos in enum member names become compile errors', isCorrect: true },
+            { id: 'c\', text: \'String enums automatically validate input at runtime', isCorrect: false },
+            { id: 'd\', text: \'String enums can be used in switch statements; string constants cannot', isCorrect: false },
           ],
-          explanation: 'The catch block is a safety net. The moment an error occurs, execution jumps straight there to handle the issue gracefully.'
+          explanation: 'String enums give you two wins: (1) when a value is logged or debugged it shows "staging" not 1, making logs readable; (2) if you mistype TestStatus.Passs, TypeScript catches it immediately. Plain strings don\'t catch typos until runtime.'
         },
         {
-          question: 'What does the finally block do?',
+          question: 'You have: enum HttpStatus { OK = 200, NotFound = 404 }. What is the value of HttpStatus.OK?',
           options: [
-            { id: 'a', text: 'Runs ONLY if the test passes', isCorrect: false },
-            { id: 'b', text: 'Runs ALWAYS, no matter if the test passed or failed', isCorrect: true },
-            { id: 'c', text: 'Retries the test', isCorrect: false }
+            { id: 'a\', text: \'"OK"', isCorrect: false },
+            { id: 'b\', text: \'0', isCorrect: false },
+            { id: 'c\', text: \'200', isCorrect: true },
+            { id: 'd\', text: \'undefined', isCorrect: false },
           ],
-          explanation: 'The finally block is guaranteed to run at the very end, making it the perfect place to close browsers or clean up data.'
+          explanation: 'Numeric enums with explicit initializers (= 200) use that exact value. HttpStatus.OK equals the number 200. This makes API test assertions readable: "expect(response.status).toBe(HttpStatus.OK)" rather than a magic number.'
         },
         {
-          question: 'Why shouldn\'t you wrap your entire 100-line test in one massive try/catch block?',
+          question: 'What is the key difference between a regular "enum" and a "const enum"?',
           options: [
-            { id: 'a', text: 'It hides the exact line that failed', isCorrect: true },
-            { id: 'b', text: 'TypeScript forbids it', isCorrect: false },
-            { id: 'c', text: 'It is too slow', isCorrect: false }
+            { id: 'a\', text: \'const enums can only hold string values; regular enums hold numbers', isCorrect: false },
+            { id: 'b\', text: \'const enums are inlined at compile time and do not create a runtime object; regular enums create an object in the compiled JavaScript', isCorrect: true },
+            { id: 'c\', text: \'const enums cannot be iterated with Object.values()', isCorrect: false },
+            { id: 'd\', text: \'There is no difference  --  "const enum" is just a style preference', isCorrect: false },
           ],
-          explanation: 'If a massive block fails, it is incredibly difficult to debug exactly which of the 100 lines caused the crash.'
-        }
+          explanation: 'const enums are completely erased during compilation. Every usage is replaced with the literal value. "const enum Status { Pass = \'pass\' }" compiles "Status.Pass" to the literal string "\'pass\'" everywhere it appears  --  no enum object exists at runtime, resulting in smaller bundles.'
+        },
+        {
+          question: 'How do you iterate over all values of a string enum at runtime?',
+          options: [
+            { id: 'a\', text: \'for (const v in MyEnum)', isCorrect: false },
+            { id: 'b\', text: \'MyEnum.values()', isCorrect: false },
+            { id: 'c\', text: \'Object.values(MyEnum)', isCorrect: true },
+            { id: 'd\', text: \'Array.from(MyEnum)', isCorrect: false },
+          ],
+          explanation: 'For string enums, Object.values(MyEnum) returns an array of the string values (e.g., ["chromium", "firefox", "webkit"]). For numeric enums it\'s trickier due to reverse mappings. Object.values() is the idiomatic way to get enum members for iteration.'
+        },
+        {
+          question: 'When is a literal union type (type Status = "pass" | "fail") generally preferred over an enum?',
+          options: [
+            { id: 'a\', text: \'Always  --  enums are never needed in TypeScript', isCorrect: false },
+            { id: 'b\', text: \'When you just need a fixed set of string values without needing to iterate programmatically or centralise changes across many files', isCorrect: true },
+            { id: 'c\', text: \'When you need the values to be numbers', isCorrect: false },
+            { id: 'd\', text: \'When the type is used in only one file', isCorrect: false },
+          ],
+          explanation: 'Literal unions are simpler  --  no import, no runtime object, no overhead. Use enums when: (1) you need to iterate with Object.values(), (2) the constants are used across many files and might change, (3) you want the label to differ from the value. For simple cases, literal unions are cleaner.'
+        },
       ]
     },
     {
-      level: 'oop',
+      level: 'ts-type-aliases',
       questions: [
         {
-          question: 'What is the difference between a Class and an Instance?',
+          question: 'Which of the following CANNOT be expressed with "interface" but CAN be expressed with "type"?',
           options: [
-            { id: 'a', text: 'A class is the paper blueprint; an instance is the physical house built from it', isCorrect: true },
-            { id: 'b', text: 'They are the same', isCorrect: false },
-            { id: 'c', text: 'Class is for functions, instance is for variables', isCorrect: false }
+            { id: 'a\', text: \'An object shape with named properties', isCorrect: false },
+            { id: 'b\', text: \'A union of string literals like type Status = "pass" | "fail"', isCorrect: true },
+            { id: 'c\', text: \'An interface that another interface extends', isCorrect: false },
+            { id: 'd\', text: \'A type that a class implements', isCorrect: false },
           ],
-          explanation: 'You define the structure once in a Class, and then use the new keyword to create many physical Instances of it.'
+          explanation: 'interface cannot express union types. "interface Status = \'pass\' | \'fail\'" is invalid syntax. Unions must use "type". This is the clearest practical difference: use type for unions, function signatures, and primitive aliases; use interface for object shapes that might be extended.'
         },
         {
-          question: 'What does the this keyword do inside a Class?',
+          question: 'What is the purpose of giving a primitive type alias like "type Milliseconds = number"?',
           options: [
-            { id: 'a', text: 'Points to the browser', isCorrect: false },
-            { id: 'b', text: 'Tells the class to look inside itself for a property', isCorrect: true },
-            { id: 'c', text: 'Restarts the class', isCorrect: false }
+            { id: 'a\', text: \'It creates a new numeric type that is incompatible with regular numbers', isCorrect: false },
+            { id: 'b\', text: \'It communicates semantic intent  --  readers know this number represents a duration in milliseconds, not just any number', isCorrect: true },
+            { id: 'c\', text: \'It validates at runtime that the value is a valid millisecond count', isCorrect: false },
+            { id: 'd\', text: \'It restricts the value to be less than 1000', isCorrect: false },
           ],
-          explanation: 'Typing this.url ensures the class is using its own internal url variable, not a random global variable.'
+          explanation: 'Type aliases for primitives are documentation-as-code. "Milliseconds" and "Percentage" are still just numbers at runtime, but they signal intent clearly. A function signature "function wait(delay: Milliseconds): void" tells callers exactly what unit to use  --  no need for comments.'
         },
         {
-          question: 'What happens if you mark a class property as private?',
+          question: 'What does "declaration merging" mean for interfaces, and why does type not support it?',
           options: [
-            { id: 'a', text: 'It hides it from the UI', isCorrect: false },
-            { id: 'b', text: 'It prevents any outside code from seeing or changing it', isCorrect: true },
-            { id: 'c', text: 'It encrypts it', isCorrect: false }
+            { id: 'a\', text: \'Interfaces can be defined multiple times in the same file and TypeScript merges them into one', isCorrect: true },
+            { id: 'b\', text: \'Interfaces can merge with classes automatically', isCorrect: false },
+            { id: 'c\', text: \'TypeScript merges all interface properties into a single flat object at runtime', isCorrect: false },
+            { id: 'd\', text: \'Declaration merging only applies to enums, not interfaces', isCorrect: false },
           ],
-          explanation: 'Private properties enforce strict security, stopping junior developers from accidentally overwriting crucial internal data.'
-        }
+          explanation: 'If you declare "interface Window { myProp: string }" twice in different files, TypeScript merges both declarations into one. This is used by library authors to extend built-in types. "type" aliases cannot be redeclared  --  a second "type Window = ..." is an error.'
+        },
+        {
+          question: 'You write: type EventHandler = (event: string) => void. What does this alias describe?',
+          options: [
+            { id: 'a\', text: \'An object with an event property', isCorrect: false },
+            { id: 'b\', text: \'The type signature of a function that accepts a string and returns nothing', isCorrect: true },
+            { id: 'c\', text: \'A string that ends with "Handler"', isCorrect: false },
+            { id: 'd\', text: \'A generic class for event handling', isCorrect: false },
+          ],
+          explanation: 'type aliases can describe function signatures. "EventHandler" is the type of any function that takes a string argument and returns void. This is useful for typing callbacks, hooks, and higher-order functions without repeating the signature.'
+        },
+        {
+          question: 'type TestTree = string | { name: string; children: TestTree[] } demonstrates what TypeScript feature?',
+          options: [
+            { id: 'a\', text: \'A circular type reference that causes infinite loops', isCorrect: false },
+            { id: 'b\', text: \'A recursive type alias  --  the type refers to itself to model arbitrarily nested structures', isCorrect: true },
+            { id: 'c\', text: \'A union type that can only be used once', isCorrect: false },
+            { id: 'd\', text: \'A generic type with a default value', isCorrect: false },
+          ],
+          explanation: 'Recursive type aliases allow types to refer to themselves. TestTree can be a plain string (a leaf test) or an object containing an array of more TestTrees (a branch). This models tree structures like nested test suites or file system paths with full type safety.'
+        },
       ]
     },
     {
-      level: 'modules',
+      level: 'ts-null-safety',
       questions: [
         {
-          question: 'Why do we split code into multiple files (Modules)?',
+          question: 'What does the optional chaining operator ?. do when the value on its left is null or undefined?',
           options: [
-            { id: 'a', text: 'Because TypeScript requires it', isCorrect: false },
-            { id: 'b', text: 'To keep code organized and prevent 5,000-line files', isCorrect: true },
-            { id: 'c', text: 'To hide code', isCorrect: false }
+            { id: 'a\', text: \'It throws a TypeError', isCorrect: false },
+            { id: 'b\', text: \'It short-circuits and returns undefined instead of crashing', isCorrect: true },
+            { id: 'c\', text: \'It converts null to 0 and undefined to an empty string', isCorrect: false },
+            { id: 'd\', text: \'It logs a warning and continues with the original null value', isCorrect: false },
           ],
-          explanation: 'Modules keep code incredibly organized. You put the Login Page logic in one file, and the Dashboard logic in another.'
+          explanation: 'Optional chaining short-circuits safely. "user?.address?.city" returns undefined if user is null/undefined, or if address is null/undefined  --  without throwing. This eliminates an entire class of "Cannot read property of undefined" runtime crashes.'
         },
         {
-          question: 'What keyword unlocks a class so other files can use it?',
+          question: 'What is the critical difference between ?? (nullish coalescing) and || (logical OR) for fallback values?',
           options: [
-            { id: 'a', text: 'public', isCorrect: false },
-            { id: 'b', text: 'export', isCorrect: true },
-            { id: 'c', text: 'share', isCorrect: false }
+            { id: 'a\', text: \'They are identical  --  both treat null, undefined, 0, false, and "" as falsy', isCorrect: false },
+            { id: 'b\', text: \'?? only uses the fallback for null/undefined; || uses the fallback for any falsy value including 0, false, and ""', isCorrect: true },
+            { id: 'c\', text: \'?? is only for numbers; || is for booleans', isCorrect: false },
+            { id: 'd\', text: \'|| provides a default; ?? throws an error if null is found', isCorrect: false },
           ],
-          explanation: 'The export keyword explicitly tells TypeScript that it is okay for other files to borrow this code.'
+          explanation: 'Critical distinction: "const timeout = userTimeout ?? 5000"  --  if userTimeout is 0 (a valid timeout), ?? returns 0. But "const timeout = userTimeout || 5000"  --  if userTimeout is 0, || treats it as falsy and returns 5000. For numeric config values, ?? is almost always the correct choice.'
         },
         {
-          question: 'When importing a local file, what must you include in the path?',
+          question: 'When should you use the non-null assertion operator (!) in TypeScript?',
           options: [
-            { id: 'a', text: 'The .js extension', isCorrect: false },
-            { id: 'b', text: 'A relative prefix like ./', isCorrect: true },
-            { id: 'c', text: 'http://', isCorrect: false }
+            { id: 'a\', text: \'Whenever TypeScript shows a "possibly null" error to quickly silence it', isCorrect: false },
+            { id: 'b\', text: \'Only when you have absolute certainty the value cannot be null/undefined and want to avoid the runtime check overhead', isCorrect: true },
+            { id: 'c\', text: \'It is the standard way to handle null in TypeScript', isCorrect: false },
+            { id: 'd\', text: \'It should never be used  --  it causes compilation to fail', isCorrect: false },
           ],
-          explanation: 'Without ./, TypeScript thinks you are trying to import a massive downloaded library from the internet, not your own local file.'
-        }
+          explanation: '"!" is an escape hatch, not a solution. It tells TypeScript to ignore the null/undefined possibility. If you\'re wrong at runtime, you still get a crash. The best practice is to use if-checks or optional chaining instead. "!" should be extremely rare in well-written TypeScript.'
+        },
+        {
+          question: 'With "strict": true, what must you do to store null in a variable typed as string?',
+          options: [
+            { id: 'a\', text: \'Nothing  --  null is always assignable to any type', isCorrect: false },
+            { id: 'b\', text: \'Use a type assertion: const x = null as string', isCorrect: false },
+            { id: 'c\', text: \'Explicitly declare the type as "string | null"', isCorrect: true },
+            { id: 'd\', text: \'Set "strictNullChecks": false in tsconfig.json', isCorrect: false },
+          ],
+          explanation: 'With strictNullChecks enabled (part of "strict": true), null and undefined are not assignable to other types unless explicitly included. "let x: string = null" is an error. "let x: string | null = null" is correct  --  and it forces you to handle the null case before using x as a string.'
+        },
+        {
+          question: 'In TypeScript, after writing "if (value !== null) { ... }", what happens to the type of "value" inside the if block?',
+          options: [
+            { id: 'a\', text: \'It remains "string | null"  --  TypeScript doesn\'t track if-checks', isCorrect: false },
+            { id: 'b\', text: \'It is narrowed to "string"  --  TypeScript removes null from the union', isCorrect: true },
+            { id: 'c\', text: \'It becomes "unknown"', isCorrect: false },
+            { id: 'd\', text: \'It becomes "never" because null was ruled out', isCorrect: false },
+          ],
+          explanation: 'This is called "type narrowing." TypeScript performs control flow analysis  --  it tracks what you\'ve checked and narrows the type accordingly. After "if (value !== null)", TypeScript knows null is impossible inside the block and removes it from the union, giving you full access to string methods.'
+        },
       ]
     },
     {
-      level: 'template-literals',
+      level: 'ts-type-assertions',
       questions: [
         {
-          question: 'What character is used to create a Template Literal?',
+          question: 'What does the "as" keyword do in TypeScript?',
           options: [
-            { id: 'a', text: 'Single quotes \' \'', isCorrect: false },
-            { id: 'b', text: 'Double quotes " "', isCorrect: false },
-            { id: 'c', text: 'Backticks \` \`', isCorrect: true }
+            { id: 'a\', text: \'It converts the value to a different type at runtime (like casting)', isCorrect: false },
+            { id: 'b\', text: \'It tells the TypeScript compiler to treat a value as a specific type, without any runtime conversion', isCorrect: true },
+            { id: 'c\', text: \'It creates a new instance of the specified type', isCorrect: false },
+            { id: 'd\', text: \'It validates the value matches the type and throws if it doesn\'t', isCorrect: false },
           ],
-          explanation: 'Backticks (usually next to the 1 key) are required to activate template literals and string interpolation.'
+          explanation: '"as" is a compile-time instruction only. "data as User" does NOT convert data to a User at runtime  --  it just tells TypeScript "trust me, this is a User." If the actual runtime data is null or a different shape, you\'ll still get a crash. Use type guards (typeof, instanceof) for actual runtime safety.'
         },
         {
-          question: 'How do you inject a variable named userId into a template literal?',
+          question: 'Why is the "as" syntax preferred over the angle-bracket syntax for type assertions in React/TypeScript projects?',
           options: [
-            { id: 'a', text: '+ userId +', isCorrect: false },
-            { id: 'b', text: '\${userId}', isCorrect: true },
-            { id: 'c', text: '{{userId}}', isCorrect: false }
+            { id: 'a\', text: \'The "as" syntax is faster to compile', isCorrect: false },
+            { id: 'b\', text: \'Angle brackets (<Type>value) conflict with JSX syntax in .tsx files, causing parse errors', isCorrect: true },
+            { id: 'c\', text: \'"as" works with all types; angle brackets only work with primitive types', isCorrect: false },
+            { id: 'd\', text: \'There is no difference  --  it\'s purely a style preference', isCorrect: false },
           ],
-          explanation: 'The dollar sign and curly braces act as a portal, instantly inserting the variable value directly into the text.'
+          explanation: 'In .tsx files (TypeScript + JSX), the angle-bracket assertion <MyType>value is ambiguous  --  the parser might interpret it as a JSX element. The "as" keyword was introduced specifically to resolve this. Use "as" universally; it works in both .ts and .tsx files.'
         },
         {
-          question: 'What happens if you use \${userId} inside normal double quotes (" ")?',
+          question: 'A function parameter is typed as "unknown". Which approach safely extracts a string value from it?',
           options: [
-            { id: 'a', text: 'It literally prints the characters "\${userId}" to the screen as plain text', isCorrect: true },
-            { id: 'b', text: 'It works perfectly', isCorrect: false },
-            { id: 'c', text: 'It crashes the compiler', isCorrect: false }
+            { id: 'a\', text: \'const result = (param as string).toUpperCase()', isCorrect: false },
+            { id: 'b\', text: \'const result = param!.toUpperCase()', isCorrect: false },
+            { id: 'c\', text: \'if (typeof param === "string") { const result = param.toUpperCase(); }', isCorrect: true },
+            { id: 'd\', text: \'const result = String(param).toUpperCase()', isCorrect: false },
           ],
-          explanation: 'Normal quotes do not understand interpolation. They treat the dollar sign and curly braces as literal characters.'
-        }
+          explanation: 'typeof is a type guard that narrows "unknown" to a specific primitive type at runtime. Inside "if (typeof param === \'string\')", TypeScript knows param is definitely a string and allows string methods. The "as string" approach bypasses the check and could crash if param is actually a number or null.'
+        },
+        {
+          question: 'What is a "custom type predicate" function, and what is its return type signature?',
+          options: [
+            { id: 'a\', text: \'A function that converts types, returning the converted value', isCorrect: false },
+            { id: 'b\', text: \'A function returning "value is Type" that narrows the type inside if-blocks that use it', isCorrect: true },
+            { id: 'c\', text: \'A function that validates types at compile time', isCorrect: false },
+            { id: 'd\', text: \'A function returning boolean that automatically narrows types', isCorrect: false },
+          ],
+          explanation: 'A type predicate has the form "function isUser(val: unknown): val is User". The "val is User" return type is the predicate. When you call "if (isUser(data))", TypeScript narrows data to User inside the if-block. Crucially, the return type must say "val is Type"  --  a plain "boolean" return does NOT narrow the type.'
+        },
+        {
+          question: 'When is the "in" operator used as a type guard?',
+          options: [
+            { id: 'a\', text: \'To check if a value is inside an array', isCorrect: false },
+            { id: 'b\', text: \'To narrow a union type by checking whether a specific property exists on the object', isCorrect: true },
+            { id: 'c\', text: \'To check if a number is within a range', isCorrect: false },
+            { id: 'd\', text: \'To verify an object is inside a Set or Map', isCorrect: false },
+          ],
+          explanation: '"\'errorMessage\' in result" checks at runtime whether the object has an errorMessage property. TypeScript uses this check to narrow a union. If FailResult has errorMessage and PassResult doesn\'t, then after "if (\'errorMessage\' in result)", TypeScript knows result is FailResult and unlocks its exclusive properties.'
+        },
       ]
     },
-    {
-      level: 'destructuring',
-      questions: [
-        {
-          question: 'What is Object Destructuring used for?',
-          options: [
-            { id: 'a', text: 'To securely encrypt an object', isCorrect: false },
-            { id: 'b', text: 'To delete an object from memory', isCorrect: false },
-            { id: 'c', text: 'To extract specific properties from an object and instantly turn them into standalone variables', isCorrect: true }
-          ],
-          explanation: 'Destructuring saves you from typing user.name, user.age, and user.email individually by extracting them all in one clean line.'
-        },
-        {
-          question: 'Why does Playwright use the syntax: test("name", async ({ page }) => { ... }) ?',
-          options: [
-            { id: 'a', text: 'It is a special Playwright command', isCorrect: false },
-            { id: 'b', text: 'It is Destructuring. It extracts the \'page\' tool out of the massive test context object.', isCorrect: true },
-            { id: 'c', text: 'It is a typo', isCorrect: false }
-          ],
-          explanation: 'Playwright hands the function a massive object full of 50+ tools. Using { page } instantly extracts just the browser tool we actually need.'
-        },
-        {
-          question: 'Why is the "any" keyword dangerous in TypeScript?',
-          options: [
-            { id: 'a', text: 'It completely disables TypeScripts safety net, allowing catastrophic bugs to compile without warnings.', isCorrect: true },
-            { id: 'b', text: 'It runs too slowly', isCorrect: false },
-            { id: 'c', text: 'It is not dangerous, you should use it constantly', isCorrect: false }
-          ],
-          explanation: 'Using any turns TypeScript back into regular JavaScript. You lose all autocomplete, strictness, and crash prevention.'
-        }
-      ]
-    },
-    {
-      level: 'ts-types',
-      questions: [
-        {
-          question: 'What does an Interface do?',
-          options: [
-            { id: 'a', text: 'Draws the UI', isCorrect: false },
-            { id: 'b', text: 'Creates a strict, unbreakable rule for exactly what properties an object must have', isCorrect: true },
-            { id: 'c', text: 'Encrypts passwords', isCorrect: false }
-          ],
-          explanation: 'An Interface acts like a factory blueprint, instantly rejecting any object that is missing a required property or has the wrong data type.'
-        },
-        {
-          question: 'What does putting a question mark (?) after an interface property do?',
-          options: [
-            { id: 'a', text: 'Deletes the property', isCorrect: false },
-            { id: 'b', text: 'Makes the property Optional', isCorrect: true },
-            { id: 'c', text: 'Triggers an error', isCorrect: false }
-          ],
-          explanation: 'The ? tells TypeScript that the object is perfectly valid even if it completely leaves that property out.'
-        },
-        {
-          question: 'Why are Enums safer than raw text strings?',
-          options: [
-            { id: 'a', text: 'They run faster', isCorrect: false },
-            { id: 'b', text: 'They prevent spelling typos by forcing you to choose from a strict list', isCorrect: true },
-            { id: 'c', text: 'They are shorter', isCorrect: false }
-          ],
-          explanation: 'If a status must be "PENDING", an Enum stops a developer from accidentally typing "PENDINGG" and crashing the database.'
-        }
-      ]
-    },
-    {
-      level: 'type-aliases',
-      questions: [
-        {
-          question: 'What is the primary benefit of a Union Type ("qa" | "staging" | "prod") over a standard string?',
-          options: [
-            { id: 'a', text: 'It runs faster in the browser', isCorrect: false },
-            { id: 'b', text: 'It strictly limits the variable to exact values, preventing typos like "stagingg" from compiling', isCorrect: true },
-            { id: 'c', text: 'It automatically encrypts the string data', isCorrect: false }
-          ],
-          explanation: 'Union types act as an exclusive club, enforcing strict equality to predefined values at compile-time.'
-        },
-        {
-          question: 'Which keyword CANNOT be used to create Union Types?',
-          options: [
-            { id: 'a', text: 'type', isCorrect: false },
-            { id: 'b', text: 'interface', isCorrect: true },
-            { id: 'c', text: 'enum', isCorrect: false }
-          ],
-          explanation: 'Interfaces are strictly used for defining the shape of objects. To create Unions (e.g., A | B), you must use a Type Alias (type).'
-        },
-        {
-          question: 'What does a Type Alias actually do in memory?',
-          options: [
-            { id: 'a', text: 'It creates a new JavaScript object in the database', isCorrect: false },
-            { id: 'b', text: 'It generates a massive array', isCorrect: false },
-            { id: 'c', text: 'Nothing. It only exists at compile-time as a blueprint/nickname for TypeScript to check against.', isCorrect: true }
-          ],
-          explanation: 'Type Aliases compile away to absolutely nothing. They are purely blueprints for your developer experience.'
-        }
-      ]
-    },
-    {
-      level: 'type-narrowing',
-      questions: [
-        {
-          question: 'What does Type Narrowing do?',
-          options: [
-            { id: 'a', text: 'Reduces the file size of your codebase', isCorrect: false },
-            { id: 'b', text: 'Uses logic (like if-statements) to prove a variables specific type to the TS compiler', isCorrect: true },
-            { id: 'c', text: 'Deletes variables that are too large', isCorrect: false }
-          ],
-          explanation: 'Narrowing is the act of guiding TypeScript through logic to safely lock down an ambiguous type into a specific one.'
-        },
-        {
-          question: 'Why does "typeof null" return "object" in JavaScript?',
-          options: [
-            { id: 'a', text: 'Because of a historical bug in early JavaScript that cannot be fixed', isCorrect: true },
-            { id: 'b', text: 'Because null is actually a complex Object class', isCorrect: false },
-            { id: 'c', text: 'Because null stores data arrays', isCorrect: false }
-          ],
-          explanation: 'This is a famous JS bug. You must explicitly check "if (data !== null)" because checking "typeof data === object" will let null slip through!'
-        },
-        {
-          question: 'If an element can be an Input OR a Dropdown, how do you narrow it down?',
-          options: [
-            { id: 'a', text: 'Use the "in" operator to check if a unique property (like "clear") exists on the object', isCorrect: true },
-            { id: 'b', text: 'Use any to force it', isCorrect: false },
-            { id: 'c', text: 'Use the + operator', isCorrect: false }
-          ],
-          explanation: 'The "in" operator acts as a type guard for objects, narrowing down Unions based on the existence of specific keys.'
-        }
-      ]
-    },
-    {
-      level: 'generics',
-      questions: [
-        {
-          question: 'What is the best real-world analogy for a Generic <T>?',
-          options: [
-            { id: 'a', text: 'A locked safe', isCorrect: false },
-            { id: 'b', text: 'A blank shipping box that reshapes itself based on the label you slap on it', isCorrect: true },
-            { id: 'c', text: 'A pre-cooked meal', isCorrect: false }
-          ],
-          explanation: 'Generics are placeholders. The code inside the box is reusable, and it dynamically adapts to whatever Type label you assign it.'
-        },
-        {
-          question: 'Why are Generics crucial for API Fetch calls in test automation?',
-          options: [
-            { id: 'a', text: 'They make the API call execute faster', isCorrect: false },
-            { id: 'b', text: 'They allow you to strictly type the unknown JSON response so you get full autocomplete on the returned data', isCorrect: true },
-            { id: 'c', text: 'They automatically bypass authentication', isCorrect: false }
-          ],
-          explanation: 'fetch() natively returns "any". By using generics like fetchApi<UserData>(), you force TypeScript to understand the exact shape of the response.'
-        },
-        {
-          question: 'What is the danger of using "any" instead of a Generic?',
-          options: [
-            { id: 'a', text: 'any preserves types perfectly', isCorrect: false },
-            { id: 'b', text: 'any disables autocomplete and compiler checks completely, while Generics strictly preserve the type throughout the function', isCorrect: true },
-            { id: 'c', text: 'any causes syntax errors immediately', isCorrect: false }
-          ],
-          explanation: 'If a function takes "any" and returns "any", TypeScript forgets what the data was. Generics preserve the exact type identity.'
-        }
-      ]
-    },
-    {
-      level: 'utility-types',
-      questions: [
-        {
-          question: 'What does the Partial<T> utility type do?',
-          options: [
-            { id: 'a', text: 'Deletes half of the object properties randomly', isCorrect: false },
-            { id: 'b', text: 'Makes every property in the type optional (adds a ? to everything)', isCorrect: true },
-            { id: 'c', text: 'Makes every property strictly required', isCorrect: false }
-          ],
-          explanation: 'Partial is heavily used for "Update" API payloads where you only want to send 1 or 2 fields from a massive User model.'
-        },
-        {
-          question: 'Which utility type should you use to "Laminate" a global test config object so nobody can mutate it?',
-          options: [
-            { id: 'a', text: 'Omit<>', isCorrect: false },
-            { id: 'b', text: 'Pick<>', isCorrect: false },
-            { id: 'c', text: 'Readonly<>', isCorrect: true }
-          ],
-          explanation: 'Readonly<> forces every property to be read-only, throwing a compiler error if a test tries to overwrite global configuration state.'
-        },
-        {
-          question: 'If you have a massive User object but only want to extract the "email" and "password" types for a login test, what do you use?',
-          options: [
-            { id: 'a', text: 'Pick<User, "email" | "password">', isCorrect: true },
-            { id: 'b', text: 'Omit<User>', isCorrect: false },
-            { id: 'c', text: 'Partial<User>', isCorrect: false }
-          ],
-          explanation: 'Pick acts as a crop tool, creating a brand new strict type using only the specific keys you requested from the original interface.'
-        }
-      ]
-    },
-    {
-      level: 'null-safety',
-      questions: [
-        {
-          question: 'What does the Optional Chaining operator (?.) do?',
-          options: [
-            { id: 'a', text: 'It creates a random question mark on the UI', isCorrect: false },
-            { id: 'b', text: 'It safely stops and returns undefined if an object is null, preventing a catastrophic crash', isCorrect: true },
-            { id: 'c', text: 'It loops over an array', isCorrect: false }
-          ],
-          explanation: 'Optional chaining acts as a bomb disposal robot. It navigates deep into an object and aborts safely if a nested property is missing.'
-        },
-        {
-          question: 'What is the primary difference between Nullish Coalescing (??) and the logical OR (||)?',
-          options: [
-            { id: 'a', text: 'There is no difference', isCorrect: false },
-            { id: 'b', text: '|| fails on ANY falsy value (like 0 or empty string ""). ?? ONLY falls back if the value is strictly null or undefined.', isCorrect: true },
-            { id: 'c', text: '?? is used for addition', isCorrect: false }
-          ],
-          explanation: 'If a user has an empty string for a middle name (""), || will replace it with a fallback. ?? respects the empty string and leaves it alone.'
-        },
-        {
-          question: 'Why is the Non-Null Assertion operator (!) dangerous?',
-          options: [
-            { id: 'a', text: 'Because it tells TypeScript "I promise this exists", which will crash your test violently if you are wrong.', isCorrect: true },
-            { id: 'b', text: 'Because it makes the code run too slowly', isCorrect: false },
-            { id: 'c', text: 'It is completely safe and recommended everywhere', isCorrect: false }
-          ],
-          explanation: 'Using ! removes the safety net. If a DOM element fails to render and you use button!.click(), your test explodes instead of failing gracefully.'
-        }
-      ]
-    }
   ],
   playwright: [
     {
