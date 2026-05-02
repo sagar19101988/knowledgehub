@@ -9840,7 +9840,94 @@ const stringData: TestData = { name: "env", value: "staging" };  // T defaults t
 const numberData: TestData<number> = { name: 0, value: 42 };     // explicit override
 \`\`\`
 
-### 7. Common Mistakes
+### 7. Generic Classes — Reusable Typed Containers
+
+*💡 Analogy: A generic class is like a universal filing cabinet. You specify the type of document it stores when you buy it — a Cabinet<Contract> only stores contracts, a Cabinet<Receipt> only stores receipts. The cabinet itself (its methods: add, find, remove) works identically regardless of what you store in it.*
+
+\`\`\`typescript
+// A type-safe in-memory store — the T must have an id field
+class Store<T extends { id: number }> {
+  private items: T[] = [];
+
+  add(item: T): void {
+    this.items.push(item);
+  }
+
+  findById(id: number): T | undefined {
+    return this.items.find(item => item.id === id);
+  }
+
+  getAll(): T[] {
+    return [...this.items];
+  }
+
+  remove(id: number): boolean {
+    const index = this.items.findIndex(item => item.id === id);
+    if (index === -1) return false;
+    this.items.splice(index, 1);
+    return true;
+  }
+}
+
+// TypeScript infers T from the first call
+interface TestCase { id: number; name: string; priority: string; }
+interface User      { id: number; email: string; role: string;   }
+
+const testCaseStore = new Store<TestCase>();
+const userStore     = new Store<User>();
+
+testCaseStore.add({ id: 1, name: "Login Test", priority: "high" });
+const tc = testCaseStore.findById(1);  // TypeScript knows: TestCase | undefined
+tc?.name;     // ✅ string
+tc?.priority; // ✅ string
+tc?.email;    // ❌ Error — TestCase has no email
+\`\`\`
+
+**Real QA Pattern — Generic Page Object Factory:**
+\`\`\`typescript
+// A factory that constructs any Page Object with a typed config
+class PageFactory<TPage, TConfig> {
+  constructor(
+    private readonly page: Page,
+    private readonly PageClass: new (page: Page, config: TConfig) => TPage,
+  ) {}
+
+  create(config: TConfig): TPage {
+    return new this.PageClass(this.page, config);
+  }
+}
+
+// Usage
+class LoginPage {
+  constructor(
+    private page: Page,
+    private config: { baseURL: string; timeout: number }
+  ) {}
+  async navigate() { await this.page.goto(this.config.baseURL + '/login'); }
+}
+
+const factory = new PageFactory(page, LoginPage);
+const loginPage = factory.create({ baseURL: 'https://staging.test.com', timeout: 30000 });
+\`\`\`
+
+**Generic class with multiple type parameters:**
+\`\`\`typescript
+// A typed cache: maps keys of type K to values of type V
+class Cache<K, V> {
+  private map = new Map<K, V>();
+
+  set(key: K, value: V): void    { this.map.set(key, value); }
+  get(key: K): V | undefined      { return this.map.get(key); }
+  has(key: K): boolean            { return this.map.has(key); }
+  clear(): void                   { this.map.clear(); }
+}
+
+const apiCache = new Cache<string, { data: unknown; cachedAt: Date }>();
+apiCache.set('/api/users', { data: [...], cachedAt: new Date() });
+apiCache.get('/api/users');  // { data: unknown; cachedAt: Date } | undefined
+\`\`\`
+
+### 8. Common Mistakes
 
 **Mistake: Using \`any\` instead of a generic**
 \`\`\`typescript
@@ -10932,6 +11019,235 @@ class TestData {
 const timeout = TestData.DEFAULT_TIMEOUT;
 const email   = TestData.randomEmail();
 \`\`\`
+
+### 8. Getters & Setters — Controlled Property Access
+
+*💡 Analogy: A getter is like a tinted glass window — people outside can see a processed view of what's inside (formatted, computed, cached), but they don't see the raw storage. A setter is like a mail slot with a bouncer — it decides what gets in, rejecting packages that don't meet the requirements before anything reaches the inside.*
+
+\`\`\`typescript
+class TestEnvironment {
+  private _baseURL: string;
+  private _timeout: number;
+
+  constructor(baseURL: string, timeout: number) {
+    this._baseURL = baseURL;
+    this._timeout = timeout;
+  }
+
+  // Getter — computed/formatted value, accessed like a property (no parentheses)
+  get baseURL(): string {
+    return this._baseURL;
+  }
+
+  // Setter — validates before storing
+  set baseURL(value: string) {
+    if (!value.startsWith('http')) {
+      throw new Error(\\\`Invalid URL: must start with http/https\\\`);
+    }
+    this._baseURL = value;
+  }
+
+  // Read-only getter — no setter means property is effectively immutable from outside
+  get timeoutInSeconds(): number {
+    return this._timeout / 1000;  // Derived value — computed on demand
+  }
+}
+
+const env = new TestEnvironment('https://staging.test.com', 30000);
+
+console.log(env.baseURL);           // 'https://staging.test.com' — calls getter
+console.log(env.timeoutInSeconds);  // 30 — computed from ms
+
+env.baseURL = 'https://prod.test.com';  // ✅ calls setter, validates first
+env.baseURL = 'ftp://wrong.com';        // ❌ Throws: Invalid URL
+env.timeoutInSeconds = 60;              // ❌ Error: no setter — read-only
+\`\`\`
+
+**Real QA Pattern — Lazy-Loaded Locators in Page Objects:**
+\`\`\`typescript
+class DashboardPage {
+  constructor(private page: Page) {}
+
+  // Getter returns a locator — computed fresh each time it's accessed
+  // No need to store the locator in a constructor — it's created on demand
+  get welcomeBanner()  { return this.page.locator('[data-testid="welcome"]'); }
+  get userMenu()       { return this.page.locator('[data-testid="user-menu"]'); }
+  get notifBadge()     { return this.page.locator('.notification-badge'); }
+
+  async assertWelcomeVisible(): Promise<void> {
+    await this.welcomeBanner.waitFor({ state: 'visible' });  // clean, no this.#locator
+  }
+}
+
+// In test code — reads naturally, no method call noise
+const dashboard = new DashboardPage(page);
+await expect(dashboard.welcomeBanner).toBeVisible();  // direct, readable
+await dashboard.userMenu.click();
+\`\`\`
+
+**Getter for computed/cached values:**
+\`\`\`typescript
+class TestReport {
+  constructor(
+    private readonly results: Array<{ passed: boolean; durationMs: number }>
+  ) {}
+
+  get passCount():    number { return this.results.filter(r => r.passed).length; }
+  get failCount():    number { return this.results.filter(r => !r.passed).length; }
+  get totalCount():   number { return this.results.length; }
+  get passRate():     number { return Math.round((this.passCount / this.totalCount) * 100); }
+  get avgDuration():  number {
+    const total = this.results.reduce((sum, r) => sum + r.durationMs, 0);
+    return Math.round(total / this.totalCount);
+  }
+
+  get summary(): string {
+    return \\\`\\\${this.passCount}/\\\${this.totalCount} passed (\\\${this.passRate}%) avg \\\${this.avgDuration}ms\\\`;
+  }
+}
+
+const report = new TestReport([
+  { passed: true,  durationMs: 850  },
+  { passed: false, durationMs: 1200 },
+  { passed: true,  durationMs: 950  },
+]);
+
+console.log(report.passRate);  // 67
+console.log(report.summary);  // "2/3 passed (67%) avg 1000ms"
+\`\`\`
+
+### 9. Class Inheritance — extends, super, override
+
+*💡 Analogy: Inheritance is like a family recipe book. The grandmother's base recipe defines the core method: dough, filling, bake. Each grandchild EXTENDS the recipe — they inherit the base method but can override specific steps (add extra spices, change the filling). They must still call the grandmother's steps first (\`super()\`) before adding their own twist.*
+
+**The \`extends\` keyword — inheriting from a parent class:**
+\`\`\`typescript
+// Parent class — the reusable foundation
+class BasePage {
+  constructor(protected page: Page, protected baseURL: string) {}
+
+  async navigate(path: string): Promise<void> {
+    await this.page.goto(\\\`\\\${this.baseURL}\\\${path}\\\`);
+    await this.page.waitForLoadState('networkidle');
+  }
+
+  async screenshot(name: string): Promise<void> {
+    await this.page.screenshot({ path: \\\`screenshots/\\\${name}.png\\\` });
+  }
+}
+
+// Child class — inherits everything from BasePage and adds its own behaviour
+class LoginPage extends BasePage {
+  // Child constructor MUST call super() first — passes args to the parent
+  constructor(page: Page, baseURL: string) {
+    super(page, baseURL);   // ← calls BasePage constructor
+  }
+
+  // LoginPage's own methods — in addition to inherited navigate/screenshot
+  async enterEmail(email: string): Promise<void> {
+    await this.page.fill('[data-testid="email"]', email);
+  }
+
+  async enterPassword(password: string): Promise<void> {
+    await this.page.fill('[data-testid="password"]', password);
+  }
+
+  async submit(): Promise<void> {
+    await this.page.click('[data-testid="submit"]');
+  }
+
+  // Full login flow — uses inherited navigate() + its own methods
+  async login(email: string, password: string): Promise<void> {
+    await this.navigate('/login');  // ✅ inherited from BasePage
+    await this.enterEmail(email);
+    await this.enterPassword(password);
+    await this.submit();
+  }
+}
+
+const loginPage = new LoginPage(page, 'https://staging.test.com');
+await loginPage.login('qa@test.com', 'Secret123!');
+await loginPage.screenshot('after-login');  // ✅ still inherited from BasePage
+\`\`\`
+
+**Calling \`super.method()\` — extending parent behaviour:**
+\`\`\`typescript
+class AuthenticatedPage extends BasePage {
+  constructor(page: Page, baseURL: string, private authToken: string) {
+    super(page, baseURL);
+  }
+
+  // Override navigate — call parent's version THEN add auth step
+  override async navigate(path: string): Promise<void> {
+    await super.navigate(path);          // Run the parent's navigate first
+    await this.page.evaluate(            // Then inject the auth token
+      (token) => localStorage.setItem('auth_token', token),
+      this.authToken
+    );
+  }
+}
+\`\`\`
+
+**The \`override\` keyword — TypeScript 4.3+, your safety net:**
+\`\`\`typescript
+class DashboardPage extends BasePage {
+  // ✅ 'override' tells TypeScript this must exist in the parent
+  // If you rename/remove it in BasePage, TypeScript errors HERE — not at runtime
+  override async navigate(path: string): Promise<void> {
+    await super.navigate(path);
+    await this.page.waitForSelector('[data-testid="dashboard-loaded"]');
+  }
+
+  // ❌ Without 'override': silently creates a new method if parent spelling differs
+  // navigatte(path: string) {}  — typo goes unnoticed without 'override'
+}
+
+// Enable in tsconfig: "noImplicitOverride": true  — forces override on all overrides
+\`\`\`
+
+**Multi-level inheritance — realistic POM structure:**
+\`\`\`typescript
+// Level 1: core page infrastructure
+abstract class BasePage {
+  constructor(protected page: Page) {}
+  abstract navigate(): Promise<void>;
+  async waitForLoad() { await this.page.waitForLoadState('networkidle'); }
+}
+
+// Level 2: adds authentication awareness
+abstract class AuthenticatedPage extends BasePage {
+  async assertLoggedIn(): Promise<void> {
+    await this.page.waitForSelector('[data-testid="user-avatar"]');
+  }
+}
+
+// Level 3: concrete page with full implementation
+class OrdersPage extends AuthenticatedPage {
+  override async navigate(): Promise<void> {
+    await this.page.goto('/orders');
+    await this.waitForLoad();  // inherited from BasePage
+  }
+
+  async getOrderCount(): Promise<number> {
+    return this.page.locator('.order-row').count();
+  }
+}
+
+const orders = new OrdersPage(page);
+await orders.navigate();
+await orders.assertLoggedIn();  // from AuthenticatedPage
+const count = await orders.getOrderCount();
+\`\`\`
+
+**Key rules for inheritance:**
+
+| Rule | Explanation |
+|------|-------------|
+| \`super()\` in constructor | Must be FIRST line — parent must initialise before child |
+| \`super.method()\` | Calls the parent's version of the method |
+| \`override\` keyword | Explicitly marks intentional overrides — prevents silent bugs |
+| \`protected\` | Parent properties accessible in child but not outside |
+| Only one \`extends\` | TypeScript (like Java) supports single inheritance only |
         `
       },
       {
