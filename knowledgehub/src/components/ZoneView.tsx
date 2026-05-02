@@ -159,8 +159,8 @@ export default function ZoneView() {
                 <div className="p-1.5 space-y-0.5">
                   {/* Theme toggle */}
                   <button
-                    onClick={() => { toggleTheme(); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-all duration-150 group/item"
+                    onClick={() => { toggleTheme(); setAvatarOpen(false); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-violet-50 dark:hover:bg-slate-700 hover:text-violet-700 dark:hover:text-white transition-all duration-150 group/item"
                   >
                     <span className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover/item:bg-violet-100 dark:group-hover/item:bg-violet-900/40 transition-colors">
                       {theme === 'dark'
@@ -179,7 +179,7 @@ export default function ZoneView() {
                       if (isGuest) { resetProgress(); } else { logout(); }
                       navigate('/login', { replace: true });
                     }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all duration-150 group/item"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-rose-500 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950 hover:text-rose-700 dark:hover:text-rose-200 transition-all duration-150 group/item"
                   >
                     <span className="w-7 h-7 rounded-lg bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center group-hover/item:bg-rose-100 dark:group-hover/item:bg-rose-500/20 transition-colors">
                       <LogOut size={14} />

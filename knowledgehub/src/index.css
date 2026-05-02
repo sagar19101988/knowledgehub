@@ -58,6 +58,11 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
   pointer-events: none;
 }
 
+/* Pointer cursor on all enabled interactive elements */
+button:not(:disabled) {
+  cursor: pointer;
+}
+
 .sidebar-scroll::-webkit-scrollbar {
   width: 4px;
 }
