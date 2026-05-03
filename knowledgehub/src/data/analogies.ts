@@ -11983,11 +11983,47 @@ function MinLength(min: number) {
         }
         value = newValue;
       },
+    });
+  };
+}
+
+class TestUser {
+  @MinLength(8)
+  password!: string;
+}
+
+const u = new TestUser();
+u.password = "abc";          // ❌ Throws: must be at least 8 chars
+u.password = "SecurePass1!"; // ✅ Fine
+\`\`\`
+
+### 7. Enabling Decorators in Your Project
+
+\`\`\`json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "experimentalDecorators": true,        // For older-style decorators (NestJS, Angular)
+    "emitDecoratorMetadata": true          // Allows runtime type info via reflect-metadata
+  }
+}
+\`\`\`
+
+For TS 5+ stage 3 decorators (modern), no special flag is needed.
+
+### 8. When NOT to Use Decorators
+
+- **Simple cases** — if a regular function call is clearer, use that
+- **One-off behaviour** — decorators shine for repeated, declarative patterns
+- **Performance-critical paths** — decorators add a function-call layer per invocation
+        `
+      },
       {
         id: 'ts-advanced-conditional-types',
         title: 'Advanced Conditional Types',
         analogy: "A conditional type is like a smart customs officer at an airport. A junior officer asks 'Is this a liquid?' and stamps YES or NO. An expert officer (advanced conditional types) can ask: 'If this is a container, what's inside it?', then open it and inspect the contents (infer), apply the same logic to every item in a group (distributive), and recursively inspect nested containers. The expert officer handles cases the junior officer can't even conceive of.",
-        lessonMarkdown: \`
+        lessonMarkdown: `
 ### 1. Quick Recap — Why Conditional Types Exist
 
 *💡 Analogy: A conditional type is a compile-time if/else. Instead of choosing a value at runtime, TypeScript chooses a TYPE based on what another type looks like. "If T is an array, give me the element type; otherwise give me T unchanged."*
@@ -12261,14 +12297,14 @@ type CleanFixture = DeepNonNullable<RawFixture>;
 // CleanFixture.user.email = string ✅  (undefined removed)
 // CleanFixture.token      = string ✅
 \`\`\`
-        \`
+        `
       },
 
       {
         id: 'ts-advanced-mapped-types',
         title: 'Advanced Mapped Types',
         analogy: "A basic mapped type is a photocopier — it copies every key and transforms the value. An advanced mapped type is a professional editor: it can rename pages while copying, tear out chapters that don't belong, combine two documents into one, and even decide what to copy based on the content of each page. The advanced editor has full creative control over what the final document looks like.",
-        lessonMarkdown: \`
+        lessonMarkdown: `
 ### 1. Quick Recap — Mapped Types Basics
 
 *💡 Analogy: A mapped type iterates over the keys of a type and does something with each one — like a for-loop for types. The basic form copies every key and transforms the value.*
@@ -12516,14 +12552,14 @@ type UserBuilder = Builder<User>;
 // Any new field added to User automatically appears in UserBuilder ✅
 // No manual builder maintenance needed ✅
 \`\`\`
-        \`
+        `
       },
 
       {
         id: 'ts-variadic-tuples',
         title: 'Variadic Tuple Types',
         analogy: "A fixed tuple is a crate with labelled compartments — slot 1 holds a spanner, slot 2 holds a hammer. A variadic tuple is a professional tool belt: you can attach any number of pouches, each typed to hold a specific tool, and the belt remembers the exact type in every pouch no matter how many you attach. You can spread one tool belt into another and the types stay precise throughout.",
-        lessonMarkdown: \`
+        lessonMarkdown: `
 ### 1. What Are Tuple Types (Recap)?
 
 *💡 Analogy: A tuple is an array where the position matters — slot 0 is always a string (name), slot 1 is always a number (age). TypeScript tracks the exact type at every index, unlike a plain array where all elements share one type.*
@@ -12752,14 +12788,14 @@ type Schema  = Zip<Fields, Types>;
 
 // Useful for building typed column-to-type mappings in database test helpers
 \`\`\`
-        \`
+        `
       },
 
       {
         id: 'ts-branded-nominal-types',
         title: 'Branded & Nominal Types',
         analogy: "TypeScript's structural typing is like a costume party where anyone wearing the right outfit gets in — a string is a string, regardless of whether it's a UserId or an OrderId. Branded types are like VIP backstage passes with holograms: the string still looks like a string, but it carries an invisible stamp that only a real UserId has, and the type system checks that hologram at every door.",
-        lessonMarkdown: \`
+        lessonMarkdown: `
 ### 1. The Problem — Structural Typing's Footgun
 
 *💡 Analogy: Two identical-looking vials in a lab — one is saline, one is acid. Both are clear liquids. Without a label system, you can swap them accidentally with no warning. In TypeScript, a \`UserId\` and an \`OrderId\` are both strings. Nothing stops you from passing one where the other is expected.*
@@ -12954,14 +12990,14 @@ Skip them when:
 - ❌ A type is only used in one place — the name alone is enough context
 - ❌ You'd brand literally every string — that's over-engineering
 - ❌ The codebase is small and the team is disciplined about naming
-        \`
+        `
       },
 
       {
         id: 'ts-error-handling-patterns',
         title: 'Type-Safe Error Handling',
         analogy: "Traditional error handling with try/catch is like sending packages with no return address — if something goes wrong, the package disappears into the void and you get a vague 'delivery failed' note. The Result pattern is like tracked shipping with two explicit states: Delivered (contains the package) or Failed (contains the exact reason, address, and timestamp). The type system ensures you always check the delivery status before opening the box.",
-        lessonMarkdown: \`
+        lessonMarkdown: `
 ### 1. The Problem With try/catch
 
 *💡 Analogy: \`throw\` is like yelling "fire!" in a building. Everyone hears it, but nobody knows what kind of fire, where it is, or how serious. The type of the error is lost — TypeScript can't help you handle different fire types differently.*
@@ -13200,14 +13236,14 @@ const loginTest: TestCase = {
   },
 };
 \`\`\`
-        \`
+        `
       },
 
       {
         id: 'ts-type-safe-builders',
         title: 'Type-Safe Builder & Factory Patterns',
         analogy: "A regular builder is like filling out a paper form — you can hand in the form with required fields blank and only find out at the processing desk that it's incomplete. A type-safe builder is a digital form that greys out the Submit button until every required field is filled. The compiler acts as the form validation, refusing to compile if required fields are missing — before you even run the code.",
-        lessonMarkdown: \`
+        lessonMarkdown: `
 ### 1. The Basic Builder Pattern
 
 *💡 Analogy: A burger builder at a restaurant — you specify patty, bun, and toppings one by one. A basic builder lets you chain method calls and returns the final object. But it has a flaw: you can call \`.build()\` before adding the required patty.*
@@ -13434,14 +13470,14 @@ new OrderFixture()
   .withItems([{ sku: 'SKU-B', qty: 1 }])
   .build();  // Error: 'userId' is missing from Done
 \`\`\`
-        \`
+        `
       },
 
       {
         id: 'ts-declaration-merging',
         title: 'Declaration Merging & Module Augmentation',
         analogy: "Imagine a government building with multiple departments, all adding floors to the same building. Department A builds floors 1-5, Department B adds floors 6-10, Department C adds a rooftop. Visitors enter through one front door and can access all floors. Declaration merging lets different parts of your code — or third-party libraries — add to the same type definition, which TypeScript then combines into one complete building.",
-        lessonMarkdown: \`
+        lessonMarkdown: `
 ### 1. What Is Declaration Merging?
 
 *💡 Analogy: In English, the word "bank" can mean a riverbank, a financial bank, or to bank a turn. The dictionary doesn't have three separate entries — they're merged under one word, and context tells you which meaning applies. TypeScript merges multiple declarations of the same name into one combined type.*
@@ -13677,14 +13713,14 @@ declare module 'express' { interface Request { user?: User } }  // wrong scope
 // tsconfig.json — make sure TypeScript finds your declarations:
 // { "include": ["src/**/*.ts", "src/**/*.d.ts"] }
 \`\`\`
-        \`
+        `
       },
 
       {
         id: 'ts-performance-compiler',
         title: 'TypeScript Compiler, tsconfig & Type Performance',
         analogy: "The TypeScript compiler is like a building inspector. \`tsconfig.json\` is your list of inspection rules — you can tell the inspector to be strict (check everything), lenient (only check essentials), or focused (only inspect certain floors). \`strict: true\` is the inspector carrying a full code book. Each individual flag is a specific section of that code book. Knowing which rules are in force helps you understand exactly why the inspector is refusing to sign off on your build.",
-        lessonMarkdown: \`
+        lessonMarkdown: `
 ### 1. How \`tsconfig.json\` Works
 
 *💡 Analogy: \`tsconfig.json\` is the control panel for the TypeScript compiler. It decides which files to include, which JavaScript version to target, how strictly to check your code, and how to resolve imports. Every setting has a default — knowing the defaults means you know what you're getting even when you don't specify.*
@@ -13936,45 +13972,8 @@ processId(orderId);  // This line SHOULD fail — @ts-expect-error confirms it d
 - \`noFallthroughCasesInSwitch\` — catches missing \`break\` in switch statements
 - \`exactOptionalPropertyTypes\` — \`{ x?: string }\` means absent OR string, NOT undefined
 - \`skipLibCheck\` — skip type-checking \`.d.ts\` files in \`node_modules\` (speeds up build)
-        \`
-      },
-
-    });
-  };
-}
-
-class TestUser {
-  @MinLength(8)
-  password!: string;
-}
-
-const u = new TestUser();
-u.password = "abc";          // ❌ Throws: must be at least 8 chars
-u.password = "SecurePass1!"; // ✅ Fine
-\`\`\`
-
-### 7. Enabling Decorators in Your Project
-
-\`\`\`json
-// tsconfig.json
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "experimentalDecorators": true,        // For older-style decorators (NestJS, Angular)
-    "emitDecoratorMetadata": true          // Allows runtime type info via reflect-metadata
-  }
-}
-\`\`\`
-
-For TS 5+ stage 3 decorators (modern), no special flag is needed.
-
-### 8. When NOT to Use Decorators
-
-- **Simple cases** — if a regular function call is clearer, use that
-- **One-off behaviour** — decorators shine for repeated, declarative patterns
-- **Performance-critical paths** — decorators add a function-call layer per invocation
         `
-      }
+      },
 
     ]
   },
