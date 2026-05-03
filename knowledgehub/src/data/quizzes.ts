@@ -5624,35 +5624,443 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ],
     },
     {
-      level: 'intermediate',
+      level: 'pw-auto-waiting',
       questions: [
         {
-          question: 'Why does Playwright use "await"?',
+          question: 'Playwright checks an "actionability checklist" before performing actions. Which condition is required for click() but NOT for focus()?',
           options: [
-            { id: 'a', text: 'To make the test run slower on purpose.', isCorrect: false },
-            { id: 'b', text: 'Because browser actions take time (like waiting for a page to load), and the code must wait for them to finish.', isCorrect: true },
-            { id: 'c', text: 'Because it is a polite framework.', isCorrect: false }
+            { id: 'a', text: 'Attached to the DOM', isCorrect: false },
+            { id: 'b', text: 'Visible in the viewport', isCorrect: false },
+            { id: 'c', text: 'Receives pointer events (not obscured by another element)', isCorrect: true },
+            { id: 'd', text: 'Has a non-empty text content', isCorrect: false },
           ],
-          explanation: 'Playwright is asynchronous. "await" stops the code from running ahead before the webpage has actually reacted.'
+          explanation: 'focus() only requires the element to be attached and enabled. click() requires the full checklist: attached, visible, stable, enabled, AND receives pointer events — meaning no overlay is blocking it. This is why Playwright reports "element is obscured" errors on clicks but not on focus().',
         },
         {
-          question: 'What is an Assertion (expect)?',
+          question: 'Your SPA loads dashboard data via fetch() after the initial HTML renders. page.goto("/dashboard") returns before the data appears. What is the most reliable fix?',
           options: [
-            { id: 'a', text: 'A check that proves the app is in the correct state (e.g. verifying a success message appeared).', isCorrect: true },
-            { id: 'b', text: 'A forceful click on a button.', isCorrect: false },
-            { id: 'c', text: 'A way to start the test.', isCorrect: false }
+            { id: 'a', text: 'await page.waitForTimeout(3000) after goto()', isCorrect: false },
+            { id: 'b', text: 'await page.goto("/dashboard", { waitUntil: "networkidle" })', isCorrect: true },
+            { id: 'c', text: 'await page.reload() after goto()', isCorrect: false },
+            { id: 'd', text: 'await page.waitForSelector("body")', isCorrect: false },
           ],
-          explanation: 'Without assertions, your test only clicks things. Assertions are the actual "test" part that proves things worked.'
+          explanation: '"networkidle" waits until there are no network requests for 500 ms, ensuring async fetch() calls from mounted components have completed and data has rendered. waitForTimeout is a fixed sleep anti-pattern. reload() restarts the whole load. waitForSelector("body") resolves as soon as the basic DOM is present, long before data arrives.',
         },
         {
-          question: 'Why are CSS selectors considered fragile?',
+          question: 'A test calls page.waitForResponse() AFTER calling page.click(). The test is intermittently flaky — sometimes it catches the response, sometimes it misses it. What is the root cause?',
           options: [
-            { id: 'a', text: 'They are made of glass.', isCorrect: false },
-            { id: 'b', text: 'Because developers often change class names for styling, which breaks the test.', isCorrect: true },
-            { id: 'c', text: 'They only work on Safari.', isCorrect: false }
+            { id: 'a', text: 'waitForResponse() only works with GET requests', isCorrect: false },
+            { id: 'b', text: 'The network connection is too slow in CI', isCorrect: false },
+            { id: 'c', text: 'The listener was registered after the action, so fast responses arrive before the listener is active', isCorrect: true },
+            { id: 'd', text: 'waitForResponse() requires a regex pattern, not a URL string', isCorrect: false },
           ],
-          explanation: 'It is better to test by user-visible text (getByText) or roles (getByRole) than invisible CSS classes.'
-        }
+          explanation: 'waitForResponse() must be set up BEFORE the action that triggers the response. The correct pattern is: const responsePromise = page.waitForResponse(...); await page.click(...); const response = await responsePromise; — this ensures the listener is watching before the click fires.',
+        },
+        {
+          question: 'Playwright auto-waits for elements to satisfy the actionability checklist. Which waitForLoadState() option should you use after navigating to a page that performs heavy client-side rendering?',
+          options: [
+            { id: 'a', text: '"commit" — waits for the network response to begin', isCorrect: false },
+            { id: 'b', text: '"domcontentloaded" — waits for the HTML to be parsed', isCorrect: false },
+            { id: 'c', text: '"load" — waits for the load event including sub-resources', isCorrect: false },
+            { id: 'd', text: '"networkidle" — waits until there are no more than 0 active network connections for 500 ms', isCorrect: true },
+          ],
+          explanation: '"networkidle" is the most thorough option and is best for SPAs that fire multiple fetch() calls after the initial load event. "domcontentloaded" and "load" both fire before JS-driven data fetching completes. "commit" is the earliest possible point — the response headers have been received but the body may not even be fully downloaded.',
+        },
+        {
+          question: 'A colleague says "just add waitForTimeout(2000) everywhere the test is flaky — it always fixes it." Why is this an anti-pattern?',
+          options: [
+            { id: 'a', text: 'waitForTimeout() is deprecated in Playwright v1.30+', isCorrect: false },
+            { id: 'b', text: 'Fixed sleeps either waste time (sleeping longer than needed) or cause intermittent failures (sleeping shorter than needed on a slow CI machine)', isCorrect: true },
+            { id: 'c', text: 'waitForTimeout() does not work in headed mode', isCorrect: false },
+            { id: 'd', text: 'It causes memory leaks in the test runner', isCorrect: false },
+          ],
+          explanation: 'Fixed sleeps mask the root cause of flakiness without solving it. On a fast machine 2000 ms is wasteful; on a slow CI box the element still might not be ready. The correct approach is to use event-driven waits: waitForResponse(), waitForURL(), expect(locator).toBeVisible(), or waitForFunction() — all of which resolve as soon as the condition is met and time out with a clear error if it never is.',
+        },
+      ]
+    },
+    {
+      level: 'pw-fixtures-lifecycle',
+      questions: [
+        {
+          question: 'You define a test.describe() block with both a beforeAll() and a beforeEach() hook, plus two tests. In what order do these run?',
+          options: [
+            { id: 'a', text: 'beforeEach → beforeAll → test1 → beforeEach → test2 → afterAll', isCorrect: false },
+            { id: 'b', text: 'beforeAll → beforeEach → test1 → beforeEach → test2 → afterAll', isCorrect: true },
+            { id: 'c', text: 'beforeAll → test1 → test2 → afterAll (beforeEach is ignored when beforeAll is present)', isCorrect: false },
+            { id: 'd', text: 'beforeEach → test1 → beforeAll → test2', isCorrect: false },
+          ],
+          explanation: 'beforeAll() runs once before the entire describe block. beforeEach() runs before every individual test. The order is: beforeAll → (beforeEach → test → afterEach) × n → afterAll. If there is no afterEach, it is simply omitted. beforeAll does not replace beforeEach — both run, at different granularities.',
+        },
+        {
+          question: 'You create a custom fixture using test.extend(). The fixture code is: async ({ page }, use) => { await page.goto("/login"); await use(page); await page.close(); }. When does the code after "await use()" execute?',
+          options: [
+            { id: 'a', text: 'Immediately after the fixture is constructed, before the test body runs', isCorrect: false },
+            { id: 'b', text: 'Only if the test passes — it is skipped on failure', isCorrect: false },
+            { id: 'c', text: 'After the test body completes, whether the test passed or threw an error', isCorrect: true },
+            { id: 'd', text: 'Only if you explicitly call fixture.teardown() in the test', isCorrect: false },
+          ],
+          explanation: 'The code after "await use()" is the teardown phase and is guaranteed to run after every test — pass or fail. This is analogous to a finally block. It is one of the core safety properties of the fixture system: leaked resources (open pages, DB connections, seeded data) are always cleaned up, even when a test throws.',
+        },
+        {
+          question: 'What is the difference between "test" scope and "worker" scope for a custom fixture?',
+          options: [
+            { id: 'a', text: 'Test-scoped fixtures run in Chromium; worker-scoped fixtures run in Firefox', isCorrect: false },
+            { id: 'b', text: 'Test-scoped fixtures are created fresh for each test; worker-scoped fixtures are created once per parallel worker and shared by all tests on that worker', isCorrect: true },
+            { id: 'c', text: 'Worker-scoped fixtures are faster to define but cannot use async/await', isCorrect: false },
+            { id: 'd', text: 'Test-scoped fixtures require TypeScript; worker-scoped fixtures work in JavaScript only', isCorrect: false },
+          ],
+          explanation: 'Test-scoped (default) fixtures give every test its own isolated instance — guaranteed clean state. Worker-scoped fixtures are created once per parallel worker process, making them ideal for expensive one-time operations like database seeding or browser-level authentication. The risk: worker-scoped fixtures must be treated as shared state — a test that mutates them can affect subsequent tests on the same worker.',
+        },
+        {
+          question: 'You want to compose two custom fixtures so that your "loggedInPage" fixture depends on both the built-in "page" fixture and your custom "authToken" fixture. How do you declare this in test.extend()?',
+          options: [
+            { id: 'a', text: 'async (page, authToken, use) => { ... } — list dependencies as positional arguments', isCorrect: false },
+            { id: 'b', text: 'async ({ page, authToken }, use) => { ... } — destructure all needed fixtures from the first argument', isCorrect: true },
+            { id: 'c', text: 'You must create a separate test.extend() call for each dependency', isCorrect: false },
+            { id: 'd', text: 'async (use, { page, authToken }) => { ... } — use() always comes first', isCorrect: false },
+          ],
+          explanation: 'Fixture composition in test.extend() always uses destructuring from the first argument: async ({ page, authToken }, use) => { ... }. Playwright resolves the dependency graph automatically — it instantiates "authToken" first (if it depends on nothing), then passes both to "loggedInPage". This declarative style makes dependency chains readable and avoids manual wiring.',
+        },
+        {
+          question: 'You have 50 tests that all need an authenticated user. Using the storageState pattern, when does the actual UI login flow execute?',
+          options: [
+            { id: 'a', text: 'Once per test, in a beforeEach() hook', isCorrect: false },
+            { id: 'b', text: 'Once per worker, so up to N times where N is the number of parallel workers', isCorrect: false },
+            { id: 'c', text: 'Exactly once in globalSetup; all 50 tests load the saved cookie file instantly', isCorrect: true },
+            { id: 'd', text: 'Never — storageState replaces authentication entirely with a mock token', isCorrect: false },
+          ],
+          explanation: 'The storageState pattern: globalSetup logs in once via the real UI, saves the resulting cookies + localStorage to a JSON file. playwright.config.ts sets storageState to that file. Every test starts with that pre-authenticated browser state loaded instantly — zero UI login overhead. 50 tests × "skip the login flow" = significant wall-clock savings in CI.',
+        },
+      ]
+    },
+    {
+      level: 'pw-page-object-model',
+      questions: [
+        {
+          question: 'A developer renames the "Sign In" button to "Log In" across the app. Without POM the change breaks 40 test files. With POM, how many files require a locator update?',
+          options: [
+            { id: 'a', text: '40 — POM does not help with locator maintenance', isCorrect: false },
+            { id: 'b', text: 'All spec files that import LoginPage', isCorrect: false },
+            { id: 'c', text: '1 — the LoginPage class where the button locator is defined', isCorrect: true },
+            { id: 'd', text: '0 — Playwright auto-detects renamed buttons', isCorrect: false },
+          ],
+          explanation: 'This is POM\'s core maintenance benefit. The button locator lives in exactly one place — the LoginPage class. Fix it there and all 40 tests that use LoginPage automatically pick up the change. Without POM every test hardcodes the locator, creating 40 individual maintenance points every time the UI changes.',
+        },
+        {
+          question: 'Which of the following BEST describes what a Page Object method should represent?',
+          options: [
+            { id: 'a', text: 'A CSS selector wrapped in a helper function', isCorrect: false },
+            { id: 'b', text: 'A user-level action or workflow ("loginAs", "addToCart"), not a low-level browser operation', isCorrect: true },
+            { id: 'c', text: 'An assertion that verifies page state after an action', isCorrect: false },
+            { id: 'd', text: 'A database query to seed test data before the UI step', isCorrect: false },
+          ],
+          explanation: 'Good POM methods model what a user does, not what the browser does. "loginAs(email, password)" is a user action. "clickSelectorDotBtnSubmit()" is a browser operation that belongs inside the method body, not as its public name. User-level method names make tests read like business requirements: "await loginPage.loginAs(admin.email, admin.password)".',
+        },
+        {
+          question: 'Where should locators (e.g. getByRole, getByLabel) be defined in a Page Object class?',
+          options: [
+            { id: 'a', text: 'Inline inside each test spec file for maximum visibility', isCorrect: false },
+            { id: 'b', text: 'In a shared constants file referenced by all page objects', isCorrect: false },
+            { id: 'c', text: 'As private getter properties on the Page Object class, co-located with the methods that use them', isCorrect: true },
+            { id: 'd', text: 'In playwright.config.ts under a "locators" key', isCorrect: false },
+          ],
+          explanation: 'Locators belong on the Page Object class as getter properties (e.g., get submitButton() { return this.page.getByRole("button", { name: "Submit" }); }). This keeps them close to the methods that use them, makes them easy to update when the UI changes, and hides implementation details from test specs — tests call methods, never raw locators.',
+        },
+        {
+          question: 'Your LoginPage.login() method fills credentials and clicks Submit. Should login() also assert that the dashboard heading is visible after login?',
+          options: [
+            { id: 'a', text: 'Yes — it should verify the action succeeded before returning', isCorrect: false },
+            { id: 'b', text: 'Yes, but only using expect.soft() to avoid hard failures', isCorrect: false },
+            { id: 'c', text: 'No — assertions belong in the test, not the Page Object; login() should only perform the action', isCorrect: true },
+            { id: 'd', text: 'Only if an "assertSuccess: true" flag is passed as an argument', isCorrect: false },
+          ],
+          explanation: 'Page Objects perform actions; tests make assertions. If login() hard-codes an assertion about the dashboard, it cannot be reused in a test that expects login to FAIL (e.g., wrong password test). Separating actions (POM) from assertions (spec) keeps both flexible. The test decides what to verify: await loginPage.login(creds); await expect(dashboardPage.heading).toBeVisible();',
+        },
+        {
+          question: 'Which of the following is an anti-pattern in a Page Object class?',
+          options: [
+            { id: 'a', text: 'Exposing locators as private getters', isCorrect: false },
+            { id: 'b', text: 'Using this.page passed in via the constructor', isCorrect: false },
+            { id: 'c', text: 'Reaching into another page object\'s private locators directly to build a combined action', isCorrect: true },
+            { id: 'd', text: 'Returning a new Page Object from a navigation method', isCorrect: false },
+          ],
+          explanation: 'Accessing another Page Object\'s internal locators breaks encapsulation — if that locator changes, two classes break instead of one. Page Objects should communicate through their public method APIs. Returning a new Page Object from a navigation method (e.g., login() returns a DashboardPage) is actually a recognised good pattern that chains flows naturally.',
+        },
+      ]
+    },
+    {
+      level: 'pw-network-interception',
+      questions: [
+        {
+          question: 'You want every request matching "**/api/products**" to return a controlled 200 response with mock JSON without hitting the real server. Which route handler method do you use?',
+          options: [
+            { id: 'a', text: 'route.continue()', isCorrect: false },
+            { id: 'b', text: 'route.abort()', isCorrect: false },
+            { id: 'c', text: 'route.fulfill()', isCorrect: true },
+            { id: 'd', text: 'page.waitForResponse()', isCorrect: false },
+          ],
+          explanation: 'route.fulfill() returns a fabricated response — you control the status, headers, and body — without the request ever reaching the real server. route.abort() simulates a network-level failure. route.continue() forwards to the real server (with optional modifications). waitForResponse() observes responses but cannot intercept or replace them.',
+        },
+        {
+          question: 'You need to test your app\'s UI when the /api/dashboard endpoint returns a 500 error. What is the correct approach?',
+          options: [
+            { id: 'a', text: 'Manually break the server configuration before running the test', isCorrect: false },
+            { id: 'b', text: "await page.route('**/api/dashboard', route => route.fulfill({ status: 500, body: JSON.stringify({ error: 'Server Error' }) }));", isCorrect: true },
+            { id: 'c', text: "route.abort('failed') — this sends an HTTP 500 to the browser", isCorrect: false },
+            { id: 'd', text: 'Set retries: 0 in playwright.config.ts to expose errors', isCorrect: false },
+          ],
+          explanation: 'route.fulfill({ status: 500, ... }) returns a real HTTP 500 response to the browser without touching any real infrastructure. This lets you test error handling UI safely in any environment. route.abort() simulates transport-layer failures (connection refused, timed out) — the browser receives no HTTP response at all, which is a different failure mode.',
+        },
+        {
+          question: 'A test must verify that clicking "Place Order" sends the correct JSON payload to POST /api/orders. Which code snippet correctly captures and inspects the outgoing request?',
+          options: [
+            { id: 'a', text: 'await placeOrderBtn.click(); const req = await page.waitForRequest(/api\\/orders/); expect(JSON.parse(req.postData())).toMatchObject({...});', isCorrect: false },
+            { id: 'b', text: 'const reqPromise = page.waitForRequest(r => r.url().includes("/api/orders") && r.method() === "POST"); await placeOrderBtn.click(); const req = await reqPromise; expect(JSON.parse(req.postData())).toMatchObject({...});', isCorrect: true },
+            { id: 'c', text: 'page.on("request", req => expect(req.postData()).toBeTruthy()); await placeOrderBtn.click();', isCorrect: false },
+            { id: 'd', text: 'page.on("response", res => expect(res.request().postData()).toMatchObject({...})); await placeOrderBtn.click();', isCorrect: false },
+          ],
+          explanation: 'The listener MUST be registered before the action. Option B sets up waitForRequest() first, then clicks, then awaits the captured request — guaranteeing the listener is active when the request fires. Option A registers the listener after clicking and will miss fast requests. page.on("request") with an expect() inside is also unreliable because assertion failures in event handlers are not properly surfaced.',
+        },
+        {
+          question: 'What does route.abort("timedout") simulate, and how does it differ from route.fulfill({ status: 408 })?',
+          options: [
+            { id: 'a', text: 'They are identical — both produce a 408 Timeout response visible in the browser', isCorrect: false },
+            { id: 'b', text: 'abort("timedout") simulates a network-level connection timeout (no HTTP response at all); fulfill({ status: 408 }) returns an actual HTTP 408 response body', isCorrect: true },
+            { id: 'c', text: 'abort("timedout") only affects WebSocket connections; fulfill() affects fetch()', isCorrect: false },
+            { id: 'd', text: 'fulfill({ status: 408 }) causes the browser to automatically retry; abort("timedout") does not', isCorrect: false },
+          ],
+          explanation: 'route.abort() error codes map to OS/network conditions — "timedout" means the TCP connection attempt timed out, so the browser\'s fetch() rejects with a network error (no status code). fulfill({ status: 408 }) means the server responded with an HTTP 408 body. Your app code handles these two scenarios very differently, so testing each matters.',
+        },
+        {
+          question: 'You use page.route() to intercept requests, but you also want some requests to reach the real server unchanged. What must you call for those requests?',
+          options: [
+            { id: 'a', text: 'Nothing — unhandled requests pass through automatically', isCorrect: false },
+            { id: 'b', text: 'route.fulfill() with an empty body', isCorrect: false },
+            { id: 'c', text: 'route.continue() — explicitly forward the request to the real server', isCorrect: true },
+            { id: 'd', text: 'page.unroute() before the request fires', isCorrect: false },
+          ],
+          explanation: 'Once a route handler is registered, Playwright expects you to handle every matched request — fulfill(), abort(), or continue(). Forgetting to call continue() for requests you do not want to mock causes those requests to hang indefinitely, producing timeouts. route.continue() can also be used to modify request headers or the body before forwarding.',
+        },
+      ]
+    },
+    {
+      level: 'pw-advanced-locators',
+      questions: [
+        {
+          question: 'A page renders 20 product cards. You need the card that contains the text "Wireless Headphones". Which locator is most robust?',
+          options: [
+            { id: 'a', text: 'page.locator(".product-card").nth(4)', isCorrect: false },
+            { id: 'b', text: 'page.getByTestId("product-card").filter({ hasText: "Wireless Headphones" })', isCorrect: true },
+            { id: 'c', text: 'page.getByText("Wireless Headphones").locator("..")', isCorrect: false },
+            { id: 'd', text: 'page.locator(".product-card:contains(Wireless Headphones)")', isCorrect: false },
+          ],
+          explanation: '.filter({ hasText: "..." }) narrows a locator set to elements whose subtree contains the specified text. It does not depend on DOM position (unlike .nth()), is readable, and survives page reorders. The CSS :contains() pseudo-selector is non-standard. .locator("..") navigates to the parent but is fragile against DOM structure changes.',
+        },
+        {
+          question: 'A data table has one "Edit" button per row. You must click the Edit button on Alice\'s row. Which approach is correct?',
+          options: [
+            { id: 'a', text: 'page.getByRole("button", { name: "Edit" }).first()', isCorrect: false },
+            { id: 'b', text: 'page.locator("tr:nth-child(2) button")', isCorrect: false },
+            { id: 'c', text: 'page.getByRole("row").filter({ hasText: "Alice" }).getByRole("button", { name: "Edit" }).click()', isCorrect: true },
+            { id: 'd', text: 'page.getByText("Edit").click()', isCorrect: false },
+          ],
+          explanation: 'Scoping to Alice\'s row first, then finding the Edit button within that scope, is the correct pattern. .first() always clicks the first Edit button regardless of row. CSS nth-child depends on row position — fragile if rows are reordered or filtered. getByText("Edit") is ambiguous when 20 rows each have an Edit button.',
+        },
+        {
+          question: 'When is it acceptable to use .nth() to select an element?',
+          options: [
+            { id: 'a', text: 'Always — it is the most explicit and reliable locator strategy', isCorrect: false },
+            { id: 'b', text: 'Only when the DOM position itself is what you are testing — e.g., verifying the most recently added item appears at the top of a sorted list', isCorrect: true },
+            { id: 'c', text: 'Whenever multiple elements share the same role', isCorrect: false },
+            { id: 'd', text: 'Only in combination with getByTestId()', isCorrect: false },
+          ],
+          explanation: '.nth() selects by DOM position, which is fragile — a promotional banner, pagination change, or sort order shift makes index 0 a different element than expected. Reserve .nth() for cases where the position IS the test intent (e.g., "the first result in a sorted list"). For all other cases, filter by content, label, or test ID instead.',
+        },
+        {
+          question: 'What is the most important practical advantage of the Locator API over the ElementHandle API?',
+          options: [
+            { id: 'a', text: 'Locators support more CSS pseudo-classes than ElementHandles', isCorrect: false },
+            { id: 'b', text: 'Locators re-query the DOM on every interaction and integrate with auto-waiting, so they never go stale; ElementHandles capture a DOM reference that can become invalid after a re-render', isCorrect: true },
+            { id: 'c', text: 'ElementHandles cannot be used with TypeScript', isCorrect: false },
+            { id: 'd', text: 'Locators execute in the browser process; ElementHandles execute in Node.js', isCorrect: false },
+          ],
+          explanation: 'After a React component re-renders or a full DOM update, an ElementHandle still points to the old (potentially detached) DOM node — the dreaded "stale element reference" error. A Locator re-runs its query on every .click(), .fill(), etc., always finding the current version of the element. This is why Locators integrate with auto-waiting and why Playwright recommends them exclusively for new code.',
+        },
+        {
+          question: 'You need a locator that finds a checkbox that is currently in the checked state. Which option is most semantically correct?',
+          options: [
+            { id: 'a', text: 'page.locator("input[checked]")', isCorrect: false },
+            { id: 'b', text: 'page.locator("input[type=checkbox]:checked")', isCorrect: false },
+            { id: 'c', text: 'page.getByRole("checkbox", { checked: true })', isCorrect: true },
+            { id: 'd', text: 'page.getByLabel("checked")', isCorrect: false },
+          ],
+          explanation: 'getByRole("checkbox", { checked: true }) queries the ARIA accessibility state, which reflects the actual runtime state for both native HTML checkboxes and custom ARIA checkbox components. input[checked] only checks for the HTML attribute (initial value, not dynamic state). :checked is a CSS pseudo-class that works for native checkboxes but may miss custom ARIA implementations.',
+        },
+      ]
+    },
+    {
+      level: 'pw-dialogs-popups-iframes',
+      questions: [
+        {
+          question: 'A button click triggers a browser confirm() dialog. Your test registers page.on("dialog", handler) AFTER calling click(). What is the likely outcome?',
+          options: [
+            { id: 'a', text: 'Playwright automatically accepts all dialogs, so the test passes normally', isCorrect: false },
+            { id: 'b', text: 'The dialog listener fires after the dialog has already been dismissed, causing no issues', isCorrect: false },
+            { id: 'c', text: 'The dialog fires before the listener exists; Playwright dismisses it by default, which may not match the intended test behaviour and causes flakiness', isCorrect: true },
+            { id: 'd', text: 'Playwright buffers dialog events so they are always received by late-registered listeners', isCorrect: false },
+          ],
+          explanation: 'Browser dialogs (alert, confirm, prompt) fire synchronously when triggered. If your listener is not yet registered, Playwright dismisses them with the default action (dismiss for confirm, empty string for prompt). Always register the dialog listener BEFORE the action that triggers it. Use page.once("dialog", ...) for single-use handlers to prevent the listener from affecting subsequent dialog-triggering actions.',
+        },
+        {
+          question: 'Clicking a "Share" link opens a new browser tab. You need to assert the URL of the new tab. Which code pattern is correct?',
+          options: [
+            { id: 'a', text: 'await shareLink.click(); const newPage = await context.newPage();', isCorrect: false },
+            { id: 'b', text: 'const [newPage] = await Promise.all([context.waitForEvent("page"), shareLink.click()]); await newPage.waitForLoadState(); expect(newPage.url()).toContain("/shared");', isCorrect: true },
+            { id: 'c', text: 'page.on("popup", p => expect(p.url()).toContain("/shared")); await shareLink.click();', isCorrect: false },
+            { id: 'd', text: 'await shareLink.click(); await page.waitForEvent("page"); expect(page.url()).toContain("/shared");', isCorrect: false },
+          ],
+          explanation: 'Promise.all() is essential here: you must start waiting for the "page" event BEFORE clicking (otherwise a fast tab-open might be missed). The pattern simultaneously starts the waitForEvent listener and executes the click. The result is an array; destructure index 0 to get the new Page object. context.newPage() opens a blank tab — it does not capture pop-ups triggered by click.',
+        },
+        {
+          question: 'An embedded third-party payment form is inside an iframe. How do you fill the card number input inside it?',
+          options: [
+            { id: 'a', text: 'page.getByLabel("Card number").fill("4242...") — Playwright automatically enters iframes', isCorrect: false },
+            { id: 'b', text: 'page.switchToFrame("payment-iframe"); page.getByLabel("Card number").fill("4242...")', isCorrect: false },
+            { id: 'c', text: 'page.frameLocator("iframe[title*=payment]").getByPlaceholder("Card number").fill("4242...")', isCorrect: true },
+            { id: 'd', text: 'Playwright cannot automate cross-origin iframes', isCorrect: false },
+          ],
+          explanation: 'frameLocator() is the Playwright API for scoping queries to an iframe\'s internal DOM. Pass a selector that matches the iframe element itself; chain locator calls on the result to query inside the frame. There is no switchToFrame() in Playwright (that is Selenium\'s API). Playwright supports cross-origin iframes including Stripe, PayPal, and reCAPTCHA embeds.',
+        },
+        {
+          question: 'You want to test a CSV import feature. You do not want to commit a real file to the repository. How do you supply the file using setInputFiles()?',
+          options: [
+            { id: 'a', text: 'Create a temp file in beforeEach() and delete it in afterEach()', isCorrect: false },
+            { id: 'b', text: 'Pass a path string to any .txt file already on disk and rename it in the browser', isCorrect: false },
+            { id: 'c', text: 'await fileInput.setInputFiles({ name: "import.csv", mimeType: "text/csv", buffer: Buffer.from(csvContent) })', isCorrect: true },
+            { id: 'd', text: 'Use page.keyboard to open the OS file picker and type the path', isCorrect: false },
+          ],
+          explanation: 'setInputFiles() accepts an object with name, mimeType, and a Node.js Buffer, allowing entirely in-memory file uploads. No file on disk, no cleanup needed, no binary assets committed to the repo. The content is generated programmatically so you can test edge cases (empty file, malformed CSV, max size) without maintaining fixture files.',
+        },
+        {
+          question: 'How do you correctly capture a file download triggered by a button click and then verify the downloaded filename?',
+          options: [
+            { id: 'a', text: 'await exportBtn.click(); const dl = await page.waitForEvent("download"); expect(dl.suggestedFilename()).toBe("report.pdf");', isCorrect: false },
+            { id: 'b', text: 'const [download] = await Promise.all([page.waitForEvent("download"), exportBtn.click()]); expect(download.suggestedFilename()).toBe("report.pdf");', isCorrect: true },
+            { id: 'c', text: 'page.on("download", d => expect(d.suggestedFilename()).toBe("report.pdf")); await exportBtn.click();', isCorrect: false },
+            { id: 'd', text: 'await exportBtn.click(); await page.waitForTimeout(3000); // file appears in ~/Downloads', isCorrect: false },
+          ],
+          explanation: 'Like popup handling, the download event listener must be active before the triggering click. Promise.all() registers the listener and fires the click simultaneously. The returned download object provides suggestedFilename(), saveAs(), path(), and failure() for complete verification. Option A registers the listener after the click and will miss instant downloads.',
+        },
+      ]
+    },
+    {
+      level: 'pw-test-organisation',
+      questions: [
+        {
+          question: 'Your CI pipeline suddenly runs only 1 test instead of 200 and still reports success. Nobody notices for two days. What most likely caused this?',
+          options: [
+            { id: 'a', text: 'A playwright.config.ts timeout was set too low, skipping slow tests', isCorrect: false },
+            { id: 'b', text: 'A developer committed test.only(), and forbidOnly was not enabled in the CI config', isCorrect: true },
+            { id: 'c', text: 'Playwright automatically skips tests that previously passed to save time', isCorrect: false },
+            { id: 'd', text: 'The CI runner ran out of memory and killed worker processes silently', isCorrect: false },
+          ],
+          explanation: 'test.only() silently focuses the entire run to the marked test(s) and exits with a success code — the most dangerous modifier in a shared codebase. The fix: set forbidOnly: !!process.env.CI in playwright.config.ts. Any committed .only() then causes CI to fail immediately with a clear error: "Error: focused items are not allowed".',
+        },
+        {
+          question: 'You want to run only @smoke tests on every commit and all tests before each release. How do you tag tests and filter runs?',
+          options: [
+            { id: 'a', text: 'Create smoke.spec.ts and regression.spec.ts as separate files and use --project to select them', isCorrect: false },
+            { id: 'b', text: 'Include @smoke or @regression in the test title string, then run with --grep "@smoke" for commits and no --grep for releases', isCorrect: true },
+            { id: 'c', text: 'Use test.describe.only() to mark smoke suites and test.describe() for regression suites', isCorrect: false },
+            { id: 'd', text: 'Add a "tags" array to playwright.config.ts for each spec file', isCorrect: false },
+          ],
+          explanation: 'Embedding tags in test titles (or using the tags option in Playwright v1.42+) enables --grep filtering. npx playwright test --grep "@smoke" runs only smoke-tagged tests — ideal for fast commit checks. Running without --grep executes everything. One test suite, multiple execution profiles, no file duplication.',
+        },
+        {
+          question: 'Three tests are tightly coupled: "create order" → "approve order" → "ship order". Each depends on state from the previous. Which test.describe variant is appropriate?',
+          options: [
+            { id: 'a', text: 'test.describe.parallel() — run simultaneously for speed', isCorrect: false },
+            { id: 'b', text: 'test.describe.serial() — tests run in strict order; if one fails, subsequent tests are automatically skipped', isCorrect: true },
+            { id: 'c', text: 'Standard test.describe() with a beforeAll() that prepares all three states', isCorrect: false },
+            { id: 'd', text: 'Merge all three into a single large test()', isCorrect: false },
+          ],
+          explanation: 'test.describe.serial() enforces sequential execution and skips remaining tests when one fails — there is no point verifying "ship order" if "create order" never succeeded. This models real business workflows where steps are inherently sequential. The performance cost is acceptable because these tests cannot be safely parallelised regardless.',
+        },
+        {
+          question: 'You are asserting 6 independent fields on a confirmation page. Two fields have wrong values. Which assertion style reveals ALL failures in a single test run?',
+          options: [
+            { id: 'a', text: 'Wrap each expect() in a try/catch and log failures manually', isCorrect: false },
+            { id: 'b', text: 'Use expect.soft() for each field — soft assertions continue after failure and report all failures at the end', isCorrect: true },
+            { id: 'c', text: 'Use expect.poll() for each field', isCorrect: false },
+            { id: 'd', text: 'Use hard expect() — stopping at the first failure is the intended behaviour', isCorrect: false },
+          ],
+          explanation: 'expect.soft() records the failure but continues executing. The test is marked as failed at the end, and the report lists every soft assertion that failed. For 6 independent fields this means one test run reveals all issues simultaneously instead of requiring 6 sequential runs each stopping at the next hard failure. Use hard expect() only when a failure makes subsequent assertions meaningless.',
+        },
+        {
+          question: 'What semantic distinction does test.fixme() communicate that test.skip() does not?',
+          options: [
+            { id: 'a', text: 'fixme() runs the test but suppresses its failure; skip() does not run it', isCorrect: false },
+            { id: 'b', text: 'fixme() signals the test is broken and needs attention; skip() signals the test is intentionally excluded (e.g. wrong environment or feature flag)', isCorrect: true },
+            { id: 'c', text: 'fixme() requires a GitHub issue number passed as an argument', isCorrect: false },
+            { id: 'd', text: 'They are identical — fixme() is a deprecated alias for skip()', isCorrect: false },
+          ],
+          explanation: 'The semantic distinction matters for reporting. skip() means "this test is not relevant right now" — environment-specific, feature-flag-gated, etc. fixme() means "this test SHOULD pass but is currently broken — it needs fixing". Dashboards differentiate them. A good convention: always include a reason string and a ticket reference in fixme() so the team knows why and who is responsible.',
+        },
+      ]
+    },
+    {
+      level: 'pw-api-testing',
+      questions: [
+        {
+          question: 'Which built-in Playwright fixture provides an HTTP client for making API requests directly in tests without a browser page?',
+          options: [
+            { id: 'a', text: 'page', isCorrect: false },
+            { id: 'b', text: 'browser', isCorrect: false },
+            { id: 'c', text: 'request', isCorrect: true },
+            { id: 'd', text: 'context', isCorrect: false },
+          ],
+          explanation: 'The request fixture is Playwright\'s built-in HTTP client. It honours baseURL from your config, supports all HTTP methods (GET, POST, PUT, DELETE, PATCH), can set headers and body, and returns a APIResponse object with status(), json(), text(), and ok() helpers. No external libraries (axios, node-fetch, supertest) are required for API testing in Playwright.',
+        },
+        {
+          question: 'You want to make API calls that are completely isolated from the browser\'s cookie jar. Which API creates a standalone HTTP context?',
+          options: [
+            { id: 'a', text: 'page.request.newContext()', isCorrect: false },
+            { id: 'b', text: 'request.newContext() from the playwright/test import', isCorrect: false },
+            { id: 'c', text: 'playwright.request.newContext() using the base playwright import', isCorrect: true },
+            { id: 'd', text: 'browser.newAPIContext()', isCorrect: false },
+          ],
+          explanation: 'playwright.request.newContext() (from import { request } from "@playwright/test" or the playwright object) creates an APIRequestContext with its own cookie storage, completely independent of any browser page. This is ideal for pure API tests, service-level smoke tests, and globalSetup auth flows where you do not want to spin up a browser.',
+        },
+        {
+          question: 'What is the key advantage of the "API setup + UI verify" hybrid test pattern?',
+          options: [
+            { id: 'a', text: 'It eliminates the need for any UI automation', isCorrect: false },
+            { id: 'b', text: 'Test data is created instantly via API, avoiding slow UI forms, while the UI rendering is still verified — combining API speed with UI confidence', isCorrect: true },
+            { id: 'c', text: 'It allows tests to run without a running backend server', isCorrect: false },
+            { id: 'd', text: 'It bypasses authentication entirely', isCorrect: false },
+          ],
+          explanation: 'Creating a user via POST /api/users takes milliseconds. Creating the same user via the registration UI (navigate → fill → submit → confirm email) takes seconds. Multiplied across hundreds of tests, this difference is enormous. The hybrid pattern keeps the valuable UI verification (does the user\'s profile render correctly?) while eliminating slow UI data setup.',
+        },
+        {
+          question: 'response.ok() returns true for which HTTP status codes?',
+          options: [
+            { id: 'a', text: 'Only 200', isCorrect: false },
+            { id: 'b', text: '200 and 201 only', isCorrect: false },
+            { id: 'c', text: 'Any status in the 200–299 range', isCorrect: true },
+            { id: 'd', text: '200, 201, 204, and 304', isCorrect: false },
+          ],
+          explanation: 'response.ok() mirrors the browser Fetch API definition: true for any 2xx status (200–299). This covers 200 OK, 201 Created, 202 Accepted, 204 No Content, etc. Use response.status() === 201 when you need to assert a specific code — for example, confirming a resource creation rather than just a generic success.',
+        },
+        {
+          question: 'When should a QA team choose Postman/Newman over Playwright\'s built-in request fixture for API testing?',
+          options: [
+            { id: 'a', text: 'Always — Postman has better performance for API testing', isCorrect: false },
+            { id: 'b', text: 'When the API uses REST; Playwright only supports GraphQL', isCorrect: false },
+            { id: 'c', text: 'When you need a shared interactive collection, API contract/schema validation, or non-technical stakeholders need to read and run the tests', isCorrect: true },
+            { id: 'd', text: 'Playwright cannot test POST, PUT, or DELETE endpoints', isCorrect: false },
+          ],
+          explanation: 'Postman excels at dedicated API-only workflows: shared interactive collections, contract testing with schema validation, non-developer-friendly GUIs, and Newman CI integration for API-only pipelines. Playwright\'s request fixture excels when API and UI tests need to coexist — hybrid setup/teardown, shared auth state via storageState, and in-test API assertions alongside UI assertions. The two tools complement each other.',
+        },
       ]
     },
     {

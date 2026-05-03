@@ -16037,26 +16037,3466 @@ This is the loop. Master these commands and the HTML report, and you've mastered
       },
 
       {
-        id: 'intermediate',
-        title: 'Intermediate: Waiting & Asserting',
-        analogy: "Automation code processes at the speed of light. If you don't aggressively tell the code to 'wait' for the clumsy, slow website to load its images, the code will try to click a button that hasn't even been painted on the screen yet.",
+        id: 'pw-auto-waiting',
+        title: 'Auto-Waiting Deep Dive & Flakiness Prevention',
+        analogy: "Think of Playwright's auto-waiting like an experienced surgeon scrubbing in before an operation. They don't just walk in and start cutting — they check that the patient is properly anaesthetised, positioned, and stable before making the first incision. Playwright checks the same checklist on every element before acting: is it in the DOM? Is it visible? Has it stopped moving? Only then does it act. Junior automation engineers who skip this understanding spend weeks fighting mysterious test failures that only happen 'sometimes'.",
         lessonMarkdown: `
-### 1. The 'await' Keyword
-*💡 Analogy: A drill sergeant yelling at a recruit to pause and wait for the target to actually appear before pulling the trigger.*
+## Auto-Waiting Deep Dive & Flakiness Prevention
 
-Playwright is inherently asynchronous because the internet is asynchronous. When you tell a browser to navigate or click, it takes milliseconds (or seconds) for the network to respond and the UI to update. The \`await\` keyword forces your incredibly fast JavaScript code to pause execution and wait for the browser's Promise to resolve. If you forget to use \`await\`, your script will race ahead of the browser, causing horrific, confusing test failures.
+Flaky tests are the number-one destroyer of trust in automation suites. A test that passes 8 times and fails twice is worse than a test that always fails — because it lies to you. The root cause of flakiness is almost always a **timing problem**, and Playwright's auto-waiting system is the solution. But only if you understand it deeply.
 
-### 2. Assertions (expect)
-*💡 Analogy: A judge banging a gavel. Clicking the buttons is just presenting the evidence. The Assertion is the final ruling on whether the test passed or failed.*
+---
 
-Automation scripts are utterly useless if they just click around aimlessly. A test must verify that the app is in the correct state after an action is performed. We use "Assertions" for this. By writing \`await expect(page.getByText('Login Successful')).toBeVisible()\`, you are creating a hard rule. If that text does not appear on the screen within a few seconds, Playwright will throw a fatal error and mark the test as a failure.
+### 1. The Actionability Checklist — What Playwright Checks Before Every Action
 
-### 3. Fragile Selectors
-*💡 Analogy: Recognizing your friend by the color of their shirt. If they change their shirt the next day, you won't know who they are. You should recognize them by their face instead.*
+*💡 Analogy: A pilot doesn't just push the throttle and hope for the best. Before takeoff, they run through a checklist: engines spinning, flaps set, clearance received, runway clear. Playwright runs the same systematic checklist on every element before it dares touch it.*
 
-In the dark ages of automation, testers used CSS classes like \`.btn-blue-xl\` to locate buttons. This was a nightmare, because the moment a frontend developer changed the button to be red, the test broke. Playwright strongly encourages "user-facing" locators. You should find elements by their visible text or their accessibility roles, because those rarely change unless the actual business logic of the app changes.
+Playwright does NOT blindly click/fill/type on a locator the moment you call an action. It first runs through an **actionability check** — a series of conditions that must ALL be true before the action proceeds.
+
+| Check | Description | Why it matters |
+|-------|-------------|----------------|
+| **Attached** | Element exists in the DOM | Can't click what doesn't exist |
+| **Visible** | Element has a bounding box > 0, opacity > 0, not \`display:none\` | Can't click invisible elements |
+| **Stable** | Element's position hasn't changed in 2 animation frames | Prevents clicking mid-animation |
+| **Enabled** | Not \`disabled\` attribute on buttons/inputs | Can't interact with disabled controls |
+| **Editable** | No \`readonly\`, not a \`<select>\` (for \`fill()\`) | \`fill()\` needs a writable field |
+| **Receives events** | No overlay obscuring the element | Another element isn't stealing clicks |
+
+**Which checks apply to which actions:**
+
+| Action | Attached | Visible | Stable | Enabled | Editable | Receives Events |
+|--------|----------|---------|--------|---------|----------|-----------------|
+| \`click()\` | ✅ | ✅ | ✅ | ✅ | — | ✅ |
+| \`fill()\` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| \`check()\` | ✅ | ✅ | ✅ | ✅ | — | ✅ |
+| \`selectOption()\` | ✅ | ✅ | ✅ | ✅ | — | ✅ |
+| \`hover()\` | ✅ | ✅ | ✅ | — | — | — |
+| \`focus()\` | ✅ | — | — | — | — | — |
+| \`textContent()\` | ✅ | — | — | — | — | — |
+
+**Practical example — the modal overlay trap:**
+\`\`\`typescript
+// ❌ This can fail if a loading spinner overlay is still visible
+await page.getByRole('button', { name: 'Submit' }).click();
+
+// Playwright waits automatically — but if the overlay never disappears,
+// you get: "element is not visible because it is obscured by another element"
+// That error is Playwright CORRECTLY telling you the UX is broken.
+\`\`\`
+
+> **QA Tip:** When you see "element is obscured" errors, don't work around them with force clicks. Investigate the overlay — it may be a real UX bug. \`{ force: true }\` skips actionability checks and should be a last resort.
+
+---
+
+### 2. waitForLoadState — 'load' vs 'domcontentloaded' vs 'networkidle'
+
+*💡 Analogy: A restaurant opening has three stages. 'domcontentloaded' = the tables and chairs are set up. 'load' = the menus have been printed and placed. 'networkidle' = all the food deliveries have arrived, the kitchen is stocked, and no more trucks are pulling in. The right time to seat customers depends on which stage you actually need.*
+
+After navigation, Playwright needs to know when the page is "ready enough" for your next action. There are three states:
+
+**\`'domcontentloaded'\` — Fastest, riskiest**
+- Fires when the HTML is parsed and the DOM is built
+- CSS, images, scripts may still be loading
+- \`<script defer>\` code hasn't run yet
+- Use for: Very fast sanity checks on server-rendered pages where you only need DOM presence
+
+\`\`\`typescript
+await page.goto('/fast-page');
+await page.waitForLoadState('domcontentloaded');
+// DOM is ready, but JS framework may not have hydrated yet
+\`\`\`
+
+**\`'load'\` — The default, usually correct**
+- Fires when the page plus all synchronous resources are loaded (images, CSS)
+- The browser's native \`window.onload\` event
+- Most actions are safe after this
+- Use for: Most server-rendered pages, static sites, forms that don't use heavy JS
+
+\`\`\`typescript
+// 'load' is the default for page.goto() — this is equivalent:
+await page.goto('/checkout');
+await page.waitForLoadState('load'); // usually redundant but explicit
+\`\`\`
+
+**\`'networkidle'\` — Slowest, most thorough**
+- Fires when there have been 0 network connections for 500ms
+- Waits for background API calls, lazy-loaded content, analytics pings
+- Use for: SPAs that load data via XHR/fetch on mount, dashboards with multiple API calls
+
+\`\`\`typescript
+// SPA example — the React component mounts and immediately fetches dashboard data
+await page.goto('/dashboard');
+await page.waitForLoadState('networkidle');
+// Now the API responses have arrived and the charts have rendered
+\`\`\`
+
+**SPA vs Server-Rendered decision guide:**
+
+| App Type | After Navigation | Recommended |
+|----------|-----------------|-------------|
+| Server-rendered (Rails, Django) | Page is fully rendered in HTML | \`'load'\` |
+| SPA (React, Vue) with fetch-on-mount | JS runs, then fetches data | \`'networkidle'\` |
+| SPA with aggressive lazy loading | Many async chunks loading | \`'networkidle'\` |
+| Static site (Gatsby, Next.js SSG) | HTML complete, no API calls | \`'load'\` |
+
+> **QA Tip:** \`'networkidle'\` can cause false timeouts on apps with polling (WebSockets, SSE, or setInterval API calls). In those cases, wait for a specific element instead.
+
+---
+
+### 3. waitForSelector vs Auto-wait — When Auto-wait Isn't Enough
+
+*💡 Analogy: Auto-wait is like a patient dog sitting at the door waiting for you to come home. It waits the right amount of time and stops when you arrive. But if you want it to wait specifically until the pizza is delivered AND you're both home, you need to give it more specific instructions.*
+
+Playwright's built-in auto-wait covers the common case perfectly. But there are scenarios where you need explicit control:
+
+**When auto-wait IS enough (95% of cases):**
+\`\`\`typescript
+// Playwright waits for the button to be visible + enabled before clicking
+await page.getByRole('button', { name: 'Load More' }).click();
+
+// Playwright waits for the element to appear before asserting
+await expect(page.getByText('Results loaded')).toBeVisible();
+\`\`\`
+
+**When you need explicit waitForSelector:**
+\`\`\`typescript
+// 1. Waiting for an element to DISAPPEAR (loading spinner)
+await page.waitForSelector('.loading-spinner', { state: 'hidden' });
+
+// 2. Waiting for an element that appears OUTSIDE the default timeout
+await page.waitForSelector('[data-testid="report-generated"]', {
+  state: 'visible',
+  timeout: 60_000 // report generation takes up to 60 seconds
+});
+
+// 3. Waiting for a dynamic element when you need the handle for further work
+const handle = await page.waitForSelector('.dynamic-row');
+const text = await handle.textContent();
+\`\`\`
+
+**State options for waitForSelector:**
+
+| State | Meaning |
+|-------|---------|
+| \`'attached'\` | Element is in the DOM (default) |
+| \`'detached'\` | Element is NOT in the DOM |
+| \`'visible'\` | Attached + visible |
+| \`'hidden'\` | Either not in DOM or not visible |
+
+\`\`\`typescript
+// Wait for confirmation toast to appear, then disappear
+await page.waitForSelector('.toast-success', { state: 'visible' });
+await page.waitForSelector('.toast-success', { state: 'hidden' });
+// Now safe to proceed — toast lifecycle is complete
+\`\`\`
+
+---
+
+### 4. waitForFunction — Custom JS Conditions
+
+*💡 Analogy: waitForFunction is like hiring a security guard who runs a custom check. Instead of checking the door (is the element visible?), you can tell them: "Check that the number on the scoreboard is above 1000 before letting anyone in." It evaluates your own JavaScript in the browser context.*
+
+\`waitForFunction\` polls a JavaScript expression inside the browser until it returns a truthy value. This is the escape hatch for anything Playwright can't natively detect.
+
+**Basic usage:**
+\`\`\`typescript
+// Wait until a global JavaScript variable is set (common in SPAs)
+await page.waitForFunction(() => window.appReady === true);
+\`\`\`
+
+**Waiting for animation completion:**
+\`\`\`typescript
+// Wait until an element's CSS transform is finished (no 'translate' in style)
+await page.waitForFunction(() => {
+  const el = document.querySelector('.animated-panel');
+  if (!el) return false;
+  const style = window.getComputedStyle(el);
+  return !style.transform || style.transform === 'none' || style.transform === 'matrix(1, 0, 0, 1, 0, 0)';
+});
+\`\`\`
+
+**Waiting for a specific DOM count:**
+\`\`\`typescript
+// Wait until exactly 10 rows appear in the table
+await page.waitForFunction(() => {
+  return document.querySelectorAll('table tbody tr').length === 10;
+});
+\`\`\`
+
+**Passing arguments into the browser context:**
+\`\`\`typescript
+const expectedCount = 10;
+await page.waitForFunction(
+  (count) => document.querySelectorAll('table tbody tr').length === count,
+  expectedCount // passed as the second argument
+);
+\`\`\`
+
+**With timeout and polling options:**
+\`\`\`typescript
+await page.waitForFunction(
+  () => window.dataLayer?.some(e => e.event === 'purchase'),
+  undefined,
+  { timeout: 10_000, polling: 500 } // check every 500ms, fail after 10s
+);
+\`\`\`
+
+> **QA Tip:** Use \`waitForFunction\` when third-party scripts (analytics, tag managers) need to fire. \`window.dataLayer\` checks are a classic use case.
+
+---
+
+### 5. The waitForTimeout Anti-Pattern
+
+*💡 Analogy: Using \`waitForTimeout\` is like setting your alarm for 3 hours before your flight "just to be safe." Sometimes you're early, sometimes the flight is delayed and you still miss it. It's a guess, not a guarantee. Real travellers track the flight status.*
+
+\`await page.waitForTimeout(3000)\` is the most common mistake in automation. Here's why it's dangerous:
+
+**Why it's a code smell:**
+1. **It's brittle** — 3 seconds is fine on your laptop, too short on a loaded CI server
+2. **It's wasteful** — on a fast day, you're waiting 3 seconds for something that was ready in 0.5 seconds
+3. **It hides real bugs** — if the element takes 10 seconds, your test "passes" but is silently broken
+4. **It scales badly** — 100 tests with one \`waitForTimeout(2000)\` = 200+ seconds of pure sleeping
+
+**The wrong way vs the right way:**
+\`\`\`typescript
+// ❌ ANTI-PATTERN — hoping 2 seconds is enough
+await page.click('#submit-btn');
+await page.waitForTimeout(2000);
+await expect(page.getByText('Success')).toBeVisible();
+
+// ✅ CORRECT — wait for the condition you actually care about
+await page.click('#submit-btn');
+await expect(page.getByText('Success')).toBeVisible();
+// Playwright waits up to the configured timeout, succeeds the moment it appears
+\`\`\`
+
+**Other replacements:**
+
+| Instead of... | Use... |
+|---------------|--------|
+| Wait for page to load | \`waitForLoadState('networkidle')\` |
+| Wait for element to appear | \`expect(locator).toBeVisible()\` |
+| Wait for spinner to go | \`waitForSelector('.spinner', { state: 'hidden' })\` |
+| Wait for API response | \`waitForResponse('/api/data')\` |
+| Wait for URL change | \`waitForURL('/dashboard')\` |
+
+**The one acceptable use — demo/presentation mode:**
+\`\`\`typescript
+// Intentionally slowing down for a screen recording / demo
+test('demo mode checkout flow', async ({ page }) => {
+  await page.goto('/shop');
+  await page.waitForTimeout(1000); // Let audience see the page
+  await page.getByRole('button', { name: 'Add to Cart' }).click();
+  await page.waitForTimeout(500); // Pause for visual effect
+});
+\`\`\`
+
+> **Team Rule:** If you see \`waitForTimeout\` in a PR review, ask "what are we actually waiting for?" — then replace it with the correct wait.
+
+---
+
+### 6. Diagnosing Flaky Tests — Trace Viewer & Retry Analysis
+
+*💡 Analogy: A flight data recorder captures everything that happened before a crash. Playwright's trace viewer is that black box — every action, every network request, every screenshot, every console log, all timestamped and ready for post-mortem analysis.*
+
+**Enabling traces in playwright.config.ts:**
+\`\`\`typescript
+export default defineConfig({
+  use: {
+    trace: 'on-first-retry', // capture trace only when test fails and retries
+    // Options: 'off' | 'on' | 'on-first-retry' | 'retain-on-failure'
+  },
+  retries: 2, // retry failed tests up to 2 times
+});
+\`\`\`
+
+**Viewing the trace:**
+\`\`\`bash
+npx playwright show-trace test-results/my-test/trace.zip
+\`\`\`
+
+**What to look for in the trace viewer:**
+
+| Red flag | What it means |
+|----------|---------------|
+| Action happens before element is stable | Race condition — add explicit wait |
+| Long gap between action and network call | JS was still booting — use \`networkidle\` |
+| Element visible but action fails | Overlay or CSS \`pointer-events:none\` |
+| Multiple retries with same timeout error | Timeout too short for this environment |
+| Intermittent 401 responses in network tab | Auth state not properly set up in \`beforeEach\` |
+
+**The retry pattern for flaky tests:**
+\`\`\`typescript
+// In playwright.config.ts
+export default defineConfig({
+  retries: process.env.CI ? 2 : 0, // retry on CI, fail fast locally
+});
+\`\`\`
+
+> **QA Tip:** Retries are a safety net, not a cure. If a test retries successfully more than 5% of the time, it has a real timing bug that needs fixing.
+
+---
+
+### 7. Practical Patterns — Combining Multiple Waits
+
+*💡 Analogy: Landing a plane requires multiple confirmations simultaneously — cleared by ATC, runway lights on, gear down confirmed, airspeed correct. You don't check one and ignore the others. Professional automation does the same: wait for multiple conditions in parallel when they need to happen together.*
+
+**waitForResponse after form submit:**
+\`\`\`typescript
+// The wrong way: click then wait
+await page.getByRole('button', { name: 'Save' }).click();
+await page.waitForResponse('/api/profile'); // ❌ might miss it if API was instant
+
+// The RIGHT way: set up the listener BEFORE the action
+const responsePromise = page.waitForResponse('/api/profile');
+await page.getByRole('button', { name: 'Save' }).click();
+const response = await responsePromise; // ✅ guaranteed to catch it
+expect(response.status()).toBe(200);
+\`\`\`
+
+**waitForURL after navigation:**
+\`\`\`typescript
+await page.getByRole('button', { name: 'Sign In' }).click();
+// Wait for redirect to dashboard — handles slow SPA routing
+await page.waitForURL('/dashboard', { timeout: 10_000 });
+await expect(page.getByText('Welcome back')).toBeVisible();
+\`\`\`
+
+**Promise.all for parallel waits:**
+\`\`\`typescript
+// Simultaneously wait for both a network request AND a URL change
+await Promise.all([
+  page.waitForURL('/order-confirmation'),
+  page.waitForResponse(resp => resp.url().includes('/api/orders') && resp.status() === 201),
+  page.getByRole('button', { name: 'Place Order' }).click(),
+]);
+// Both conditions satisfied — now safe to assert
+await expect(page.getByText('Order #')).toBeVisible();
+\`\`\`
+
+**Waiting for route to finish before asserting count:**
+\`\`\`typescript
+test('search returns correct count', async ({ page }) => {
+  await page.goto('/search');
+
+  // Set up response interceptor before typing
+  const searchResponsePromise = page.waitForResponse(
+    resp => resp.url().includes('/api/search') && resp.request().method() === 'GET'
+  );
+
+  await page.getByRole('searchbox').fill('playwright');
+  await searchResponsePromise; // wait for the search API to complete
+
+  // NOW the results are rendered — safe to count
+  await expect(page.getByTestId('result-item')).toHaveCount(5);
+});
+\`\`\`
+
+> **QA Rule:** For any test involving a form submit, navigation, or data fetch — set up the response/URL waiter BEFORE the triggering action. This is the single most impactful fix for flaky tests.
         `
       },
+
+      {
+        id: 'pw-fixtures-lifecycle',
+        title: 'Test Fixtures & Lifecycle Hooks',
+        analogy: "Fixtures are the mise en place of professional cooking — the prep work done before service starts. A Michelin-star kitchen doesn't chop the same onion fresh for every dish during service. The onion was prepped at 9am, portioned, and placed exactly where each chef needs it. beforeAll chops the onions once. beforeEach plates the mise en place for each dish. afterEach clears the pass after each plate. afterAll cleans the kitchen at end of service.",
+        lessonMarkdown: `
+## Test Fixtures & Lifecycle Hooks
+
+Fixtures and lifecycle hooks are the scaffolding of a professional test suite. Without them, every test reinvents the wheel — logging in, seeding data, navigating to the right page — and every test file becomes a copy-paste nightmare. Master these patterns and your suite becomes elegant, maintainable, and fast.
+
+---
+
+### 1. The Four Lifecycle Hooks
+
+*💡 Analogy: A theatre production has four types of crew calls. beforeAll = the stage crew who builds the set before opening night. beforeEach = the stagehands who reset the props before each performance. afterEach = the crew who clear the stage after every show. afterAll = the team that strikes the entire set when the run ends.*
+
+Playwright's lifecycle hooks from \`@playwright/test\` control setup and teardown at different granularities:
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+test.beforeAll(async ({ browser }) => {
+  // Runs ONCE before all tests in this file/describe block
+  // Use for: creating shared browser contexts, seeding a test database,
+  //          starting a local server, generating auth tokens
+  console.log('Suite starting — running once');
+});
+
+test.beforeEach(async ({ page }) => {
+  // Runs before EACH individual test
+  // Use for: navigating to a known starting URL, clearing cookies,
+  //          resetting application state
+  await page.goto('/');
+});
+
+test.afterEach(async ({ page }, testInfo) => {
+  // Runs after EACH individual test, even if the test failed
+  // Use for: taking failure screenshots, clearing localStorage,
+  //          logging test duration
+  if (testInfo.status !== 'passed') {
+    await page.screenshot({ path: \`failure-\${testInfo.title}.png\` });
+  }
+});
+
+test.afterAll(async () => {
+  // Runs ONCE after all tests in this file/describe block
+  // Use for: closing database connections, stopping servers,
+  //          cleaning up temporary files
+  console.log('Suite complete — cleaning up');
+});
+\`\`\`
+
+**Execution order with 2 tests:**
+\`\`\`
+beforeAll          ← runs once
+  beforeEach       ← runs for test 1
+    test 1
+  afterEach        ← runs for test 1
+  beforeEach       ← runs for test 2
+    test 2
+  afterEach        ← runs for test 2
+afterAll           ← runs once
+\`\`\`
+
+> **QA Rule:** \`afterEach\` is your safety net — always clean up state there, because if you rely on \`beforeEach\` to clean up from the previous test, a test crash will leave dirty state that corrupts the next test.
+
+---
+
+### 2. test.describe() — Grouping Tests
+
+*💡 Analogy: A test file is a chapter in a book. \`test.describe()\` is a section heading within that chapter. Sections help organise related content, and section-level hooks apply only to their subsection — just like a section's footnotes don't apply to the whole chapter.*
+
+\`test.describe()\` groups related tests and allows scoped hooks:
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+test.describe('Login page', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/login'); // only runs for tests in this describe
+  });
+
+  test('shows error for wrong password', async ({ page }) => {
+    await page.getByLabel('Email').fill('user@example.com');
+    await page.getByLabel('Password').fill('wrongpassword');
+    await page.getByRole('button', { name: 'Sign In' }).click();
+    await expect(page.getByText('Invalid credentials')).toBeVisible();
+  });
+
+  test('redirects to dashboard on success', async ({ page }) => {
+    await page.getByLabel('Email').fill('user@example.com');
+    await page.getByLabel('Password').fill('correctpassword');
+    await page.getByRole('button', { name: 'Sign In' }).click();
+    await page.waitForURL('/dashboard');
+  });
+
+  // NESTED describe — more specific scenario
+  test.describe('with locked account', () => {
+    test.beforeEach(async ({ page }) => {
+      // Additional setup for this sub-group
+      // (runs after the parent describe's beforeEach)
+    });
+
+    test('shows account locked message', async ({ page }) => {
+      await page.getByLabel('Email').fill('locked@example.com');
+      await page.getByLabel('Password').fill('anypassword');
+      await page.getByRole('button', { name: 'Sign In' }).click();
+      await expect(page.getByText('Account locked')).toBeVisible();
+    });
+  });
+});
+\`\`\`
+
+**Nested hook execution order:**
+\`\`\`
+describe('Login page')
+  beforeEach: goto('/login')
+  describe('with locked account')
+    beforeEach: [parent] goto('/login'), [child] additional setup
+    test: 'shows account locked message'
+\`\`\`
+
+**Naming conventions:**
+- Use noun phrases for describe: \`'Login page'\`, \`'Checkout flow'\`, \`'User profile'\`
+- Use "should" or present-tense for tests: \`'redirects to dashboard'\`, \`'shows error message'\`
+
+---
+
+### 3. Built-in Playwright Fixtures
+
+*💡 Analogy: Playwright's built-in fixtures are like a fully-equipped rental van. You don't build the van — you just request it, use it for your job, and return it. Playwright handles the engine start, fuel, and garage return.*
+
+Playwright provides several fixtures automatically. You receive them as function parameters:
+
+\`\`\`typescript
+test('demonstrates built-in fixtures', async ({
+  page,          // a fresh Page — use this 95% of the time
+  browser,       // the Browser instance — for advanced multi-context tests
+  browserContext,// the BrowserContext — for cookies, permissions, storage state
+  request,       // APIRequestContext — for API-only tests without a browser page
+}) => { ... });
+\`\`\`
+
+**When to use each:**
+
+| Fixture | What it gives you | When to use |
+|---------|-------------------|-------------|
+| \`page\` | Single browser tab, fresh per test | Default for all UI tests |
+| \`browserContext\` | Isolated session (cookies, localStorage) | Multi-tab tests, custom permissions |
+| \`browser\` | The Browser object | Create multiple contexts in one test |
+| \`request\` | HTTP client (no browser window) | Pure API tests, health checks |
+
+\`\`\`typescript
+// Using 'request' for a pure API test
+test('creates user via API', async ({ request }) => {
+  const response = await request.post('/api/users', {
+    data: { name: 'Alice', email: 'alice@test.com' }
+  });
+  expect(response.status()).toBe(201);
+  const body = await response.json();
+  expect(body.id).toBeDefined();
+});
+
+// Using 'browserContext' to set up cookies before the page loads
+test('skips onboarding for returning user', async ({ browserContext, page }) => {
+  await browserContext.addCookies([{
+    name: 'onboarding_complete',
+    value: 'true',
+    domain: 'localhost',
+    path: '/',
+  }]);
+  await page.goto('/home');
+  await expect(page.getByText('Welcome back!')).toBeVisible();
+});
+\`\`\`
+
+---
+
+### 4. Creating Custom Fixtures with test.extend()
+
+*💡 Analogy: Built-in fixtures are the standard tools in a rented workshop — drill, saw, sandpaper. Custom fixtures are the specialised jigs and templates YOU build for your specific project. Once built, every team member can use them without knowing how they work internally.*
+
+\`test.extend()\` is how you create your own reusable fixtures:
+
+\`\`\`typescript
+// fixtures/base.ts
+import { test as base, expect } from '@playwright/test';
+
+// Define the shape of your custom fixtures
+type MyFixtures = {
+  loginPage: Page; // a page already navigated to /login
+};
+
+export const test = base.extend<MyFixtures>({
+  loginPage: async ({ page }, use) => {
+    // SETUP: runs before the test
+    await page.goto('/login');
+    await page.waitForLoadState('networkidle');
+
+    // Hand the fixture to the test
+    await use(page);
+
+    // TEARDOWN: runs after the test (even if it failed)
+    // (any cleanup here)
+  },
+});
+
+export { expect };
+\`\`\`
+
+\`\`\`typescript
+// tests/login.spec.ts
+import { test, expect } from '../fixtures/base';
+
+test('shows login form', async ({ loginPage }) => {
+  // loginPage is already at /login — no goto needed in the test
+  await expect(loginPage.getByLabel('Email')).toBeVisible();
+  await expect(loginPage.getByLabel('Password')).toBeVisible();
+});
+\`\`\`
+
+**The \`use\` function is the boundary:** everything before \`use()\` is setup, everything after is teardown. This is how Playwright guarantees cleanup even on test failure.
+
+---
+
+### 5. Fixture Scoping: test vs worker
+
+*💡 Analogy: 'test' scope is a disposable coffee cup — fresh for each person, thrown away after. 'worker' scope is the office coffee machine — set up once at the start of the day, shared by everyone who walks in, cleaned once at the end.*
+
+Fixtures have two scopes that determine their lifecycle:
+
+\`\`\`typescript
+export const test = base.extend<{}, WorkerFixtures>({
+  // 'test' scope (default): created fresh for every test
+  authenticatedPage: async ({ page }, use) => {
+    await loginViaUI(page); // runs before each test
+    await use(page);
+    // automatically cleaned up after each test
+  },
+
+  // 'worker' scope: created once per worker process, shared across tests
+  dbConnection: [async ({}, use) => {
+    const db = await Database.connect(process.env.TEST_DB_URL!);
+    await use(db);
+    await db.disconnect(); // called once when worker shuts down
+  }, { scope: 'worker' }],
+});
+\`\`\`
+
+**When to use each scope:**
+
+| Scope | Lifecycle | Use for |
+|-------|-----------|---------|
+| \`'test'\` (default) | Per test | \`page\`, authenticated sessions, any mutable state |
+| \`'worker'\` | Per worker process | Database connections, expensive server setup, read-only shared resources |
+
+> **QA Tip:** Never put mutable state (like a logged-in page that tests write data to) in worker scope. Tests will pollute each other. Worker scope is only safe for read-only or connection-type resources.
+
+---
+
+### 6. Fixture Composition — One Fixture Depending on Another
+
+*💡 Analogy: A fixture is like a recipe that can call other recipes. 'Beef Wellington' depends on the 'puff pastry' recipe. You don't make puff pastry inside the Wellington recipe — you declare it as a dependency and let the kitchen (Playwright) figure out the order.*
+
+Fixtures can depend on other fixtures simply by requesting them as parameters:
+
+\`\`\`typescript
+// fixtures/auth.ts
+import { test as base } from '@playwright/test';
+
+type AuthFixtures = {
+  baseURL: string;
+  authToken: string;
+  loggedInPage: Page;
+};
+
+export const test = base.extend<AuthFixtures>({
+  baseURL: async ({}, use) => {
+    await use(process.env.BASE_URL || 'http://localhost:3000');
+  },
+
+  authToken: async ({ request, baseURL }, use) => {
+    // Depends on 'baseURL' fixture — Playwright resolves order automatically
+    const response = await request.post(\`\${baseURL}/api/auth/token\`, {
+      data: { email: 'test@example.com', password: 'testpass' }
+    });
+    const { token } = await response.json();
+    await use(token);
+  },
+
+  loggedInPage: async ({ page, baseURL, authToken }, use) => {
+    // Depends on BOTH 'baseURL' and 'authToken'
+    await page.goto(baseURL);
+    await page.evaluate((token) => {
+      localStorage.setItem('auth_token', token);
+    }, authToken);
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await use(page);
+  },
+});
+\`\`\`
+
+\`\`\`typescript
+// tests/dashboard.spec.ts
+import { test, expect } from '../fixtures/auth';
+
+test('shows user dashboard', async ({ loggedInPage }) => {
+  // loggedInPage: Playwright automatically ran baseURL → authToken → loggedInPage
+  await expect(loggedInPage.getByText('My Dashboard')).toBeVisible();
+});
+\`\`\`
+
+---
+
+### 7. Real-World Example — authFixture Used by Multiple Tests
+
+*💡 Analogy: A master key that multiple team members use. You cut the key once, put it on a hook in reception, and every person who needs access grabs it before heading up. You don't re-cut the key for every person.*
+
+Here is a complete, production-grade auth fixture pattern used across an entire test suite:
+
+\`\`\`typescript
+// fixtures/auth.ts — the complete implementation
+import { test as base, expect, Page } from '@playwright/test';
+
+interface AuthFixtures {
+  loggedInPage: Page;
+  adminPage: Page;
+}
+
+export const test = base.extend<AuthFixtures>({
+  loggedInPage: async ({ page, request }, use) => {
+    // Use the API for login — faster than UI, doesn't test the login form
+    const response = await request.post('/api/auth/login', {
+      data: { email: 'qa.user@company.com', password: process.env.QA_PASSWORD! }
+    });
+    expect(response.status()).toBe(200);
+    const { token, userId } = await response.json();
+
+    // Inject the session cookie so the browser is authenticated
+    await page.context().addCookies([{
+      name: 'session_token',
+      value: token,
+      domain: new URL(process.env.BASE_URL!).hostname,
+      path: '/',
+      httpOnly: true,
+      secure: false,
+    }]);
+
+    await page.goto('/home');
+    await page.waitForLoadState('networkidle');
+
+    // Verify authentication worked before handing to the test
+    await expect(page.getByTestId('user-avatar')).toBeVisible({ timeout: 5000 });
+
+    await use(page);
+
+    // Teardown: clear the session
+    await page.context().clearCookies();
+  },
+
+  adminPage: async ({ page, request }, use) => {
+    // Separate fixture for admin-level access
+    const response = await request.post('/api/auth/login', {
+      data: { email: 'admin@company.com', password: process.env.ADMIN_PASSWORD! }
+    });
+    const { token } = await response.json();
+    await page.context().addCookies([{
+      name: 'session_token', value: token,
+      domain: new URL(process.env.BASE_URL!).hostname, path: '/',
+    }]);
+    await page.goto('/admin');
+    await use(page);
+    await page.context().clearCookies();
+  },
+});
+
+export { expect };
+\`\`\`
+
+\`\`\`typescript
+// tests/profile.spec.ts — Test 1 uses loggedInPage
+import { test, expect } from '../fixtures/auth';
+
+test('can update display name', async ({ loggedInPage }) => {
+  await loggedInPage.goto('/settings/profile');
+  await loggedInPage.getByLabel('Display Name').fill('New Name');
+  await loggedInPage.getByRole('button', { name: 'Save' }).click();
+  await expect(loggedInPage.getByText('Profile updated')).toBeVisible();
+});
+
+// tests/orders.spec.ts — Test 2 also uses loggedInPage
+import { test, expect } from '../fixtures/auth';
+
+test('shows order history', async ({ loggedInPage }) => {
+  await loggedInPage.goto('/orders');
+  await expect(loggedInPage.getByTestId('order-row')).not.toHaveCount(0);
+});
+
+// tests/admin.spec.ts — Test 3 uses adminPage
+import { test, expect } from '../fixtures/auth';
+
+test('admin can delete a user', async ({ adminPage }) => {
+  await adminPage.getByTestId('user-row').first().getByRole('button', { name: 'Delete' }).click();
+  await expect(adminPage.getByText('User deleted')).toBeVisible();
+});
+\`\`\`
+
+The auth logic lives in ONE place. If the login endpoint changes, you update the fixture — all three tests are fixed instantly.
+
+> **QA Tip:** Store \`storageState\` (serialised auth) in a file using \`page.context().storageState()\` for even faster auth — Playwright restores the full authenticated browser state without any API calls.
+        `
+      },
+
+      {
+        id: 'pw-page-object-model',
+        title: 'Page Object Model (POM)',
+        analogy: "Imagine you run a nationwide restaurant chain with 50 locations. Every location has the same menu. Now suppose you want to rename 'Caesar Salad' to 'Classic Caesar'. Without a central system, you'd have to visit all 50 locations and update each menu individually. With a central menu management system, you update one record and all 50 locations reflect the change instantly. The Page Object Model is that central system for your test locators. When the 'Login' button changes its label, you update one line in LoginPage.ts — and all 50 tests that use it are instantly fixed.",
+        lessonMarkdown: `
+## Page Object Model (POM)
+
+The Page Object Model is the most important design pattern in UI test automation. Without it, test suites rot the moment the application changes. With it, your tests stay maintainable as the app evolves. Every professional Playwright test suite uses POM.
+
+---
+
+### 1. The Maintenance Nightmare Without POM
+
+*💡 Analogy: Imagine a plumber who hard-codes the pipe diameter into every junction in a building. When the building's specifications change, they have to re-cut every single junction. A professional uses standardised fittings — change the spec once, re-use the part everywhere.*
+
+Here's what "no POM" looks like in practice. Your app has a login form tested across 5 different test files:
+
+\`\`\`typescript
+// tests/checkout.spec.ts
+test('authenticated checkout', async ({ page }) => {
+  await page.goto('/login');
+  await page.locator('input[name="email"]').fill('user@test.com');
+  await page.locator('input[name="password"]').fill('pass123');
+  await page.locator('button[type="submit"]').click();
+  // ... rest of test
+});
+
+// tests/profile.spec.ts
+test('update profile', async ({ page }) => {
+  await page.goto('/login');
+  await page.locator('input[name="email"]').fill('user@test.com');
+  await page.locator('input[name="password"]').fill('pass123');
+  await page.locator('button[type="submit"]').click();
+  // ... rest of test
+});
+
+// tests/orders.spec.ts, admin.spec.ts, settings.spec.ts ... same thing 3 more times
+\`\`\`
+
+Now the developer changes the submit button from \`type="submit"\` to \`data-testid="login-btn"\`. Result: **5 files to update, 5 potential errors**. In a real suite with 50 tests, this is 50 files to hunt down.
+
+**With POM — the same scenario:**
+\`\`\`typescript
+// pages/LoginPage.ts — ONE place to update
+get submitButton() { return this.page.getByTestId('login-btn'); } // ← fix here only
+\`\`\`
+
+All 50 tests that use \`LoginPage\` are fixed automatically. Zero hunting.
+
+---
+
+### 2. Anatomy of a Page Class
+
+*💡 Analogy: A page object is like a TV remote control. The remote has named buttons (volume up, channel down) — you don't care which exact infrared code they transmit. The test says 'volumeUp()' and trusts the remote to do the right thing. Internal implementation details are hidden.*
+
+A page object has four components:
+
+\`\`\`typescript
+import { type Page, type Locator } from '@playwright/test';
+
+export class CheckoutPage {
+  // 1. The page reference — injected via constructor
+  private readonly page: Page;
+
+  constructor(page: Page) {
+    this.page = page;
+  }
+
+  // 2. Locators as GETTERS — evaluated lazily each time they're called
+  //    Never store locators as class fields initialised in the constructor —
+  //    that would evaluate them before the page has even navigated.
+  get emailInput(): Locator {
+    return this.page.getByLabel('Email address');
+  }
+
+  get cardNumberInput(): Locator {
+    return this.page.getByLabel('Card number');
+  }
+
+  get placeOrderButton(): Locator {
+    return this.page.getByRole('button', { name: 'Place Order' });
+  }
+
+  get orderConfirmation(): Locator {
+    return this.page.getByTestId('order-confirmation');
+  }
+
+  // 3. Action methods — higher-level operations composed of locator interactions
+  async fillBillingDetails(email: string, cardNumber: string): Promise<void> {
+    await this.emailInput.fill(email);
+    await this.cardNumberInput.fill(cardNumber);
+  }
+
+  async placeOrder(): Promise<void> {
+    await this.placeOrderButton.click();
+  }
+
+  // 4. Navigation method — URL the page lives at
+  async goto(): Promise<void> {
+    await this.page.goto('/checkout');
+  }
+}
+\`\`\`
+
+\`\`\`typescript
+// The test reads like business logic, not CSS selectors
+test('completes checkout', async ({ page }) => {
+  const checkout = new CheckoutPage(page);
+  await checkout.goto();
+  await checkout.fillBillingDetails('user@test.com', '4111111111111111');
+  await checkout.placeOrder();
+  await expect(checkout.orderConfirmation).toBeVisible();
+});
+\`\`\`
+
+---
+
+### 3. Full Worked Example — LoginPage
+
+*💡 Analogy: The LoginPage class is a doorman who knows the building inside and out. You tell the doorman 'let Alice in' and he handles the buzzer code, the lift access, the floor. The test doesn't know (or care) about those details.*
+
+\`\`\`typescript
+// pages/LoginPage.ts
+import { type Page, type Locator } from '@playwright/test';
+
+export class LoginPage {
+  private readonly page: Page;
+
+  constructor(page: Page) {
+    this.page = page;
+  }
+
+  // ── Locators ──────────────────────────────────────────────────────────────
+
+  get emailInput(): Locator {
+    return this.page.getByLabel('Email');
+  }
+
+  get passwordInput(): Locator {
+    return this.page.getByLabel('Password');
+  }
+
+  get submitButton(): Locator {
+    return this.page.getByRole('button', { name: 'Sign In' });
+  }
+
+  get errorMessage(): Locator {
+    return this.page.getByTestId('auth-error');
+  }
+
+  get forgotPasswordLink(): Locator {
+    return this.page.getByRole('link', { name: 'Forgot your password?' });
+  }
+
+  // ── Actions ───────────────────────────────────────────────────────────────
+
+  async goto(): Promise<void> {
+    await this.page.goto('/login');
+  }
+
+  async login(email: string, password: string): Promise<void> {
+    await this.emailInput.fill(email);
+    await this.passwordInput.fill(password);
+    await this.submitButton.click();
+  }
+
+  async loginExpectingError(email: string, password: string): Promise<void> {
+    await this.login(email, password);
+    await this.errorMessage.waitFor({ state: 'visible' });
+  }
+}
+\`\`\`
+
+\`\`\`typescript
+// tests/login.spec.ts
+import { test, expect } from '@playwright/test';
+import { LoginPage } from '../pages/LoginPage';
+
+test.describe('Login page', () => {
+  let loginPage: LoginPage;
+
+  test.beforeEach(async ({ page }) => {
+    loginPage = new LoginPage(page);
+    await loginPage.goto();
+  });
+
+  test('logs in successfully', async ({ page }) => {
+    await loginPage.login('user@example.com', 'correct-password');
+    await page.waitForURL('/dashboard');
+  });
+
+  test('shows error for wrong credentials', async () => {
+    await loginPage.loginExpectingError('user@example.com', 'wrong');
+    await expect(loginPage.errorMessage).toHaveText('Invalid email or password');
+  });
+
+  test('shows error message for empty email', async () => {
+    await loginPage.loginExpectingError('', 'anypassword');
+    await expect(loginPage.errorMessage).toBeVisible();
+  });
+});
+\`\`\`
+
+The test reads like a specification. No CSS selectors, no raw locators — just intent.
+
+---
+
+### 4. DashboardPage and Navigation Between Pages
+
+*💡 Analogy: In a role-playing game, when you walk through a door you arrive in a new room with its own set of interactions. A page object can return another page object — login opens a door, and that door leads you to the DashboardPage room.*
+
+A common pattern is for action methods to return the next page object they navigate to:
+
+\`\`\`typescript
+// pages/LoginPage.ts — modified to return DashboardPage
+import { DashboardPage } from './DashboardPage';
+
+export class LoginPage {
+  // ... (locators as above)
+
+  async loginAndProceed(email: string, password: string): Promise<DashboardPage> {
+    await this.login(email, password);
+    await this.page.waitForURL('/dashboard');
+    return new DashboardPage(this.page);
+  }
+}
+\`\`\`
+
+\`\`\`typescript
+// pages/DashboardPage.ts
+import { type Page, type Locator } from '@playwright/test';
+import { SettingsPage } from './SettingsPage';
+
+export class DashboardPage {
+  private readonly page: Page;
+
+  constructor(page: Page) {
+    this.page = page;
+  }
+
+  get welcomeMessage(): Locator {
+    return this.page.getByTestId('welcome-message');
+  }
+
+  get settingsLink(): Locator {
+    return this.page.getByRole('link', { name: 'Settings' });
+  }
+
+  async goToSettings(): Promise<SettingsPage> {
+    await this.settingsLink.click();
+    await this.page.waitForURL('/settings');
+    return new SettingsPage(this.page);
+  }
+}
+\`\`\`
+
+\`\`\`typescript
+// Now the test reads like a user journey
+test('navigates login → dashboard → settings', async ({ page }) => {
+  const loginPage = new LoginPage(page);
+  await loginPage.goto();
+
+  const dashboard = await loginPage.loginAndProceed('user@example.com', 'pass');
+  await expect(dashboard.welcomeMessage).toBeVisible();
+
+  const settings = await dashboard.goToSettings();
+  await expect(settings.profileSection).toBeVisible();
+});
+\`\`\`
+
+This technique is called a **Fluent Page Object** — each action returns the next logical page.
+
+---
+
+### 5. Wiring POM into Fixtures
+
+*💡 Analogy: Once you've built your page objects, wiring them into fixtures is like installing apps on a company phone. Every employee gets a phone with the right apps pre-installed. Nobody has to go to the App Store and install them manually.*
+
+The professional pattern combines POM with Playwright fixtures for zero-boilerplate tests:
+
+\`\`\`typescript
+// fixtures/pages.ts
+import { test as base } from '@playwright/test';
+import { LoginPage } from '../pages/LoginPage';
+import { DashboardPage } from '../pages/DashboardPage';
+
+type PageFixtures = {
+  loginPage: LoginPage;
+  dashboardPage: DashboardPage; // pre-authenticated dashboard
+};
+
+export const test = base.extend<PageFixtures>({
+  loginPage: async ({ page }, use) => {
+    const loginPage = new LoginPage(page);
+    await loginPage.goto();
+    await use(loginPage);
+  },
+
+  dashboardPage: async ({ page }, use) => {
+    // Log in via API (fast), then return DashboardPage
+    const response = await page.request.post('/api/auth/login', {
+      data: { email: 'user@example.com', password: process.env.TEST_PASSWORD! }
+    });
+    const { token } = await response.json();
+    await page.context().addCookies([{
+      name: 'session', value: token,
+      domain: 'localhost', path: '/'
+    }]);
+    await page.goto('/dashboard');
+    await use(new DashboardPage(page));
+  },
+});
+
+export { expect } from '@playwright/test';
+\`\`\`
+
+\`\`\`typescript
+// tests/dashboard.spec.ts — zero boilerplate
+import { test, expect } from '../fixtures/pages';
+
+test('dashboard shows username', async ({ dashboardPage }) => {
+  await expect(dashboardPage.welcomeMessage).toBeVisible();
+});
+
+test('dashboard navigates to settings', async ({ dashboardPage }) => {
+  const settings = await dashboardPage.goToSettings();
+  await expect(settings.profileSection).toBeVisible();
+});
+\`\`\`
+
+---
+
+### 6. What Belongs in a Page Object vs the Test
+
+*💡 Analogy: A cookbook (page object) contains techniques — how to chop an onion, how to make a roux. It does not say "serve at the chef's table on Tuesday". That's the menu (the test). Responsibilities must stay separate.*
+
+| Concern | Belongs in Page Object? | Why |
+|---------|------------------------|-----|
+| Locators (how to find elements) | ✅ Yes | Changes to selectors stay in one place |
+| Navigation methods (goto, click link) | ✅ Yes | Page knows its own URL |
+| High-level action methods (login, addToCart) | ✅ Yes | Reusable across tests |
+| Assertions (\`expect(locator).toBeVisible()\`) | ⚠️ Debated | Some teams add \`assertVisible()\` helpers |
+| Test data (email addresses, passwords) | ❌ No | Data belongs in fixtures or test files |
+| Hard-coded CSS selectors | ❌ No | Use \`getByRole\`, \`getByLabel\`, \`getByTestId\` |
+| Test flow logic (\`if/else\` branching) | ❌ No | Tests should be linear and deterministic |
+
+**The assertion debate:** Some teams put assertion helpers in page objects (\`async assertErrorVisible(): Promise<void>\`). The benefit: tests read more fluently. The risk: hiding assertion details makes failures harder to debug. Favour explicit \`expect()\` calls in tests.
+
+---
+
+### 7. Common Anti-Patterns
+
+*💡 Analogy: Anti-patterns are the "just wing it" shortcuts that feel productive at first but create problems at scale — like using gaffer tape instead of welding a structural joint. It works until it doesn't.*
+
+**Anti-pattern 1: The God Page Object**
+\`\`\`typescript
+// ❌ One page object for the ENTIRE application
+class AppPage {
+  loginEmailInput() { ... }
+  dashboardWelcome() { ... }
+  checkoutCardNumber() { ... }
+  settingsDisplayName() { ... }
+  // 200 methods...
+}
+// Fix: One page class per page/component
+\`\`\`
+
+**Anti-pattern 2: Assertions inside page objects**
+\`\`\`typescript
+// ❌ Test logic leaking into the page object
+async login(email: string, password: string): Promise<void> {
+  await this.emailInput.fill(email);
+  await this.passwordInput.fill(password);
+  await this.submitButton.click();
+  // This assertion belongs in the TEST, not here:
+  await expect(this.page).toHaveURL('/dashboard');
+}
+// Fix: return from login(), let the test assert
+\`\`\`
+
+**Anti-pattern 3: Static locators (class fields, not getters)**
+\`\`\`typescript
+// ❌ Locator evaluated at construction time — before the page has loaded
+export class LoginPage {
+  // This locator is created when new LoginPage(page) is called
+  // If the page hasn't navigated yet, this may reference stale DOM
+  public emailInput = this.page.getByLabel('Email');
+
+  constructor(private page: Page) {}
+}
+
+// ✅ Getter — locator evaluated fresh each time it's accessed
+export class LoginPage {
+  constructor(private page: Page) {}
+
+  get emailInput() { return this.page.getByLabel('Email'); }
+}
+\`\`\`
+
+**Anti-pattern 4: Hardcoded CSS selectors in page objects**
+\`\`\`typescript
+// ❌ Brittle — breaks when CSS class names change
+get submitButton() { return this.page.locator('.btn-primary.submit-action'); }
+
+// ✅ Semantic — survives CSS refactors
+get submitButton() { return this.page.getByRole('button', { name: 'Sign In' }); }
+// or
+get submitButton() { return this.page.getByTestId('login-submit'); }
+\`\`\`
+
+> **QA Rule:** If a page object method starts with "click", "type", or "fill" — it's probably too low level. Page objects should expose business actions, not UI mechanics.
+        `
+      },
+
+      {
+        id: 'pw-network-interception',
+        title: 'Network Interception & API Mocking',
+        analogy: "Network interception is like being a postman with a photocopier. The app sends a letter (HTTP request) to the server, but you intercept it before it arrives. You can: read it and let it pass (spy), replace the reply with a fake letter (mock), or shred it before it arrives (abort). This gives you total control over what the frontend 'believes' the backend is saying — without touching the real backend at all. Testing a 500 error on production is dangerous; intercepting a request and returning a fake 500 is risk-free.",
+        lessonMarkdown: `
+## Network Interception & API Mocking
+
+Network interception is one of Playwright's most powerful and underused features. It lets you test your frontend in conditions that are impossible or dangerous to create in a real environment — server errors, slow connections, offline mode, specific edge-case API responses — all without touching production data or infrastructure.
+
+---
+
+### 1. page.route() Fundamentals
+
+*💡 Analogy: \`page.route()\` is a traffic warden standing at a road junction. Every vehicle (HTTP request) passes through. You define the junction's rules: wave everything through, divert lorries, stop specific vehicles entirely. The pattern you provide is the junction address.*
+
+\`page.route()\` registers an interception handler. Any request matching the pattern will be handed to your callback instead of going to the real server.
+
+**URL Pattern Types:**
+
+\`\`\`typescript
+// 1. Exact string match
+await page.route('https://api.example.com/users', handler);
+
+// 2. Glob pattern — ** matches any path segment
+await page.route('**/api/users', handler);           // any domain, /api/users path
+await page.route('**/api/**', handler);              // any domain, any /api/* path
+await page.route('https://api.example.com/**', handler); // all requests to this domain
+
+// 3. Regular expression — maximum power
+await page.route(/\/api\/users\/\d+/, handler);     // /api/users/123, /api/users/456
+await page.route(/\.(png|jpg|gif|svg)$/, handler);  // all image requests
+\`\`\`
+
+**The route handler callback — the route object methods:**
+
+\`\`\`typescript
+await page.route('**/api/products', async (route) => {
+  const request = route.request();
+
+  // Inspect the incoming request
+  console.log('Method:', request.method());       // 'GET', 'POST', etc.
+  console.log('URL:', request.url());             // full URL
+  console.log('Headers:', request.headers());    // request headers object
+  console.log('Body:', request.postData());       // request body (POST/PUT)
+
+  // Then decide what to do:
+  await route.fulfill({ ... });   // return a fake response
+  await route.abort();            // simulate network failure
+  await route.continue();         // let the request through (with optional modifications)
+  await route.fallback();         // fall through to the next matching route handler
+});
+\`\`\`
+
+**Removing a route handler (important in tests):**
+\`\`\`typescript
+// Routes persist for the lifetime of the page — unroute to clean up
+await page.unroute('**/api/products');
+
+// Or use a named handler function for selective removal
+const handler = async (route) => { await route.fulfill({ status: 500 }); };
+await page.route('**/api/products', handler);
+// ... test ...
+await page.unroute('**/api/products', handler); // remove only this handler
+\`\`\`
+
+> **QA Tip:** Always unroute or scope your routes to specific tests. Routes registered in \`beforeEach\` without cleanup in \`afterEach\` will affect subsequent tests unexpectedly.
+
+---
+
+### 2. fulfill() — Returning Fake Responses
+
+*💡 Analogy: \`fulfill()\` is a forger who intercepts your letter and writes a convincing fake reply before you even knock on the real door. The application receives the reply and has no idea it never reached the real server. It looks and smells exactly like the real thing.*
+
+\`route.fulfill()\` lets you return any response you want — status code, headers, body — all fabricated locally.
+
+**Basic mock response:**
+\`\`\`typescript
+await page.route('**/api/products', async (route) => {
+  await route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify([
+      { id: 1, name: 'Widget A', price: 9.99 },
+      { id: 2, name: 'Widget B', price: 19.99 },
+    ]),
+  });
+});
+\`\`\`
+
+**Using fixture files for complex mock data:**
+\`\`\`typescript
+// fixtures/products.json
+// { "items": [...], "total": 42, "page": 1 }
+
+import productsFixture from '../fixtures/products.json';
+
+await page.route('**/api/products*', async (route) => {
+  await route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(productsFixture),
+  });
+});
+\`\`\`
+
+**Mocking with specific headers:**
+\`\`\`typescript
+await page.route('**/api/user/profile', async (route) => {
+  await route.fulfill({
+    status: 200,
+    headers: {
+      'content-type': 'application/json',
+      'x-ratelimit-remaining': '0',      // test rate limit UI
+      'cache-control': 'no-cache',
+    },
+    body: JSON.stringify({ id: 'user-123', name: 'Test User' }),
+  });
+});
+\`\`\`
+
+**Mocking from real response then modifying it:**
+\`\`\`typescript
+await page.route('**/api/products', async (route) => {
+  // Let the real request go through first
+  const response = await route.fetch();
+  const body = await response.json();
+
+  // Modify just one field
+  body.items[0].price = 0.01; // test "free item" edge case
+
+  await route.fulfill({
+    response,         // inherit all original headers/status
+    body: JSON.stringify(body),
+  });
+});
+\`\`\`
+
+---
+
+### 3. abort() — Simulating Network Failures
+
+*💡 Analogy: \`abort()\` is a saboteur who cuts the telephone line before your call connects. The app picks up the phone, dials, and hears nothing but silence — or a busy signal. This tests whether your application handles the absence of a network gracefully.*
+
+\`route.abort()\` simulates network-level failures. This is essential for testing error handling — the UI responses to "the server is unreachable".
+
+\`\`\`typescript
+// Simulate complete network failure
+await page.route('**/api/**', async (route) => {
+  await route.abort(); // default error: 'failed'
+});
+
+await page.goto('/dashboard');
+await expect(page.getByText('Unable to load data')).toBeVisible();
+\`\`\`
+
+**Error types for abort():**
+
+| Error Type | Simulates |
+|------------|-----------|
+| \`'aborted'\` | Request was aborted client-side |
+| \`'connectionrefused'\` | Server actively refused connection |
+| \`'connectionreset'\` | Connection dropped mid-transfer |
+| \`'internetdisconnected'\` | No network interface |
+| \`'namenotresolved'\` | DNS lookup failure |
+| \`'timedout'\` | Request timed out |
+| \`'failed'\` | Generic failure (default) |
+
+\`\`\`typescript
+// Test DNS failure UI
+await page.route('**/api/search', async (route) => {
+  await route.abort('namenotresolved');
+});
+test('shows DNS error message', async ({ page }) => {
+  await page.route('**/api/health', async (route) => {
+    await route.abort('timedout');
+  });
+  await page.goto('/');
+  await expect(page.getByRole('alert')).toContainText('Connection timed out');
+});
+\`\`\`
+
+**Selective abort — only abort specific requests:**
+\`\`\`typescript
+// Abort image requests to test performance degradation UX
+await page.route(/\.(png|jpg|jpeg|gif|webp|svg)$/, async (route) => {
+  await route.abort();
+});
+// Now test that alt text / placeholders render correctly
+\`\`\`
+
+---
+
+### 4. continue() — Modifying Real Requests
+
+*💡 Analogy: \`continue()\` is an interceptor who opens the letter, adds a PS, reseals it perfectly, and then delivers it to the real address. The recipient receives the real letter plus your modification. Neither sender nor receiver knows you touched it.*
+
+\`route.continue()\` forwards the request to the real server, but lets you modify it first — changing headers, body, or URL.
+
+**Adding an auth header to all API requests:**
+\`\`\`typescript
+await page.route('**/api/**', async (route) => {
+  await route.continue({
+    headers: {
+      ...route.request().headers(),
+      'Authorization': \`Bearer \${process.env.TEST_API_TOKEN}\`,
+    },
+  });
+});
+\`\`\`
+
+**Logging all POST requests:**
+\`\`\`typescript
+await page.route('**/api/**', async (route) => {
+  const request = route.request();
+  if (request.method() === 'POST') {
+    console.log(\`POST \${request.url()}\`);
+    console.log('Payload:', request.postData());
+  }
+  await route.continue(); // pass through unchanged
+});
+\`\`\`
+
+**Modifying the request body:**
+\`\`\`typescript
+await page.route('**/api/orders', async (route) => {
+  if (route.request().method() === 'POST') {
+    const originalBody = JSON.parse(route.request().postData() || '{}');
+    // Inject a coupon code for testing
+    const modifiedBody = { ...originalBody, couponCode: 'TEST_DISCOUNT_50' };
+    await route.continue({
+      postData: JSON.stringify(modifiedBody),
+    });
+  } else {
+    await route.continue();
+  }
+});
+\`\`\`
+
+**Changing the request URL (redirect a request):**
+\`\`\`typescript
+// Point API calls at a staging environment instead of production
+await page.route('https://api.production.com/**', async (route) => {
+  const stagingUrl = route.request().url().replace(
+    'api.production.com',
+    'api.staging.com'
+  );
+  await route.continue({ url: stagingUrl });
+});
+\`\`\`
+
+---
+
+### 5. Testing Error States — Step-by-Step
+
+*💡 Analogy: A fire drill doesn't start a real fire. Network interception is the fire drill for your application's error handling — you create the exact conditions of a disaster in total safety and verify the team responds correctly.*
+
+**Testing a 500 Internal Server Error:**
+\`\`\`typescript
+test('shows error banner on server failure', async ({ page }) => {
+  // Step 1: Mock the failing endpoint BEFORE navigation
+  await page.route('**/api/dashboard/data', async (route) => {
+    await route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'Internal Server Error' }),
+    });
+  });
+
+  // Step 2: Navigate (the route mock is already active)
+  await page.goto('/dashboard');
+
+  // Step 3: Assert the error UI appears
+  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page.getByRole('alert')).toContainText('Something went wrong');
+
+  // Step 4: Assert data is NOT displayed (no partial state)
+  await expect(page.getByTestId('dashboard-chart')).not.toBeVisible();
+});
+\`\`\`
+
+**Testing a 401 Unauthorised → redirect to login:**
+\`\`\`typescript
+test('redirects to login on 401', async ({ page }) => {
+  await page.route('**/api/user/profile', async (route) => {
+    await route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'Unauthorised' }),
+    });
+  });
+
+  await page.goto('/profile');
+
+  // The frontend should detect the 401 and redirect
+  await page.waitForURL('/login');
+  await expect(page.getByText('Your session has expired')).toBeVisible();
+});
+\`\`\`
+
+**Testing a 429 Rate Limit response:**
+\`\`\`typescript
+test('shows rate limit message after too many requests', async ({ page }) => {
+  await page.route('**/api/search', async (route) => {
+    await route.fulfill({
+      status: 429,
+      headers: { 'retry-after': '60' },
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'Too many requests' }),
+    });
+  });
+
+  await page.goto('/search');
+  await page.getByRole('searchbox').fill('test query');
+  await page.keyboard.press('Enter');
+
+  await expect(page.getByText('Too many requests')).toBeVisible();
+  await expect(page.getByText('Please wait 60 seconds')).toBeVisible();
+});
+\`\`\`
+
+---
+
+### 6. waitForRequest / waitForResponse — Asserting API Calls
+
+*💡 Analogy: Rather than just testing the result, you put a sensor at the post box to confirm a specific letter was sent. \`waitForRequest\` is the post box sensor — it tells you exactly what was sent, to whom, and with what contents.*
+
+Sometimes you need to verify that a network call was made with the correct payload — not just that the UI updated.
+
+**waitForResponse — assert the right response was received:**
+\`\`\`typescript
+test('search sends correct query parameter', async ({ page }) => {
+  await page.goto('/search');
+
+  // Set up the waiter BEFORE the action that triggers the request
+  const searchResponse = page.waitForResponse(
+    response => response.url().includes('/api/search') && response.status() === 200
+  );
+
+  await page.getByRole('searchbox').fill('playwright testing');
+  await page.keyboard.press('Enter');
+
+  const response = await searchResponse;
+  const url = new URL(response.url());
+  expect(url.searchParams.get('q')).toBe('playwright testing');
+});
+\`\`\`
+
+**waitForRequest — assert the right payload was sent:**
+\`\`\`typescript
+test('checkout sends correct order payload', async ({ page }) => {
+  await page.goto('/checkout');
+
+  // Listen for the POST request
+  const orderRequest = page.waitForRequest(
+    request => request.url().includes('/api/orders') && request.method() === 'POST'
+  );
+
+  await page.getByRole('button', { name: 'Place Order' }).click();
+
+  const request = await orderRequest;
+  const payload = JSON.parse(request.postData() || '{}');
+
+  expect(payload).toMatchObject({
+    items: expect.arrayContaining([
+      expect.objectContaining({ productId: 'WIDGET-A', quantity: 2 })
+    ]),
+    shippingAddress: expect.objectContaining({ postcode: expect.any(String) })
+  });
+});
+\`\`\`
+
+**Promise.all — click + wait simultaneously:**
+\`\`\`typescript
+test('form submit triggers correct API and shows success', async ({ page }) => {
+  await page.goto('/contact');
+  await page.getByLabel('Name').fill('Test User');
+  await page.getByLabel('Message').fill('Hello from Playwright');
+
+  // Capture request and response simultaneously with the click
+  const [request, response] = await Promise.all([
+    page.waitForRequest('**/api/contact'),
+    page.waitForResponse('**/api/contact'),
+    page.getByRole('button', { name: 'Send Message' }).click(),
+  ]);
+
+  expect(response.status()).toBe(201);
+  expect(JSON.parse(request.postData() || '{}')).toMatchObject({
+    name: 'Test User',
+    message: 'Hello from Playwright',
+  });
+  await expect(page.getByText('Message sent!')).toBeVisible();
+});
+\`\`\`
+
+---
+
+### 7. HAR Files — Recording & Replaying Real Traffic
+
+*💡 Analogy: A HAR file is a flight data recorder for your browser's network activity. Every request and response is captured verbatim — status codes, headers, timing, bodies. You can then replay this recording in any future test, perfectly reproducing what the real server said.*
+
+HAR (HTTP Archive) files capture real network traffic. This is invaluable for complex scenarios with many API calls — record once against real data, replay in tests forever.
+
+**Recording a HAR file:**
+\`\`\`bash
+# Option 1: Use Playwright's built-in recorder
+npx playwright open --save-har=fixtures/dashboard.har https://your-app.com/dashboard
+
+# Option 2: Record during a test run
+\`\`\`
+
+\`\`\`typescript
+// Option 2: Record programmatically in a test
+test.only('record dashboard HAR', async ({ page, context }) => {
+  await context.routeFromHAR('fixtures/dashboard.har', { update: true });
+  await page.goto('/dashboard');
+  // Interact normally — all real network traffic is recorded
+  await page.waitForLoadState('networkidle');
+  // HAR is saved when context closes
+});
+\`\`\`
+
+**Replaying a HAR file in tests:**
+\`\`\`typescript
+test('dashboard loads correctly', async ({ page, context }) => {
+  // Replay recorded traffic — no real server needed
+  await context.routeFromHAR('fixtures/dashboard.har', {
+    notFound: 'fallback', // let unmatched requests go to real network
+  });
+
+  await page.goto('/dashboard');
+  await expect(page.getByTestId('revenue-chart')).toBeVisible();
+  await expect(page.getByTestId('user-count')).toHaveText('1,247');
+});
+\`\`\`
+
+**HAR routing options:**
+
+| Option | Value | Behaviour |
+|--------|-------|-----------|
+| \`notFound\` | \`'abort'\` | Abort requests not in HAR (default) |
+| \`notFound\` | \`'fallback'\` | Forward unmatched requests to real network |
+| \`update\` | \`true\` | Re-record all matching requests to update HAR |
+| \`url\` | glob/regex | Only route URLs matching this pattern from HAR |
+
+**HAR for complex mocking scenarios:**
+\`\`\`typescript
+test('order history with paginated data', async ({ page, context }) => {
+  // HAR recorded from a real session with 5 pages of orders
+  await context.routeFromHAR('fixtures/order-history-paginated.har');
+  await page.goto('/orders');
+
+  // Navigate through all 5 pages — each API call served from the HAR
+  for (let i = 1; i <= 5; i++) {
+    await expect(page.getByTestId('order-row')).toHaveCount(20);
+    if (i < 5) {
+      await page.getByRole('button', { name: 'Next page' }).click();
+      await page.waitForResponse('**/api/orders*');
+    }
+  }
+});
+\`\`\`
+
+> **QA Tip:** HAR files are excellent for CI environments where the real backend is unavailable or unstable. Record the HAR once in a stable environment, commit it to your repository, and your CI pipeline never needs external API access to run the tests.
+
+**Complete network interception strategy:**
+
+| Scenario | Best tool |
+|----------|-----------|
+| Mock specific endpoint with simple data | \`route.fulfill()\` |
+| Test error states (4xx, 5xx) | \`route.fulfill()\` with error status |
+| Test network failure | \`route.abort()\` |
+| Add auth headers globally | \`route.continue()\` |
+| Assert correct payload was sent | \`waitForRequest()\` |
+| Assert response triggered correct UI | \`waitForResponse()\` |
+| Replay complex multi-request flows | HAR file replay |
+| Spy on requests without changing them | \`route.continue()\` + log |
+        `
+      },
+
+      {
+        id: 'pw-advanced-locators',
+        title: 'Advanced Locators & Filtering',
+        analogy: "Finding an element on a complex web page is like finding one specific person in a stadium. Shouting a name works if there's only one person with that name. But what if there are 50 people named 'John'? You need to combine filters: 'the John wearing a red hat, sitting in section B, in the front row'. Playwright's advanced locator API is exactly that — chaining, filtering, and scoping until you've isolated the one element you mean, no matter how many look-alikes are around it.",
+        lessonMarkdown: `
+## Advanced Locators & Filtering
+
+Basic locators work for simple pages. Real-world applications have tables, lists, cards, nested components, and dozens of similar-looking elements. Advanced locator techniques are what separate brittle automation from professional-grade test suites that survive redesigns.
+
+---
+
+### 1. .filter() — Narrow by Text or Child Element
+
+*💡 Analogy: \`.filter()\` is like a bouncer with a checklist. The first locator lets in everyone matching the door policy ("all table rows"). \`.filter()\` then checks each person's ID against a second rule. Only those who pass both rules get through.*
+
+\`.filter()\` narrows an existing locator by text content or by the presence of a child element. It is the right tool when you have many similar elements and need the one that matches specific criteria.
+
+**Filter by visible text:**
+\`\`\`typescript
+// Many list items — get only the one containing "Playwright"
+const playwrightItem = page.getByRole('listitem').filter({ hasText: 'Playwright' });
+await playwrightItem.click();
+
+// Case-insensitive with regex
+const errorItem = page.getByRole('listitem').filter({ hasText: /error/i });
+await expect(errorItem).toBeVisible();
+\`\`\`
+
+**Filter by child element using \`{ has: }\`:**
+\`\`\`typescript
+// Find the card that contains a "Sold Out" badge
+const soldOutCard = page.getByTestId('product-card').filter({
+  has: page.getByText('Sold Out'),
+});
+await expect(soldOutCard).toHaveCount(3);
+
+// Find the table row that contains a specific status chip
+const pendingRow = page.getByRole('row').filter({
+  has: page.getByRole('status').filter({ hasText: 'Pending' }),
+});
+await pendingRow.getByRole('button', { name: 'Cancel' }).click();
+\`\`\`
+
+**Combining text + has filters:**
+\`\`\`typescript
+// Find the product card for "Widget Pro" that also has a "New" badge
+const newWidgetPro = page.getByTestId('product-card')
+  .filter({ hasText: 'Widget Pro' })
+  .filter({ has: page.getByText('New') });
+
+await expect(newWidgetPro).toBeVisible();
+await newWidgetPro.getByRole('button', { name: 'Add to Cart' }).click();
+\`\`\`
+
+**\`hasNot\` — exclude by child:**
+\`\`\`typescript
+// All product cards that do NOT have a "Sold Out" badge
+const availableCards = page.getByTestId('product-card').filter({
+  hasNot: page.getByText('Sold Out'),
+});
+await expect(availableCards).toHaveCount(7);
+\`\`\`
+
+> **QA Tip:** \`.filter()\` does not throw if zero elements match — the resulting locator just has count 0. Always pair a filter with an assertion if you need to confirm something was found.
+
+---
+
+### 2. .nth(), .first(), .last() — Picking from Lists
+
+*💡 Analogy: \`.nth()\` is the usher at a concert who says "you're in row 3, seat 4". The usher doesn't care who you are — just your position. This works perfectly for a stable seating chart. But in a dynamic app where rows reorder, indexing the third item today might select the wrong one tomorrow.*
+
+**Basic usage:**
+\`\`\`typescript
+// First, last, by index
+await page.getByRole('listitem').first().click();
+await page.getByRole('listitem').last().click();
+await page.getByRole('listitem').nth(2).click(); // 0-indexed: third item
+
+// Count then access
+const rows = page.getByRole('row');
+const rowCount = await rows.count();
+console.log(\`Found \${rowCount} rows\`);
+\`\`\`
+
+**Safe usage pattern in a product grid:**
+\`\`\`typescript
+test('add second product to cart', async ({ page }) => {
+  await page.goto('/shop');
+
+  // ✅ Safe: the second product card (0-indexed = index 1)
+  const secondCard = page.getByTestId('product-card').nth(1);
+  const productName = await secondCard.getByRole('heading').textContent();
+
+  await secondCard.getByRole('button', { name: 'Add to Cart' }).click();
+
+  // Verify cart shows the same product we clicked
+  await expect(page.getByTestId('cart-item')).toContainText(productName!);
+});
+\`\`\`
+
+**Why indexing is a last resort:**
+\`\`\`typescript
+// ❌ Brittle — if a promotional banner gets inserted above the list,
+//    index 0 is now the banner, not the first product
+await page.getByRole('listitem').first().click();
+
+// ✅ Better — filter by what makes this item unique
+await page.getByRole('listitem').filter({ hasText: 'Featured Product' }).click();
+\`\`\`
+
+> **QA Rule:** Prefer \`.filter()\` over \`.nth()\` whenever the element has distinguishing content. Use \`.nth()\` only when position itself is what you're testing (e.g., "the most recently added item appears at the top").
+
+---
+
+### 3. Scoped Locators — locator.locator()
+
+*💡 Analogy: Scoping a locator is like narrowing a search from "find a 'Delete' button anywhere in the building" to "find a 'Delete' button specifically in office 3B". The building search might return 20 results. The scoped search returns exactly the one you mean.*
+
+\`locator.locator()\` searches for elements within the bounds of an already-found element. This is the correct way to interact with repeated UI patterns like tables, cards, and form sections.
+
+**Interacting with a specific table row:**
+\`\`\`typescript
+// Find the row for user "Alice", then click her Edit button
+const aliceRow = page.getByRole('row', { name: /Alice/ });
+await aliceRow.getByRole('button', { name: 'Edit' }).click();
+
+// Verify the modal shows Alice's data
+await expect(page.getByRole('dialog')).toContainText('Alice');
+\`\`\`
+
+**Working inside a card component:**
+\`\`\`typescript
+// A product listing with multiple cards — each has its own price and Add to Cart button
+const card = page.getByTestId('product-card').filter({ hasText: 'Noise-Cancelling Headphones' });
+
+// All lookups are scoped to THIS card
+const price = await card.getByTestId('price').textContent();
+const rating = await card.getByRole('img', { name: /stars/ }).getAttribute('aria-label');
+await card.getByRole('button', { name: 'Add to Cart' }).click();
+\`\`\`
+
+**Form section scoping:**
+\`\`\`typescript
+// A complex form with a "Billing Address" and a "Shipping Address" section
+const billingSection = page.getByRole('group', { name: 'Billing Address' });
+const shippingSection = page.getByRole('group', { name: 'Shipping Address' });
+
+// Fill billing independently from shipping — no ambiguity
+await billingSection.getByLabel('Street').fill('10 Downing Street');
+await billingSection.getByLabel('City').fill('London');
+
+await shippingSection.getByLabel('Street').fill('221B Baker Street');
+await shippingSection.getByLabel('City').fill('London');
+\`\`\`
+
+**Why this beats CSS descendant selectors:**
+\`\`\`typescript
+// ❌ Fragile CSS descendant — hard to read, breaks with DOM changes
+await page.locator('.product-card:has-text("Headphones") .btn-add-to-cart').click();
+
+// ✅ Scoped locators — readable, semantic, resilient
+const card = page.getByTestId('product-card').filter({ hasText: 'Headphones' });
+await card.getByRole('button', { name: 'Add to Cart' }).click();
+\`\`\`
+
+---
+
+### 4. getByRole() with Options — Complete Reference
+
+*💡 Analogy: \`getByRole()\` is like the front desk of a hotel. You don't ask "where is the rectangular piece of wood with a metal handle" — you ask "where is the door to room 204?". Role names describe purpose, not appearance. This is exactly how assistive technologies (screen readers) navigate, which means good roles = accessible + testable.*
+
+**The \`name\` option — matching accessible name:**
+\`\`\`typescript
+// Buttons — matches text, aria-label, or aria-labelledby
+await page.getByRole('button', { name: 'Submit' }).click();
+await page.getByRole('button', { name: /save/i }).click();          // regex, case-insensitive
+await page.getByRole('button', { name: 'Close dialog' }).click();   // aria-label
+
+// Links
+await page.getByRole('link', { name: 'Learn more about pricing' }).click();
+
+// Headings
+await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+\`\`\`
+
+**The \`level\` option — for headings:**
+\`\`\`typescript
+// Specifically an h1, not any heading
+await expect(page.getByRole('heading', { name: 'Welcome', level: 1 })).toBeVisible();
+
+// h2 for section headings
+const sectionHeadings = page.getByRole('heading', { level: 2 });
+await expect(sectionHeadings).toHaveCount(4);
+\`\`\`
+
+**The \`checked\`, \`pressed\`, \`expanded\` options:**
+\`\`\`typescript
+// Find a checked checkbox
+const checkedBoxes = page.getByRole('checkbox', { checked: true });
+await expect(checkedBoxes).toHaveCount(2);
+
+// Find an expanded accordion section
+const openSection = page.getByRole('button', { expanded: true });
+await expect(openSection).toContainText('Delivery Options');
+
+// Find a pressed toggle button
+const activeFilter = page.getByRole('button', { pressed: true });
+await expect(activeFilter).toHaveText('Price: Low to High');
+\`\`\`
+
+**Full reference table:**
+
+| Option | Type | Matches |
+|--------|------|---------|
+| \`name\` | string / regex | Accessible name (text, aria-label, aria-labelledby) |
+| \`level\` | number | Heading level (1–6) |
+| \`checked\` | boolean | Checkbox/radio checked state |
+| \`pressed\` | boolean | Toggle button pressed state |
+| \`expanded\` | boolean | Accordion/menu expanded state |
+| \`disabled\` | boolean | Whether element is disabled |
+| \`selected\` | boolean | Whether option is selected |
+| \`exact\` | boolean | Exact name match (default: false = substring) |
+
+---
+
+### 5. Chaining Multiple Filters
+
+*💡 Analogy: Chaining filters is like GPS routing with waypoints. Each filter narrows you down one step closer to your destination. "In London" → "In Westminster" → "On Baker Street" → "Number 221B". Each step is clear, each is independently debuggable.*
+
+**Building a query step by step — readable style:**
+\`\`\`typescript
+// Readable: each step on its own line, clearly commented
+const orderRows = page.getByRole('row');                        // all table rows
+const pendingOrders = orderRows.filter({ hasText: 'Pending' }); // only Pending rows
+const highValuePending = pendingOrders.filter({                 // only > £500
+  has: page.getByTestId('order-value').filter({ hasText: /£[5-9]\d{2}|£[1-9]\d{3}/ })
+});
+
+await expect(highValuePending).toHaveCount(2);
+\`\`\`
+
+**Compact style for simple cases:**
+\`\`\`typescript
+// Compact: one expression, still readable
+await page.getByRole('listitem')
+  .filter({ hasText: /In Progress/ })
+  .filter({ has: page.getByRole('button', { name: 'Assign' }) })
+  .first()
+  .getByRole('button', { name: 'Assign' })
+  .click();
+\`\`\`
+
+**Debugging chained locators — count at each step:**
+\`\`\`typescript
+// When a chained locator returns 0 or more than expected, debug step by step
+const allCards = page.getByTestId('product-card');
+console.log('All cards:', await allCards.count());
+
+const saleCards = allCards.filter({ hasText: 'Sale' });
+console.log('Sale cards:', await saleCards.count());
+
+const saleInStock = saleCards.filter({ hasNot: page.getByText('Out of Stock') });
+console.log('Sale + in stock:', await saleInStock.count());
+// Find where the count goes wrong, then investigate that filter
+\`\`\`
+
+---
+
+### 6. Shadow DOM Piercing
+
+*💡 Analogy: Shadow DOM is like a government building with its own internal security system. The public entrance (main DOM) is accessible to everyone. But inside, departments have their own locked corridors (shadow roots). A visitor (your locator) who tries to walk through a locked door gets stopped — unless they know the right override.*
+
+Modern web components (e.g., custom elements built with Lit, Stencil, or native web components) use Shadow DOM to encapsulate their internals. Regular locators cannot see inside.
+
+**What fails with Shadow DOM:**
+\`\`\`typescript
+// ❌ Fails — the input is inside a shadow root, invisible to regular DOM queries
+await page.locator('my-custom-input input').fill('test');
+// Error: locator is not attached to DOM
+\`\`\`
+
+**Playwright's native Shadow DOM piercing:**
+\`\`\`typescript
+// ✅ Playwright's getBy* locators pierce shadow DOM automatically in most cases
+await page.getByLabel('Email').fill('user@test.com');
+await page.getByRole('button', { name: 'Submit' }).click();
+\`\`\`
+
+**CSS >>> (deprecated) vs locator piercing:**
+\`\`\`typescript
+// Old approach (still works but avoid in new code)
+await page.locator('my-input >>> input').fill('test');
+
+// Modern approach — CSS :host() and descendant combinators
+await page.locator('my-custom-form').locator('input[type="email"]').fill('test');
+\`\`\`
+
+**Using frameLocator for embedded web components:**
+\`\`\`typescript
+// If the shadow component renders in its own frame context
+const componentFrame = page.frameLocator('my-widget-frame');
+await componentFrame.getByRole('button', { name: 'Submit' }).click();
+\`\`\`
+
+> **QA Tip:** When facing Shadow DOM issues, check the accessibility tree first (\`npx playwright codegen\` shows accessible names even through shadow roots). If \`getByRole\` and \`getByLabel\` don't work, the component has broken accessibility — that's a bug worth reporting, not a locator problem to work around.
+
+---
+
+### 7. ElementHandle vs Locator
+
+*💡 Analogy: An ElementHandle is like taking a photograph of someone in a crowd. The photo is frozen in time — if the person moves, your photo still shows the old position. A Locator is like following a GPS tracker attached to the person — it always knows where they are right now, even after they've moved.*
+
+Playwright has two ways to reference elements: the modern \`Locator\` API and the legacy \`ElementHandle\` API. Always prefer Locator.
+
+**Why Locators are superior:**
+\`\`\`typescript
+// ElementHandle — snapshot in time, can go stale
+const handle = await page.$('. product-card'); // returns ElementHandle or null
+await page.reload(); // DOM is re-rendered
+await handle!.click(); // ❌ Might fail: "element is detached from document"
+
+// Locator — re-queries the DOM on every action
+const card = page.locator('.product-card'); // returns Locator immediately
+await page.reload(); // DOM is re-rendered
+await card.click(); // ✅ Re-queries DOM fresh, finds the new element
+\`\`\`
+
+**The re-querying advantage in detail:**
+\`\`\`typescript
+// Locator waits, retries, and re-queries automatically
+const submitBtn = page.getByRole('button', { name: 'Submit' });
+
+// Even if the button is temporarily hidden during a loading state,
+// Locator will keep polling until it becomes clickable (up to timeout)
+await submitBtn.click(); // auto-waits for visibility + enabled
+\`\`\`
+
+**When ElementHandle is forced on you:**
+\`\`\`typescript
+// Legacy browser automation APIs sometimes return ElementHandles
+// Convert to Locator where possible
+const handles = await page.$$('.legacy-item'); // returns ElementHandle[]
+for (const handle of handles) {
+  // Must use handle methods — Locator methods not available here
+  const text = await handle.textContent();
+  console.log(text);
+}
+
+// Modern equivalent — always prefer this
+const items = page.locator('.legacy-item');
+const count = await items.count();
+for (let i = 0; i < count; i++) {
+  const text = await items.nth(i).textContent();
+  console.log(text);
+}
+\`\`\`
+
+**Summary comparison:**
+
+| Feature | Locator | ElementHandle |
+|---------|---------|---------------|
+| Re-queries DOM on each action | ✅ Yes | ❌ No (stale) |
+| Built-in auto-waiting | ✅ Yes | ❌ No |
+| Works with \`expect()\` | ✅ Yes | ❌ Limited |
+| Chainable | ✅ Yes | ❌ No |
+| Recommended | ✅ Always | ⚠️ Legacy only |
+
+> **QA Rule:** Never use \`page.$\` or \`page.$$\` in new test code. If you see them in a codebase, migrate to the Locator API. The improvement in reliability is immediate and significant.
+        `
+      },
+
+      {
+        id: 'pw-dialogs-popups-iframes',
+        title: 'Dialogs, Popups, iFrames & File Handling',
+        analogy: "Handling dialogs, popups, and iframes in automation is like being an air traffic controller managing multiple runways simultaneously. Each new browser window is a new aircraft approaching. Each dialog is a priority alert that needs immediate acknowledgment. Each iframe is a plane from a different airline (different origin) that uses different radio frequencies. If you try to communicate on the wrong frequency, you get silence. The controller (your test) must switch channels deliberately for each.",
+        lessonMarkdown: `
+## Dialogs, Popups, iFrames & File Handling
+
+Every real application has interactions that go beyond the main page: confirmation dialogs, new-tab flows, embedded third-party widgets, file uploads and downloads. These are the areas where inexperienced automation breaks down. Master them and you can test virtually any web application.
+
+---
+
+### 1. Browser Dialogs — alert, confirm, prompt
+
+*💡 Analogy: A browser dialog is like an emergency intercom that interrupts everything. If you ignore it, the whole application freezes waiting for your response. In automation, you must have your listener ready BEFORE the door opens — not after you hear the buzzer.*
+
+Native browser dialogs (\`alert\`, \`confirm\`, \`prompt\`) pause all JavaScript execution until dismissed. Playwright handles them through the \`dialog\` event.
+
+**The critical timing rule — register BEFORE the triggering action:**
+\`\`\`typescript
+// ✅ CORRECT — listener registered before the action that triggers the dialog
+page.on('dialog', async (dialog) => {
+  console.log('Dialog type:', dialog.type());    // 'alert', 'confirm', or 'prompt'
+  console.log('Dialog message:', dialog.message());
+  await dialog.accept();
+});
+
+await page.getByRole('button', { name: 'Delete Account' }).click();
+// The click triggers the alert — our listener catches it immediately
+\`\`\`
+
+\`\`\`typescript
+// ❌ WRONG — listener registered AFTER the action
+await page.getByRole('button', { name: 'Delete Account' }).click();
+// ← dialog fires here, no listener exists yet, test hangs or auto-dismisses
+page.on('dialog', async (dialog) => { await dialog.accept(); });
+\`\`\`
+
+**dialog.accept() vs dialog.dismiss() vs dialog.fill():**
+\`\`\`typescript
+// alert() — only accept() makes sense (no choice)
+page.on('dialog', async (dialog) => {
+  expect(dialog.type()).toBe('alert');
+  expect(dialog.message()).toContain('Operation completed');
+  await dialog.accept();
+});
+
+// confirm() — accept = OK, dismiss = Cancel
+page.on('dialog', async (dialog) => {
+  if (dialog.type() === 'confirm') {
+    await dialog.dismiss(); // click Cancel — test the "cancel" path
+  }
+});
+
+// prompt() — fill in the text before accepting
+page.on('dialog', async (dialog) => {
+  expect(dialog.type()).toBe('prompt');
+  expect(dialog.defaultValue()).toBe('Enter your name');
+  await dialog.fill('Test Automation User');
+  await dialog.accept();
+});
+\`\`\`
+
+**One-shot handler for a specific test:**
+\`\`\`typescript
+test('confirms deletion on dialog accept', async ({ page }) => {
+  await page.goto('/admin/users');
+
+  // Register once — fires for the next dialog only, then is removed
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Delete User' }).click();
+
+  await expect(page.getByText('User deleted successfully')).toBeVisible();
+});
+\`\`\`
+
+> **QA Tip:** \`page.once('dialog', ...)\` is safer than \`page.on('dialog', ...)\` when you only expect one dialog per test. \`page.on\` stays active for the lifetime of the page and can accidentally catch subsequent dialogs in later tests if you forget to remove it.
+
+---
+
+### 2. New Tab & Popup Windows
+
+*💡 Analogy: A popup window is like a courier arriving at your door while you're already on a phone call. If you don't expect them, the door goes unanswered. In automation, you must be watching for the knock BEFORE you trigger the action that sends the courier.*
+
+When a click opens a new tab or window, Playwright gives you access to the new \`Page\` object through a \`page\` event on the context.
+
+**The Promise.all pattern — the only correct approach:**
+\`\`\`typescript
+test('clicking terms link opens new tab with correct content', async ({ page, context }) => {
+  await page.goto('/register');
+
+  // ✅ Start listening BEFORE the click, resolve after both happen
+  const [newPage] = await Promise.all([
+    context.waitForEvent('page'),                              // waits for new tab to open
+    page.getByRole('link', { name: 'Terms of Service' }).click(), // triggers the new tab
+  ]);
+
+  // newPage is fully usable — act on it just like any other page
+  await newPage.waitForLoadState('domcontentloaded');
+  await expect(newPage).toHaveURL(/terms/);
+  await expect(newPage.getByRole('heading', { level: 1 })).toHaveText('Terms of Service');
+
+  await newPage.close(); // clean up
+});
+\`\`\`
+
+**Accessing the new page and interacting:**
+\`\`\`typescript
+test('OAuth popup authentication flow', async ({ page, context }) => {
+  await page.goto('/login');
+
+  // Trigger the OAuth popup
+  const [popup] = await Promise.all([
+    context.waitForEvent('page'),
+    page.getByRole('button', { name: 'Sign in with Google' }).click(),
+  ]);
+
+  // Interact with the popup — fill in credentials
+  await popup.getByLabel('Email').fill('test@gmail.com');
+  await popup.getByRole('button', { name: 'Next' }).click();
+  await popup.getByLabel('Password').fill('test-password');
+  await popup.getByRole('button', { name: 'Sign in' }).click();
+
+  // Popup closes after auth — back to main page
+  await popup.waitForEvent('close');
+
+  // Main page should now be logged in
+  await expect(page).toHaveURL('/dashboard');
+  await expect(page.getByText('Welcome, Test User')).toBeVisible();
+});
+\`\`\`
+
+**Closing popups and handling multiple windows:**
+\`\`\`typescript
+// Get all pages in the context
+const pages = context.pages();
+console.log(\`Open tabs: \${pages.length}\`);
+
+// Close all pages except the first (main page)
+for (const p of pages.slice(1)) {
+  await p.close();
+}
+\`\`\`
+
+---
+
+### 3. iFrames with frameLocator()
+
+*💡 Analogy: An iframe is like a TV-within-a-TV. The outer TV (your main page) is tuned to your own channel. The inner TV (the iframe) is receiving a completely different broadcast — maybe from a different broadcaster entirely. Your remote (locator) only works on the TV you're currently controlling. To change the channel on the inner TV, you must pick up a different remote (frameLocator).*
+
+iFrames embed a completely separate document inside a page. Locators on \`page\` cannot find elements inside iframes — you must use \`frameLocator()\`.
+
+**Basic frameLocator syntax:**
+\`\`\`typescript
+// The iframe element's selector
+const iframe = page.frameLocator('iframe[name="payment-form"]');
+// Or by src pattern
+const iframe2 = page.frameLocator('iframe[src*="stripe.com"]');
+
+// Now locate elements INSIDE the iframe
+await iframe.getByLabel('Card Number').fill('4242 4242 4242 4242');
+await iframe.getByLabel('Expiry Date').fill('12/26');
+await iframe.getByLabel('CVC').fill('123');
+\`\`\`
+
+**Stripe payment form — a real-world example:**
+\`\`\`typescript
+test('completes checkout with Stripe payment', async ({ page }) => {
+  await page.goto('/checkout');
+  await page.getByRole('button', { name: 'Proceed to Payment' }).click();
+
+  // Stripe renders in an iframe
+  const stripeFrame = page.frameLocator('iframe[title="Secure card payment input frame"]');
+
+  await stripeFrame.getByPlaceholder('Card number').fill('4242424242424242');
+  await stripeFrame.getByPlaceholder('MM / YY').fill('12/26');
+  await stripeFrame.getByPlaceholder('CVC').fill('123');
+  await stripeFrame.getByPlaceholder('ZIP').fill('10001');
+
+  // Click Pay button outside the iframe
+  await page.getByRole('button', { name: 'Pay Now' }).click();
+  await expect(page.getByText('Payment successful')).toBeVisible();
+});
+\`\`\`
+
+**Nested iframes:**
+\`\`\`typescript
+// Outer iframe → inner iframe → element
+const outerFrame = page.frameLocator('#outer-frame');
+const innerFrame = outerFrame.frameLocator('#inner-frame');
+await innerFrame.getByRole('button', { name: 'Submit' }).click();
+\`\`\`
+
+**What makes iframes different:**
+- They have their own separate DOM tree
+- Cookies and localStorage are scoped to the iframe's origin
+- JavaScript in the iframe cannot access the parent page's JS (cross-origin)
+- Playwright auto-waits for iframe content to load before querying inside
+
+---
+
+### 4. File Uploads
+
+*💡 Analogy: \`setInputFiles()\` is like handing documents directly to the official on the other side of the counter — bypassing the queue system entirely. The OS file picker dialog (the queue) is skipped. You place the file directly into the input's hands.*
+
+**Single file upload:**
+\`\`\`typescript
+// setInputFiles() works on <input type="file"> elements
+await page.getByLabel('Upload Document').setInputFiles('./tests/fixtures/contract.pdf');
+
+// With role-based locator
+await page.getByRole('button', { name: 'Choose File' }).setInputFiles('./avatar.png');
+// Note: if the visible element is a button (not the input), locate the input directly
+await page.locator('input[type="file"]').setInputFiles('./avatar.png');
+\`\`\`
+
+**Multiple files:**
+\`\`\`typescript
+await page.locator('input[type="file"][multiple]').setInputFiles([
+  './tests/fixtures/invoice-jan.pdf',
+  './tests/fixtures/invoice-feb.pdf',
+  './tests/fixtures/invoice-mar.pdf',
+]);
+await expect(page.getByText('3 files selected')).toBeVisible();
+\`\`\`
+
+**In-memory file buffer — no file on disk needed:**
+\`\`\`typescript
+// Generate file content in memory — useful for unique test data
+await page.locator('input[type="file"]').setInputFiles({
+  name: 'test-upload.txt',
+  mimeType: 'text/plain',
+  buffer: Buffer.from('This is the content of my test file'),
+});
+
+// CSV upload test with generated data
+const csvContent = 'name,email\nAlice,alice@test.com\nBob,bob@test.com';
+await page.locator('input[type="file"]').setInputFiles({
+  name: 'users.csv',
+  mimeType: 'text/csv',
+  buffer: Buffer.from(csvContent),
+});
+\`\`\`
+
+**Clearing a file input:**
+\`\`\`typescript
+// Remove selected files
+await page.locator('input[type="file"]').setInputFiles([]);
+await expect(page.getByText('No file chosen')).toBeVisible();
+\`\`\`
+
+---
+
+### 5. File Downloads
+
+*💡 Analogy: \`waitForEvent('download')\` is like a customs officer posted at the airport's baggage carousel before the flight lands. If you arrive at the carousel after the bags have been taken away, you miss them. The officer is there waiting before the plane even touches down.*
+
+**Basic download handling:**
+\`\`\`typescript
+test('downloads invoice PDF', async ({ page }) => {
+  await page.goto('/invoices');
+
+  // Set up the download listener BEFORE clicking
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Download Invoice' }).click(),
+  ]);
+
+  // The download object gives you info about the file
+  console.log('Filename:', download.suggestedFilename()); // "invoice-2026-01.pdf"
+
+  // Save to a specific location for inspection
+  await download.saveAs('./test-results/downloads/' + download.suggestedFilename());
+});
+\`\`\`
+
+**Verifying download content:**
+\`\`\`typescript
+import * as fs from 'fs';
+import * as path from 'path';
+
+test('downloaded CSV contains correct data', async ({ page }) => {
+  await page.goto('/reports');
+
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Export to CSV' }).click(),
+  ]);
+
+  // Save and read the file
+  const downloadPath = path.join('test-results', download.suggestedFilename());
+  await download.saveAs(downloadPath);
+
+  const content = fs.readFileSync(downloadPath, 'utf-8');
+  expect(content).toContain('Order ID,Date,Amount');
+  expect(content.split('\n').length).toBeGreaterThan(5); // at least 5 data rows
+});
+\`\`\`
+
+**Checking for download failure:**
+\`\`\`typescript
+const [download] = await Promise.all([
+  page.waitForEvent('download'),
+  page.getByRole('button', { name: 'Download Report' }).click(),
+]);
+
+const failure = await download.failure();
+if (failure) {
+  throw new Error(\`Download failed: \${failure}\`);
+}
+\`\`\`
+
+---
+
+### 6. Hover Menus & Tooltips
+
+*💡 Analogy: Hover interactions are like motion-sensor lights — they only switch on when you're physically present. If you test for the light being on without first walking under the sensor, the test always fails. You must trigger the condition first, then assert the result.*
+
+**Hover then wait for menu:**
+\`\`\`typescript
+test('hover shows dropdown navigation', async ({ page }) => {
+  await page.goto('/');
+
+  // Hover the trigger element
+  await page.getByRole('button', { name: 'Products' }).hover();
+
+  // The dropdown menu should now be visible
+  await expect(page.getByRole('menu')).toBeVisible();
+  await page.getByRole('menuitem', { name: 'Accessories' }).click();
+
+  await expect(page).toHaveURL('/products/accessories');
+});
+\`\`\`
+
+**Combining hover with waitForSelector:**
+\`\`\`typescript
+// Some menus have CSS transitions — wait for the animation to complete
+await page.getByRole('navigation').getByText('Services').hover();
+await page.waitForSelector('.dropdown-menu', { state: 'visible' });
+// Now the menu is fully visible and clickable
+await page.getByRole('link', { name: 'Consulting' }).click();
+\`\`\`
+
+**Tooltip verification:**
+\`\`\`typescript
+test('info icon shows tooltip on hover', async ({ page }) => {
+  await page.goto('/settings');
+
+  await page.getByRole('img', { name: 'Info' }).hover();
+
+  // Tooltip typically has a specific role or test ID
+  const tooltip = page.getByRole('tooltip');
+  await expect(tooltip).toBeVisible();
+  await expect(tooltip).toContainText('This setting affects all users');
+});
+\`\`\`
+
+**The animation timing problem:**
+\`\`\`typescript
+// If hover menus use CSS transitions, the element may be in the DOM but still animating
+// Playwright's stability check handles most cases, but for tricky animations:
+await page.getByText('Account').hover();
+await page.waitForFunction(() => {
+  const menu = document.querySelector('.account-dropdown');
+  if (!menu) return false;
+  return parseFloat(window.getComputedStyle(menu).opacity) === 1;
+});
+\`\`\`
+
+---
+
+### 7. Date Pickers & Custom Dropdowns
+
+*💡 Analogy: A custom date picker is like a vending machine that speaks a different language than a regular shop counter. The regular till (native \`<select>\` or \`<input type="date">\`) understands direct commands. The custom vending machine has its own button sequence, its own display, its own rules. You need to learn that machine's interface specifically.*
+
+**Filling a native date input:**
+\`\`\`typescript
+// <input type="date"> — fill directly with ISO format
+await page.getByLabel('Start Date').fill('2026-06-15');
+await expect(page.getByLabel('Start Date')).toHaveValue('2026-06-15');
+\`\`\`
+
+**Calendar widget date picker:**
+\`\`\`typescript
+test('selects date from calendar widget', async ({ page }) => {
+  await page.goto('/booking');
+
+  // Click the date input to open the calendar
+  await page.getByLabel('Check-in Date').click();
+  await expect(page.getByRole('dialog', { name: /calendar/i })).toBeVisible();
+
+  // Navigate to the correct month
+  const currentMonth = await page.getByTestId('calendar-month-year').textContent();
+  if (!currentMonth?.includes('June 2026')) {
+    await page.getByRole('button', { name: 'Next month' }).click();
+  }
+
+  // Click the specific day
+  await page.getByRole('gridcell', { name: '15' }).click();
+
+  // Verify the input was updated
+  await expect(page.getByLabel('Check-in Date')).toHaveValue(/june.*15|15.*june/i);
+});
+\`\`\`
+
+**Custom dropdown (not a native \`<select>\`):**
+\`\`\`typescript
+test('selects from custom styled dropdown', async ({ page }) => {
+  await page.goto('/settings');
+
+  // Step 1: Click the trigger to open the listbox
+  await page.getByRole('combobox', { name: 'Country' }).click();
+
+  // Step 2: Wait for the options to appear
+  await expect(page.getByRole('listbox')).toBeVisible();
+
+  // Step 3: Select the specific option
+  await page.getByRole('option', { name: 'United Kingdom' }).click();
+
+  // Step 4: Verify the selection
+  await expect(page.getByRole('combobox', { name: 'Country' })).toHaveText('United Kingdom');
+});
+\`\`\`
+
+**Searchable dropdown (type to filter):**
+\`\`\`typescript
+// Some custom dropdowns have a search input inside the listbox
+await page.getByRole('combobox', { name: 'Time Zone' }).click();
+await page.getByRole('combobox', { name: 'Time Zone' }).fill('London');
+
+// The filtered options appear
+await page.getByRole('option', { name: 'Europe/London' }).click();
+await expect(page.getByRole('combobox', { name: 'Time Zone' })).toHaveText('Europe/London');
+\`\`\`
+
+**React Select / similar libraries:**
+\`\`\`typescript
+// React Select uses a specific DOM pattern — input inside a container
+const countrySelect = page.locator('.react-select__control').filter({
+  has: page.locator('.react-select__placeholder', { hasText: 'Select country' })
+});
+await countrySelect.click();
+await page.getByRole('option', { name: 'Germany' }).click();
+\`\`\`
+
+> **QA Tip:** Always check whether a dropdown is a native \`<select>\` or a custom component. Native selects: use \`selectOption()\`. Custom components: use the open → filter → click pattern. The fastest way to tell: inspect the element — if it's \`<select>\`, use \`selectOption()\`.
+        `
+      },
+
+      {
+        id: 'pw-test-organisation',
+        title: 'Test Organisation, Tagging & Parallelism',
+        analogy: "Organising a test suite is like running an airport with hundreds of flights. Without a system, it's chaos — planes queuing on the wrong runways, crews not knowing their gates, no priority system for emergency landings. With structure: gates are numbered (describe blocks), priority flights get dedicated runways (serial vs parallel), ground crew know exactly which flights need special handling (tags and grep). The bigger the fleet, the more the structure pays off.",
+        lessonMarkdown: `
+## Test Organisation, Tagging & Parallelism
+
+A well-organised test suite is as important as well-written tests. Structure determines how fast your CI pipeline runs, how quickly engineers find failing tests, and how reliably the suite scales from 20 tests to 2,000. This module covers the organisational tools professional Playwright teams use.
+
+---
+
+### 1. test.describe() Nesting
+
+*💡 Analogy: \`test.describe()\` is like a filing cabinet with labelled drawers. The drawer labelled "Authentication" contains sub-folders: "Login", "Logout", "Password Reset". Each sub-folder contains the actual documents (tests). Without this structure, every document is thrown in a pile and finding anything is a nightmare.*
+
+**Basic grouping by feature:**
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+test.describe('Shopping Cart', () => {
+  test('adds item to empty cart', async ({ page }) => { /* ... */ });
+  test('removes item from cart', async ({ page }) => { /* ... */ });
+  test('updates item quantity', async ({ page }) => { /* ... */ });
+  test('calculates total correctly', async ({ page }) => { /* ... */ });
+});
+\`\`\`
+
+**Nested describes — by page, then by scenario:**
+\`\`\`typescript
+test.describe('Checkout Flow', () => {
+  test.describe('Guest Checkout', () => {
+    test('completes purchase without account', async ({ page }) => { /* ... */ });
+    test('shows email confirmation prompt', async ({ page }) => { /* ... */ });
+  });
+
+  test.describe('Authenticated Checkout', () => {
+    test.beforeEach(async ({ page }) => {
+      await page.goto('/login');
+      // ... login steps
+    });
+
+    test('pre-fills saved address', async ({ page }) => { /* ... */ });
+    test('shows order history after purchase', async ({ page }) => { /* ... */ });
+  });
+});
+\`\`\`
+
+**Hook scoping — beforeEach inside describe only applies within it:**
+\`\`\`typescript
+test.describe('Admin Panel', () => {
+  // This beforeEach ONLY runs for tests inside this describe block
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/admin/login');
+    await page.getByLabel('Email').fill('admin@test.com');
+    await page.getByLabel('Password').fill('admin-pass');
+    await page.getByRole('button', { name: 'Sign In' }).click();
+  });
+
+  test('views user list', async ({ page }) => { /* ... */ });
+  test('deletes user', async ({ page }) => { /* ... */ });
+});
+
+// This test does NOT run the admin beforeEach
+test('homepage loads for guest', async ({ page }) => { /* ... */ });
+\`\`\`
+
+**Naming conventions:**
+\`\`\`typescript
+// By feature area
+test.describe('User Authentication', () => { /* ... */ });
+test.describe('Product Catalogue', () => { /* ... */ });
+test.describe('Order Management', () => { /* ... */ });
+
+// By user role
+test.describe('As a Guest User', () => { /* ... */ });
+test.describe('As an Admin User', () => { /* ... */ });
+
+// By page
+test.describe('Login Page', () => { /* ... */ });
+test.describe('Dashboard Page', () => { /* ... */ });
+\`\`\`
+
+---
+
+### 2. test.only(), test.skip(), test.fixme(), test.slow()
+
+*💡 Analogy: These modifiers are the coloured flags in a harbour. Green flag: normal operation. Yellow flag: caution, skip this berth. Red flag: known problem, don't attempt docking. Orange flag: this ship is slow — give it extra time. Each flag sends a clear signal to the crew without confusion.*
+
+**test.only() — run only this test (or this describe):**
+\`\`\`typescript
+test.only('the one test I am working on right now', async ({ page }) => {
+  // All other tests in the file are skipped
+  // ⚠️ NEVER commit test.only() to main/production branch
+});
+
+test.describe.only('Login feature', () => {
+  // Only tests in this block run — skips all other describes
+});
+\`\`\`
+
+**The CI danger of .only():**
+\`\`\`typescript
+// In playwright.config.ts — IMPORTANT for any shared codebase
+export default defineConfig({
+  forbidOnly: !!process.env.CI, // fails the run if .only() is found in CI
+});
+// This means accidental .only() commits fail loudly on CI instead of silently
+// running only one test and falsely "passing" the suite
+\`\`\`
+
+**test.skip() — skip with a reason:**
+\`\`\`typescript
+test.skip('payment with expired card', async ({ page }) => {
+  // Skipped — no reason given (avoid this style in shared code)
+});
+
+test('feature flag dependent test', async ({ page }) => {
+  test.skip(process.env.FEATURE_NEW_CHECKOUT !== 'true', 'Only runs when new checkout is enabled');
+  // Test body runs only when the env var is set
+});
+
+// Skip an entire describe block
+test.describe('Legacy API Tests', () => {
+  test.skip(); // skips all tests in this describe
+  test('...', async () => { /* ... */ });
+});
+\`\`\`
+
+**test.fixme() — known broken test, mark for later:**
+\`\`\`typescript
+test.fixme('discount code applies to subscription', async ({ page }) => {
+  // This test fails due to a known bug — JIRA-4521
+  // Marked fixme so CI skips it but it's visible in the report
+  // Different from skip: fixme signals "this SHOULD work but currently doesn't"
+});
+
+test.fixme('...', async ({ page }) => {
+  test.fixme(process.env.BROWSER === 'firefox', 'Firefox drag-drop bug — ticket JIRA-5033');
+  // Only marked fixme in Firefox
+});
+\`\`\`
+
+**test.slow() — extend the timeout for slow scenarios:**
+\`\`\`typescript
+test('full end-to-end onboarding flow', async ({ page }) => {
+  test.slow(); // triples the default timeout for this test only
+
+  // This 15-step flow needs more time than the default 30s
+  await page.goto('/signup');
+  // ... 15 steps ...
+  await expect(page.getByText('Setup complete')).toBeVisible();
+});
+\`\`\`
+
+---
+
+### 3. Tagging Tests
+
+*💡 Analogy: Tags are like boarding zones at an airport. Zone A (smoke tests) boards first — fast, essential, runs on every commit. Zone B (regression) boards next — thorough but slower. Zone C (nightly) boards last — exhaustive tests that run overnight. The same passengers (tests) belong to different zones for different journeys.*
+
+**Adding tags in test names:**
+\`\`\`typescript
+// Tags are @-prefixed strings inside the test name
+test('login with valid credentials @smoke @critical', async ({ page }) => { /* ... */ });
+test('register new user @smoke @regression', async ({ page }) => { /* ... */ });
+test('admin bulk delete users @regression @destructive', async ({ page }) => { /* ... */ });
+test('export report to Excel @slow @regression', async ({ page }) => { /* ... */ });
+\`\`\`
+
+**Filtering by tag on the command line:**
+\`\`\`bash
+# Run only smoke tests
+npx playwright test --grep "@smoke"
+
+# Run only critical regression tests
+npx playwright test --grep "@critical"
+
+# Run tests tagged with BOTH smoke AND critical (AND logic with regex)
+npx playwright test --grep "(?=.*@smoke)(?=.*@critical)"
+
+# Run tests tagged with smoke OR regression (OR logic)
+npx playwright test --grep "@smoke|@regression"
+
+# Exclude slow tests (run everything EXCEPT @slow)
+npx playwright test --grep-invert "@slow"
+\`\`\`
+
+**Playwright v1.42+ first-class tags API:**
+\`\`\`typescript
+// Modern syntax — tags as a separate property (cleaner than name embedding)
+test('login with valid credentials', {
+  tag: ['@smoke', '@critical'],
+}, async ({ page }) => { /* ... */ });
+
+test.describe('Checkout Flow', {
+  tag: ['@regression'],
+}, () => {
+  test('guest checkout', async ({ page }) => { /* ... */ });
+  test('authenticated checkout', async ({ page }) => { /* ... */ });
+  // Both inherit @regression from the describe
+});
+\`\`\`
+
+**Practical tagging strategy:**
+
+| Tag | Purpose | Runs when |
+|-----|---------|-----------|
+| \`@smoke\` | Critical happy paths, ~10 tests | Every commit, every PR |
+| \`@regression\` | Full feature coverage | Nightly, before release |
+| \`@critical\` | Business-critical flows (payments, auth) | Every deployment |
+| \`@slow\` | Tests that take >30s | Nightly only |
+| \`@flaky\` | Known occasional failures | Excluded from main CI |
+| \`@wip\` | Work in progress | Local development only |
+
+---
+
+### 4. test.describe.parallel() vs serial()
+
+*💡 Analogy: Parallel tests are like multiple checkout lanes in a supermarket — each shopper moves independently, in no particular order, and they don't interact. Serial tests are like a relay race — the baton must be passed in exact order, and if one runner falls, the race stops. Choose the model that matches the actual dependency between your tests.*
+
+**test.describe.parallel() — tests run in any order, concurrently:**
+\`\`\`typescript
+test.describe.parallel('Product Catalogue', () => {
+  // These 4 tests run at the same time, in no guaranteed order
+  test('filter by category', async ({ page }) => { /* ... */ });
+  test('sort by price', async ({ page }) => { /* ... */ });
+  test('search by keyword', async ({ page }) => { /* ... */ });
+  test('pagination works', async ({ page }) => { /* ... */ });
+});
+// Total time ≈ time of slowest single test (not sum of all 4)
+\`\`\`
+
+**test.describe.serial() — tests run in strict sequence:**
+\`\`\`typescript
+test.describe.serial('Order Lifecycle', () => {
+  // These tests DEPEND on each other — they share state through the context
+  test('creates draft order', async ({ page }) => {
+    await page.goto('/orders/new');
+    await page.getByRole('button', { name: 'Save Draft' }).click();
+    // Order ID is now in the database
+  });
+
+  test('submits draft order', async ({ page }) => {
+    await page.goto('/orders/drafts');
+    await page.getByRole('button', { name: 'Submit' }).click();
+  });
+
+  test('verifies order in history', async ({ page }) => {
+    await page.goto('/orders/history');
+    await expect(page.getByTestId('order-row')).toHaveCount(1);
+  });
+  // If 'creates draft order' fails, the next two are skipped automatically
+});
+\`\`\`
+
+**The performance tradeoff:**
+
+| Mode | Order | Speed | When to use |
+|------|-------|-------|-------------|
+| Default (parallel workers) | Random | Fastest | Most tests — independent, no shared state |
+| \`describe.parallel()\` | Random | Fast | Independent tests in same file |
+| \`describe.serial()\` | Strict sequential | Slowest | Tests that share state or follow a workflow |
+
+**Worker configuration in playwright.config.ts:**
+\`\`\`typescript
+export default defineConfig({
+  // Number of parallel workers — adjust based on your machine/CI
+  workers: process.env.CI ? 4 : 2,
+
+  // Run all tests in the same file serially (file isolation, not parallel within files)
+  fullyParallel: false, // default: tests in same file run serially
+  // fullyParallel: true  — all tests everywhere run in parallel (fastest, needs independence)
+});
+\`\`\`
+
+---
+
+### 5. expect.soft() — Soft Assertions
+
+*💡 Analogy: Soft assertions are like a quality inspector filling out a checklist on a production line. They mark each defect on the clipboard and keep inspecting — they don't stop the line at the first defect. At the end of the inspection, the full report shows every problem found. A hard assertion stops the line at the first problem, missing everything downstream.*
+
+**Basic soft assertion usage:**
+\`\`\`typescript
+test('order confirmation page shows all details', async ({ page }) => {
+  await page.goto('/order-confirmation/12345');
+
+  // Hard assertions (normal) would stop at the first failure
+  // Soft assertions continue and collect ALL failures
+  await expect.soft(page.getByTestId('order-id')).toHaveText('Order #12345');
+  await expect.soft(page.getByTestId('order-status')).toHaveText('Confirmed');
+  await expect.soft(page.getByTestId('delivery-date')).toBeVisible();
+  await expect.soft(page.getByTestId('customer-name')).toContainText('Test User');
+  await expect.soft(page.getByTestId('order-total')).toHaveText('£49.99');
+
+  // Test FAILS at the end if ANY soft assertion failed
+  // The report shows ALL failures, not just the first one
+});
+\`\`\`
+
+**Mixing soft and hard assertions:**
+\`\`\`typescript
+test('product details page', async ({ page }) => {
+  await page.goto('/product/headphones-pro');
+
+  // Hard assertion first — if the page didn't load, all soft checks below are meaningless
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+
+  // Soft assertions for all the details we want to verify
+  await expect.soft(page.getByTestId('price')).toHaveText('£199.99');
+  await expect.soft(page.getByTestId('in-stock')).toHaveText('In Stock');
+  await expect.soft(page.getByTestId('rating')).toContainText('4.8');
+  await expect.soft(page.getByRole('img', { name: /product photo/i })).toBeVisible();
+  await expect.soft(page.getByTestId('sku')).toHaveText('SKU: HPX-2026');
+});
+\`\`\`
+
+**When to use soft vs hard:**
+
+| Scenario | Use |
+|----------|-----|
+| Multiple independent fields on a confirmation page | \`expect.soft()\` |
+| Step that other steps depend on (login must succeed before dashboard test) | Hard \`expect()\` |
+| Verifying a whole form submitted correctly | \`expect.soft()\` for each field |
+| Verifying the correct page loaded | Hard \`expect()\` (everything else depends on this) |
+
+---
+
+### 6. Folder & File Structure
+
+*💡 Analogy: File structure is the map of your testing city. Feature-based organisation is like organising a city by district (Shopping District, Government District). Page-based is like organising by building (Town Hall, Shopping Centre, Library). Flow-based is like organising by journey type (morning commute, tourist sightseeing). Choose the map that best reflects how YOUR team navigates.*
+
+**Feature-based structure (recommended for most teams):**
+\`\`\`
+tests/
+  auth/
+    login.spec.ts
+    register.spec.ts
+    password-reset.spec.ts
+  checkout/
+    guest-checkout.spec.ts
+    payment.spec.ts
+    order-confirmation.spec.ts
+  products/
+    catalogue.spec.ts
+    product-detail.spec.ts
+    search.spec.ts
+  admin/
+    user-management.spec.ts
+    reports.spec.ts
+pages/            # Page Object Model classes
+  LoginPage.ts
+  CheckoutPage.ts
+  ProductPage.ts
+fixtures/         # Test data and shared fixtures
+  users.ts
+  products.json
+utils/            # Shared helper functions
+  dates.ts
+  api-helpers.ts
+\`\`\`
+
+**Page-based structure:**
+\`\`\`
+tests/
+  homepage.spec.ts
+  login-page.spec.ts
+  dashboard.spec.ts
+  profile-page.spec.ts
+  checkout-page.spec.ts
+\`\`\`
+
+**Flow-based structure:**
+\`\`\`
+tests/
+  flows/
+    new-user-onboarding.spec.ts
+    purchase-flow.spec.ts
+    admin-setup-flow.spec.ts
+  components/
+    navigation.spec.ts
+    search-bar.spec.ts
+\`\`\`
+
+**The spec file decision:**
+\`\`\`typescript
+// One spec per feature (recommended) — login.spec.ts covers all login scenarios
+test.describe('Login', () => {
+  test('valid credentials', ...);
+  test('invalid password', ...);
+  test('locked account', ...);
+  test('forgot password link', ...);
+  test('remember me checkbox', ...);
+});
+
+// One spec per scenario (too granular) — hard to navigate, too many files
+// valid-login.spec.ts, invalid-login.spec.ts, locked-account.spec.ts...
+\`\`\`
+
+---
+
+### 7. Worker-Scoped Fixtures for Expensive Setup
+
+*💡 Analogy: Worker-scoped fixtures are like a hotel concierge who sets up a master key card once per shift, then all guests on that shift use it. Without this, each guest would have to wait for the concierge to programme a new card from scratch — multiplying setup time by the number of guests. The card is set up once; many guests benefit.*
+
+**Scope comparison:**
+
+| Scope | Created | Destroyed | Use for |
+|-------|---------|-----------|---------|
+| \`'test'\` (default) | Before each test | After each test | Page, browser context |
+| \`'worker'\` | Once per worker | When worker exits | Database seed, auth state, expensive API calls |
+
+**Worker-scoped fixture for database seeding:**
+\`\`\`typescript
+// fixtures/worker-fixtures.ts
+import { test as base } from '@playwright/test';
+
+type WorkerFixtures = {
+  seededDb: { userId: string; orderId: string };
+};
+
+export const test = base.extend<{}, WorkerFixtures>({
+  seededDb: [async ({}, use) => {
+    // Runs ONCE per worker — not once per test
+    console.log('Seeding database for worker...');
+    const userId = await seedTestUser();
+    const orderId = await seedTestOrder(userId);
+
+    await use({ userId, orderId });
+
+    // Cleanup runs once per worker at the end
+    await cleanupTestData(userId);
+  }, { scope: 'worker' }],
+});
+\`\`\`
+
+**Worker-scoped auth state (the most common use case):**
+\`\`\`typescript
+// fixtures/auth-fixtures.ts
+import { test as base, BrowserContext } from '@playwright/test';
+
+type WorkerFixtures = {
+  authenticatedContext: BrowserContext;
+};
+
+export const test = base.extend<{}, WorkerFixtures>({
+  authenticatedContext: [async ({ browser }, use) => {
+    // Log in ONCE per worker — saves auth cookies to storage state
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    await page.goto('/login');
+    await page.getByLabel('Email').fill('testuser@example.com');
+    await page.getByLabel('Password').fill('test-password');
+    await page.getByRole('button', { name: 'Sign In' }).click();
+    await page.waitForURL('/dashboard');
+    await page.close();
+
+    // All tests in this worker share the authenticated context
+    await use(context);
+    await context.close();
+  }, { scope: 'worker' }],
+});
+\`\`\`
+
+**The isolation tradeoff:**
+\`\`\`typescript
+// Worker-scoped fixtures save time but reduce isolation
+// If test A modifies shared state and test B reads it:
+
+// ✅ Safe pattern — each test reads but never modifies worker-scoped data
+test('views seeded order', async ({ page, seededDb }) => {
+  await page.goto(\`/orders/\${seededDb.orderId}\`);
+  await expect(page.getByTestId('order-status')).toHaveText('Pending');
+  // Does NOT change the order status — safe for other tests in the worker
+});
+
+// ❌ Risky pattern — test modifies shared worker state
+test('cancels order', async ({ page, seededDb }) => {
+  await page.goto(\`/orders/\${seededDb.orderId}\`);
+  await page.getByRole('button', { name: 'Cancel Order' }).click();
+  // Now the order is cancelled — other tests expecting 'Pending' will fail
+});
+// Solution: use test-scoped fixtures for data that gets modified
+\`\`\`
+
+> **QA Principle:** Use worker-scoped fixtures for read-only setup (auth state, reference data). Use test-scoped fixtures for anything that gets created, modified, or deleted during a test. This maximises speed without compromising isolation.
+        `
+      },
+
+      {
+        id: 'pw-api-testing',
+        title: 'API Testing & Hybrid UI+API Tests',
+        analogy: "Pure UI testing is like judging a restaurant only by eating the food. You get great consumer confidence but it's slow — you wait for the full meal every time. API testing is like inspecting the kitchen directly — fast, precise, catches problems before they ever reach the plate. The hybrid approach — inspect the kitchen (API) to set up the ingredients, then eat the dish (UI) to verify the experience — gives you the speed of API testing with the confidence of UI testing. It's how professional QA engineers achieve both speed and coverage.",
+        lessonMarkdown: `
+## API Testing & Hybrid UI+API Tests
+
+Playwright is not just a browser automation tool — it has a first-class HTTP client built in. Combining API and UI testing in a single framework eliminates context-switching, lets you share authentication, and unlocks hybrid patterns that are faster, more stable, and more powerful than pure UI testing alone.
+
+---
+
+### 1. The request Fixture
+
+*💡 Analogy: The \`request\` fixture is like having a direct phone line to the backend kitchen. Instead of ordering through the restaurant's front of house (the UI), you're calling the head chef directly. Faster, more precise, no waiting for waiters.*
+
+The \`request\` fixture is a built-in Playwright fixture that gives you an HTTP client — no extra libraries needed.
+
+**Basic GET request:**
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+test('GET /api/products returns 200 with product list', async ({ request }) => {
+  const response = await request.get('https://api.example.com/products');
+
+  expect(response.status()).toBe(200);
+  expect(response.ok()).toBe(true); // true for 200-299
+
+  const body = await response.json();
+  expect(body).toHaveProperty('products');
+  expect(body.products.length).toBeGreaterThan(0);
+});
+\`\`\`
+
+**POST with JSON body:**
+\`\`\`typescript
+test('POST /api/users creates a new user', async ({ request }) => {
+  const response = await request.post('https://api.example.com/users', {
+    data: {
+      name: 'Test User',
+      email: 'test.user@example.com',
+      role: 'viewer',
+    },
+  });
+
+  expect(response.status()).toBe(201);
+  const created = await response.json();
+  expect(created.id).toBeDefined();
+  expect(created.email).toBe('test.user@example.com');
+});
+\`\`\`
+
+**With authentication headers:**
+\`\`\`typescript
+test('authenticated API call returns user profile', async ({ request }) => {
+  const response = await request.get('https://api.example.com/user/profile', {
+    headers: {
+      'Authorization': \`Bearer \${process.env.TEST_API_TOKEN}\`,
+      'Accept': 'application/json',
+    },
+  });
+
+  expect(response.status()).toBe(200);
+  const profile = await response.json();
+  expect(profile.email).toBe('test@example.com');
+});
+\`\`\`
+
+**Using baseURL from config:**
+\`\`\`typescript
+// In playwright.config.ts:
+// use: { baseURL: 'https://api.example.com' }
+
+test('uses base URL from config', async ({ request }) => {
+  // No need to repeat the full base URL
+  const response = await request.get('/products');
+  expect(response.status()).toBe(200);
+});
+\`\`\`
+
+---
+
+### 2. request.newContext() — Isolated API Sessions
+
+*💡 Analogy: \`request.newContext()\` is like opening a private browsing window for your API calls. It has its own cookie jar, its own headers, its own state. Two contexts running in parallel are completely unaware of each other — perfect for testing concurrent scenarios or different user sessions simultaneously.*
+
+**Creating an isolated API context:**
+\`\`\`typescript
+test('two concurrent API sessions stay independent', async ({ playwright }) => {
+  // Create two completely separate API contexts
+  const adminContext = await playwright.request.newContext({
+    baseURL: 'https://api.example.com',
+    extraHTTPHeaders: {
+      'Authorization': 'Bearer admin-token-here',
+    },
+  });
+
+  const viewerContext = await playwright.request.newContext({
+    baseURL: 'https://api.example.com',
+    extraHTTPHeaders: {
+      'Authorization': 'Bearer viewer-token-here',
+    },
+  });
+
+  // Admin can access admin endpoint
+  const adminResponse = await adminContext.get('/admin/users');
+  expect(adminResponse.status()).toBe(200);
+
+  // Viewer cannot access admin endpoint
+  const viewerResponse = await viewerContext.get('/admin/users');
+  expect(viewerResponse.status()).toBe(403);
+
+  // Always dispose contexts when done
+  await adminContext.dispose();
+  await viewerContext.dispose();
+});
+\`\`\`
+
+**Custom base URL per context:**
+\`\`\`typescript
+test('tests against staging API', async ({ playwright }) => {
+  const stagingApi = await playwright.request.newContext({
+    baseURL: 'https://api.staging.example.com',
+    ignoreHTTPSErrors: true, // staging may have self-signed certs
+  });
+
+  const response = await stagingApi.get('/health');
+  expect(response.status()).toBe(200);
+  await stagingApi.dispose();
+});
+\`\`\`
+
+---
+
+### 3. Asserting API Responses
+
+*💡 Analogy: Asserting an API response is like inspecting a parcel delivery: you check the status (was it delivered?), the label (correct address?), the contents (right items?), the packaging (correct box type?). Each aspect of the response is independently verifiable.*
+
+**The full response inspection toolkit:**
+\`\`\`typescript
+test('full response inspection', async ({ request }) => {
+  const response = await request.post('/api/orders', {
+    data: { productId: 'WIDGET-A', quantity: 2 },
+  });
+
+  // Status code
+  expect(response.status()).toBe(201);
+
+  // ok() — shorthand for status 200-299
+  expect(response.ok()).toBe(true);
+
+  // Status text
+  expect(response.statusText()).toBe('Created');
+
+  // Headers
+  const headers = response.headers();
+  expect(headers['content-type']).toContain('application/json');
+  expect(headers['location']).toMatch(/\/api\/orders\/\d+/);
+
+  // JSON body
+  const body = await response.json();
+  expect(body.id).toBeDefined();
+  expect(body.status).toBe('pending');
+  expect(body.total).toBe(19.98);
+
+  // Text body (for non-JSON responses)
+  // const text = await response.text();
+
+  // Raw buffer (for binary responses like file downloads)
+  // const buffer = await response.body();
+});
+\`\`\`
+
+**Asserting nested objects with toMatchObject:**
+\`\`\`typescript
+test('order response has correct structure', async ({ request }) => {
+  const response = await request.get('/api/orders/12345');
+  const order = await response.json();
+
+  expect(order).toMatchObject({
+    id: '12345',
+    status: expect.stringMatching(/pending|processing|shipped/),
+    customer: expect.objectContaining({
+      email: expect.any(String),
+    }),
+    items: expect.arrayContaining([
+      expect.objectContaining({
+        productId: expect.any(String),
+        quantity: expect.any(Number),
+      }),
+    ]),
+  });
+});
+\`\`\`
+
+**Asserting array responses:**
+\`\`\`typescript
+test('products list response validation', async ({ request }) => {
+  const response = await request.get('/api/products?category=electronics');
+  const data = await response.json();
+
+  // Count
+  expect(data.products).toHaveLength(10);
+
+  // Every item has required fields
+  for (const product of data.products) {
+    expect(product.id).toBeDefined();
+    expect(product.name).toBeTruthy();
+    expect(product.price).toBeGreaterThan(0);
+    expect(product.category).toBe('electronics');
+  }
+
+  // Pagination
+  expect(data.total).toBeGreaterThanOrEqual(10);
+  expect(data.page).toBe(1);
+});
+\`\`\`
+
+---
+
+### 4. The Hybrid Pattern: API Setup + UI Verify
+
+*💡 Analogy: Instead of setting up a dinner party by cooking everything from scratch during the test (slow, fragile), you order the food pre-prepared via the catering API (fast, reliable), then use the UI to check the table looks correct. The setup is instant; the verification is real.*
+
+This is the most impactful hybrid pattern for professional test suites. Use the API to create test data, then verify the UI renders it correctly.
+
+**Create user via API → verify in UI:**
+\`\`\`typescript
+test('newly created user appears in admin panel', async ({ request, page }) => {
+  // Step 1: Create a user via API — fast and reliable
+  const createResponse = await request.post('/api/users', {
+    headers: { 'Authorization': 'Bearer admin-token' },
+    data: {
+      name: 'New Test User',
+      email: 'new.test.user@example.com',
+      role: 'viewer',
+    },
+  });
+  expect(createResponse.status()).toBe(201);
+  const { id: userId } = await createResponse.json();
+
+  // Step 2: Navigate to the admin panel and verify the user appears in the UI
+  await page.goto('/admin/users');
+  await expect(page.getByText('new.test.user@example.com')).toBeVisible();
+  await expect(page.getByRole('row', { name: /New Test User/ })
+    .getByRole('badge')).toHaveText('Viewer');
+
+  // Cleanup via API — equally fast
+  await request.delete(\`/api/users/\${userId}\`, {
+    headers: { 'Authorization': 'Bearer admin-token' },
+  });
+});
+\`\`\`
+
+**Login via API → verify UI dashboard:**
+\`\`\`typescript
+test('logged-in user sees personalised dashboard', async ({ request, page, context }) => {
+  // Step 1: Get auth token via API login
+  const loginResponse = await request.post('/api/auth/login', {
+    data: { email: 'user@test.com', password: 'password123' },
+  });
+  const { token } = await loginResponse.json();
+
+  // Step 2: Inject the token into browser cookies/localStorage
+  await context.addCookies([{
+    name: 'auth-token',
+    value: token,
+    domain: 'localhost',
+    path: '/',
+  }]);
+
+  // Step 3: Navigate directly to the protected page — no login form needed
+  await page.goto('/dashboard');
+  await expect(page.getByText('Welcome back, Test User')).toBeVisible();
+  await expect(page.getByTestId('recent-orders')).toBeVisible();
+});
+\`\`\`
+
+---
+
+### 5. The Hybrid Pattern: UI Action + API Assert
+
+*💡 Analogy: After eating at the restaurant (UI action), you call the kitchen directly (API) to confirm the order was written down correctly — not just that the waiter seemed to understand you. This verifies the full stack: UI sent the right data, API received it, and it was stored correctly.*
+
+**Submit form in UI → verify API stored it correctly:**
+\`\`\`typescript
+test('contact form submission persists to database', async ({ page, request }) => {
+  await page.goto('/contact');
+
+  // Step 1: Fill and submit the form via UI
+  await page.getByLabel('Name').fill('Alice Smith');
+  await page.getByLabel('Email').fill('alice@test.com');
+  await page.getByLabel('Message').fill('I need help with my order');
+  await page.getByRole('button', { name: 'Send Message' }).click();
+
+  // Step 2: Assert the success message in UI
+  await expect(page.getByRole('alert')).toContainText('Message sent');
+
+  // Step 3: Verify the data was actually saved via API
+  const response = await request.get('/api/contact-submissions', {
+    headers: { 'Authorization': 'Bearer admin-token' },
+  });
+  const submissions = await response.json();
+  const ourSubmission = submissions.find(
+    (s: any) => s.email === 'alice@test.com'
+  );
+
+  expect(ourSubmission).toBeDefined();
+  expect(ourSubmission.name).toBe('Alice Smith');
+  expect(ourSubmission.message).toContain('help with my order');
+});
+\`\`\`
+
+**UI delete → API verify gone:**
+\`\`\`typescript
+test('deleting a product removes it from the API', async ({ page, request }) => {
+  // Create via API first
+  const createRes = await request.post('/api/products', {
+    headers: { 'Authorization': 'Bearer admin-token' },
+    data: { name: 'Delete Me', price: 9.99, sku: 'DEL-001' },
+  });
+  const { id } = await createRes.json();
+
+  // Delete via UI
+  await page.goto('/admin/products');
+  await page.getByRole('row', { name: /Delete Me/ })
+    .getByRole('button', { name: 'Delete' }).click();
+  await page.getByRole('button', { name: 'Confirm Delete' }).click();
+  await expect(page.getByText('Product deleted')).toBeVisible();
+
+  // Verify it's gone via API
+  const getRes = await request.get(\`/api/products/\${id}\`);
+  expect(getRes.status()).toBe(404);
+});
+\`\`\`
+
+---
+
+### 6. Auth via API — Skip the Login UI
+
+*💡 Analogy: You're a backstage crew member at a concert. Audience members queue for hours to get in through the front door (UI login). You have a staff entrance code (API auth) that gets you straight backstage in seconds. The QA engineer who skips the UI login for 200 tests saves hours per day.*
+
+This technique — getting a JWT or session token via API and injecting it — is the single biggest speed optimisation in most test suites.
+
+**Get JWT via POST → inject into localStorage:**
+\`\`\`typescript
+// fixtures/authenticated.ts — reusable auth setup
+import { test as base } from '@playwright/test';
+
+export const test = base.extend({
+  page: async ({ page, request }, use) => {
+    // Get token via API
+    const response = await request.post('/api/auth/login', {
+      data: { email: 'test@example.com', password: 'test-password' },
+    });
+    const { accessToken } = await response.json();
+
+    // Inject into localStorage before navigating
+    await page.addInitScript((token) => {
+      window.localStorage.setItem('auth_token', token);
+    }, accessToken);
+
+    await use(page);
+  },
+});
+\`\`\`
+
+**Using storageState — Playwright's recommended auth approach:**
+\`\`\`typescript
+// global-setup.ts — runs once before the entire test suite
+import { chromium, FullConfig } from '@playwright/test';
+
+async function globalSetup(config: FullConfig) {
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+
+  await page.goto('https://example.com/login');
+  await page.getByLabel('Email').fill('test@example.com');
+  await page.getByLabel('Password').fill('test-password');
+  await page.getByRole('button', { name: 'Sign In' }).click();
+  await page.waitForURL('/dashboard');
+
+  // Save auth state (cookies + localStorage) to a file
+  await page.context().storageState({ path: 'playwright/.auth/user.json' });
+  await browser.close();
+}
+
+export default globalSetup;
+\`\`\`
+
+\`\`\`typescript
+// playwright.config.ts — use the saved auth state
+export default defineConfig({
+  globalSetup: require.resolve('./global-setup'),
+  projects: [
+    {
+      name: 'authenticated',
+      use: {
+        storageState: 'playwright/.auth/user.json', // all tests start logged in
+      },
+    },
+  ],
+});
+\`\`\`
+
+**The speed gain:**
+\`\`\`typescript
+// ❌ Without auth shortcut — 200 tests × 3s login each = 600s of pure UI logins
+test('dashboard shows correct data', async ({ page }) => {
+  await page.goto('/login');           // navigation
+  await page.getByLabel('Email').fill('...');  // interaction
+  await page.getByLabel('Password').fill('...'); // interaction
+  await page.getByRole('button').click(); // click + wait for redirect
+  // ≈ 3-5 seconds of setup before the actual test begins
+});
+
+// ✅ With storageState — auth is injected instantly, test starts immediately
+test('dashboard shows correct data', async ({ page }) => {
+  await page.goto('/dashboard'); // already logged in from storageState
+  // ≈ 0.5 seconds — just one navigation
+});
+// 200 tests × 2.5s saved = 500 seconds (8+ minutes) saved per run
+\`\`\`
+
+---
+
+### 7. Playwright API vs Postman/Newman
+
+*💡 Analogy: Playwright's API client is like a Swiss Army knife that happens to include a screwdriver. Postman is a professional precision screwdriver set. For most tasks the Swiss Army knife is enough and convenient. For tasks requiring a full suite of precision screwdrivers, Postman is the right tool. A senior QA engineer carries both.*
+
+**Side-by-side comparison:**
+
+| Feature | Playwright request | Postman / Newman |
+|---------|--------------------|------------------|
+| UI + API in one test | ✅ Native | ❌ Not possible |
+| Shared browser context/cookies | ✅ Yes | ❌ No |
+| Language-aware assertions | ✅ Jest-style expect | ⚠️ Limited (test scripts) |
+| API-only testing | ✅ Works well | ✅ Excellent |
+| Collections & documentation | ❌ No | ✅ First-class |
+| Contract testing (schemas) | ⚠️ Manual | ✅ With Postman/Pact |
+| Team sharing & collaboration | ⚠️ Via git | ✅ Postman cloud |
+| CI integration | ✅ Via npx playwright | ✅ Via newman CLI |
+| Learning curve for non-devs | ❌ Requires TypeScript | ✅ GUI is accessible |
+
+**When to use Playwright API testing:**
+\`\`\`typescript
+// ✅ Use Playwright when: the API test is part of a UI flow
+test('checkout flow — UI form + API verification', async ({ page, request }) => {
+  // UI part: fill checkout form
+  await page.goto('/checkout');
+  await page.getByLabel('Card Number').fill('4242424242424242');
+  await page.getByRole('button', { name: 'Pay' }).click();
+
+  // API part: verify the order was created correctly
+  const response = await request.get('/api/orders/latest', {
+    headers: { 'Authorization': \`Bearer \${process.env.TEST_TOKEN}\` },
+  });
+  const order = await response.json();
+  expect(order.status).toBe('payment_complete');
+});
+
+// ✅ Use Playwright when: you need API calls for test data setup/teardown
+// ✅ Use Playwright when: you want one CI pipeline for both UI and API tests
+// ✅ Use Playwright when: your team already knows TypeScript
+\`\`\`
+
+**When to use Postman/Newman:**
+\`\`\`
+✅ Use Postman when: you need a shared, documented API collection for the team
+✅ Use Postman when: non-technical stakeholders need to run/view API tests
+✅ Use Postman when: you need contract testing (schema validation)
+✅ Use Postman when: you have a large existing Postman collection
+✅ Use Postman when: API testing is a separate workstream from UI testing
+\`\`\`
+
+**The pragmatic strategy:**
+\`\`\`
+Most professional QA teams use BOTH:
+  • Postman/Newman: dedicated API contract testing, living API documentation
+  • Playwright: hybrid tests where API and UI interact, data setup/teardown
+The key insight: use each tool for what it does best.
+Do NOT try to replace a complete Postman collection with Playwright just because
+you're using Playwright for UI tests.
+\`\`\`
+
+> **QA Principle:** The best test suite is the one your whole team can maintain. If half your team uses Postman daily and finds it effective, keep it. Add Playwright API calls where the UI+API hybrid pattern saves meaningful time and improves reliability — don't migrate for migration's sake.
+        `
+      },
+
       {
         id: 'expert',
         title: 'Expert: Advanced Playwright',
