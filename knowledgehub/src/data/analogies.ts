@@ -11983,6 +11983,1962 @@ function MinLength(min: number) {
         }
         value = newValue;
       },
+      {
+        id: 'ts-advanced-conditional-types',
+        title: 'Advanced Conditional Types',
+        analogy: "A conditional type is like a smart customs officer at an airport. A junior officer asks 'Is this a liquid?' and stamps YES or NO. An expert officer (advanced conditional types) can ask: 'If this is a container, what's inside it?', then open it and inspect the contents (infer), apply the same logic to every item in a group (distributive), and recursively inspect nested containers. The expert officer handles cases the junior officer can't even conceive of.",
+        lessonMarkdown: \`
+### 1. Quick Recap — Why Conditional Types Exist
+
+*💡 Analogy: A conditional type is a compile-time if/else. Instead of choosing a value at runtime, TypeScript chooses a TYPE based on what another type looks like. "If T is an array, give me the element type; otherwise give me T unchanged."*
+
+Conditional types let you write types that **depend on other types** — the type system makes decisions at compile time rather than you hardcoding every variant.
+
+\`\`\`typescript
+// Basic form: T extends U ? X : Y
+type IsString<T> = T extends string ? 'yes' : 'no';
+
+type A = IsString<string>;   // 'yes'
+type B = IsString<number>;   // 'no'
+type C = IsString<'hello'>;  // 'yes' — literal string extends string
+\`\`\`
+
+The power comes from combining this with **unions**, **infer**, and **recursion**.
+
+---
+
+### 2. Distributive Conditional Types — The Most Important Concept
+
+*💡 Analogy: You're a teacher grading exams. You could grade each student individually (one by one), or you could say "anyone who passed gets an A, anyone who failed gets a B" and apply that rule to the whole class at once. Distributive conditional types apply a rule to every member of a union automatically.*
+
+When \`T\` is a **naked type parameter** (not wrapped), a conditional type **distributes over unions** — it runs separately for each member:
+
+\`\`\`typescript
+type IsString<T> = T extends string ? 'yes' : 'no';
+
+// T is naked — distributes over the union:
+type Result = IsString<string | number | boolean>;
+// Same as: IsString<string> | IsString<number> | IsString<boolean>
+// Same as: 'yes'            | 'no'             | 'no'
+// Result: 'yes' | 'no'
+\`\`\`
+
+**A practical use — extracting only the string members of a union:**
+\`\`\`typescript
+type StringsOnly<T> = T extends string ? T : never;
+
+type Mixed = string | number | boolean | null;
+type OnlyStrings = StringsOnly<Mixed>;
+// Distributes: string | never | never | never
+// never is filtered out automatically
+// Result: string ✅
+\`\`\`
+
+**More powerful — extracting specific shapes from a union:**
+\`\`\`typescript
+// Extract types that are objects (not primitives)
+type ObjectsOnly<T> = T extends object ? T : never;
+
+type ApiResponse = string | number | { data: unknown } | null;
+type JustObjects = ObjectsOnly<ApiResponse>;
+// Result: { data: unknown } ✅
+\`\`\`
+
+---
+
+### 3. Preventing Distribution — Wrap With Square Brackets
+
+*💡 Analogy: Normally the rule applies to each student individually. Wrapping in brackets is like putting all the students in a bus — now the rule applies to the WHOLE BUS, not each person. "Is this bus full of students?" treats them as a collective.*
+
+Sometimes you DON'T want distribution — you want to treat the union as a single unit:
+
+\`\`\`typescript
+// ❌ Distributed — runs on each union member
+type IsNever_Distributed<T> = T extends never ? true : false;
+type A = IsNever_Distributed<never>;  // never (distributes over empty union)
+
+// ✅ Non-distributed — wrap T and never in []
+type IsNever<T> = [T] extends [never] ? true : false;
+type B = IsNever<never>;  // true ✅
+type C = IsNever<string>; // false ✅
+\`\`\`
+
+**When does this matter in practice?**
+\`\`\`typescript
+// Checking if a type is exactly 'any'
+type IsAny<T> = 0 extends (1 & T) ? true : false;
+
+// Checking if two types are equal (not just compatible)
+type Equal<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+
+type E1 = Equal<string, string>;        // true
+type E2 = Equal<string, string | number>; // false ✅ (without [], E2 would be true for string case)
+\`\`\`
+
+---
+
+### 4. The \`infer\` Keyword — Extracting Types From Inside Other Types
+
+*💡 Analogy: A detective examining a crime scene doesn't just say "there was a person here." They infer specifics: "A left-handed person who is 6 feet tall was here, based on the evidence." \`infer\` is TypeScript's detective — it extracts a type from inside a larger type based on its structure.*
+
+\`infer\` appears INSIDE a conditional type's extends clause and lets you **name and capture a type** you don't know in advance:
+
+\`\`\`typescript
+// Extract the return type of any function
+type ReturnType<T> = T extends (...args: any[]) => infer R ? R : never;
+
+type A = ReturnType<() => string>;           // string
+type B = ReturnType<(x: number) => boolean>; // boolean
+type C = ReturnType<string>;                 // never (not a function)
+
+// This is exactly how TypeScript's built-in ReturnType<T> works!
+\`\`\`
+
+**Extracting from different positions:**
+\`\`\`typescript
+// Extract parameter types
+type Params<T> = T extends (...args: infer P) => any ? P : never;
+type P = Params<(a: string, b: number) => void>; // [string, number]
+
+// Extract the first argument only
+type FirstParam<T> = T extends (first: infer F, ...rest: any[]) => any ? F : never;
+type F = FirstParam<(id: string, options: object) => void>; // string
+
+// Extract the element type from an array
+type Unwrap<T> = T extends Array<infer E> ? E : T;
+type U1 = Unwrap<string[]>;   // string
+type U2 = Unwrap<number>;     // number (not an array — returns as-is)
+
+// Extract the resolved type from a Promise
+type Awaited_<T> = T extends Promise<infer R> ? R : T;
+type AW = Awaited_<Promise<string>>;  // string
+// TypeScript has built-in Awaited<T> that does this (and handles nested Promises)
+\`\`\`
+
+**QA example — typing API response helpers:**
+\`\`\`typescript
+// Automatically extract the data type from an API wrapper
+type ApiData<T> = T extends { data: infer D } ? D : never;
+
+type UserResponse = { data: { id: string; name: string }; status: number };
+type User = ApiData<UserResponse>;
+// User = { id: string; name: string } ✅
+// Now you can type your test assertions without duplicating the shape
+
+function assertUser(response: UserResponse): User {
+  return response.data;  // TypeScript knows the exact type ✅
+}
+\`\`\`
+
+---
+
+### 5. Recursive Conditional Types — Types That Repeat Themselves
+
+*💡 Analogy: Russian nesting dolls. You open the outer doll and look inside — if there's another doll, you open that too. You keep going until you reach the innermost one. Recursive conditional types do the same: they apply a transformation, and if the result still matches the condition, they apply it again.*
+
+TypeScript supports types that reference themselves, enabling deep transformations:
+
+\`\`\`typescript
+// DeepReadonly — makes every nested property readonly
+type DeepReadonly<T> = T extends object
+  ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
+  : T;
+
+type Config = {
+  server: {
+    host: string;
+    port: number;
+    ssl: { enabled: boolean; cert: string };
+  };
+  retries: number;
+};
+
+type FrozenConfig = DeepReadonly<Config>;
+// FrozenConfig.server.ssl.enabled is readonly ✅
+// FrozenConfig.server.ssl.cert    is readonly ✅
+
+// ❌ Cannot reassign anything in a FrozenConfig at any depth
+\`\`\`
+
+**Flatten nested arrays:**
+\`\`\`typescript
+// Flatten<T[][]> → T
+type Flatten<T> = T extends Array<infer E> ? Flatten<E> : T;
+
+type F1 = Flatten<string[]>;            // string
+type F2 = Flatten<string[][]>;          // string
+type F3 = Flatten<string[][][]>;        // string
+type F4 = Flatten<string>;              // string (not an array — returns as-is)
+\`\`\`
+
+**Deep required (remove all optional markers):**
+\`\`\`typescript
+type DeepRequired<T> = T extends object
+  ? { [K in keyof T]-?: DeepRequired<T[K]> }  // -? removes optional
+  : T;
+
+type PartialConfig = { timeout?: number; headers?: { auth?: string } };
+type FullConfig = DeepRequired<PartialConfig>;
+// FullConfig.headers.auth is required — no more optional ✅
+\`\`\`
+
+---
+
+### 6. Using \`never\` to Filter — The Expert's Swiss Army Knife
+
+*💡 Analogy: \`never\` is the recycling bin of the type system. When a conditional type evaluates to \`never\`, TypeScript silently removes it from unions — like items disappearing into the bin without a trace.*
+
+\`never\` in a union is automatically removed. This makes it perfect for filtering:
+
+\`\`\`typescript
+// Remove null and undefined from all properties of an object type
+type NonNullableProperties<T> = {
+  [K in keyof T]: NonNullable<T[K]>
+};
+
+// Extract only function keys from a type
+type FunctionKeys<T> = {
+  [K in keyof T]: T[K] extends Function ? K : never
+}[keyof T];
+
+type MyClass = {
+  name: string;
+  run(): void;
+  id: number;
+  validate(): boolean;
+};
+
+type Methods = FunctionKeys<MyClass>;  // 'run' | 'validate' ✅
+type NonMethods = Exclude<keyof MyClass, Methods>; // 'name' | 'id' ✅
+\`\`\`
+
+**QA example — extracting only async methods:**
+\`\`\`typescript
+type AsyncMethods<T> = {
+  [K in keyof T]: T[K] extends (...args: any[]) => Promise<any> ? K : never
+}[keyof T];
+
+class PageObject {
+  title = 'Login';
+  async navigate(): Promise<void> {}
+  async fillForm(data: object): Promise<void> {}
+  getTitle(): string { return this.title; }
+}
+
+type CanAwait = AsyncMethods<PageObject>;
+// 'navigate' | 'fillForm' ✅  (getTitle is excluded — returns string, not Promise)
+\`\`\`
+
+---
+
+### 7. All Together — A Complete QA Type Utility
+
+\`\`\`typescript
+// Takes any function type and returns a version that adds logging
+// Uses: infer (extract param types and return type), conditional (check it's a function)
+type Logged<T extends (...args: any[]) => any> =
+  T extends (...args: infer P) => infer R
+    ? (...args: P) => R
+    : never;
+
+// Extract only the 'test' methods (methods matching a naming pattern is not possible,
+// but we CAN extract methods by return type or param signature)
+
+// Deep NonNullable for test fixture types
+type DeepNonNullable<T> = T extends null | undefined
+  ? never
+  : T extends object
+    ? { [K in keyof T]: DeepNonNullable<T[K]> }
+    : T;
+
+type RawFixture = {
+  user: { id: string | null; email: string | undefined };
+  token: string | null;
+};
+
+type CleanFixture = DeepNonNullable<RawFixture>;
+// CleanFixture.user.id    = string ✅  (null removed)
+// CleanFixture.user.email = string ✅  (undefined removed)
+// CleanFixture.token      = string ✅
+\`\`\`
+        \`
+      },
+
+      {
+        id: 'ts-advanced-mapped-types',
+        title: 'Advanced Mapped Types',
+        analogy: "A basic mapped type is a photocopier — it copies every key and transforms the value. An advanced mapped type is a professional editor: it can rename pages while copying, tear out chapters that don't belong, combine two documents into one, and even decide what to copy based on the content of each page. The advanced editor has full creative control over what the final document looks like.",
+        lessonMarkdown: \`
+### 1. Quick Recap — Mapped Types Basics
+
+*💡 Analogy: A mapped type iterates over the keys of a type and does something with each one — like a for-loop for types. The basic form copies every key and transforms the value.*
+
+\`\`\`typescript
+// Basic form: { [K in keyof T]: transformation }
+type Readonly_<T> = { readonly [K in keyof T]: T[K] };
+type Partial_<T> = { [K in keyof T]?: T[K] };
+type Stringify<T> = { [K in keyof T]: string };
+
+type User = { id: number; name: string; active: boolean };
+type PartialUser = Partial_<User>;
+// { id?: number; name?: string; active?: boolean }
+\`\`\`
+
+These built-in utilities are all mapped types under the hood. This module goes further.
+
+---
+
+### 2. Key Remapping With \`as\` — Rename Keys While Mapping
+
+*💡 Analogy: You're translating a form from English to French. You don't just change the content of each field — you also rename the labels. \`as\` lets you transform key names at the same time as transforming values.*
+
+The \`as\` clause lets you produce a new key name for each mapping:
+
+\`\`\`typescript
+// Rename every key to its getter equivalent
+type Getters<T> = {
+  [K in keyof T as \\\`get\\\${Capitalize<string & K>}\\\`]: () => T[K]
+};
+
+type User = { id: number; name: string; active: boolean };
+type UserGetters = Getters<User>;
+// {
+//   getId:     () => number;
+//   getName:   () => string;
+//   getActive: () => boolean;
+// }
+\`\`\`
+
+**Building event handler types automatically:**
+\`\`\`typescript
+type EventHandlers<T> = {
+  [K in keyof T as \\\`on\\\${Capitalize<string & K>}Change\\\`]: (value: T[K]) => void
+};
+
+type FormFields = { username: string; password: string; rememberMe: boolean };
+type FormEvents = EventHandlers<FormFields>;
+// {
+//   onUsernameChange:   (value: string) => void;
+//   onPasswordChange:   (value: string) => void;
+//   onRememberMeChange: (value: boolean) => void;
+// }
+\`\`\`
+
+---
+
+### 3. Filtering Keys With \`never\` — Remove Keys From a Mapped Type
+
+*💡 Analogy: When copying a document you use a black marker on the pages you don't want. Producing \`never\` in the \`as\` clause acts as that marker — those keys disappear completely from the output type.*
+
+Mapping a key to \`never\` in the \`as\` clause removes it:
+
+\`\`\`typescript
+// Keep only keys whose values are strings
+type PickStrings<T> = {
+  [K in keyof T as T[K] extends string ? K : never]: T[K]
+};
+
+type Mixed = { id: number; name: string; active: boolean; email: string };
+type StringFields = PickStrings<Mixed>;
+// { name: string; email: string } ✅
+
+// Keep only optional keys
+type OptionalKeys<T> = {
+  [K in keyof T as {} extends Pick<T, K> ? K : never]: T[K]
+};
+\`\`\`
+
+**The general PickByValue utility type:**
+\`\`\`typescript
+// Pick all keys whose value extends a given type
+type PickByValue<T, V> = {
+  [K in keyof T as T[K] extends V ? K : never]: T[K]
+};
+
+// The inverse — omit all keys matching a value type
+type OmitByValue<T, V> = {
+  [K in keyof T as T[K] extends V ? never : K]: T[K]
+};
+
+type ApiConfig = {
+  baseUrl: string;
+  timeout: number;
+  retries: number;
+  debug: boolean;
+  apiKey: string;
+};
+
+type NumericConfig  = PickByValue<ApiConfig, number>;  // { timeout: number; retries: number }
+type StringConfig   = PickByValue<ApiConfig, string>;  // { baseUrl: string; apiKey: string }
+type NonBoolConfig  = OmitByValue<ApiConfig, boolean>; // all except debug ✅
+\`\`\`
+
+---
+
+### 4. Combining Mapped + Conditional — The Real Power Move
+
+*💡 Analogy: A mapped type iterates over keys like a train stopping at each station. A conditional type at each stop decides what happens: "At this station, transform the cargo one way; at that station, transform it another way." Together they produce types that would take dozens of overloads to express manually.*
+
+\`\`\`typescript
+// Make every property required IF it's a string, optional if it's a number
+type StringRequired<T> = {
+  [K in keyof T]: T[K] extends string ? T[K] : T[K] | undefined
+};
+
+// Deeply transform all function properties to return void instead
+type VoidMethods<T> = {
+  [K in keyof T]: T[K] extends (...args: infer P) => any
+    ? (...args: P) => void
+    : T[K]
+};
+
+class ReportService {
+  title = 'My Report';
+  generate(): string { return 'report data'; }
+  save(path: string): boolean { return true; }
+}
+
+type VoidReportService = VoidMethods<ReportService>;
+// {
+//   title: string;
+//   generate: () => void;     (return type changed to void)
+//   save: (path: string) => void; (return type changed to void)
+// }
+\`\`\`
+
+**Building a Spy type for test mocking:**
+\`\`\`typescript
+// Replace every method with a spy that records calls
+type SpyOf<T> = {
+  [K in keyof T]: T[K] extends (...args: infer P) => infer R
+    ? {
+        (...args: P): R;
+        calls: P[];
+        returnValue: R;
+      }
+    : T[K]
+};
+\`\`\`
+
+---
+
+### 5. Modifier Control — Adding and Removing readonly and ?
+
+*💡 Analogy: Modifiers are like locks on a door. You can add a lock (+), remove a lock (-), or leave it as-is. TypeScript lets you control these locks on every key of a mapped type.*
+
+\`\`\`typescript
+// +? adds optional, -? removes optional (makes required)
+// +readonly adds readonly, -readonly removes readonly
+
+type Mutable<T> = {
+  -readonly [K in keyof T]: T[K]  // remove all readonly
+};
+
+type Required_<T> = {
+  [K in keyof T]-?: T[K]  // remove all optional
+};
+
+type FullyLocked<T> = {
+  +readonly [K in keyof T]+?: T[K]  // add readonly AND optional
+};
+
+// Frozen test fixture — all fields readonly and optional
+type TestFixture<T> = { readonly [K in keyof T]?: T[K] };
+
+type UserFixture = TestFixture<{ id: string; name: string; email: string }>;
+// { readonly id?: string; readonly name?: string; readonly email?: string }
+\`\`\`
+
+---
+
+### 6. Building DeepReadonly, DeepPartial, DeepMutable
+
+\`\`\`typescript
+// DeepReadonly — recursively makes all nested properties readonly
+type DeepReadonly<T> = {
+  readonly [K in keyof T]: T[K] extends object
+    ? T[K] extends Function
+      ? T[K]                        // don't recurse into functions
+      : DeepReadonly<T[K]>          // recurse into nested objects
+    : T[K];
+};
+
+// DeepPartial — recursively makes all nested properties optional
+type DeepPartial<T> = {
+  [K in keyof T]?: T[K] extends object
+    ? T[K] extends Function
+      ? T[K]
+      : DeepPartial<T[K]>
+    : T[K];
+};
+
+// Usage in QA — partial test overrides
+type TestOverrides<T> = DeepPartial<T>;
+
+type AppConfig = {
+  server: { host: string; port: number };
+  auth: { secret: string; expiry: number };
+};
+
+function withOverrides(base: AppConfig, overrides: TestOverrides<AppConfig>): AppConfig {
+  return { ...base, ...overrides,
+    server: { ...base.server, ...overrides.server },
+    auth:   { ...base.auth,   ...overrides.auth   },
+  };
+}
+
+// In tests — only specify what differs from the base config
+const testConfig = withOverrides(defaultConfig, { server: { port: 4000 } });
+\`\`\`
+
+---
+
+### 7. Real-World QA Example — Auto-Typed Test Data Builder
+
+\`\`\`typescript
+// Generate a builder type from any model — every field becomes a setter method
+type Builder<T> = {
+  [K in keyof T as \\\`set\\\${Capitalize<string & K>}\\\`]: (value: T[K]) => Builder<T>
+} & {
+  build(): T;
+};
+
+// The TypeScript type system generates the entire builder API automatically!
+type User = { id: string; name: string; email: string; role: 'admin' | 'user' };
+type UserBuilder = Builder<User>;
+// UserBuilder has:
+//   setId(value: string): UserBuilder
+//   setName(value: string): UserBuilder
+//   setEmail(value: string): UserBuilder
+//   setRole(value: 'admin' | 'user'): UserBuilder
+//   build(): User
+
+// Any new field added to User automatically appears in UserBuilder ✅
+// No manual builder maintenance needed ✅
+\`\`\`
+        \`
+      },
+
+      {
+        id: 'ts-variadic-tuples',
+        title: 'Variadic Tuple Types',
+        analogy: "A fixed tuple is a crate with labelled compartments — slot 1 holds a spanner, slot 2 holds a hammer. A variadic tuple is a professional tool belt: you can attach any number of pouches, each typed to hold a specific tool, and the belt remembers the exact type in every pouch no matter how many you attach. You can spread one tool belt into another and the types stay precise throughout.",
+        lessonMarkdown: \`
+### 1. What Are Tuple Types (Recap)?
+
+*💡 Analogy: A tuple is an array where the position matters — slot 0 is always a string (name), slot 1 is always a number (age). TypeScript tracks the exact type at every index, unlike a plain array where all elements share one type.*
+
+\`\`\`typescript
+// Array: all elements share one type
+const arr: string[] = ['a', 'b', 'c'];
+
+// Tuple: each position has its own type
+const user: [string, number, boolean] = ['Alice', 30, true];
+const name: string  = user[0];  // ✅ TypeScript knows index 0 is string
+const age:  number  = user[1];  // ✅ TypeScript knows index 1 is number
+
+// Named tuples — even more readable
+type HttpResult = [status: number, body: string, ok: boolean];
+\`\`\`
+
+---
+
+### 2. Variadic Tuple Syntax — \`...T extends any[]\`
+
+*💡 Analogy: A variadic tuple is a tuple with an expandable section. Think of a train: you have a fixed engine car at the front (first element), any number of passenger cars in the middle (the variadic part \`...T\`), and a fixed caboose at the end (last element). The types of all cars are tracked precisely.*
+
+The \`...\` spread operator inside a tuple type captures a variable-length typed section:
+
+\`\`\`typescript
+// A function that prepends a label to any tuple
+type Prepend<T extends unknown[], Label> = [Label, ...T];
+
+type Labeled = Prepend<[number, boolean], string>;
+// [string, number, boolean]
+
+// A function that appends a timestamp to any tuple
+type WithTimestamp<T extends unknown[]> = [...T, Date];
+
+type Event = WithTimestamp<[string, number]>;
+// [string, number, Date]
+\`\`\`
+
+**The key insight** — TypeScript tracks the full expanded type:
+\`\`\`typescript
+type First = Event[0];  // string
+type Second = Event[1]; // number
+type Third = Event[2];  // Date — TypeScript knows this precisely!
+\`\`\`
+
+---
+
+### 3. Spreading Tuples in Function Parameters
+
+*💡 Analogy: Previously, if you wanted a function that accepted "any number of typed arguments in a specific order", you needed to write separate overloads for each length. Variadic tuples let you write ONE generic function that handles all lengths, with full type safety.*
+
+Before variadic tuples, multiple overloads were needed:
+\`\`\`typescript
+// ❌ Old way — overloads for each arity
+function concat(a: string): string;
+function concat(a: string, b: string): string;
+function concat(a: string, b: string, c: string): string;
+// ... this doesn't scale
+\`\`\`
+
+With variadic tuples, one signature handles everything:
+\`\`\`typescript
+// ✅ New way — one generic signature
+function concat<T extends string[]>(...parts: T): string {
+  return parts.join('');
+}
+
+// Works for any number of string arguments
+concat('a');              // ✅
+concat('a', 'b');         // ✅
+concat('a', 'b', 'c');    // ✅
+concat('a', 1);           // ❌ TypeScript error — 1 is not a string
+\`\`\`
+
+**Forwarding arguments with full type preservation:**
+\`\`\`typescript
+// Wrap a function — preserve its exact parameter and return types
+function logged<A extends unknown[], R>(
+  fn: (...args: A) => R,
+  label: string
+): (...args: A) => R {
+  return (...args: A): R => {
+    console.log(\\\`[\\\${label}] called\\\`);
+    const result = fn(...args);
+    console.log(\\\`[\\\${label}] returned\\\`, result);
+    return result;
+  };
+}
+
+function add(a: number, b: number): number { return a + b; }
+const loggedAdd = logged(add, 'add');
+loggedAdd(1, 2);       // ✅ TypeScript knows (number, number) => number
+loggedAdd('a', 'b');   // ❌ TypeScript error — wrong argument types
+\`\`\`
+
+---
+
+### 4. Tuple Manipulation Types — Head, Tail, Last
+
+*💡 Analogy: These are your tuple toolkit. Head grabs the first item off the production line. Tail removes the first item and gives you everything else. Last grabs the final item. Together they let you decompose and reconstruct typed tuples.*
+
+\`\`\`typescript
+// Extract the first element type
+type Head<T extends unknown[]> = T extends [infer H, ...unknown[]] ? H : never;
+
+// Extract everything except the first element
+type Tail<T extends unknown[]> = T extends [unknown, ...infer T_] ? T_ : never;
+
+// Extract the last element type
+type Last<T extends unknown[]> = T extends [...unknown[], infer L] ? L : never;
+
+// Extract everything except the last element
+type Init<T extends unknown[]> = T extends [...infer I, unknown] ? I : never;
+
+// Testing them:
+type T = [string, number, boolean, Date];
+
+type H = Head<T>;  // string
+type Ta = Tail<T>; // [number, boolean, Date]
+type L = Last<T>;  // Date
+type I = Init<T>;  // [string, number, boolean]
+\`\`\`
+
+**Concatenating two tuples at the type level:**
+\`\`\`typescript
+type Concat<A extends unknown[], B extends unknown[]> = [...A, ...B];
+
+type C = Concat<[string, number], [boolean, Date]>;
+// [string, number, boolean, Date] ✅
+\`\`\`
+
+---
+
+### 5. Type-Safe Pipe Function — The Classic Variadic Use Case
+
+*💡 Analogy: A pipe function takes a value and passes it through a series of transformations, like water flowing through pipes. Each pipe section changes the water somehow. With variadic tuples, TypeScript tracks the exact type of the water at every pipe junction.*
+
+\`\`\`typescript
+// Two-function pipe with full type inference
+function pipe<A, B, C>(
+  value: A,
+  fn1: (a: A) => B,
+  fn2: (b: B) => C
+): C {
+  return fn2(fn1(value));
+}
+
+const result = pipe(
+  '42',
+  (s) => parseInt(s),    // string -> number
+  (n) => n * 2           // number -> number
+);
+// TypeScript infers: result is number ✅
+
+// ❌ TypeScript catches mismatched pipe connections:
+pipe(
+  '42',
+  (s) => parseInt(s),
+  (s) => s.toUpperCase() // ❌ Error: number doesn't have toUpperCase (string method)
+);
+\`\`\`
+
+---
+
+### 6. Real-World QA Example — Typed Test Step Pipeline
+
+\`\`\`typescript
+// A typed test step runner that chains steps with type safety
+type Step<Input, Output> = {
+  name: string;
+  run: (input: Input) => Promise<Output>;
+};
+
+// Two-step typed pipeline
+async function runSteps<A, B, C>(
+  input: A,
+  step1: Step<A, B>,
+  step2: Step<B, C>
+): Promise<C> {
+  console.log(\\\`Running: \\\${step1.name}\\\`);
+  const mid = await step1.run(input);
+  console.log(\\\`Running: \\\${step2.name}\\\`);
+  return step2.run(mid);
+}
+
+// Usage — TypeScript validates each step's output matches the next step's input
+const loginStep: Step<{ email: string; password: string }, { token: string }> = {
+  name: 'Login',
+  run: async (creds) => ({ token: 'abc123' }),
+};
+
+const fetchProfileStep: Step<{ token: string }, { name: string; role: string }> = {
+  name: 'Fetch Profile',
+  run: async ({ token }) => ({ name: 'Alice', role: 'admin' }),
+};
+
+const profile = await runSteps(
+  { email: 'alice@test.com', password: 'pass' },
+  loginStep,
+  fetchProfileStep
+);
+// profile: { name: string; role: string } — TypeScript knows the exact type ✅
+
+// ❌ Swapping steps causes a compile error — types don't align:
+// runSteps({ email: '...', password: '...' }, fetchProfileStep, loginStep);
+\`\`\`
+
+---
+
+### 7. Zip — Pairing Two Tuples Element-by-Element
+
+\`\`\`typescript
+// Zip two tuples together: [A, B, C] + [D, E, F] => [[A,D], [B,E], [C,F]]
+type Zip<T extends unknown[], U extends unknown[]> =
+  T extends [infer TH, ...infer TT]
+    ? U extends [infer UH, ...infer UT]
+      ? [[TH, UH], ...Zip<TT, UT>]
+      : []
+    : [];
+
+type Fields  = ['id', 'name', 'email'];
+type Types   = [number, string, string];
+type Schema  = Zip<Fields, Types>;
+// [['id', number], ['name', string], ['email', string]]
+
+// Useful for building typed column-to-type mappings in database test helpers
+\`\`\`
+        \`
+      },
+
+      {
+        id: 'ts-branded-nominal-types',
+        title: 'Branded & Nominal Types',
+        analogy: "TypeScript's structural typing is like a costume party where anyone wearing the right outfit gets in — a string is a string, regardless of whether it's a UserId or an OrderId. Branded types are like VIP backstage passes with holograms: the string still looks like a string, but it carries an invisible stamp that only a real UserId has, and the type system checks that hologram at every door.",
+        lessonMarkdown: \`
+### 1. The Problem — Structural Typing's Footgun
+
+*💡 Analogy: Two identical-looking vials in a lab — one is saline, one is acid. Both are clear liquids. Without a label system, you can swap them accidentally with no warning. In TypeScript, a \`UserId\` and an \`OrderId\` are both strings. Nothing stops you from passing one where the other is expected.*
+
+TypeScript uses **structural typing**: a type is compatible if it has the right shape, regardless of what you named it.
+
+\`\`\`typescript
+type UserId  = string;
+type OrderId = string;
+
+function cancelOrder(orderId: OrderId): void { /* ... */ }
+
+const userId: UserId = 'user-abc-123';
+cancelOrder(userId);  // ✅ TypeScript is FINE with this — both are just string
+// 🔥 Runtime bug: cancelled the wrong thing!
+\`\`\`
+
+This is a silent, hard-to-catch bug. TypeScript's structural system sees two identical string types and allows the substitution. Branded types add a **distinguishing mark** that prevents this.
+
+---
+
+### 2. The Branding Technique — Adding an Invisible Mark
+
+*💡 Analogy: You brand cattle by burning a small mark into the hide. The cattle still look like cattle, but each ranch's cattle have a unique brand that can't be faked. Branding a TypeScript primitive adds a unique "mark" to the type that the compiler checks — the runtime value is still just a string.*
+
+\`\`\`typescript
+// The brand is a phantom property — it exists only at the type level
+type UserId  = string & { readonly __brand: 'UserId' };
+type OrderId = string & { readonly __brand: 'OrderId' };
+
+function cancelOrder(orderId: OrderId): void { /* ... */ }
+
+const userId  = 'user-abc-123' as UserId;
+const orderId = 'order-xyz-456' as OrderId;
+
+cancelOrder(orderId);  // ✅ Correct type — works
+cancelOrder(userId);   // ❌ TypeScript error: 'UserId' is not assignable to 'OrderId'
+cancelOrder('plain-string'); // ❌ TypeScript error: plain string is not branded
+\`\`\`
+
+The \`__brand\` property never exists at runtime — it's a phantom type trick. The actual value is still a plain string. You're paying zero runtime cost for compile-time safety.
+
+---
+
+### 3. Smart Constructors — The Professional Pattern
+
+*💡 Analogy: A casino doesn't accept raw cash at the tables — you exchange it for chips at the cage. The cage validates your cash and hands you chips that are only valid inside the casino. Smart constructors are the cage: you pass in a raw value, they validate it, and return a branded type that's accepted everywhere the brand is expected.*
+
+Casting with \`as\` bypasses validation. Smart constructors validate BEFORE branding:
+
+\`\`\`typescript
+// Define the brand type
+type EmailAddress = string & { readonly __brand: 'EmailAddress' };
+type PositiveInt  = number & { readonly __brand: 'PositiveInt' };
+
+// Smart constructors — validate THEN brand
+function toEmail(raw: string): EmailAddress {
+  if (!raw.includes('@') || !raw.includes('.')) {
+    throw new Error(\\\`Invalid email: \\\${raw}\\\`);
+  }
+  return raw as EmailAddress;
+}
+
+function toPositiveInt(raw: number): PositiveInt {
+  if (!Number.isInteger(raw) || raw <= 0) {
+    throw new Error(\\\`Expected positive integer, got \\\${raw}\\\`);
+  }
+  return raw as PositiveInt;
+}
+
+// Now usage is safe AND validated
+const email    = toEmail('alice@example.com');  // EmailAddress ✅
+const badEmail = toEmail('not-an-email');        // ❌ throws at runtime
+const timeout  = toPositiveInt(5000);            // PositiveInt ✅
+const badTime  = toPositiveInt(-1);              // ❌ throws at runtime
+
+function sendEmail(to: EmailAddress, subject: string): void { /* ... */ }
+sendEmail(email, 'Hello');          // ✅
+sendEmail('raw@string.com', 'Hi');  // ❌ TypeScript error — not branded
+\`\`\`
+
+---
+
+### 4. A Complete Branding Library for QA
+
+\`\`\`typescript
+// A reusable brand utility
+type Brand<T, B extends string> = T & { readonly __brand: B };
+
+// QA-specific branded types
+type TestUserId  = Brand<string, 'TestUserId'>;
+type TestOrderId = Brand<string, 'TestOrderId'>;
+type TestRunId   = Brand<string, 'TestRunId'>;
+type Milliseconds = Brand<number, 'Milliseconds'>;
+type Percentage  = Brand<number, 'Percentage'>;
+
+// Smart constructors
+const TestUserId  = (id: string)   => id  as TestUserId;
+const TestOrderId = (id: string)   => id  as TestOrderId;
+const TestRunId   = (id: string)   => id  as TestRunId;
+const Milliseconds = (ms: number)  => {
+  if (ms < 0) throw new Error('Milliseconds cannot be negative');
+  return ms as Milliseconds;
+};
+const Percentage = (pct: number)  => {
+  if (pct < 0 || pct > 100) throw new Error(\\\`Invalid percentage: \\\${pct}\\\`);
+  return pct as Percentage;
+};
+
+// Test helper functions are now type-safe
+function createTestOrder(userId: TestUserId, orderId: TestOrderId): void {
+  console.log(\\\`Creating order \\\${orderId} for user \\\${userId}\\\`);
+}
+
+const uid = TestUserId('user-123');
+const oid = TestOrderId('order-456');
+
+createTestOrder(uid, oid);   // ✅
+createTestOrder(oid, uid);   // ❌ TypeScript error: arguments in wrong positions!
+
+// Test timing helpers
+function waitFor(timeout: Milliseconds): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, timeout));
+}
+
+await waitFor(Milliseconds(5000));  // ✅
+await waitFor(5000);                // ❌ TypeScript error — plain number not accepted
+\`\`\`
+
+---
+
+### 5. Branded Types in Fixtures — Preventing Fixture Mistakes
+
+*💡 Analogy: In a manufacturing plant, parts for different machines are kept in differently shaped bins. Even if the parts look the same, you can't accidentally put a car door part into the airplane parts bin — the shapes don't fit. Branded types create differently-shaped bins for your test data.*
+
+\`\`\`typescript
+type TestUser = {
+  id: TestUserId;
+  email: EmailAddress;
+  sessionToken: Brand<string, 'SessionToken'>;
+};
+
+function createUserFixture(overrides?: Partial<TestUser>): TestUser {
+  return {
+    id:           TestUserId('user-default-001'),
+    email:        toEmail('fixture@test.com'),
+    sessionToken: 'token-abc' as Brand<string, 'SessionToken'>,
+    ...overrides,
+  };
+}
+
+// API that only accepts a real TestUser
+function loginAs(user: TestUser): void { /* set auth state */ }
+
+const fixture = createUserFixture({ id: TestUserId('user-admin-001') });
+loginAs(fixture);  // ✅
+
+// ❌ Can't pass a raw object — it's not branded correctly:
+loginAs({ id: 'user-admin-001', email: 'a@b.com', sessionToken: 'tok' });
+// Error: Type 'string' is not assignable to type 'TestUserId'
+\`\`\`
+
+---
+
+### 6. Opaque Types — The Alternative Approach
+
+\`\`\`typescript
+// Alternative: declare brand as a unique symbol for maximum uniqueness
+declare const __brand: unique symbol;
+type Brand2<T, B> = T & { readonly [__brand]: B };
+
+// This is slightly more strict — two Brand2<string, X> with different X values
+// are NEVER compatible even if X happens to be the same string by coincidence
+type SafeUserId  = Brand2<string, { readonly userId:  true }>;
+type SafeOrderId = Brand2<string, { readonly orderId: true }>;
+
+// Most real-world projects use the string-brand approach:
+// type Brand<T, B extends string> = T & { readonly __brand: B }
+// because it's simpler and readable — the brand name appears in error messages
+\`\`\`
+
+---
+
+### 7. When NOT to Use Branded Types
+
+Branded types add overhead (smart constructors, type assertions at boundaries). Use them when:
+- ✅ The same primitive type is used for multiple distinct concepts (UserId vs OrderId)
+- ✅ Incorrect substitution has real consequences (security, data corruption)
+- ✅ The codebase is large enough that mistakes are plausible
+
+Skip them when:
+- ❌ A type is only used in one place — the name alone is enough context
+- ❌ You'd brand literally every string — that's over-engineering
+- ❌ The codebase is small and the team is disciplined about naming
+        \`
+      },
+
+      {
+        id: 'ts-error-handling-patterns',
+        title: 'Type-Safe Error Handling',
+        analogy: "Traditional error handling with try/catch is like sending packages with no return address — if something goes wrong, the package disappears into the void and you get a vague 'delivery failed' note. The Result pattern is like tracked shipping with two explicit states: Delivered (contains the package) or Failed (contains the exact reason, address, and timestamp). The type system ensures you always check the delivery status before opening the box.",
+        lessonMarkdown: \`
+### 1. The Problem With try/catch
+
+*💡 Analogy: \`throw\` is like yelling "fire!" in a building. Everyone hears it, but nobody knows what kind of fire, where it is, or how serious. The type of the error is lost — TypeScript can't help you handle different fire types differently.*
+
+\`\`\`typescript
+async function getUser(id: string): Promise<User> {
+  const response = await fetch(\\\`/api/users/\\\${id}\\\`);
+  if (!response.ok) throw new Error('Failed');  // type: Error — very vague
+  return response.json();
+}
+
+// The caller gets NO type information about what can go wrong
+try {
+  const user = await getUser('123');
+} catch (error) {
+  // TypeScript 4.0+: error is 'unknown' — you can't access properties safely
+  console.log(error.message);     // ❌ TypeScript error: 'unknown' has no .message
+  if (error instanceof Error) {
+    console.log(error.message);   // ✅ but you had to narrow it yourself
+  }
+  // What if it's a NetworkError? An AuthError? A ValidationError? No type hints.
+}
+\`\`\`
+
+The problems:
+- **Errors are \`unknown\`** — you must narrow every time
+- **No declaration** — callers don't know what can throw
+- **No exhaustive checking** — the compiler can't tell you if you missed a case
+
+---
+
+### 2. The Result Type — Two Explicit States
+
+*💡 Analogy: A vending machine has two explicit outcomes: "Here's your item" (success with the product) or "Transaction failed: insufficient funds / item out of stock" (failure with the specific reason). You ALWAYS know which state you're in, and you ALWAYS know exactly what went wrong.*
+
+\`\`\`typescript
+// The Result type — two discriminated union members
+type Ok<T>  = { readonly ok: true;  readonly data:  T };
+type Err<E> = { readonly ok: false; readonly error: E };
+type Result<T, E = Error> = Ok<T> | Err<E>;
+
+// Helper constructors
+const ok  = <T>(data: T):  Ok<T>  => ({ ok: true,  data  });
+const err = <E>(error: E): Err<E> => ({ ok: false, error });
+
+// Now functions declare EXACTLY what can go wrong
+async function getUser(id: string): Promise<Result<User, 'NOT_FOUND' | 'NETWORK_ERROR'>> {
+  try {
+    const response = await fetch(\\\`/api/users/\\\${id}\\\`);
+    if (response.status === 404) return err('NOT_FOUND');
+    if (!response.ok)            return err('NETWORK_ERROR');
+    const user = await response.json() as User;
+    return ok(user);
+  } catch {
+    return err('NETWORK_ERROR');
+  }
+}
+
+// The caller MUST handle both cases — TypeScript enforces this
+const result = await getUser('123');
+if (result.ok) {
+  console.log(result.data.name);   // ✅ TypeScript knows data is User
+} else {
+  console.log(result.error);       // ✅ TypeScript knows error is 'NOT_FOUND' | 'NETWORK_ERROR'
+}
+\`\`\`
+
+---
+
+### 3. Exhaustive Checking With \`never\` — The Compiler Tells You What You Missed
+
+*💡 Analogy: A quality control checklist that lists every possible defect. If you miss checking one defect type, the checklist blocks you from signing off. TypeScript's \`never\` check is that mandatory sign-off: if you haven't handled every error case, the compiler refuses to compile.*
+
+\`\`\`typescript
+// A typed error hierarchy for test failures
+type TestError =
+  | { kind: 'TIMEOUT';    durationMs: number }
+  | { kind: 'ASSERTION';  expected: unknown; actual: unknown }
+  | { kind: 'NOT_FOUND';  selector: string }
+  | { kind: 'NETWORK';    statusCode: number };
+
+function describeError(error: TestError): string {
+  switch (error.kind) {
+    case 'TIMEOUT':
+      return \\\`Timed out after \\\${error.durationMs}ms\\\`;
+    case 'ASSERTION':
+      return \\\`Expected \\\${error.expected}, got \\\${error.actual}\\\`;
+    case 'NOT_FOUND':
+      return \\\`Element not found: \\\${error.selector}\\\`;
+    case 'NETWORK':
+      return \\\`Network error: status \\\${error.statusCode}\\\`;
+    default:
+      // The never check — this line is UNREACHABLE if all cases are handled
+      const _exhaustive: never = error;
+      // If you add a new TestError variant and forget to handle it,
+      // TypeScript shows an error HERE — the compiler caught your omission ✅
+      return _exhaustive;
+  }
+}
+\`\`\`
+
+**Adding a new error variant — TypeScript immediately flags the gap:**
+\`\`\`typescript
+type TestError =
+  | { kind: 'TIMEOUT';    durationMs: number }
+  | { kind: 'ASSERTION';  expected: unknown; actual: unknown }
+  | { kind: 'NOT_FOUND';  selector: string }
+  | { kind: 'NETWORK';    statusCode: number }
+  | { kind: 'AUTH';       reason: string };  // NEW — added to the union
+
+// ❌ TypeScript now errors on the 'default: never' line in describeError
+// because 'AUTH' is not handled — the compiler tells you EXACTLY what to fix
+\`\`\`
+
+---
+
+### 4. Chaining Results — Railway-Oriented Programming
+
+*💡 Analogy: Railway-Oriented Programming puts your logic on two tracks. The happy track carries successful values from step to step. As soon as any step fails, the data is switched to the failure track — subsequent steps are skipped automatically. You only get back on the happy track at the very end if everything succeeded.*
+
+\`\`\`typescript
+// A map helper — transform the success value, pass errors through
+function mapResult<T, U, E>(
+  result: Result<T, E>,
+  fn: (data: T) => U
+): Result<U, E> {
+  return result.ok ? ok(fn(result.data)) : result;
+}
+
+// A flatMap helper — chain Result-returning functions
+function flatMapResult<T, U, E>(
+  result: Result<T, E>,
+  fn: (data: T) => Result<U, E>
+): Result<U, E> {
+  return result.ok ? fn(result.data) : result;
+}
+
+// A complete QA login flow using chained Results
+type LoginError = 'INVALID_CREDENTIALS' | 'ACCOUNT_LOCKED' | 'NETWORK_ERROR';
+
+async function login(email: string, password: string): Promise<Result<string, LoginError>> {
+  // Returns Result<{ token: string }, LoginError>
+  const authResult = await authenticate(email, password);
+  if (!authResult.ok) return authResult;
+
+  // Returns Result<string, LoginError> (validates and extracts token)
+  return mapResult(authResult, (auth) => auth.token);
+}
+
+const loginResult = await login('alice@test.com', 'pass');
+if (loginResult.ok) {
+  // ✅ token is string — TypeScript knows
+  await setSessionToken(loginResult.data);
+} else {
+  // ✅ error is 'INVALID_CREDENTIALS' | 'ACCOUNT_LOCKED' | 'NETWORK_ERROR'
+  switch (loginResult.error) {
+    case 'INVALID_CREDENTIALS': showError('Wrong email or password'); break;
+    case 'ACCOUNT_LOCKED':      showError('Account locked'); break;
+    case 'NETWORK_ERROR':       retry(); break;
+  }
+}
+\`\`\`
+
+---
+
+### 5. The Option Type — Typed Nullable Values
+
+*💡 Analogy: A parcel tracking system that has two explicit states: "Item found at location X" (Some) or "Item not in system" (None). Unlike returning \`null\` (which callers can forget to check), the Option type forces you to handle both states before the compiler lets you proceed.*
+
+\`\`\`typescript
+type Some<T> = { readonly isSome: true;  readonly value: T };
+type None    = { readonly isSome: false };
+type Option<T> = Some<T> | None;
+
+const some = <T>(value: T): Some<T> => ({ isSome: true, value });
+const none: None = { isSome: false };
+
+function findUser(id: string): Option<User> {
+  const user = users.find(u => u.id === id);
+  return user ? some(user) : none;
+}
+
+const result = findUser('123');
+if (result.isSome) {
+  console.log(result.value.name);  // ✅ TypeScript knows value is User
+} else {
+  console.log('User not found');   // handled explicitly
+}
+
+// ❌ Can't access .value without checking isSome first — compiler enforces it
+console.log(findUser('999').value);  // Error: 'None' has no 'value'
+\`\`\`
+
+---
+
+### 6. Complete QA Example — Type-Safe Test Runner Results
+
+\`\`\`typescript
+type TestResult<T = void> = Result<T, TestError>;
+
+type TestCase = {
+  name: string;
+  run: () => Promise<TestResult>;
+};
+
+async function runTestSuite(tests: TestCase[]): Promise<void> {
+  let passed = 0, failed = 0;
+
+  for (const test of tests) {
+    const result = await test.run();
+
+    if (result.ok) {
+      console.log(\\\`✅ \\\${test.name}\\\`);
+      passed++;
+    } else {
+      console.log(\\\`❌ \\\${test.name}: \\\${describeError(result.error)}\\\`);
+      failed++;
+    }
+  }
+
+  console.log(\\\`\\\${passed} passed, \\\${failed} failed\\\`);
+}
+
+// Test authors return typed results — no throw, no try/catch
+const loginTest: TestCase = {
+  name: 'Login redirects to dashboard',
+  run: async () => {
+    const loginResult = await login('alice@test.com', 'pass');
+    if (!loginResult.ok) return loginResult;  // pass error through
+
+    const current = await page.url();
+    if (!current.includes('/dashboard')) {
+      return err({ kind: 'ASSERTION', expected: '/dashboard', actual: current });
+    }
+    return ok();
+  },
+};
+\`\`\`
+        \`
+      },
+
+      {
+        id: 'ts-type-safe-builders',
+        title: 'Type-Safe Builder & Factory Patterns',
+        analogy: "A regular builder is like filling out a paper form — you can hand in the form with required fields blank and only find out at the processing desk that it's incomplete. A type-safe builder is a digital form that greys out the Submit button until every required field is filled. The compiler acts as the form validation, refusing to compile if required fields are missing — before you even run the code.",
+        lessonMarkdown: \`
+### 1. The Basic Builder Pattern
+
+*💡 Analogy: A burger builder at a restaurant — you specify patty, bun, and toppings one by one. A basic builder lets you chain method calls and returns the final object. But it has a flaw: you can call \`.build()\` before adding the required patty.*
+
+\`\`\`typescript
+// ❌ Basic builder — no compile-time safety
+class UserBuilder {
+  private data: Partial<User> = {};
+
+  setId(id: string):     this { this.data.id    = id;    return this; }
+  setName(name: string): this { this.data.name  = name;  return this; }
+  setEmail(email: string): this { this.data.email = email; return this; }
+
+  build(): User {
+    // Runtime check — too late!
+    if (!this.data.id || !this.data.name) throw new Error('Missing required fields');
+    return this.data as User;
+  }
+}
+
+// TypeScript is happy — but this throws at RUNTIME:
+const user = new UserBuilder().setEmail('a@b.com').build(); // ❌ runtime error
+\`\`\`
+
+---
+
+### 2. The Phantom Type Trick — Compile-Time Required Field Enforcement
+
+*💡 Analogy: Think of a safe that requires two keys. The safe doesn't open until both keys are inserted. Phantom types encode which keys have been inserted into the TYPE itself — the compiler refuses to let you call \`.build()\` until all required keys are present in the type.*
+
+Phantom types are type parameters that exist only at compile time (they don't appear in the runtime value):
+
+\`\`\`typescript
+// The phantom type tracks which required fields have been set
+type BuilderState = {
+  hasId:    boolean;
+  hasName:  boolean;
+  hasEmail: boolean;
+};
+
+class UserBuilder<State extends BuilderState = { hasId: false; hasName: false; hasEmail: false }> {
+  private data: Partial<User> = {};
+
+  // After setId, the State type changes: hasId becomes true
+  setId(id: string): UserBuilder<State & { hasId: true }> {
+    this.data.id = id;
+    return this as any;
+  }
+
+  setName(name: string): UserBuilder<State & { hasName: true }> {
+    this.data.name = name;
+    return this as any;
+  }
+
+  setEmail(email: string): UserBuilder<State & { hasEmail: true }> {
+    this.data.email = email;
+    return this as any;
+  }
+
+  // build() only exists when ALL required fields are set
+  // Uses a conditional type: only callable when State has all true values
+  build(
+    this: UserBuilder<{ hasId: true; hasName: true; hasEmail: true }>
+  ): User {
+    return this.data as User;
+  }
+}
+
+// ✅ This compiles:
+const user = new UserBuilder()
+  .setId('123')
+  .setName('Alice')
+  .setEmail('alice@test.com')
+  .build();
+
+// ❌ This fails at COMPILE TIME — missing setId and setName:
+const incomplete = new UserBuilder()
+  .setEmail('alice@test.com')
+  .build();  // ❌ TypeScript error: 'build' does not exist on this builder state
+\`\`\`
+
+---
+
+### 3. The Record-Based Phantom State — Cleaner Syntax
+
+\`\`\`typescript
+// A cleaner approach using a record of required fields
+type Required = 'id' | 'name' | 'email';
+
+class TestUserBuilder<Done extends string = never> {
+  private data: Record<string, unknown> = {};
+
+  setId(id: string):       TestUserBuilder<Done | 'id'>    { this.data.id    = id;    return this as any; }
+  setName(name: string):   TestUserBuilder<Done | 'name'>  { this.data.name  = name;  return this as any; }
+  setEmail(email: string): TestUserBuilder<Done | 'email'> { this.data.email = email; return this as any; }
+  setRole(role: string):   this                            { this.data.role  = role;  return this; }
+
+  // build() only exists when Done includes all of Required
+  build(this: TestUserBuilder<Required>): User {
+    return this.data as unknown as User;
+  }
+}
+
+// ✅ All required fields set — compiles
+const u1 = new TestUserBuilder()
+  .setId('u1')
+  .setName('Bob')
+  .setEmail('bob@test.com')
+  .setRole('admin')  // optional — doesn't affect build eligibility
+  .build();
+
+// ❌ Missing .setName() — TypeScript error at .build()
+const u2 = new TestUserBuilder()
+  .setId('u2')
+  .setEmail('c@d.com')
+  .build();  // ❌ Argument of type 'TestUserBuilder<"id" | "email">' is not assignable
+\`\`\`
+
+---
+
+### 4. Factory Functions — Type-Safe Creation With Overloads
+
+*💡 Analogy: A factory floor with different production lines — each line produces a different product variant. Factory functions with overloads let TypeScript know: "if you call me with \`type: 'admin'\`, I return an AdminUser; with \`type: 'guest'\`, I return a GuestUser." The return type depends on the input.*
+
+\`\`\`typescript
+type AdminUser = { role: 'admin'; permissions: string[] };
+type GuestUser = { role: 'guest'; expiresAt: Date };
+type AnyUser   = AdminUser | GuestUser;
+
+// Overloads — TypeScript picks the right return type based on input
+function createUser(role: 'admin'): AdminUser;
+function createUser(role: 'guest'): GuestUser;
+function createUser(role: 'admin' | 'guest'): AnyUser {
+  if (role === 'admin') return { role: 'admin', permissions: ['read', 'write'] };
+  return { role: 'guest', expiresAt: new Date(Date.now() + 3600000) };
+}
+
+const admin = createUser('admin');  // TypeScript knows: AdminUser
+const guest = createUser('guest');  // TypeScript knows: GuestUser
+
+admin.permissions;  // ✅ TypeScript knows this exists
+guest.expiresAt;    // ✅ TypeScript knows this exists
+admin.expiresAt;    // ❌ TypeScript error: AdminUser has no expiresAt
+\`\`\`
+
+---
+
+### 5. Discriminated Union State Machines — States Encoded in Types
+
+*💡 Analogy: A traffic light has three states: Red, Yellow, Green. Each state has different allowed transitions (Red → Green, Green → Yellow, Yellow → Red). A type state machine encodes these rules in the type system — you literally cannot call \`turnGreen()\` on a Green light because that method doesn't exist on the Green state.*
+
+\`\`\`typescript
+// States as separate types
+type Idle    = { status: 'idle' };
+type Loading = { status: 'loading'; startedAt: Date };
+type Success<T> = { status: 'success'; data: T; completedAt: Date };
+type Failure = { status: 'failure'; error: string; failedAt: Date };
+
+type RequestState<T> = Idle | Loading | Success<T> | Failure;
+
+// Transition functions only accept valid source states
+function startLoading(state: Idle): Loading {
+  return { status: 'loading', startedAt: new Date() };
+}
+
+function succeed<T>(state: Loading, data: T): Success<T> {
+  return { status: 'success', data, completedAt: new Date() };
+}
+
+function fail(state: Loading, error: string): Failure {
+  return { status: 'failure', error, failedAt: new Date() };
+}
+
+// You cannot call succeed() on an Idle state — TypeScript prevents it:
+const idle: Idle = { status: 'idle' };
+succeed(idle, { name: 'Alice' });  // ❌ TypeScript error: Idle is not Loading
+
+const loading = startLoading(idle);
+const success = succeed(loading, { name: 'Alice' });  // ✅
+\`\`\`
+
+---
+
+### 6. Real-World QA Example — Type-Safe Test Data Factory
+
+\`\`\`typescript
+// A test data factory with required and optional fields, phantom-type enforced
+type TestOrder = {
+  id: string;
+  userId: string;
+  items: { sku: string; qty: number }[];
+  total: number;
+  status: 'pending' | 'shipped' | 'delivered';
+};
+
+type Required = 'id' | 'userId' | 'items';
+
+class OrderFixture<Done extends string = never> {
+  private data: Partial<TestOrder> = { status: 'pending', total: 0 };
+
+  withId(id: string):       OrderFixture<Done | 'id'>     { this.data.id     = id;    return this as any; }
+  withUser(id: string):     OrderFixture<Done | 'userId'> { this.data.userId = id;    return this as any; }
+  withItems(items: TestOrder['items']): OrderFixture<Done | 'items'> {
+    this.data.items = items;
+    this.data.total = items.reduce((sum, i) => sum + i.qty, 0);
+    return this as any;
+  }
+  withStatus(s: TestOrder['status']): this { this.data.status = s; return this; }
+
+  build(this: OrderFixture<Required>): TestOrder { return this.data as TestOrder; }
+}
+
+// Usage in tests — compile-time enforcement:
+const order = new OrderFixture()
+  .withId('order-001')
+  .withUser('user-001')
+  .withItems([{ sku: 'SKU-A', qty: 2 }])
+  .withStatus('shipped')
+  .build();  // ✅
+
+// ❌ Missing withUser — TypeScript error at .build():
+new OrderFixture()
+  .withId('order-002')
+  .withItems([{ sku: 'SKU-B', qty: 1 }])
+  .build();  // Error: 'userId' is missing from Done
+\`\`\`
+        \`
+      },
+
+      {
+        id: 'ts-declaration-merging',
+        title: 'Declaration Merging & Module Augmentation',
+        analogy: "Imagine a government building with multiple departments, all adding floors to the same building. Department A builds floors 1-5, Department B adds floors 6-10, Department C adds a rooftop. Visitors enter through one front door and can access all floors. Declaration merging lets different parts of your code — or third-party libraries — add to the same type definition, which TypeScript then combines into one complete building.",
+        lessonMarkdown: \`
+### 1. What Is Declaration Merging?
+
+*💡 Analogy: In English, the word "bank" can mean a riverbank, a financial bank, or to bank a turn. The dictionary doesn't have three separate entries — they're merged under one word, and context tells you which meaning applies. TypeScript merges multiple declarations of the same name into one combined type.*
+
+TypeScript allows the same name to be declared multiple times in certain cases — the declarations are **merged** into one:
+
+\`\`\`typescript
+// Interfaces can be declared multiple times — they merge
+interface UserProfile {
+  id: string;
+  name: string;
+}
+
+interface UserProfile {
+  email: string;
+  role: 'admin' | 'user';
+}
+
+// The merged result is as if you wrote one interface with all four properties:
+const profile: UserProfile = {
+  id: '123',
+  name: 'Alice',
+  email: 'alice@example.com',
+  role: 'admin',
+};  // ✅ TypeScript requires ALL four fields
+
+// Classes and type aliases CANNOT be merged — only interfaces
+type UserProfile = { id: string };  // ❌ Error: duplicate identifier
+class UserProfile {}                // ❌ Error: duplicate identifier
+\`\`\`
+
+---
+
+### 2. Extending Third-Party Interfaces — The Primary Use Case
+
+*💡 Analogy: You move into a furnished apartment (the library). The furniture is already there (existing types). You want to add your own bookshelf (extend the type). You don't tear out the existing furniture — you add to the room using the same naming convention so visitors see one complete apartment.*
+
+The most common real-world use: adding custom properties to framework types.
+
+**Extending Express's Request type:**
+\`\`\`typescript
+// In your type definitions file (e.g., src/types/express.d.ts):
+import 'express';
+
+declare module 'express' {
+  interface Request {
+    user?: { id: string; role: 'admin' | 'user' };
+    requestId: string;
+    startTime: number;
+  }
+}
+
+// Now everywhere in your app:
+import { Request, Response } from 'express';
+
+function authMiddleware(req: Request, res: Response, next: Function): void {
+  req.user = { id: 'user-123', role: 'admin' };  // ✅ TypeScript knows this exists
+  req.requestId = generateId();                    // ✅ TypeScript knows this exists
+  next();
+}
+
+function protectedRoute(req: Request, res: Response): void {
+  if (!req.user) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+  console.log(req.user.role);  // ✅ TypeScript knows user has id and role
+}
+\`\`\`
+
+---
+
+### 3. Extending Jest Matchers — Adding Custom Assertions
+
+*💡 Analogy: You're adding a new tool to the mechanic's toolbox (Jest). The toolbox already has wrenches and screwdrivers (existing matchers). You're adding a custom torque gauge (custom matcher). You tell the toolbox catalog (TypeScript) about the new tool so intellisense knows it exists.*
+
+\`\`\`typescript
+// In src/types/jest-extended.d.ts
+declare global {
+  namespace jest {
+    interface Matchers<R> {
+      toBeWithinRange(min: number, max: number): R;
+      toBeValidEmail(): R;
+      toHaveBeenCalledWithUserId(userId: string): R;
+    }
+  }
+}
+
+// The implementation (in a setup file):
+expect.extend({
+  toBeWithinRange(received: number, min: number, max: number) {
+    const pass = received >= min && received <= max;
+    return {
+      pass,
+      message: () =>
+        pass
+          ? \\\`Expected \\\${received} NOT to be within [\\\${min}, \\\${max}]\\\`
+          : \\\`Expected \\\${received} to be within [\\\${min}, \\\${max}]\\\`,
+    };
+  },
+  toBeValidEmail(received: string) {
+    const pass = /^[^@]+@[^@]+\.[^@]+$/.test(received);
+    return { pass, message: () => \\\`Expected "\\\${received}" to be a valid email\\\` };
+  },
+});
+
+// Now in any test file — with full IntelliSense and type safety:
+expect(responseTimeMs).toBeWithinRange(0, 2000);  // ✅
+expect(user.email).toBeValidEmail();               // ✅
+expect(404).toBeWithinRange(400, 499);             // ✅
+\`\`\`
+
+---
+
+### 4. Extending Playwright's Types — Custom Fixtures and TestInfo
+
+\`\`\`typescript
+// In playwright.d.ts
+import { TestInfo } from '@playwright/test';
+
+declare module '@playwright/test' {
+  interface TestInfo {
+    customReporter: { log(msg: string): void };
+    environment: 'staging' | 'production' | 'local';
+    testRunId: string;
+  }
+}
+
+// Now in Playwright tests:
+import { test } from '@playwright/test';
+
+test('login flow', async ({ page }, testInfo) => {
+  testInfo.customReporter.log('Starting login test');  // ✅ TypeScript knows this exists
+  console.log(\\\`Running on: \\\${testInfo.environment}\\\`);   // ✅ typed
+  console.log(\\\`Test run ID: \\\${testInfo.testRunId}\\\`);    // ✅ typed
+});
+\`\`\`
+
+---
+
+### 5. Global Augmentation — Extending the Global Scope
+
+*💡 Analogy: Global augmentation is like adding a new word to the shared office dictionary — it's available to everyone in the building, not just one department. You're extending what TypeScript considers globally available.*
+
+\`\`\`typescript
+// Extend the Window object (browser globals)
+declare global {
+  interface Window {
+    testHelpers: {
+      resetDB(): Promise<void>;
+      seedData(fixture: string): Promise<void>;
+    };
+    __TEST_ENV__: boolean;
+  }
+}
+
+// Now in test files:
+window.testHelpers.resetDB();          // ✅ TypeScript knows this exists
+window.testHelpers.seedData('users');  // ✅
+window.__TEST_ENV__;                   // ✅ typed as boolean
+
+// Extend process.env for typed environment variables
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      DATABASE_URL:  string;
+      API_BASE_URL:  string;
+      AUTH_SECRET:   string;
+      NODE_ENV:      'development' | 'test' | 'production';
+    }
+  }
+}
+
+// Now process.env is typed:
+const dbUrl = process.env.DATABASE_URL;  // string (not string | undefined) ✅
+const env   = process.env.NODE_ENV;      // 'development' | 'test' | 'production' ✅
+\`\`\`
+
+---
+
+### 6. Namespace Merging — Adding to a Namespace
+
+\`\`\`typescript
+// Namespaces can also be merged — useful for adding utilities to a library's namespace
+namespace Validation {
+  export function isEmail(value: string): boolean {
+    return /^[^@]+@[^@]+\.[^@]+$/.test(value);
+  }
+}
+
+// In another file — merges with the existing Validation namespace
+namespace Validation {
+  export function isPhone(value: string): boolean {
+    return /^\+?[\d\s\-()]{10,}$/.test(value);
+  }
+}
+
+// The consumer sees one unified namespace:
+Validation.isEmail('a@b.com');  // ✅
+Validation.isPhone('+1 555 1234'); // ✅
+\`\`\`
+
+---
+
+### 7. When to Use Each Technique
+
+| Technique | When to use |
+|-----------|-------------|
+| **Interface merging** | Extend framework types (Express, Jest, Playwright) |
+| **Module augmentation** | Add to a library's existing types from outside |
+| **Global augmentation** | Extend Window, process.env, NodeJS globals |
+| **Namespace merging** | Split large namespaces across files or add to lib namespaces |
+
+**Important rules:**
+\`\`\`typescript
+// ✅ Module augmentation MUST import the module (even if unused)
+import 'express';  // This makes it a module augmentation, not a global declaration
+declare module 'express' { interface Request { user?: User } }
+
+// ❌ Without the import, it's a global declaration (different file scope)
+declare module 'express' { interface Request { user?: User } }  // wrong scope
+\`\`\`
+
+**File organisation best practice:**
+\`\`\`typescript
+// src/types/
+//   index.d.ts      — re-exports all augmentations
+//   express.d.ts    — express augmentations
+//   jest.d.ts       — jest matcher augmentations
+//   playwright.d.ts — playwright augmentations
+//   global.d.ts     — global and NodeJS augmentations
+
+// tsconfig.json — make sure TypeScript finds your declarations:
+// { "include": ["src/**/*.ts", "src/**/*.d.ts"] }
+\`\`\`
+        \`
+      },
+
+      {
+        id: 'ts-performance-compiler',
+        title: 'TypeScript Compiler, tsconfig & Type Performance',
+        analogy: "The TypeScript compiler is like a building inspector. \`tsconfig.json\` is your list of inspection rules — you can tell the inspector to be strict (check everything), lenient (only check essentials), or focused (only inspect certain floors). \`strict: true\` is the inspector carrying a full code book. Each individual flag is a specific section of that code book. Knowing which rules are in force helps you understand exactly why the inspector is refusing to sign off on your build.",
+        lessonMarkdown: \`
+### 1. How \`tsconfig.json\` Works
+
+*💡 Analogy: \`tsconfig.json\` is the control panel for the TypeScript compiler. It decides which files to include, which JavaScript version to target, how strictly to check your code, and how to resolve imports. Every setting has a default — knowing the defaults means you know what you're getting even when you don't specify.*
+
+\`\`\`json
+{
+  "compilerOptions": {
+    "target": "ES2022",          // What JS version to output
+    "module": "ESNext",          // How modules are compiled
+    "lib": ["ES2022", "DOM"],    // Which built-in types are available
+    "strict": true,              // Enables ALL strict checks (recommended)
+    "outDir": "./dist",          // Where compiled JS goes
+    "rootDir": "./src",          // Where your TS source lives
+    "declaration": true,         // Emit .d.ts files alongside JS
+    "sourceMap": true,           // Generate source maps for debugging
+    "esModuleInterop": true,     // Better CommonJS/ESModule interop
+    "moduleResolution": "bundler" // How imports are resolved (Vite/esbuild)
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
+\`\`\`
+
+---
+
+### 2. The \`strict\` Flag — What It Actually Enables
+
+*💡 Analogy: \`strict: true\` is a shorthand for enabling seven safety features at once. It's like setting your security system to "Maximum" mode — it enables motion detection, door sensors, window sensors, and glass-break detection all at once. Each can also be toggled individually.*
+
+\`strict: true\` enables these flags (you can also set each individually):
+
+\`\`\`typescript
+// 1. strictNullChecks — the most important one
+//    Without it, null/undefined are assignable to every type
+function greet(name: string): string {
+  return \\\`Hello \\\${name}\\\`;
+}
+greet(null);  // ❌ Error with strictNullChecks — ✅ allowed without it!
+
+// 2. noImplicitAny — no silent 'any' types
+function process(x) { return x; }        // ❌ x implicitly has 'any' type
+function process(x: unknown) { return x; } // ✅
+
+// 3. strictFunctionTypes — contravariance for function parameters
+type Handler = (event: MouseEvent) => void;
+const handle: Handler = (event: Event) => {};    // ✅ Event is wider than MouseEvent
+const broken: Handler = (event: UIEvent) => {};  // ❌ UIEvent is not a MouseEvent
+
+// 4. strictPropertyInitialization — all class properties must be set in constructor
+class Service {
+  name: string;  // ❌ Error: not set in constructor
+  constructor() {}
+}
+
+class Service2 {
+  name: string;
+  constructor() { this.name = 'default'; }  // ✅
+}
+
+// 5. noImplicitThis — 'this' in functions must be typed
+function clickHandler(this: HTMLButtonElement): void {
+  console.log(this.disabled);  // ✅ TypeScript knows 'this' is HTMLButtonElement
+}
+\`\`\`
+
+---
+
+### 3. Path Aliases — Eliminating Relative Import Hell
+
+*💡 Analogy: Imagine navigating a large city using only directions like "turn left, go 3 blocks, turn right, go 2 blocks." Path aliases are like naming landmarks: "go to Central Park" instead of "go to 59th and 5th." Imports become readable no matter how deep the file is.*
+
+\`\`\`typescript
+// ❌ Without path aliases — this is fragile and unreadable
+import { LoginPage } from '../../../pages/auth/LoginPage';
+import { createUser } from '../../../../fixtures/users';
+import { apiClient } from '../../helpers/api';
+
+// ✅ With path aliases — clean and location-independent
+import { LoginPage } from '@pages/auth/LoginPage';
+import { createUser } from '@fixtures/users';
+import { apiClient } from '@helpers/api';
+\`\`\`
+
+**Setting up path aliases in \`tsconfig.json\`:**
+\`\`\`json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@pages/*":    ["src/pages/*"],
+      "@fixtures/*": ["src/fixtures/*"],
+      "@helpers/*":  ["src/helpers/*"],
+      "@types/*":    ["src/types/*"],
+      "@utils/*":    ["src/utils/*"]
+    }
+  }
+}
+\`\`\`
+
+**For Vite — you must also configure aliases in \`vite.config.ts\`:**
+\`\`\`typescript
+import { defineConfig } from 'vite';
+import { resolve } from 'path';
+
+export default defineConfig({
+  resolve: {
+    alias: {
+      '@pages':    resolve(__dirname, 'src/pages'),
+      '@fixtures': resolve(__dirname, 'src/fixtures'),
+      '@helpers':  resolve(__dirname, 'src/helpers'),
+    },
+  },
+});
+\`\`\`
+
+---
+
+### 4. \`isolatedModules\` — Why Vite and esbuild Require It
+
+\`\`\`typescript
+// isolatedModules: true means each file must be compilable in isolation
+// This is required by tools like Vite, esbuild, and Babel
+
+// ❌ Not allowed with isolatedModules: const enum (requires full program context)
+const enum Direction { Up, Down, Left, Right }
+
+// ✅ Use regular enum instead:
+enum Direction { Up, Down, Left, Right }
+
+// ❌ Not allowed: re-exporting a type without 'type' keyword
+export { User } from './types';  // TypeScript doesn't know if User is a type or value
+
+// ✅ Use 'export type' for type-only re-exports:
+export type { User } from './types';  // Clear to the compiler: type-only export
+import type { User } from './types';  // Same for imports
+\`\`\`
+
+---
+
+### 5. Type Performance — Why Some Types Are Slow
+
+*💡 Analogy: Asking "is this number prime?" is fast for small numbers but slow for huge ones. Some TypeScript types are like checking a small number (fast), while others — especially deeply recursive types — are like factoring a 500-digit number (slow). Understanding what makes types expensive helps you write types the compiler can handle.*
+
+**What makes types slow:**
+\`\`\`typescript
+// ❌ Deep recursive types — TypeScript has a recursion limit (and is slow approaching it)
+type DeepNested<T, Depth extends number = 0> = Depth extends 10
+  ? T
+  : { value: T; nested: DeepNested<T, [0,1,2,3,4,5,6,7,8,9][Depth]> };
+
+// ❌ Large conditional type unions — each member is evaluated
+type BigUnion = 'a' | 'b' | 'c' | /* ... 50 more */ 'z';
+type Check<T> = T extends BigUnion ? true : false;  // slow for large unions
+
+// ✅ Prefer interface over type for object shapes (interfaces are cached)
+type UserType = { id: string; name: string };    // slower
+interface UserInterface { id: string; name: string }  // faster — cached after first use
+
+// ✅ Use unknown instead of any for parameters you'll narrow
+function handle(data: unknown): void {  // ✅ forces proper narrowing
+  if (typeof data === 'string') data.toUpperCase();
+}
+\`\`\`
+
+**Diagnosing with \`--extendedDiagnostics\`:**
+\`\`\`bash
+npx tsc --extendedDiagnostics 2>&1 | head -30
+# Shows: Check time, Bind time, Total time
+# Shows which files take the most type-check time
+# High "Check time" → complex types, too many generics, deep recursion
+\`\`\`
+
+---
+
+### 6. \`@ts-expect-error\` vs \`@ts-ignore\`
+
+\`\`\`typescript
+// ❌ @ts-ignore — silences any error on the next line, including ones that don't exist
+// @ts-ignore
+const x: string = 42;  // suppressed — no warning if the error goes away later
+
+// ✅ @ts-expect-error — suppresses the error AND fails if there's no error
+// This means if a future TypeScript version fixes the issue, you'll be told:
+// @ts-expect-error — Remove when TS supports this pattern
+const x: string = 42;  // ✅ suppressed now; ❌ error when 42 stops being invalid
+
+// Use @ts-expect-error in tests to verify something IS an error:
+// @ts-expect-error
+processId(orderId);  // This line SHOULD fail — @ts-expect-error confirms it does
+\`\`\`
+
+---
+
+### 7. Project References — For Large Monorepos
+
+\`\`\`typescript
+// Project references let TypeScript compile sub-projects separately
+// and cache the results — dramatically faster incremental builds
+
+// packages/shared/tsconfig.json
+// { "compilerOptions": { "composite": true }, ... }
+
+// packages/api/tsconfig.json
+// { "references": [{ "path": "../shared" }], ... }
+
+// packages/tests/tsconfig.json
+// { "references": [{ "path": "../api" }, { "path": "../shared" }], ... }
+
+// tsc --build (or tsc -b) compiles only what changed
+// Without project references: TypeScript recompiles everything every time
+// With project references: TypeScript caches shared/ output and reuses it
+\`\`\`
+
+---
+
+### 8. Practical tsconfig for a Playwright + Vite Project
+
+\`\`\`json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": true,
+    "baseUrl": ".",
+    "paths": {
+      "@pages/*":    ["src/pages/*"],
+      "@fixtures/*": ["src/fixtures/*"],
+      "@helpers/*":  ["src/helpers/*"]
+    },
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "declaration": false,
+    "sourceMap": true
+  },
+  "include": ["src/**/*.ts", "tests/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
+\`\`\`
+
+**Key flags explained:**
+- \`noUnusedLocals / noUnusedParameters\` — catches dead code before PR review
+- \`noFallthroughCasesInSwitch\` — catches missing \`break\` in switch statements
+- \`exactOptionalPropertyTypes\` — \`{ x?: string }\` means absent OR string, NOT undefined
+- \`skipLibCheck\` — skip type-checking \`.d.ts\` files in \`node_modules\` (speeds up build)
+        \`
+      },
+
     });
   };
 }

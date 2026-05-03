@@ -101,7 +101,7 @@ export const ZONE_TIERS: Record<string, { id: string; label: string; color: stri
       id: 'expert',
       label: 'Expert',
       color: 'text-amber-400',
-      moduleIds: [],
+      moduleIds: ['ts-advanced-conditional-types','ts-advanced-mapped-types','ts-variadic-tuples','ts-branded-nominal-types','ts-error-handling-patterns','ts-type-safe-builders','ts-declaration-merging','ts-performance-compiler'],
     },
   ],
   manual: [

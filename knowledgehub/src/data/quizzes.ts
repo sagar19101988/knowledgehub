@@ -4732,6 +4732,454 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
         },
       ]
     },
+    {
+      level: 'ts-advanced-conditional-types',
+      questions: [
+        {
+          question: 'What does a "distributive conditional type" do when `T` is a union like `string | number`?',
+          options: [
+            { id: 'a', text: 'It evaluates the condition once for the entire union', isCorrect: false },
+            { id: 'b', text: 'It distributes the condition over each union member separately, then unions the results', isCorrect: true },
+            { id: 'c', text: 'It throws a compile error because unions cannot be used in conditionals', isCorrect: false },
+            { id: 'd', text: 'It always returns never for union types', isCorrect: false },
+          ],
+          explanation: 'When T is a naked type parameter in a conditional type, TypeScript distributes the condition over each union member. `IsString<string | number>` becomes `IsString<string> | IsString<number>` — each member is evaluated separately and the results are unioned.',
+        },
+        {
+          question: 'You need to check if a type T is exactly `never`. Why does `T extends never ? true : false` not work?',
+          options: [
+            { id: 'a', text: 'never cannot be used in extends clauses', isCorrect: false },
+            { id: 'b', text: 'TypeScript distributes over the empty union (never), producing never instead of true or false', isCorrect: true },
+            { id: 'c', text: 'The condition always evaluates to false for never', isCorrect: false },
+            { id: 'd', text: 'never is not a valid TypeScript type', isCorrect: false },
+          ],
+          explanation: 'never is an empty union. Distributive conditional types distribute over each member of the union — but never has no members, so the distribution produces nothing (never). Fix: wrap both sides in [] to prevent distribution: `[T] extends [never] ? true : false`.',
+        },
+        {
+          question: 'What does `infer` do in `type ReturnType<T> = T extends (...args: any[]) => infer R ? R : never`?',
+          options: [
+            { id: 'a', text: 'It casts the return type to any', isCorrect: false },
+            { id: 'b', text: 'It declares a type variable R that captures the return type of T if T is a function', isCorrect: true },
+            { id: 'c', text: 'It makes R a required type parameter', isCorrect: false },
+            { id: 'd', text: 'It forces TypeScript to infer T as a function type', isCorrect: false },
+          ],
+          explanation: '`infer R` inside an extends clause declares a new type variable R that TypeScript fills in by matching the structure. If T matches the function shape, R is bound to the return type. This is exactly how TypeScript\'s built-in ReturnType<T> works.',
+        },
+        {
+          question: 'Given `type StringsOnly<T> = T extends string ? T : never` and `type Result = StringsOnly<string | number | boolean>`, what is Result?',
+          options: [
+            { id: 'a', text: 'never', isCorrect: false },
+            { id: 'b', text: 'string | never | never (which simplifies to string)', isCorrect: true },
+            { id: 'c', text: 'string | number | boolean', isCorrect: false },
+            { id: 'd', text: 'A compile error — cannot use never in mapped types', isCorrect: false },
+          ],
+          explanation: 'The conditional distributes: StringsOnly<string> = string, StringsOnly<number> = never, StringsOnly<boolean> = never. The union string | never | never simplifies to string because never is the identity element for unions — it disappears automatically.',
+        },
+        {
+          question: 'What does `type DeepReadonly<T> = T extends object ? { readonly [K in keyof T]: DeepReadonly<T[K]> } : T` achieve that the built-in `Readonly<T>` cannot?',
+          options: [
+            { id: 'a', text: 'It makes the top-level properties readonly, just like Readonly<T>', isCorrect: false },
+            { id: 'b', text: 'It recursively makes all nested properties readonly, not just the top level', isCorrect: true },
+            { id: 'c', text: 'It makes the type immutable at runtime', isCorrect: false },
+            { id: 'd', text: 'It converts all values to strings', isCorrect: false },
+          ],
+          explanation: 'Readonly<T> only marks the direct properties of T as readonly — nested objects can still be mutated. DeepReadonly<T> recursively applies itself to every nested value, making the entire type tree immutable at the type level. This is the power of recursive conditional types.',
+        },
+      ],
+    },
+
+    {
+      level: 'ts-advanced-mapped-types',
+      questions: [
+        {
+          question: 'What does the `as` clause do in a mapped type like `{ [K in keyof T as \`get${Capitalize<string & K>}\`]: () => T[K] }`?',
+          options: [
+            { id: 'a', text: 'It casts the value type to a different type', isCorrect: false },
+            { id: 'b', text: 'It renames each key in the output type using a template literal transformation', isCorrect: true },
+            { id: 'c', text: 'It filters out keys that don\'t match the template', isCorrect: false },
+            { id: 'd', text: 'It asserts that the mapped type is valid', isCorrect: false },
+          ],
+          explanation: 'The `as` clause in a mapped type remaps the key name for the output. `as \`get${Capitalize<string & K>}\`` transforms every key K into a getter name — `id` becomes `getId`, `name` becomes `getName`. This lets you produce entirely new key names while iterating over existing ones.',
+        },
+        {
+          question: 'In `type PickByValue<T, V> = { [K in keyof T as T[K] extends V ? K : never]: T[K] }`, what happens to keys where `T[K]` does NOT extend `V`?',
+          options: [
+            { id: 'a', text: 'They become optional in the output type', isCorrect: false },
+            { id: 'b', text: 'They become readonly in the output type', isCorrect: false },
+            { id: 'c', text: 'They are removed from the output type because mapping a key to never drops it', isCorrect: true },
+            { id: 'd', text: 'They become string keys in the output type', isCorrect: false },
+          ],
+          explanation: 'When the `as` clause maps a key to `never`, TypeScript removes that key from the output entirely. This is the standard technique for filtering keys in mapped types: produce `never` for keys you want to exclude, and keep `K` for keys you want to include.',
+        },
+        {
+          question: 'What does the `-?` modifier do in `type Required<T> = { [K in keyof T]-?: T[K] }`?',
+          options: [
+            { id: 'a', text: 'It subtracts the ? character from key names', isCorrect: false },
+            { id: 'b', text: 'It removes the optional modifier from all properties, making them required', isCorrect: true },
+            { id: 'c', text: 'It makes all properties nullable', isCorrect: false },
+            { id: 'd', text: 'It is a syntax error — modifiers cannot be negative', isCorrect: false },
+          ],
+          explanation: '`-?` removes the optional modifier. `+?` adds it. `-readonly` removes readonly. `+readonly` adds it. These modifier prefixes give you precise control over each mapped property\'s optionality and mutability. The built-in Required<T> uses -? internally.',
+        },
+        {
+          question: 'You combine a mapped type with a conditional type: `type VoidMethods<T> = { [K in keyof T]: T[K] extends (...args: infer P) => any ? (...args: P) => void : T[K] }`. What does this produce?',
+          options: [
+            { id: 'a', text: 'A type where all methods are removed', isCorrect: false },
+            { id: 'b', text: 'A type where all non-method properties are removed', isCorrect: false },
+            { id: 'c', text: 'A type identical to T but with all method return types changed to void', isCorrect: true },
+            { id: 'd', text: 'A type where all properties become functions returning void', isCorrect: false },
+          ],
+          explanation: 'The mapped type iterates every key K. For each key, the conditional checks: is this a function? If yes, preserve the parameter types (infer P) but change the return to void. If no, keep T[K] unchanged. The result is T with all methods made to return void — useful for spy types and void adapters.',
+        },
+        {
+          question: 'Given `type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] }`, why does it check `T[K] extends object` before recursing?',
+          options: [
+            { id: 'a', text: 'To avoid making primitive types (string, number, boolean) optional', isCorrect: false },
+            { id: 'b', text: 'To prevent infinite recursion on primitive types, which have no keyof to iterate', isCorrect: true },
+            { id: 'c', text: 'Because DeepPartial only works on object types', isCorrect: false },
+            { id: 'd', text: 'To skip undefined properties in the recursion', isCorrect: false },
+          ],
+          explanation: 'Primitives like string, number, and boolean have no keyof — recursing into them would either error or produce never. The `extends object` guard is the base case of the recursion: stop recursing when you hit a primitive, just return T[K] as-is. Without it, the type would recurse indefinitely.',
+        },
+      ],
+    },
+
+    {
+      level: 'ts-variadic-tuples',
+      questions: [
+        {
+          question: 'What does `type Prepend<T extends unknown[], Label> = [Label, ...T]` produce when called as `Prepend<[number, boolean], string>`?',
+          options: [
+            { id: 'a', text: '[number, boolean, string]', isCorrect: false },
+            { id: 'b', text: '[string, ...Array<number | boolean>]', isCorrect: false },
+            { id: 'c', text: '[string, number, boolean]', isCorrect: true },
+            { id: 'd', text: 'string & [number, boolean]', isCorrect: false },
+          ],
+          explanation: 'The spread `...T` inside the tuple type expands T\'s elements in place. `[Label, ...T]` with Label=string and T=[number, boolean] produces [string, number, boolean]. TypeScript tracks the exact type at every position, unlike a plain array union.',
+        },
+        {
+          question: 'Why is `type Last<T extends unknown[]> = T extends [...unknown[], infer L] ? L : never` more useful than accessing `T[number]`?',
+          options: [
+            { id: 'a', text: 'T[number] only works on arrays with exactly one element', isCorrect: false },
+            { id: 'b', text: 'Last<T> extracts specifically the last element\'s type, while T[number] gives the union of ALL element types', isCorrect: true },
+            { id: 'c', text: 'Last<T> works at runtime while T[number] is only compile-time', isCorrect: false },
+            { id: 'd', text: 'They are equivalent — Last<T> is just more readable', isCorrect: false },
+          ],
+          explanation: 'T[number] returns the union of every element type in the tuple — for [string, number, Date] it gives string | number | Date. Last<T> uses infer in the tail position of a rest element to capture specifically the last element type (Date), which is much more precise.',
+        },
+        {
+          question: 'In `function logged<A extends unknown[], R>(fn: (...args: A) => R): (...args: A) => R`, what does `A extends unknown[]` accomplish?',
+          options: [
+            { id: 'a', text: 'It restricts the wrapped function to only accept array arguments', isCorrect: false },
+            { id: 'b', text: 'It captures the full tuple type of the function\'s parameter list, preserving each parameter\'s type', isCorrect: true },
+            { id: 'c', text: 'It forces the wrapped function to accept unknown arguments', isCorrect: false },
+            { id: 'd', text: 'It makes the function return an array', isCorrect: false },
+          ],
+          explanation: 'Constraining A to `unknown[]` while using it as `...args: A` tells TypeScript to infer A as a tuple (not a plain array union). This preserves the exact type and position of every parameter — so the wrapper function has the same precise signature as the original function.',
+        },
+        {
+          question: 'What is the key advantage of `type Concat<A extends unknown[], B extends unknown[]> = [...A, ...B]` over just using `Array<A[number] | B[number]>`?',
+          options: [
+            { id: 'a', text: 'Concat is faster at runtime', isCorrect: false },
+            { id: 'b', text: 'Concat preserves the position and order of every element type, while the array approach loses positional information', isCorrect: true },
+            { id: 'c', text: 'The array approach causes a compile error', isCorrect: false },
+            { id: 'd', text: 'Concat works with empty tuples while the array approach does not', isCorrect: false },
+          ],
+          explanation: 'Array<A[number] | B[number]> produces a union array where every element could be any type from either tuple — positional information is lost. Concat<[string, number], [boolean, Date]> produces [string, number, boolean, Date] where TypeScript knows index 0 is string, index 1 is number, index 2 is boolean, and index 3 is Date.',
+        },
+        {
+          question: 'In a type-safe `pipe(value, fn1, fn2)` where fn1: (a: A) => B and fn2: (b: B) => C, what does TypeScript check that prevents mismatched step connections?',
+          options: [
+            { id: 'a', text: 'That all functions share the same parameter count', isCorrect: false },
+            { id: 'b', text: 'That the return type of fn1 matches the parameter type of fn2', isCorrect: true },
+            { id: 'c', text: 'That all functions have the same return type', isCorrect: false },
+            { id: 'd', text: 'That the value type extends unknown', isCorrect: false },
+          ],
+          explanation: 'The pipe type signature links fn1\'s output type to fn2\'s input type through a shared generic. If fn1 returns number but fn2 expects string, TypeScript raises a type error at the call site — the compiler validates that each pipe segment\'s output type matches the next segment\'s input type.',
+        },
+      ],
+    },
+
+    {
+      level: 'ts-branded-nominal-types',
+      questions: [
+        {
+          question: 'Why does `type UserId = string` NOT prevent passing a UserId where an OrderId (also `string`) is expected?',
+          options: [
+            { id: 'a', text: 'Because type aliases are always assignable to each other', isCorrect: false },
+            { id: 'b', text: 'Because TypeScript uses structural typing — both are just string, so they are interchangeable', isCorrect: true },
+            { id: 'c', text: 'Because TypeScript only checks compatibility at runtime', isCorrect: false },
+            { id: 'd', text: 'Because type aliases cannot be used as function parameters', isCorrect: false },
+          ],
+          explanation: 'TypeScript\'s structural typing checks shape, not name. Both UserId and OrderId are structurally identical (just string), so TypeScript allows substitution. This is a footgun: passing userId where orderId is expected compiles fine but causes a runtime bug.',
+        },
+        {
+          question: 'Given `type UserId = string & { readonly __brand: "UserId" }`, why does the `__brand` property not cause problems at runtime?',
+          options: [
+            { id: 'a', text: 'TypeScript automatically removes branded properties before compilation', isCorrect: false },
+            { id: 'b', text: 'The __brand property only exists at the type level — the runtime value is still a plain string', isCorrect: true },
+            { id: 'c', text: 'The & operator only works at the type level and is removed before runtime', isCorrect: false },
+            { id: 'd', text: 'Both b and c', isCorrect: false },
+          ],
+          explanation: 'The `{ readonly __brand: "UserId" }` part is a phantom type — it exists only in TypeScript\'s type system to make UserId structurally distinct from OrderId. The JavaScript output is still a plain string. The intersection `string & { __brand }` is zero-cost at runtime.',
+        },
+        {
+          question: 'What is the advantage of a smart constructor `function toEmail(raw: string): EmailAddress` over just using `raw as EmailAddress`?',
+          options: [
+            { id: 'a', text: 'Smart constructors are faster at compile time', isCorrect: false },
+            { id: 'b', text: 'Smart constructors validate the value before branding it, so the brand guarantees validity — not just origin', isCorrect: true },
+            { id: 'c', text: 'Using `as` is not allowed with branded types', isCorrect: false },
+            { id: 'd', text: 'Smart constructors allow branded types to work at runtime', isCorrect: false },
+          ],
+          explanation: '`as` is an unsafe cast — it brands any string without checking it. A smart constructor runs validation (e.g., checking @ and . for emails) BEFORE branding. The brand then becomes a guarantee: every EmailAddress in the system IS a valid email, not just a string that someone stamped with the brand.',
+        },
+        {
+          question: 'You have `type Milliseconds = Brand<number, "Milliseconds">` and `function waitFor(timeout: Milliseconds): Promise<void>`. What happens when you call `waitFor(5000)` without branding?',
+          options: [
+            { id: 'a', text: 'It works fine — numbers are always assignable to branded numbers', isCorrect: false },
+            { id: 'b', text: 'TypeScript raises a compile error because plain number is not assignable to Milliseconds', isCorrect: true },
+            { id: 'c', text: 'TypeScript automatically converts 5000 to a Milliseconds brand', isCorrect: false },
+            { id: 'd', text: 'It depends on whether strict mode is enabled', isCorrect: false },
+          ],
+          explanation: 'Branded types use intersection: `number & { __brand: "Milliseconds" }`. A plain number lacks the __brand property, so it\'s not assignable to Milliseconds. You must explicitly brand the value: `waitFor(Milliseconds(5000))`. This forces developers to consciously choose the unit, preventing millisecond/second confusion.',
+        },
+        {
+          question: 'When should you NOT use branded types?',
+          options: [
+            { id: 'a', text: 'When the same primitive type is used for multiple distinct concepts (e.g., UserId, OrderId)', isCorrect: false },
+            { id: 'b', text: 'When incorrect substitution has real consequences like security or data corruption', isCorrect: false },
+            { id: 'c', text: 'When a type is only used in one place, making the name alone sufficient context', isCorrect: true },
+            { id: 'd', text: 'When the codebase is large and mistakes are plausible', isCorrect: false },
+          ],
+          explanation: 'Branded types add overhead: smart constructors, type assertions at boundaries, and more types to maintain. If a type only appears in one place, its name already provides context and branding is over-engineering. Branding is most valuable when the SAME primitive (string/number) represents multiple distinct concepts that could be confused.',
+        },
+      ],
+    },
+
+    {
+      level: 'ts-error-handling-patterns',
+      questions: [
+        {
+          question: 'In TypeScript 4.0+, what is the type of `error` inside a `catch (error)` block?',
+          options: [
+            { id: 'a', text: 'Error', isCorrect: false },
+            { id: 'b', text: 'any', isCorrect: false },
+            { id: 'c', text: 'unknown', isCorrect: true },
+            { id: 'd', text: 'never', isCorrect: false },
+          ],
+          explanation: 'TypeScript 4.0+ changed catch clause variables from `any` to `unknown` (when `useUnknownInCatchVariables` is enabled, which is included in `strict`). This is correct — anything can be thrown in JavaScript. You must narrow the error before accessing its properties, forcing explicit error handling.',
+        },
+        {
+          question: 'In `type Result<T, E> = { ok: true; data: T } | { ok: false; error: E }`, what happens to `result.data` if TypeScript does NOT see an `if (result.ok)` check?',
+          options: [
+            { id: 'a', text: 'result.data is typed as T | undefined', isCorrect: false },
+            { id: 'b', text: 'TypeScript errors because data does not exist on the { ok: false; error: E } variant', isCorrect: true },
+            { id: 'c', text: 'result.data is typed as T', isCorrect: false },
+            { id: 'd', text: 'TypeScript infers the narrowed type automatically', isCorrect: false },
+          ],
+          explanation: 'Result is a discriminated union. Without narrowing through `if (result.ok)`, TypeScript sees both variants simultaneously. The `{ ok: false; error: E }` variant has no `data` property, so accessing `result.data` unconditionally raises a type error. This is exactly the safety the Result pattern provides — you MUST check before accessing.',
+        },
+        {
+          question: 'What is the purpose of the `never` check in a switch statement\'s default case: `const _exhaustive: never = error`?',
+          options: [
+            { id: 'a', text: 'It causes a runtime error if the default case is reached', isCorrect: false },
+            { id: 'b', text: 'It causes a compile error if any variant of the discriminated union is not handled in the switch', isCorrect: true },
+            { id: 'c', text: 'It marks the error as never so TypeScript skips further type checking', isCorrect: false },
+            { id: 'd', text: 'It narrows error to never so it can be used as a return value', isCorrect: false },
+          ],
+          explanation: 'If all union variants are handled in the switch cases, the default branch is unreachable and TypeScript narrows error to never. Assigning never to `_exhaustive: never` is valid. But if a new variant is added and its case is missing, the default is reachable and error is NOT never — assigning it to `_exhaustive: never` causes a compile error, telling you exactly what to fix.',
+        },
+        {
+          question: 'In Railway-Oriented Programming with `flatMapResult`, what happens when an early step returns `err("NETWORK_ERROR")`?',
+          options: [
+            { id: 'a', text: 'An exception is thrown and subsequent steps are skipped via the catch block', isCorrect: false },
+            { id: 'b', text: 'The error is passed through all subsequent flatMap calls unchanged, skipping their logic', isCorrect: true },
+            { id: 'c', text: 'The function automatically retries the failed step', isCorrect: false },
+            { id: 'd', text: 'Subsequent steps receive undefined as their input', isCorrect: false },
+          ],
+          explanation: 'In Railway-Oriented Programming, flatMap checks: "if the input is ok, apply the function; otherwise pass the error through unchanged." This means once a step fails, all subsequent steps are bypassed — the error travels down the chain without any more logic running. You only need to handle errors at the very end.',
+        },
+        {
+          question: 'What is the key advantage of `Option<T> = { isSome: true; value: T } | { isSome: false }` over simply returning `T | null`?',
+          options: [
+            { id: 'a', text: 'Option<T> is faster than T | null at runtime', isCorrect: false },
+            { id: 'b', text: 'Option<T> works with all TypeScript versions while T | null requires strictNullChecks', isCorrect: false },
+            { id: 'c', text: 'Option<T> forces callers to handle the absent case via the discriminant before accessing value, while null can be forgotten', isCorrect: true },
+            { id: 'd', text: 'T | null allows null to be accessed without narrowing', isCorrect: false },
+          ],
+          explanation: 'With T | null and strictNullChecks, TypeScript does require null handling. But Option<T>\'s `{ isSome: true; value: T }` variant makes `value` only accessible after checking `isSome` — the discriminated union structure makes the absent case impossible to ignore. It also carries more intent (None vs null) and works well in functional chaining patterns.',
+        },
+      ],
+    },
+
+    {
+      level: 'ts-type-safe-builders',
+      questions: [
+        {
+          question: 'In a basic builder with `build(): User { if (!this.data.id) throw new Error(...) }`, when is the missing-field error caught?',
+          options: [
+            { id: 'a', text: 'At compile time — TypeScript raises an error before the code runs', isCorrect: false },
+            { id: 'b', text: 'At runtime — when build() is actually called', isCorrect: true },
+            { id: 'c', text: 'At import time — when the builder module is loaded', isCorrect: false },
+            { id: 'd', text: 'Never — TypeScript ignores runtime checks in builder patterns', isCorrect: false },
+          ],
+          explanation: 'A basic builder\'s required-field validation is just a runtime check. The code compiles fine even if you call build() without setting required fields. The error only appears when the code actually runs — too late if this is a test fixture that needs to be reliable. The phantom type approach catches this at compile time instead.',
+        },
+        {
+          question: 'In `class Builder<Done extends string = never>`, what does `Done` track?',
+          options: [
+            { id: 'a', text: 'The number of methods that have been called', isCorrect: false },
+            { id: 'b', text: 'The union of field names that have been set so far', isCorrect: true },
+            { id: 'c', text: 'Whether the builder is ready to call build()', isCorrect: false },
+            { id: 'd', text: 'The type of the object being built', isCorrect: false },
+          ],
+          explanation: 'Done is a phantom type parameter that accumulates the names of set fields as a string union. Initially `never` (nothing set). After `.setId()` it becomes `"id"`. After `.setName()` it becomes `"id" | "name"`. The `build()` method is constrained to only exist when Done includes all required field names.',
+        },
+        {
+          question: 'Why does `build(this: Builder<Required>): User` only compile when all required fields are set?',
+          options: [
+            { id: 'a', text: 'Because TypeScript checks the runtime value of Done at the call site', isCorrect: false },
+            { id: 'b', text: 'Because the explicit `this` parameter constrains which builder instances can call build() — only those whose Done type satisfies Required', isCorrect: true },
+            { id: 'c', text: 'Because TypeScript injects a runtime check before calling build()', isCorrect: false },
+            { id: 'd', text: 'Because Required is a built-in TypeScript utility type', isCorrect: false },
+          ],
+          explanation: 'The explicit `this: Builder<Required>` parameter tells TypeScript: this method can only be called on an instance whose type is `Builder<Required>`. If Done is missing some required field names (e.g., `Builder<"id" | "email">` but Required includes "name"), the types don\'t match and TypeScript raises a compile-time error.',
+        },
+        {
+          question: 'Given function overloads `createUser(role: "admin"): AdminUser` and `createUser(role: "guest"): GuestUser`, what does TypeScript infer for `const u = createUser("admin")`?',
+          options: [
+            { id: 'a', text: 'AdminUser | GuestUser', isCorrect: false },
+            { id: 'b', text: 'AdminUser', isCorrect: true },
+            { id: 'c', text: 'AnyUser', isCorrect: false },
+            { id: 'd', text: 'The type depends on whether strict mode is enabled', isCorrect: false },
+          ],
+          explanation: 'TypeScript evaluates overloads in order and picks the first matching signature. `createUser("admin")` matches the first overload `(role: "admin"): AdminUser`, so TypeScript infers AdminUser — not the union. This lets you access AdminUser-specific properties like .permissions directly without narrowing.',
+        },
+        {
+          question: 'In a type-state machine, `function succeed<T>(state: Loading, data: T): Success<T>` only accepts `Loading`. What prevents calling `succeed(idle, data)` where idle is `Idle`?',
+          options: [
+            { id: 'a', text: 'TypeScript checks the status discriminant at runtime', isCorrect: false },
+            { id: 'b', text: 'The parameter type is `Loading` — TypeScript\'s type checker rejects Idle because it has status: "idle", not status: "loading"', isCorrect: true },
+            { id: 'c', text: 'The type state machine uses a class hierarchy that blocks Idle', isCorrect: false },
+            { id: 'd', text: 'You must add an explicit guard to reject Idle at runtime', isCorrect: false },
+          ],
+          explanation: 'The function signature `(state: Loading, ...)` requires a Loading type. Idle has `status: "idle"` while Loading has `status: "loading"` — structurally different. TypeScript\'s type checker rejects Idle at the call site with a compile error. No runtime guards needed — the type system enforces valid state transitions at compile time.',
+        },
+      ],
+    },
+
+    {
+      level: 'ts-declaration-merging',
+      questions: [
+        {
+          question: 'Which TypeScript construct supports declaration merging (being declared multiple times)?',
+          options: [
+            { id: 'a', text: 'type aliases', isCorrect: false },
+            { id: 'b', text: 'classes', isCorrect: false },
+            { id: 'c', text: 'interfaces', isCorrect: true },
+            { id: 'd', text: 'const declarations', isCorrect: false },
+          ],
+          explanation: 'Interfaces are the only standard construct that can be declared multiple times — TypeScript merges all declarations into one. Type aliases and classes raise "duplicate identifier" errors if declared twice. This is why frameworks expose their types as interfaces: so users can extend them via declaration merging.',
+        },
+        {
+          question: 'To add a `user` property to Express\'s `Request` interface, you use `declare module "express" { interface Request { user?: User } }`. Why must you have `import "express"` before this?',
+          options: [
+            { id: 'a', text: 'The import forces TypeScript to load Express\'s types before merging', isCorrect: false },
+            { id: 'b', text: 'Without the import, the file is treated as a script (global scope) instead of a module, changing the augmentation semantics', isCorrect: true },
+            { id: 'c', text: 'The import provides the User type used in the augmentation', isCorrect: false },
+            { id: 'd', text: 'Express requires the import to register the augmentation', isCorrect: false },
+          ],
+          explanation: 'In TypeScript, a file without any import/export statements is a script (global scope). A file with at least one import/export is a module. Module augmentation (`declare module "express" {...}`) only works inside a module file — it augments the named module. Without the import, it becomes a global declaration that doesn\'t actually merge with Express\'s types.',
+        },
+        {
+          question: 'You add a custom Jest matcher `toBeValidEmail()`. Besides implementing the matcher, what TypeScript file change makes it available with IntelliSense?',
+          options: [
+            { id: 'a', text: 'Add it to jest.config.ts as a custom matcher function', isCorrect: false },
+            { id: 'b', text: 'Extend `jest.Matchers<R>` in a `.d.ts` file using declaration merging', isCorrect: true },
+            { id: 'c', text: 'Import the matcher function in every test file that uses it', isCorrect: false },
+            { id: 'd', text: 'Add it to the global Window interface', isCorrect: false },
+          ],
+          explanation: 'Jest\'s matcher types are in the `jest.Matchers<R>` interface. To add your custom matcher to IntelliSense and type checking, you extend that interface in a `.d.ts` file: `declare global { namespace jest { interface Matchers<R> { toBeValidEmail(): R } } }`. Without this, TypeScript doesn\'t know the matcher exists even if it works at runtime.',
+        },
+        {
+          question: 'To make `process.env.DATABASE_URL` be typed as `string` (not `string | undefined`), what TypeScript technique do you use?',
+          options: [
+            { id: 'a', text: 'Cast process.env.DATABASE_URL with `as string` everywhere it is used', isCorrect: false },
+            { id: 'b', text: 'Augment NodeJS.ProcessEnv in a global declaration to declare DATABASE_URL as string', isCorrect: true },
+            { id: 'c', text: 'Use `exactOptionalPropertyTypes: false` in tsconfig', isCorrect: false },
+            { id: 'd', text: 'Add DATABASE_URL to the tsconfig compilerOptions', isCorrect: false },
+          ],
+          explanation: 'Augmenting `declare global { namespace NodeJS { interface ProcessEnv { DATABASE_URL: string } } }` merges DATABASE_URL (typed as string) into the global ProcessEnv interface. TypeScript then knows it is always a string, removing the need for non-null assertions or `as string` casts throughout the codebase.',
+        },
+        {
+          question: 'When should you use `export type { User }` instead of `export { User }`?',
+          options: [
+            { id: 'a', text: 'Only when User is defined with the `type` keyword (not interface)', isCorrect: false },
+            { id: 'b', text: 'When the file has `isolatedModules: true` — type-only exports must use `export type` so bundlers know they can be erased', isCorrect: true },
+            { id: 'c', text: 'Only when User is used as a generic type parameter somewhere', isCorrect: false },
+            { id: 'd', text: 'When User is re-exported from another module', isCorrect: false },
+          ],
+          explanation: 'With `isolatedModules: true` (required by Vite, esbuild, Babel), each file is compiled independently. The compiler doesn\'t know whether an export is a type or a value without the `type` keyword. `export type { User }` explicitly marks it as type-only, so bundlers can safely erase it without processing the full program.',
+        },
+      ],
+    },
+
+    {
+      level: 'ts-performance-compiler',
+      questions: [
+        {
+          question: 'What does `strict: true` in tsconfig.json actually do?',
+          options: [
+            { id: 'a', text: 'It enables only strictNullChecks and noImplicitAny', isCorrect: false },
+            { id: 'b', text: 'It enables a bundle of strict compiler flags including strictNullChecks, noImplicitAny, strictFunctionTypes, and others', isCorrect: true },
+            { id: 'c', text: 'It makes TypeScript refuse to compile any code with type assertions', isCorrect: false },
+            { id: 'd', text: 'It enables runtime type checking in addition to compile-time checking', isCorrect: false },
+          ],
+          explanation: '`strict: true` is shorthand for enabling multiple strict flags at once: strictNullChecks, noImplicitAny, strictFunctionTypes, strictPropertyInitialization, noImplicitThis, useUnknownInCatchVariables, and alwaysStrict. Each flag can also be set individually. It is the strongly recommended setting for all new TypeScript projects.',
+        },
+        {
+          question: 'You configure `paths: { "@pages/*": ["src/pages/*"] }` in tsconfig.json. After doing this, imports like `import { LoginPage } from "@pages/LoginPage"` still fail at runtime. What did you forget?',
+          options: [
+            { id: 'a', text: 'You must add @pages to the tsconfig include array', isCorrect: false },
+            { id: 'b', text: 'tsconfig paths only teach TypeScript about aliases — you must also configure the same aliases in your bundler (e.g., vite.config.ts)', isCorrect: true },
+            { id: 'c', text: 'Path aliases require declaration merging to work', isCorrect: false },
+            { id: 'd', text: 'You must use forward slashes in paths on all operating systems', isCorrect: false },
+          ],
+          explanation: 'tsconfig `paths` only inform TypeScript\'s type checker how to resolve imports for type checking. The actual bundler (Vite, webpack, esbuild) handles module resolution at build time and knows nothing about tsconfig paths. You must configure matching aliases in the bundler config separately — both must agree on the path mappings.',
+        },
+        {
+          question: 'Why does `isolatedModules: true` forbid `const enum`?',
+          options: [
+            { id: 'a', text: 'const enum was deprecated in TypeScript 5.0', isCorrect: false },
+            { id: 'b', text: 'const enum requires inlining values across files, which needs full program analysis — something isolatedModules prevents', isCorrect: true },
+            { id: 'c', text: 'const enum generates larger output than regular enum', isCorrect: false },
+            { id: 'd', text: 'const enum does not work with ESModule syntax', isCorrect: false },
+          ],
+          explanation: 'const enum values are inlined at every usage site across files. This requires the compiler to see the full program to know the values. With `isolatedModules: true`, each file is compiled independently — the compiler cannot look up const enum values from other files. Regular enum compiles to a JavaScript object that is importable at runtime, solving this.',
+        },
+        {
+          question: 'What is the difference between `@ts-ignore` and `@ts-expect-error`?',
+          options: [
+            { id: 'a', text: 'They are identical — both suppress TypeScript errors on the next line', isCorrect: false },
+            { id: 'b', text: '@ts-ignore silently suppresses any error. @ts-expect-error suppresses the error AND causes a new error if there is no error to suppress', isCorrect: true },
+            { id: 'c', text: '@ts-expect-error only works in test files', isCorrect: false },
+            { id: 'd', text: '@ts-ignore is deprecated — @ts-expect-error should always be used', isCorrect: false },
+          ],
+          explanation: '`@ts-expect-error` is the safer choice: it tells TypeScript "I expect an error here." If the error disappears (e.g., a TypeScript version fixes the issue, or the code changes), `@ts-expect-error` itself becomes an error — alerting you to remove it. `@ts-ignore` silently suppresses forever, masking problems that may have been resolved.',
+        },
+        {
+          question: 'Why does TypeScript recommend using `interface` over `type` for object shapes that are used frequently across a large codebase?',
+          options: [
+            { id: 'a', text: 'Interfaces support declaration merging while type aliases do not', isCorrect: false },
+            { id: 'b', text: 'Interfaces are cached by the type checker after first evaluation, while type aliases are re-evaluated at every usage — making interfaces faster in large codebases', isCorrect: true },
+            { id: 'c', text: 'Type aliases cause more verbose error messages than interfaces', isCorrect: false },
+            { id: 'd', text: 'Both a and b', isCorrect: false },
+          ],
+          explanation: 'Both interface and type alias support most of the same features. The performance difference: TypeScript caches the resolved type of an interface after its first evaluation. Type aliases are structural descriptions re-evaluated each time. In large codebases with frequently-used types, interfaces can measurably reduce type-check time. Declaration merging is a separate (but also valid) advantage.',
+        },
+      ],
+    },
+
 
   ],
   playwright: [
