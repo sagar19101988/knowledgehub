@@ -95,7 +95,7 @@ export const ZONE_TIERS: Record<string, { id: string; label: string; color: stri
       id: 'intermediate',
       label: 'Intermediate',
       color: 'text-sky-400',
-      moduleIds: ['ts-generics','ts-utility-types','ts-keyof-typeof','ts-mapped-types','ts-conditional-types','ts-template-literal-types','ts-indexed-access','ts-classes','ts-modules-imports','ts-decorators'],
+      moduleIds: ['ts-generics','ts-utility-types','ts-keyof-typeof','ts-mapped-types','ts-conditional-types','ts-template-literal-types','ts-indexed-access','ts-classes','ts-oop-principles','ts-modules-imports','ts-decorators'],
     },
     {
       id: 'expert',

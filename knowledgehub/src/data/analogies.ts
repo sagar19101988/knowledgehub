@@ -11251,6 +11251,417 @@ const count = await orders.getOrderCount();
         `
       },
       {
+        id: 'ts-oop-principles',
+        title: 'OOP Principles',
+        analogy: "Object-Oriented Programming is like running a professional kitchen. The Head Chef (Abstraction) writes the recipe cards without the line cooks needing to know where the ingredients were sourced. Each station (Encapsulation) keeps its own tools locked away — the grill station doesn't let the pastry station touch their knives. New chefs (Inheritance) are trained on the base recipes and can adapt them for specials without rewriting the whole menu. Any trained chef can step in and execute the same recipe differently based on their section (Polymorphism) — the restaurant manager just calls 'prepare dish 4' and each station handles it their way.",
+        lessonMarkdown: `
+### 1. Why OOP Exists — The Problem It Solves
+
+*💡 Analogy: Early programs were like writing instructions on a single enormous scroll. Everything was in one place, order mattered absolutely, and changing one line could unravel everything below it. OOP invented the idea of cutting the scroll into separate, self-contained chapters — each responsible for its own data and behaviour.*
+
+Before OOP, code was **procedural** — a long sequence of instructions. As programs grew, this became unmanageable: functions reached into global variables unpredictably, the same logic was copy-pasted everywhere, and changing one thing broke ten others.
+
+OOP solves this by organising code around **objects** — bundles of data (properties) and behaviour (methods) that work together. TypeScript implements OOP using classes, interfaces, inheritance, and access modifiers.
+
+The four pillars of OOP are not just features — they are four **strategies** for managing complexity:
+
+| Pillar | Strategy | One-line definition |
+|--------|----------|---------------------|
+| **Encapsulation** | Hide complexity | Bundle data + behaviour, restrict direct access |
+| **Abstraction** | Simplify interfaces | Expose WHAT, hide HOW |
+| **Inheritance** | Reuse structure | Child classes extend parent behaviour |
+| **Polymorphism** | Flexible substitution | Same call, different behaviour based on type |
+
+### 2. Encapsulation — Protect Your State
+
+*💡 Analogy: A bank account is the textbook example. The balance is private — you cannot reach into the bank's database and type in a new number. Instead you interact through controlled methods: deposit() and withdraw(), which enforce rules (can't withdraw more than balance, can't deposit negative amounts). The WHAT (your balance) is accessible; the HOW it's stored is hidden.*
+
+Encapsulation means **bundling data with the methods that operate on it, and restricting direct access** to the data from outside.
+
+\`\`\`typescript
+class TestSession {
+  private _results: Array<{ name: string; passed: boolean }> = [];
+  private _startedAt: Date = new Date();
+  private _isActive: boolean = true;
+
+  // Controlled write — only through add(), never direct array access
+  addResult(name: string, passed: boolean): void {
+    if (!this._isActive) throw new Error('Session is closed');
+    this._results.push({ name, passed });
+  }
+
+  // Controlled read — computed view, not raw data
+  get passRate(): number {
+    if (this._results.length === 0) return 0;
+    return (this._results.filter(r => r.passed).length / this._results.length) * 100;
+  }
+
+  get duration(): number {
+    return Date.now() - this._startedAt.getTime();
+  }
+
+  close(): void {
+    this._isActive = false;
+  }
+}
+
+const session = new TestSession();
+session.addResult('Login Test', true);
+session.addResult('Checkout Test', false);
+
+console.log(session.passRate);   // 50 — read through controlled getter
+// session._results = [];        // ❌ TypeScript blocks this — private
+// session._isActive = false;    // ❌ Blocked — must use close()
+session.close();
+\`\`\`
+
+**Why encapsulation matters in QA:**
+- Test fixtures can't be accidentally corrupted between tests
+- Page Objects hide Playwright implementation details — tests work with readable methods
+- Data models enforce invariants (a TestRun can't be both pass and fail)
+
+### 3. Abstraction — Simplify What You Expose
+
+*💡 Analogy: When you press the accelerator pedal in a car, you don't interact with fuel injection, combustion timing, or throttle valve angles. The car's interface (pedals, wheel, gear lever) is an abstraction — it hides the hundreds of mechanical steps behind a simple, consistent interface. You only need to know WHAT to do, not HOW it works.*
+
+Abstraction means **exposing a clean, minimal interface while hiding the implementation details**. In TypeScript, this is achieved with interfaces and abstract classes.
+
+\`\`\`typescript
+// The abstraction — this is ALL the caller needs to know
+interface IAPIClient {
+  get<T>(path: string): Promise<T>;
+  post<T>(path: string, body: unknown): Promise<T>;
+  delete(path: string): Promise<void>;
+}
+
+// The implementation — complex details hidden from the caller
+class APIClient implements IAPIClient {
+  private baseURL: string;
+  private token: string;
+  private retries: number = 3;
+  private timeout: number = 30000;
+
+  constructor(baseURL: string, token: string) {
+    this.baseURL = baseURL;
+    this.token = token;
+  }
+
+  async get<T>(path: string): Promise<T> {
+    const response = await fetch(\\\`\\\${this.baseURL}\\\${path}\\\`, {
+      headers: { Authorization: \\\`Bearer \\\${this.token}\\\` },
+      signal: AbortSignal.timeout(this.timeout),
+    });
+    if (!response.ok) throw new Error(\\\`GET \\\${path} failed: \\\${response.status}\\\`);
+    return response.json() as T;
+  }
+
+  async post<T>(path: string, body: unknown): Promise<T> {
+    // ... full retry logic, error handling, logging
+    return {} as T;
+  }
+
+  async delete(path: string): Promise<void> {
+    // ... implementation details
+  }
+}
+
+// Test code only cares about the abstraction — not how it works internally
+async function runTest(client: IAPIClient): Promise<void> {
+  const users = await client.get<User[]>('/api/users');
+  console.log(\\\`Found \\\${users.length} users\\\`);
+}
+
+// Swap the real client for a mock in tests — same interface, different implementation
+class MockAPIClient implements IAPIClient {
+  async get<T>(_path: string): Promise<T> { return [] as T; }
+  async post<T>(_path: string, _body: unknown): Promise<T> { return {} as T; }
+  async delete(_path: string): Promise<void> {}
+}
+
+await runTest(new APIClient('https://staging.test.com', 'token'));   // real
+await runTest(new MockAPIClient());                                    // mock — same call!
+\`\`\`
+
+### 4. Inheritance — Reuse and Extend
+
+*💡 Analogy: Think of a car model lineup. The base model has engine, steering, seats, and safety features. The Sport edition EXTENDS the base — it inherits everything but adds a turbo engine and sport suspension. The Luxury edition extends the base differently — same foundation, different upgrades. Nobody rebuilt the engine from scratch for each model.*
+
+You've already seen \`extends\`, \`super()\`, and \`override\` in the classes module. The OOP-level principle is: **use inheritance when a child IS-A specialised version of the parent, and shares most of its structure and behaviour.**
+
+\`\`\`typescript
+abstract class BasePage {
+  constructor(protected page: Page) {}
+  async waitForLoad() { await this.page.waitForLoadState('networkidle'); }
+  abstract navigate(): Promise<void>;
+}
+
+class LoginPage extends BasePage {           // LoginPage IS-A BasePage ✅
+  override async navigate() {
+    await this.page.goto('/login');
+    await this.waitForLoad();  // inherited
+  }
+  async login(email: string, pass: string) { /* ... */ }
+}
+
+class DashboardPage extends BasePage {       // DashboardPage IS-A BasePage ✅
+  override async navigate() {
+    await this.page.goto('/dashboard');
+    await this.waitForLoad();  // inherited
+  }
+  async getWelcomeText() { /* ... */ }
+}
+\`\`\`
+
+**The IS-A test:** Before using inheritance, ask "Is a DashboardPage a BasePage?" If yes, inheritance fits. If the answer feels forced ("Is a Logger a TestRunner?"), use composition instead.
+
+### 5. Polymorphism — Same Call, Different Behaviour
+
+*💡 Analogy: A universal TV remote has a single POWER button. Press it in front of a Samsung and a Samsung turns on. Press it in front of a Sony and a Sony turns on. The remote doesn't know or care what brand is in front of it — it sends the same signal and each TV responds in its own way. That is polymorphism: one interface, many implementations.*
+
+Polymorphism is the most powerful OOP pillar — and the most often missed by beginners. It means **code can work with objects of different types through a shared interface, without knowing the specific type**.
+
+**The core pattern — treating different objects uniformly through their shared type:**
+\`\`\`typescript
+abstract class BasePage {
+  constructor(protected page: Page) {}
+  abstract navigate(): Promise<void>;
+  abstract assertLoaded(): Promise<void>;
+}
+
+class LoginPage extends BasePage {
+  override async navigate() { await this.page.goto('/login'); }
+  override async assertLoaded() {
+    await this.page.waitForSelector('[data-testid="login-form"]');
+  }
+}
+
+class DashboardPage extends BasePage {
+  override async navigate() { await this.page.goto('/dashboard'); }
+  override async assertLoaded() {
+    await this.page.waitForSelector('[data-testid="dashboard-header"]');
+  }
+}
+
+class CheckoutPage extends BasePage {
+  override async navigate() { await this.page.goto('/checkout'); }
+  override async assertLoaded() {
+    await this.page.waitForSelector('[data-testid="cart-summary"]');
+  }
+}
+
+// ✨ Polymorphism in action — this function works for ANY page
+// It doesn't know or care which page it receives
+async function verifyPageLoads(page: BasePage): Promise<void> {
+  await page.navigate();    // calls whichever navigate() the object has
+  await page.assertLoaded(); // calls whichever assertLoaded() the object has
+}
+
+// Run the same test logic across all pages — polymorphically
+const pages: BasePage[] = [
+  new LoginPage(page),
+  new DashboardPage(page),
+  new CheckoutPage(page),
+];
+
+for (const p of pages) {
+  await verifyPageLoads(p);   // same call — three different behaviours
+}
+\`\`\`
+
+**Polymorphism through interfaces — even more flexible:**
+\`\`\`typescript
+// Any class can implement this — no shared ancestor required
+interface Reportable {
+  generateReport(): string;
+}
+
+class TestRun implements Reportable {
+  constructor(private name: string, private passed: boolean) {}
+  generateReport(): string {
+    return \\\`[\\\${this.passed ? 'PASS' : 'FAIL'}] \\\${this.name}\\\`;
+  }
+}
+
+class APICheckResult implements Reportable {
+  constructor(private endpoint: string, private status: number) {}
+  generateReport(): string {
+    return \\\`API \\\${this.endpoint} → \\\${this.status}\\\`;
+  }
+}
+
+class DatabaseCheck implements Reportable {
+  constructor(private query: string, private rowCount: number) {}
+  generateReport(): string {
+    return \\\`DB: \\\${this.query} returned \\\${this.rowCount} rows\\\`;
+  }
+}
+
+// One function, three completely unrelated classes — unified by the interface
+function printAllReports(reportables: Reportable[]): void {
+  for (const r of reportables) {
+    console.log(r.generateReport());  // polymorphic call
+  }
+}
+
+printAllReports([
+  new TestRun('Login', true),
+  new APICheckResult('/api/users', 200),
+  new DatabaseCheck('SELECT * FROM users', 42),
+]);
+// [PASS] Login
+// API /api/users → 200
+// DB: SELECT * FROM users returned 42 rows
+\`\`\`
+
+**Why polymorphism is the cornerstone of scalable test frameworks:**
+\`\`\`typescript
+// You can add a new page type WITHOUT touching verifyPageLoads
+class ProfilePage extends BasePage {
+  override async navigate() { await this.page.goto('/profile'); }
+  override async assertLoaded() {
+    await this.page.waitForSelector('[data-testid="profile-header"]');
+  }
+}
+
+// Just add it to the array — existing code unchanged
+pages.push(new ProfilePage(page));
+// The loop still works — it calls the right methods automatically
+\`\`\`
+
+### 6. Composition vs Inheritance — The Critical Design Choice
+
+*💡 Analogy: Inheritance is like genetic traits — you get them from your parents automatically, whether you want all of them or not. Composition is like building with LEGO — you pick exactly the bricks you want and assemble them. LEGO is almost always more flexible than DNA.*
+
+**The golden rule: "Favour composition over inheritance"** — use inheritance only when a true IS-A relationship exists.
+
+**When inheritance is right — IS-A relationship:**
+\`\`\`typescript
+// ✅ LoginPage IS-A BasePage — same core structure, specialised behaviour
+class LoginPage extends BasePage { ... }
+
+// ✅ AdminUser IS-A User — same user type with extra capabilities
+class AdminUser extends User { ... }
+\`\`\`
+
+**When composition is right — HAS-A relationship:**
+\`\`\`typescript
+// ❌ Inheritance misuse — a TestReporter is NOT a TestRunner
+class LoggingTestRunner extends TestRunner {
+  override async run() {
+    console.log('Starting...');
+    await super.run();
+    console.log('Done.');
+  }
+}
+
+// ✅ Composition — TestRunner HAS-A logger, injected from outside
+class Logger {
+  log(message: string): void { console.log(\\\`[\\\${new Date().toISOString()}] \\\${message}\\\`); }
+}
+
+class TestRunner {
+  constructor(
+    private name: string,
+    private logger: Logger   // composed in — not inherited
+  ) {}
+
+  async run(): Promise<void> {
+    this.logger.log(\\\`Starting: \\\${this.name}\\\`);
+    // ... run tests
+    this.logger.log(\\\`Finished: \\\${this.name}\\\`);
+  }
+}
+
+// Swap the logger without touching TestRunner
+const runner1 = new TestRunner('Suite A', new Logger());             // console logger
+const runner2 = new TestRunner('Suite B', new FileLogger('log.txt')); // file logger
+const runner3 = new TestRunner('Suite C', new SilentLogger());        // no output
+\`\`\`
+
+**Composition advantages:**
+\`\`\`typescript
+// Real QA example — composing a Page Object from capability objects
+class ReportGenerator { generatePDF(): string { return '...'; } }
+class Screenshotter  { async capture(): Promise<string> { return '...'; } }
+class NetworkLogger  { startRecording(): void { } stopRecording(): Request[] { return []; } }
+
+class CheckoutPage {
+  // Each capability is a separate, testable, swappable object
+  constructor(
+    private page: Page,
+    private reporter: ReportGenerator,    // HAS-A reporter
+    private screenshot: Screenshotter,    // HAS-A screenshotter
+    private networkLog: NetworkLogger,    // HAS-A network logger
+  ) {}
+
+  async placeOrder(): Promise<void> {
+    this.networkLog.startRecording();
+    await this.page.click('[data-testid="place-order"]');
+    const requests = this.networkLog.stopRecording();
+    const shot = await this.screenshot.capture();
+    // Each collaborator does its own job — CheckoutPage orchestrates
+  }
+}
+\`\`\`
+
+### 7. All Four Pillars Together — A Complete QA Example
+
+\`\`\`typescript
+// ABSTRACTION — the interface that callers depend on
+interface ITestReporter {
+  report(name: string, passed: boolean, durationMs: number): void;
+  summary(): string;
+}
+
+// ENCAPSULATION — data is private, only exposed through controlled methods
+class ConsoleReporter implements ITestReporter {
+  private results: Array<{ name: string; passed: boolean; ms: number }> = [];
+
+  report(name: string, passed: boolean, ms: number): void {
+    this.results.push({ name, passed, ms });
+    console.log(\\\`[\\\${passed ? '✅' : '❌'}] \\\${name} (\\\${ms}ms)\\\`);
+  }
+
+  get passRate() {
+    return Math.round((this.results.filter(r => r.passed).length / this.results.length) * 100);
+  }
+
+  summary(): string {
+    return \\\`\\\${this.results.length} tests | \\\${this.passRate}% pass rate\\\`;
+  }
+}
+
+// INHERITANCE — SlackReporter extends and specialises ConsoleReporter
+class SlackReporter extends ConsoleReporter {
+  constructor(private webhookURL: string) {
+    super();
+  }
+
+  // POLYMORPHISM — overrides report() but is still usable as ITestReporter
+  override report(name: string, passed: boolean, ms: number): void {
+    super.report(name, passed, ms);   // keep console output too
+    fetch(this.webhookURL, {          // add Slack notification
+      method: 'POST',
+      body: JSON.stringify({ text: \\\`[\\\${passed ? 'PASS' : 'FAIL'}] \\\${name}\\\` }),
+    });
+  }
+}
+
+// POLYMORPHISM — this function accepts ANY ITestReporter
+async function runTests(reporter: ITestReporter): Promise<void> {
+  reporter.report('Login Test',    true,  850);
+  reporter.report('Checkout Test', false, 1200);
+  reporter.report('Logout Test',   true,  320);
+  console.log(reporter.summary());
+}
+
+// Same function call — different reporter behaviour
+await runTests(new ConsoleReporter());              // console only
+await runTests(new SlackReporter('https://...'));   // console + Slack
+\`\`\`
+        `
+      },
+      {
         id: 'ts-modules-imports',
         title: 'Modules, Imports & Exports',
         analogy: "Modules are like rooms in a building, each with its own door. Public files (named exports) are doors with name labels — visitors must use the exact name to enter. The default export is the building's main entrance — visitors can call it whatever they like once inside. Type-only imports are blueprint copies — they describe shape but bring no actual content with them.",

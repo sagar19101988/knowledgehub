@@ -4567,6 +4567,62 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ]
     },
     {
+      level: 'ts-oop-principles',
+      questions: [
+        {
+          question: 'Which OOP pillar is demonstrated when a private field can only be read via a getter?',
+          options: [
+            { id: 'a', text: 'Polymorphism', isCorrect: false },
+            { id: 'b', text: 'Inheritance', isCorrect: false },
+            { id: 'c', text: 'Encapsulation', isCorrect: true },
+            { id: 'd', text: 'Abstraction', isCorrect: false },
+          ],
+          explanation: 'Encapsulation bundles data with the methods that operate on it and restricts direct access — the private field is hidden, the getter is the controlled interface. The WHAT (the value) is accessible; the HOW it\'s stored is hidden.',
+        },
+        {
+          question: 'You have `interface IAPIClient` with `get()` and `post()` methods. `APIClient` and `MockAPIClient` both implement it. Which pillar lets `runTest(client: IAPIClient)` work with either class?',
+          options: [
+            { id: 'a', text: 'Encapsulation', isCorrect: false },
+            { id: 'b', text: 'Abstraction', isCorrect: true },
+            { id: 'c', text: 'Inheritance', isCorrect: false },
+            { id: 'd', text: 'Polymorphism', isCorrect: false },
+          ],
+          explanation: 'Abstraction exposes a clean, minimal interface (IAPIClient) while hiding implementation details — callers only depend on the interface, not the concrete class. This lets you swap a real client for a mock without changing test code.',
+        },
+        {
+          question: 'A `verifyPageLoads(page: BasePage)` function calls `page.navigate()` and `page.assertLoaded()`. It works correctly for `LoginPage`, `DashboardPage`, and `CheckoutPage` without modification. Which pillar makes this possible?',
+          options: [
+            { id: 'a', text: 'Inheritance', isCorrect: false },
+            { id: 'b', text: 'Encapsulation', isCorrect: false },
+            { id: 'c', text: 'Abstraction', isCorrect: false },
+            { id: 'd', text: 'Polymorphism', isCorrect: true },
+          ],
+          explanation: 'Polymorphism — the same call (`page.navigate()`) produces different behaviour based on the actual runtime type. The function works for any BasePage subclass without knowing which one it received. You can add a new page type and the loop still works untouched.',
+        },
+        {
+          question: 'Instead of `class LoggingTestRunner extends TestRunner`, you inject a `Logger` object into TestRunner\'s constructor. This design principle is called:',
+          options: [
+            { id: 'a', text: 'Favour inheritance over composition', isCorrect: false },
+            { id: 'b', text: 'Favour composition over inheritance', isCorrect: true },
+            { id: 'c', text: 'The IS-A principle', isCorrect: false },
+            { id: 'd', text: 'Abstract class delegation', isCorrect: false },
+          ],
+          explanation: '"Favour composition over inheritance" — a TestRunner is NOT a Logger (fails the IS-A test). Injecting the Logger as a dependency (HAS-A) is more flexible: you can swap console, file, or silent loggers without changing TestRunner at all.',
+        },
+        {
+          question: '`class SlackReporter extends ConsoleReporter` calls `super.report()` then adds its own Slack notification. Which combination of OOP pillars does this demonstrate?',
+          options: [
+            { id: 'a', text: 'Only Inheritance', isCorrect: false },
+            { id: 'b', text: 'Only Polymorphism', isCorrect: false },
+            { id: 'c', text: 'Inheritance + Polymorphism', isCorrect: true },
+            { id: 'd', text: 'Encapsulation + Abstraction', isCorrect: false },
+          ],
+          explanation: '`extends ConsoleReporter` is Inheritance (reusing parent structure and behaviour); `override report()` adding different behaviour is Polymorphism (same `ITestReporter` call, different runtime result). Both pillars work together — inheritance provides the foundation, polymorphism provides the flexibility.',
+        },
+      ],
+    },
+
+    {
       level: 'ts-modules-imports',
       questions: [
         {
