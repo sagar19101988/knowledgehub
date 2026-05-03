@@ -5184,36 +5184,444 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
   ],
   playwright: [
     {
-      level: 'basic',
+      level: 'pw-what-is-playwright',
       questions: [
         {
-          question: 'What is Playwright?',
+          question: 'In the testing pyramid, what makes End-to-End (E2E) tests fundamentally different from unit tests?',
           options: [
-            { id: 'a', text: 'A tool that writes tests for you.', isCorrect: false },
-            { id: 'b', text: 'A library that lets code take control of a web browser to automate clicks and typing.', isCorrect: true },
-            { id: 'c', text: 'A framework for building websites.', isCorrect: false }
+            { id: 'a', text: 'E2E tests are written in TypeScript while unit tests are in JavaScript', isCorrect: false },
+            { id: 'b', text: 'E2E tests verify the entire application through a real browser, while unit tests verify a single function in isolation', isCorrect: true },
+            { id: 'c', text: 'Unit tests are mandatory; E2E tests are optional', isCorrect: false },
+            { id: 'd', text: 'E2E tests run faster than unit tests', isCorrect: false },
           ],
-          explanation: 'Playwright acts like a robot user, opening Chrome or Firefox and clicking through your app.'
+          explanation: 'E2E tests open a real browser and click through the actual UI like a user would, exercising the frontend, backend, and database together. Unit tests verify a single isolated function with no browser involved. E2E tests are slower but give the highest confidence the product actually works.',
         },
         {
-          question: 'What is a Locator?',
+          question: 'Which company built Playwright, and what protocol does it use to control Chromium?',
           options: [
-            { id: 'a', text: 'A way to find specific elements (like buttons or inputs) on a webpage.', isCorrect: true },
-            { id: 'b', text: 'A GPS map for your code.', isCorrect: false },
-            { id: 'c', text: 'A function that finds lost files.', isCorrect: false }
+            { id: 'a', text: 'Google — uses WebDriver', isCorrect: false },
+            { id: 'b', text: 'Microsoft — uses the Chrome DevTools Protocol (CDP)', isCorrect: true },
+            { id: 'c', text: 'Mozilla — uses Marionette', isCorrect: false },
+            { id: 'd', text: 'Apple — uses WebKit Inspector Protocol', isCorrect: false },
           ],
-          explanation: 'Locators tell Playwright exactly what to interact with, e.g., page.getByRole("button").'
+          explanation: 'Playwright was built by Microsoft (released January 2020) and uses the Chrome DevTools Protocol — the same protocol Chrome\'s own DevTools use. CDP is a persistent WebSocket connection that is faster and more reliable than the HTTP-based WebDriver protocol Selenium uses.',
         },
         {
-          question: 'What does page.goto() do?',
+          question: 'Your team needs to test that a feature works correctly in Safari. Which automation tool can you use?',
           options: [
-            { id: 'a', text: 'It closes the browser.', isCorrect: false },
-            { id: 'b', text: 'It navigates the automated browser to a specific URL.', isCorrect: true },
-            { id: 'c', text: 'It clicks the "Go" button.', isCorrect: false }
+            { id: 'a', text: 'Cypress', isCorrect: false },
+            { id: 'b', text: 'Selenium only', isCorrect: false },
+            { id: 'c', text: 'Playwright (it controls WebKit, the Safari engine)', isCorrect: true },
+            { id: 'd', text: 'No automation tool can test Safari', isCorrect: false },
           ],
-          explanation: 'page.goto() is always the first step, telling the browser which website to open.'
-        }
-      ]
+          explanation: 'Playwright supports WebKit, the engine that powers Safari — making it the modern choice for cross-browser testing. Cypress does not support WebKit/Safari at all. Selenium has SafariDriver but with significant limitations.',
+        },
+        {
+          question: 'Which scenario is a BAD use case for Playwright?',
+          options: [
+            { id: 'a', text: 'Verifying a complete checkout flow with payment', isCorrect: false },
+            { id: 'b', text: 'Testing that a pure JavaScript function returns the correct value when given specific inputs', isCorrect: true },
+            { id: 'c', text: 'Verifying the UI renders an error message when an API returns 500', isCorrect: false },
+            { id: 'd', text: 'Testing that file uploads work across browsers', isCorrect: false },
+          ],
+          explanation: 'A pure utility function has no browser involvement, so launching a real browser to test it wastes resources. Use Jest or Vitest for that. Playwright excels when a real user would interact through a browser. The rule of thumb: if it never touches a browser, use a lighter tool.',
+        },
+        {
+          question: 'You hear that Playwright has "auto-waiting". What does this mean for QA engineers?',
+          options: [
+            { id: 'a', text: 'You must add manual sleep() commands before every action', isCorrect: false },
+            { id: 'b', text: 'Playwright automatically waits for elements to be visible, stable, enabled, and clickable before acting — eliminating most manual waits', isCorrect: true },
+            { id: 'c', text: 'Tests automatically run again if they fail', isCorrect: false },
+            { id: 'd', text: 'Playwright waits 5 seconds at the start of every test', isCorrect: false },
+          ],
+          explanation: 'Auto-waiting means before every click/fill/etc., Playwright internally polls a checklist (attached to DOM, visible, stable, enabled, not covered) for up to 30 seconds. This single feature eliminates the flakiness that plagued older tools where you had to add sleep(2000) manually everywhere.',
+        },
+      ],
+    },
+    {
+      level: 'pw-installation-setup',
+      questions: [
+        {
+          question: 'What is the single command that initialises a new Playwright project with TypeScript, example tests, and browser binaries?',
+          options: [
+            { id: 'a', text: 'npm install playwright', isCorrect: false },
+            { id: 'b', text: 'npm init playwright@latest', isCorrect: true },
+            { id: 'c', text: 'playwright create-project', isCorrect: false },
+            { id: 'd', text: 'npx playwright new', isCorrect: false },
+          ],
+          explanation: 'npm init playwright@latest is the official scaffolding command. It prompts you for TypeScript vs JavaScript, where to put tests, whether to add a GitHub Actions workflow, and offers to install browser binaries. The whole setup takes about 60 seconds.',
+        },
+        {
+          question: 'After running the init command, you try to run tests but get "browserType.launch: Executable doesn\'t exist". What happened?',
+          options: [
+            { id: 'a', text: 'You need to restart your terminal', isCorrect: false },
+            { id: 'b', text: 'The browser binaries were not downloaded — run npx playwright install', isCorrect: true },
+            { id: 'c', text: 'Node.js is missing', isCorrect: false },
+            { id: 'd', text: 'Your test files have syntax errors', isCorrect: false },
+          ],
+          explanation: 'Playwright needs actual browser installations (Chromium, Firefox, WebKit) separate from any Chrome/Firefox you have. The install command downloads them to a Playwright-specific cache. The error appears when these binaries are missing — running npx playwright install fixes it.',
+        },
+        {
+          question: 'Where should your test files live by default in a Playwright project?',
+          options: [
+            { id: 'a', text: 'In a folder called src/', isCorrect: false },
+            { id: 'b', text: 'In a folder called tests/ (default convention, configurable via testDir in playwright.config.ts)', isCorrect: true },
+            { id: 'c', text: 'In the root project folder', isCorrect: false },
+            { id: 'd', text: 'In node_modules/', isCorrect: false },
+          ],
+          explanation: 'The default folder is tests/, but it\'s configurable via the testDir option in playwright.config.ts. Test files use the .spec.ts naming convention (e.g., login.spec.ts) — Playwright auto-discovers any matching file in the testDir.',
+        },
+        {
+          question: 'Roughly how much disk space do the Playwright browser binaries consume?',
+          options: [
+            { id: 'a', text: 'About 5 MB', isCorrect: false },
+            { id: 'b', text: 'About 50 MB', isCorrect: false },
+            { id: 'c', text: 'About 300 MB (Chromium + Firefox + WebKit combined)', isCorrect: true },
+            { id: 'd', text: 'Over 5 GB', isCorrect: false },
+          ],
+          explanation: 'Each browser is ~80–150 MB. The full set is roughly 300 MB. They\'re cached centrally per user (~/.cache/ms-playwright/ on Linux/Mac) and shared between Playwright projects, so you don\'t re-download them per project.',
+        },
+        {
+          question: 'Which of these files should you NEVER edit or commit to version control?',
+          options: [
+            { id: 'a', text: 'playwright.config.ts', isCorrect: false },
+            { id: 'b', text: 'tests/*.spec.ts', isCorrect: false },
+            { id: 'c', text: 'node_modules/', isCorrect: true },
+            { id: 'd', text: 'package.json', isCorrect: false },
+          ],
+          explanation: 'node_modules/ contains downloaded library code generated by npm install — it\'s machine-specific, huge, and reproducible from package.json + package-lock.json. The default .gitignore excludes it. The other three files are core project artifacts you actively maintain.',
+        },
+      ],
+    },
+    {
+      level: 'pw-first-test-anatomy',
+      questions: [
+        {
+          question: 'In the test signature `async ({ page }) => { ... }`, what is `page`?',
+          options: [
+            { id: 'a', text: 'A keyword built into TypeScript', isCorrect: false },
+            { id: 'b', text: 'A Playwright fixture — a fresh browser tab automatically provided to every test', isCorrect: true },
+            { id: 'c', text: 'The HTML page being tested', isCorrect: false },
+            { id: 'd', text: 'A global variable', isCorrect: false },
+          ],
+          explanation: 'page is Playwright\'s most important built-in fixture. Each test gets its own brand new page (a fresh browser tab) so tests cannot share state. The destructuring syntax `{ page }` pulls it out of the fixture object Playwright passes in.',
+        },
+        {
+          question: 'What happens if you forget to write `await` before a Playwright action like `page.goto(...)`?',
+          options: [
+            { id: 'a', text: 'TypeScript prevents the code from compiling', isCorrect: false },
+            { id: 'b', text: 'The action is skipped entirely', isCorrect: false },
+            { id: 'c', text: 'The test races ahead of the browser, causing flakiness — the action may not have completed before the next line runs', isCorrect: true },
+            { id: 'd', text: 'Playwright throws a fatal error', isCorrect: false },
+          ],
+          explanation: 'Without await, the test does not wait for the action to finish. The next line runs immediately, even though the browser is still navigating/clicking/etc. This causes hard-to-debug flakiness — sometimes the test passes (browser was fast), sometimes fails. TypeScript and ESLint will warn you about this — listen to those warnings.',
+        },
+        {
+          question: 'You have 5 tests in one file, all of which need to log in first. Which feature eliminates duplicate login code?',
+          options: [
+            { id: 'a', text: 'test.beforeEach() — runs the login code automatically before each test', isCorrect: true },
+            { id: 'b', text: 'test.only() — focuses on one test', isCorrect: false },
+            { id: 'c', text: 'test.skip() — skips the duplicate code', isCorrect: false },
+            { id: 'd', text: 'test.describe() — describes are not for setup', isCorrect: false },
+          ],
+          explanation: 'test.beforeEach() runs the contained code before every test in its scope. Putting login there once means each test starts from a logged-in state without copy-pasting login code. After the test runs, test.afterEach() can clean up. This keeps tests independent and DRY.',
+        },
+        {
+          question: 'What does `test.describe()` do in a test file?',
+          options: [
+            { id: 'a', text: 'It runs the test', isCorrect: false },
+            { id: 'b', text: 'It groups related tests under a common heading — useful for reports, filtering, and applying shared hooks', isCorrect: true },
+            { id: 'c', text: 'It adds a description that becomes the test name', isCorrect: false },
+            { id: 'd', text: 'It marks tests as documentation-only', isCorrect: false },
+          ],
+          explanation: 'describe blocks group related tests. In reports they appear as "Group Name > Test Name" giving structure to large suites. You can run only one group with --grep, and beforeEach/afterEach inside a describe scope only apply to tests in that group.',
+        },
+        {
+          question: 'Why does Playwright force every test to be `async`?',
+          options: [
+            { id: 'a', text: 'TypeScript requires it', isCorrect: false },
+            { id: 'b', text: 'Because browser actions take real time (network, rendering, animations) and the test must wait for them via await — async is required to use await', isCorrect: true },
+            { id: 'c', text: 'It is a Microsoft naming convention', isCorrect: false },
+            { id: 'd', text: 'For performance reasons', isCorrect: false },
+          ],
+          explanation: 'JavaScript\'s await keyword can only be used inside async functions. Since every Playwright action returns a Promise (because browsers take time to respond), every test must use await on every action — and therefore must be declared async. Skipping async would prevent using await and produce broken tests.',
+        },
+      ],
+    },
+    {
+      level: 'pw-locators',
+      questions: [
+        {
+          question: 'According to the Playwright locator priority, which should you reach for FIRST when finding a Submit button?',
+          options: [
+            { id: 'a', text: 'page.locator(".btn-submit")', isCorrect: false },
+            { id: 'b', text: 'page.getByRole("button", { name: "Submit" })', isCorrect: true },
+            { id: 'c', text: 'page.locator("//button[contains(text(),\\\'Submit\\\')]")', isCorrect: false },
+            { id: 'd', text: 'page.getByTestId("submit-btn")', isCorrect: false },
+          ],
+          explanation: 'getByRole is the recommended top priority. It mirrors how users find elements ("the Submit button"), survives CSS changes, encourages accessible HTML, and is self-documenting. CSS classes change with redesigns and XPath is fragile and hard to read — both should be last resorts.',
+        },
+        {
+          question: 'You need to test a form input. The HTML is `<label for="email">Email Address</label><input id="email" type="email">`. What is the BEST locator?',
+          options: [
+            { id: 'a', text: 'page.locator("#email")', isCorrect: false },
+            { id: 'b', text: 'page.locator("input[type=email]")', isCorrect: false },
+            { id: 'c', text: 'page.getByLabel("Email Address")', isCorrect: true },
+            { id: 'd', text: 'page.locator("input").first()', isCorrect: false },
+          ],
+          explanation: 'getByLabel finds the input via its visible label. This is the most stable locator for form fields: labels rarely change, are visible to users (and screen readers), and don\'t depend on internal IDs or HTML structure. If the developer adds a wrapper div or changes the input\'s class, your test still works.',
+        },
+        {
+          question: 'A page has 10 different "Delete" buttons (one per row in a user table). You need to click the Delete button on the row for "Alice". What technique should you use?',
+          options: [
+            { id: 'a', text: 'getByText("Delete").first() — just click the first one and hope', isCorrect: false },
+            { id: 'b', text: 'Chain locators: getByRole("row", { name: "Alice" }).getByRole("button", { name: "Delete" })', isCorrect: true },
+            { id: 'c', text: 'Use a CSS selector with nth-child', isCorrect: false },
+            { id: 'd', text: 'Add IDs to every Delete button manually', isCorrect: false },
+          ],
+          explanation: 'Chaining narrows the search scope. The first locator finds the row containing "Alice", and the second finds the Delete button within that row. This is the correct way to disambiguate when many similar elements exist on a page. .first() is fragile because row order can change.',
+        },
+        {
+          question: 'When is using `getByTestId` (via data-testid attributes) appropriate?',
+          options: [
+            { id: 'a', text: 'For every single element on the page — it is the safest locator', isCorrect: false },
+            { id: 'b', text: 'When semantic locators (getByRole, getByLabel) cannot uniquely identify the element, and developers add data-testid intentionally', isCorrect: true },
+            { id: 'c', text: 'Only for buttons', isCorrect: false },
+            { id: 'd', text: 'Never — it should always be avoided', isCorrect: false },
+          ],
+          explanation: 'getByTestId requires developers to explicitly add data-testid attributes — it is a partnership between QA and dev. It is the right choice when the button\'s text changes contextually, or when many similar elements exist. Overusing it everywhere ties tests to internal naming, defeating the purpose of user-facing locators.',
+        },
+        {
+          question: 'Why is the locator `page.locator("div > span:nth-child(3) > button.btn-blue-xl")` considered fragile?',
+          options: [
+            { id: 'a', text: 'It is too long to read', isCorrect: false },
+            { id: 'b', text: 'It depends on exact HTML structure (positions, parent elements) and CSS classes — any small change to the page breaks it', isCorrect: true },
+            { id: 'c', text: 'CSS selectors are always wrong', isCorrect: false },
+            { id: 'd', text: 'It only works in Chromium', isCorrect: false },
+          ],
+          explanation: 'This locator depends on three brittle things: a specific HTML hierarchy (div > span), a specific position (3rd child), and a specific CSS class (btn-blue-xl). A frontend redesign changing any of these breaks the test, even though the user-facing functionality is unchanged. User-facing locators (getByRole, getByText) survive these changes.',
+        },
+      ],
+    },
+    {
+      level: 'pw-actions',
+      questions: [
+        {
+          question: 'What is the difference between `locator.fill("text")` and `locator.type("text")`?',
+          options: [
+            { id: 'a', text: 'They are identical', isCorrect: false },
+            { id: 'b', text: 'fill() clears the field and sets the value in one operation; type() simulates pressing each key one at a time (slower, useful for autocomplete testing)', isCorrect: true },
+            { id: 'c', text: 'fill() is for passwords; type() is for everything else', isCorrect: false },
+            { id: 'd', text: 'type() works only in Chromium', isCorrect: false },
+          ],
+          explanation: 'fill() is the fast, reliable choice for 99% of tests — it sets the input value directly. type() simulates real keystrokes character by character with optional delay, useful only when testing real-typing behaviour like autocomplete suggestions or debounced input handlers.',
+        },
+        {
+          question: 'Before clicking a button, which check does Playwright NOT perform automatically?',
+          options: [
+            { id: 'a', text: 'The element is attached to the DOM', isCorrect: false },
+            { id: 'b', text: 'The element is visible', isCorrect: false },
+            { id: 'c', text: 'The element is enabled (not disabled)', isCorrect: false },
+            { id: 'd', text: 'The browser tab is the active tab in your operating system', isCorrect: true },
+          ],
+          explanation: 'Playwright\'s auto-wait checks: attached to DOM, visible, stable (not animating), enabled, not covered, receives pointer events. It does not check OS-level focus on the tab — Playwright drives the browser regardless of OS window focus. This means tests work correctly even when running headless or in the background.',
+        },
+        {
+          question: 'How do you select the option "United Kingdom" from a real `<select>` HTML dropdown labelled "Country"?',
+          options: [
+            { id: 'a', text: 'page.getByLabel("Country").click(); page.getByText("United Kingdom").click()', isCorrect: false },
+            { id: 'b', text: 'page.getByLabel("Country").selectOption("United Kingdom")', isCorrect: true },
+            { id: 'c', text: 'page.getByLabel("Country").fill("United Kingdom")', isCorrect: false },
+            { id: 'd', text: 'page.getByLabel("Country").type("United Kingdom")', isCorrect: false },
+          ],
+          explanation: 'selectOption() is built specifically for native <select> elements. It can match by visible text (default), by value attribute ({ value: "gb" }), or by index. For CUSTOM dropdowns built with divs (not real <select>), you click to open then click an option — option B works only for real <select>.',
+        },
+        {
+          question: 'How do you upload a file using Playwright?',
+          options: [
+            { id: 'a', text: 'Click the input, wait for OS dialog, type the path', isCorrect: false },
+            { id: 'b', text: 'page.getByLabel("Upload").setInputFiles("./path/to/file.pdf")', isCorrect: true },
+            { id: 'c', text: 'page.uploadFile("./path/to/file.pdf")', isCorrect: false },
+            { id: 'd', text: 'File uploads cannot be automated in Playwright', isCorrect: false },
+          ],
+          explanation: 'setInputFiles() bypasses the native OS file dialog by attaching the file directly to the <input type="file"> element. This works the same way across all browsers. You can attach a single file, multiple files, or even an in-memory buffer — the latter being useful for testing without committing fixture files.',
+        },
+        {
+          question: 'You navigate to a Single Page Application (SPA) that fetches data after the page loads. The default `page.goto()` returns before the data is rendered. What should you do?',
+          options: [
+            { id: 'a', text: 'Add page.waitForTimeout(5000)', isCorrect: false },
+            { id: 'b', text: 'Use the waitUntil option: page.goto("/dashboard", { waitUntil: "networkidle" }) — waits until network requests settle', isCorrect: true },
+            { id: 'c', text: 'Reload the page until it works', isCorrect: false },
+            { id: 'd', text: 'SPAs cannot be tested with Playwright', isCorrect: false },
+          ],
+          explanation: 'SPAs commonly fetch data AFTER the initial HTML loads. The default load event fires once the HTML is parsed but before async fetches complete. waitUntil: "networkidle" waits until there are no network requests for 500ms — much more reliable for SPAs. waitForTimeout is a code smell — fixed sleeps are flaky.',
+        },
+      ],
+    },
+    {
+      level: 'pw-assertions',
+      questions: [
+        {
+          question: 'Why is a Playwright test without any `expect()` assertions considered broken?',
+          options: [
+            { id: 'a', text: 'It will not compile', isCorrect: false },
+            { id: 'b', text: 'It only verifies that no actions threw exceptions — it does not verify the application produced the correct outcome', isCorrect: true },
+            { id: 'c', text: 'Playwright will refuse to run it', isCorrect: false },
+            { id: 'd', text: 'Tests without assertions run twice as slow', isCorrect: false },
+          ],
+          explanation: 'A click that triggers a 500 error still "succeeds" from Playwright\'s perspective — it clicked successfully. Without assertions, the test cannot detect that the application failed. Every test must end with at least one expect() that verifies the actual outcome (a success message, the URL changed, the cart updated, etc.).',
+        },
+        {
+          question: 'What is the difference between `toHaveText("Hello")` and `toContainText("Hello")`?',
+          options: [
+            { id: 'a', text: 'They are aliases — same behaviour', isCorrect: false },
+            { id: 'b', text: 'toHaveText requires the element\'s text to be EXACTLY "Hello"; toContainText passes if "Hello" appears anywhere within the element\'s text', isCorrect: true },
+            { id: 'c', text: 'toHaveText is for inputs; toContainText is for paragraphs', isCorrect: false },
+            { id: 'd', text: 'toContainText is deprecated', isCorrect: false },
+          ],
+          explanation: 'Use toHaveText when you know the EXACT expected text (e.g., a cart count "3"). Use toContainText when text includes dynamic data (e.g., "Order placed successfully on 2026-01-15" — you only care that "Order placed" is present). For input field values, use toHaveValue, not toHaveText.',
+        },
+        {
+          question: 'You have 5 fields to verify on a confirmation page. You want to see ALL failures in the report, not just the first one. Which feature do you use?',
+          options: [
+            { id: 'a', text: 'Wrap each in a try/catch', isCorrect: false },
+            { id: 'b', text: 'Use expect.soft() — records each failure but lets the test continue running, failing only at the end', isCorrect: true },
+            { id: 'c', text: 'Run the test 5 times', isCorrect: false },
+            { id: 'd', text: 'Use multiple test() blocks', isCorrect: false },
+          ],
+          explanation: 'expect.soft() records the failure but does not throw — subsequent assertions still run. The test fails at the end if any soft assertion failed. This is ideal for verifying multiple independent fields. Don\'t use it for steps that depend on previous steps (no point checking later state if earlier setup failed).',
+        },
+        {
+          question: 'How long does Playwright wait for an `expect(locator).toBeVisible()` assertion to become true by default?',
+          options: [
+            { id: 'a', text: 'It does not wait — it checks immediately', isCorrect: false },
+            { id: 'b', text: 'About 5 seconds (configurable globally and per-assertion)', isCorrect: true },
+            { id: 'c', text: '30 minutes', isCorrect: false },
+            { id: 'd', text: 'Until you press Ctrl+C', isCorrect: false },
+          ],
+          explanation: 'Playwright assertions automatically retry every ~50ms for up to 5 seconds (default expect timeout), polling until the condition becomes true. This is why you don\'t need manual waits before assertions — the assertion itself handles waiting. Configure globally via expect: { timeout: ... } or per-call via { timeout: ... }.',
+        },
+        {
+          question: 'After clicking a "Login" button, you want to verify the page navigated to /dashboard. Which assertion is correct?',
+          options: [
+            { id: 'a', text: 'await expect(page.url).toBe("/dashboard")', isCorrect: false },
+            { id: 'b', text: 'await expect(page).toHaveURL("/dashboard")', isCorrect: true },
+            { id: 'c', text: 'expect(page.url() === "/dashboard").toBe(true)', isCorrect: false },
+            { id: 'd', text: 'await page.assertURL("/dashboard")', isCorrect: false },
+          ],
+          explanation: 'expect(page).toHaveURL() is the page-level assertion for verifying the current URL. It supports exact match, relative paths (combined with baseURL), and regex patterns. Like all expect() assertions, it auto-waits and retries — useful since navigation takes time after a click.',
+        },
+      ],
+    },
+    {
+      level: 'pw-config',
+      questions: [
+        {
+          question: 'Why is setting `baseURL` in playwright.config.ts strongly recommended?',
+          options: [
+            { id: 'a', text: 'It makes tests run faster', isCorrect: false },
+            { id: 'b', text: 'Tests can use relative paths like page.goto("/login"), which makes switching between staging/production environments a one-line config change instead of editing every test', isCorrect: true },
+            { id: 'c', text: 'It is required for Playwright to work', isCorrect: false },
+            { id: 'd', text: 'It enables HTTP/2 in tests', isCorrect: false },
+          ],
+          explanation: 'Without baseURL, every test hardcodes the full URL ("https://staging.myapp.com/login"). To switch environments you\'d edit every test. With baseURL, tests use relative paths — one config change updates all tests. Combined with environment variables (BASE_URL=...), you can run the same tests against any environment.',
+        },
+        {
+          question: 'In a CI environment, which config setting helps recover from transient flaky failures (e.g., a single network blip)?',
+          options: [
+            { id: 'a', text: 'timeout: 60000', isCorrect: false },
+            { id: 'b', text: 'retries: 2 (retries failed tests up to 2 times before reporting failure)', isCorrect: true },
+            { id: 'c', text: 'fullyParallel: true', isCorrect: false },
+            { id: 'd', text: 'reporter: "html"', isCorrect: false },
+          ],
+          explanation: 'retries: 2 means a failed test gets 2 more attempts before being reported as failed. This eliminates noise from transient failures (network blips, slow CI runners) without masking real bugs (a real bug fails all 3 times). Common pattern: retries: process.env.CI ? 2 : 0 — retry on CI but fail fast locally where you want immediate feedback.',
+        },
+        {
+          question: 'In playwright.config.ts, what does `trace: "on-first-retry"` capture?',
+          options: [
+            { id: 'a', text: 'A trace file (DOM snapshots, network log, screenshots, actions timeline) — but only when a test is being retried after an initial failure', isCorrect: true },
+            { id: 'b', text: 'A simple text log', isCorrect: false },
+            { id: 'c', text: 'Just a screenshot', isCorrect: false },
+            { id: 'd', text: 'Nothing — it is deprecated', isCorrect: false },
+          ],
+          explanation: 'A trace is an interactive recording of the test: every action, DOM snapshot, network request, console message. on-first-retry only records during retries (saving disk and CPU on healthy runs). View with `npx playwright show-trace trace.zip` — invaluable for debugging tests that fail on CI but pass locally.',
+        },
+        {
+          question: 'You configure 3 projects: chromium, firefox, webkit. What happens when you run `npx playwright test`?',
+          options: [
+            { id: 'a', text: 'Only Chromium runs because it is listed first', isCorrect: false },
+            { id: 'b', text: 'Every test runs 3 times — once in each browser', isCorrect: true },
+            { id: 'c', text: 'A random browser is chosen', isCorrect: false },
+            { id: 'd', text: 'You must specify which project on the command line', isCorrect: false },
+          ],
+          explanation: 'projects = parallel test runs of the same suite under different conditions (typically different browsers). The default behaviour runs every test in every project. Use --project=firefox to run only one. This is how you achieve cross-browser coverage from a single test suite.',
+        },
+        {
+          question: 'Which reporter produces an interactive HTML dashboard with screenshots, traces, and per-test details that you can open in a browser?',
+          options: [
+            { id: 'a', text: '"list"', isCorrect: false },
+            { id: 'b', text: '"html"', isCorrect: true },
+            { id: 'c', text: '"junit"', isCorrect: false },
+            { id: 'd', text: '"dot"', isCorrect: false },
+          ],
+          explanation: 'The html reporter produces a beautiful interactive dashboard. Open it with `npx playwright show-report`. Other reporters: "list" prints colourful per-test progress to the console, "junit" outputs XML for CI systems (Jenkins, GitHub Actions), "dot" prints one dot per test for compact CI logs. You can use multiple reporters simultaneously.',
+        },
+      ],
+    },
+    {
+      level: 'pw-running-tests',
+      questions: [
+        {
+          question: 'You want to watch your tests run in a real visible browser window instead of headless mode. Which flag do you use?',
+          options: [
+            { id: 'a', text: '--debug', isCorrect: false },
+            { id: 'b', text: '--headed', isCorrect: true },
+            { id: 'c', text: '--visible', isCorrect: false },
+            { id: 'd', text: '--ui', isCorrect: false },
+          ],
+          explanation: '--headed opens a real browser window so you can watch the test execute. Useful when developing tests or debugging unexpected failures. Don\'t use it on CI (no display). For step-by-step debugging with the Playwright Inspector, use --debug instead — it implies --headed plus pause-and-step controls.',
+        },
+        {
+          question: 'What does `npx playwright codegen` do?',
+          options: [
+            { id: 'a', text: 'Generates a config file', isCorrect: false },
+            { id: 'b', text: 'Opens a browser at a URL and generates Playwright test code as you click and type — useful for quickly drafting a test', isCorrect: true },
+            { id: 'c', text: 'Runs all tests with code coverage', isCorrect: false },
+            { id: 'd', text: 'Compiles your TypeScript', isCorrect: false },
+          ],
+          explanation: 'codegen records your manual interactions with a website and writes the equivalent Playwright code in real time. It uses the recommended locator priority (getByRole, getByLabel) automatically. Treat the output as a starting draft — you\'ll typically refine it (add assertions, parameterise data, use fixtures). Great for onboarding new QA engineers.',
+        },
+        {
+          question: 'You only want to run tests whose name contains "checkout". Which command works?',
+          options: [
+            { id: 'a', text: 'npx playwright test --only checkout', isCorrect: false },
+            { id: 'b', text: 'npx playwright test -g "checkout" (the -g flag is short for --grep)', isCorrect: true },
+            { id: 'c', text: 'npx playwright test --filter checkout', isCorrect: false },
+            { id: 'd', text: 'npx playwright test checkout', isCorrect: false },
+          ],
+          explanation: 'The -g (or --grep) flag matches test names against a regex pattern. "checkout" matches any test with checkout in its name across all files. To run a specific FILE instead, just pass the file path: npx playwright test tests/login.spec.ts. You can combine: npx playwright test tests/login.spec.ts -g "invalid".',
+        },
+        {
+          question: 'After a test run, how do you open the interactive HTML report?',
+          options: [
+            { id: 'a', text: 'Open dist/index.html in a browser', isCorrect: false },
+            { id: 'b', text: 'npx playwright show-report', isCorrect: true },
+            { id: 'c', text: 'npx playwright report --html', isCorrect: false },
+            { id: 'd', text: 'The report opens automatically and cannot be re-opened', isCorrect: false },
+          ],
+          explanation: 'show-report launches a local web server and opens the most recent HTML report in your default browser. The report shows every test, screenshots, videos, and traces — and you can re-open it any time after a run. For CI, the HTML output is typically uploaded as an artefact for the team to download and view.',
+        },
+        {
+          question: 'A test fails on CI but passes locally. Your config has `trace: "on-first-retry"`. What do you do?',
+          options: [
+            { id: 'a', text: 'Re-run the test on CI hoping it passes', isCorrect: false },
+            { id: 'b', text: 'Download the trace.zip artefact from CI and open it with `npx playwright show-trace trace.zip` — the trace shows exactly what happened on CI step-by-step', isCorrect: true },
+            { id: 'c', text: 'Skip the test', isCorrect: false },
+            { id: 'd', text: 'Increase the timeout to 5 minutes', isCorrect: false },
+          ],
+          explanation: 'The trace is your remote debugging tool. It captures every action, DOM snapshot, network request, and console message during the failed run. show-trace opens an interactive viewer where you can step through the failure as if you were there. This single feature is why Playwright is so much better than Selenium for diagnosing CI-only failures.',
+        },
+      ],
     },
     {
       level: 'intermediate',

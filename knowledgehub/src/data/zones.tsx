@@ -141,7 +141,7 @@ export const ZONE_TIERS: Record<string, { id: string; label: string; color: stri
     },
   ],
   playwright: [
-    { id: 'beginner',     label: 'Beginner',     color: 'text-emerald-400', moduleIds: ['basic']        },
+    { id: 'beginner',     label: 'Beginner',     color: 'text-emerald-400', moduleIds: ['pw-what-is-playwright','pw-installation-setup','pw-first-test-anatomy','pw-locators','pw-actions','pw-assertions','pw-config','pw-running-tests'] },
     { id: 'intermediate', label: 'Intermediate', color: 'text-sky-400',     moduleIds: ['intermediate'] },
     { id: 'expert',       label: 'Expert',       color: 'text-amber-400',   moduleIds: ['expert']       },
   ],

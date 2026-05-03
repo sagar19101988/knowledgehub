@@ -13981,26 +13981,2061 @@ processId(orderId);  // This line SHOULD fail — @ts-expect-error confirms it d
     id: 'playwright',
     levels: [
       {
-        id: 'basic',
-        title: 'Basic: Automation',
-        analogy: "Playwright is a literal robot ghost that possesses your computer browser. You hand it a script, and it physically opens Chrome, moves the mouse, clicks buttons, and types on the keyboard exactly like a real human QA engineer would.",
+        id: 'pw-what-is-playwright',
+        title: 'What is Playwright & Why End-to-End Testing?',
+        analogy: "Think of a software application like a restaurant. Unit tests check that the chef's knife is sharp. Integration tests verify the kitchen prepares a dish correctly. End-to-End testing is the health inspector who walks in through the front door, sits at a table, orders a full meal, and verifies that the host greets correctly, the waiter takes the order, the kitchen cooks it, and the dish arrives at the table — every part of the experience working together from the customer's perspective. Playwright is the health inspector's clipboard.",
         lessonMarkdown: `
-### 1. What is Playwright?
-*💡 Analogy: It's an incredibly fast, invisible intern who can click through your website a thousand times a minute and never gets bored.*
+### 1. The Testing Pyramid — Where Playwright Fits
 
-Playwright is a modern, open-source test automation framework built by Microsoft. It is designed to perform end-to-end (E2E) testing. This means instead of just testing a small chunk of backend code in isolation, Playwright actually spins up a real instance of Chromium, Firefox, or WebKit, navigates to your website, and interacts with the UI directly. This ensures that the frontend buttons, the backend APIs, and the database all work together in harmony.
+*💡 Analogy: Inspecting a car. You check individual parts (unit test), run systems together — engine with transmission, brakes with ABS (integration test), then take it on a real road test drive (E2E test). Each level catches different problems. The road test is slowest but gives the most realistic confidence.*
 
-### 2. Locators
-*💡 Analogy: Giving someone a treasure map. You don't just say "Dig somewhere." You say, "Find the giant oak tree, walk 10 paces north, and dig under the red rock."*
+Software testing exists on a spectrum:
 
-Before the robot can click a button, it has to find it. Locators are the core mechanism used to target specific elements in the DOM (the HTML structure of the page). Playwright provides highly resilient locators like \`page.getByRole('button', { name: 'Submit' })\` or \`page.getByText('Welcome back')\`. Locators are the eyes of your automation script.
+| Test Level | What It Tests | Speed | Confidence |
+|------------|--------------|-------|------------|
+| **Unit Test** | One function in isolation | Milliseconds | Low |
+| **Integration Test** | Multiple components together | Seconds | Medium |
+| **End-to-End (E2E)** | Whole application via real browser | Seconds-Minutes | **Highest** |
 
-### 3. Navigation
-*💡 Analogy: Getting into a taxi and giving the driver an exact address. The driver cannot take you anywhere until they know where to start.*
+**Why E2E matters for QA:** Unit tests are written by developers. Integration tests verify services connect. But neither answers: *"Does the actual website work when a real user clicks through it?"* That's E2E — and Playwright is the modern tool that automates it.
 
-Every single end-to-end test must begin by telling the browser where to go. The \`page.goto('https://example.com')\` command instructs the browser to navigate to a specific URL. The script will automatically wait for the page's core HTML to finish loading before it proceeds to the next step, ensuring the test doesn't fail trying to click a button that hasn't downloaded yet.
+A Playwright test literally:
+1. Opens a real Chrome, Firefox, or Safari browser
+2. Navigates to your website's URL
+3. Clicks, types, scrolls — exactly like a human
+4. Verifies that the right things appeared
+5. Closes the browser
+
+This is the most powerful form of automated testing a QA engineer owns.
+
+---
+
+### 2. What Playwright Actually Is
+
+*💡 Analogy: Playwright is a puppet master for web browsers. The browser is the puppet — opening pages, clicking buttons. Playwright is the puppeteer — controlling every movement through invisible strings. The strings are instructions sent over the browser's internal communication protocol.*
+
+Playwright is a **free, open-source test automation framework** built by **Microsoft**, released in January 2020. It was created by the same engineers who originally built Puppeteer at Google.
+
+**How it talks to the browser — the technical edge:**
+
+| Old way (Selenium) | Playwright |
+|--------------------|------------|
+| WebDriver protocol — HTTP requests for every command | Chrome DevTools Protocol (CDP) — persistent WebSocket |
+| Slow, request-response cycle | Always-open channel, instant commands |
+| Race conditions, flaky tests | Browser state perfectly synced |
+
+CDP is the same protocol that Chrome's own Developer Tools use. By speaking this language directly, Playwright is faster, more reliable, and unlocks features WebDriver-based tools simply cannot do.
+
+**Quick facts:**
+- Creator: Microsoft (MIT licence)
+- Languages: JavaScript / TypeScript (primary), Python, Java, C#
+- Browsers: Chromium, Firefox, WebKit (Safari engine)
+- Update cadence: weekly releases
+
+---
+
+### 3. Playwright vs Selenium vs Cypress
+
+*💡 Analogy: Selenium is an old reliable postal service — works everywhere but slow with paperwork. Cypress is a fast city courier — same-origin only, no Safari, no multi-tab. Playwright is a modern delivery drone — fast, anywhere, multiple packages at once.*
+
+| Feature | Selenium | Cypress | **Playwright** |
+|---------|----------|---------|---------------|
+| **Browsers** | All (incl. legacy) | Chromium + Firefox | Chromium, Firefox, **WebKit/Safari** |
+| **Multiple tabs** | Difficult | ❌ Not supported | ✅ Yes |
+| **Iframes** | Difficult | Limited | ✅ Yes |
+| **Auto-waiting** | ❌ Manual sleeps | ✅ Yes | ✅ Yes |
+| **Network mocking** | Not built-in | ✅ Yes | ✅ Yes |
+| **API testing** | ❌ No | Limited | ✅ Built-in |
+| **File downloads** | Workarounds | Workarounds | ✅ Built-in |
+| **Mobile emulation** | Via Appium | Limited | ✅ Built-in |
+
+**Why most new QA teams choose Playwright:**
+- Real products have **Safari users** — Cypress can't test Safari, Playwright can
+- Multi-tab flows (payment redirects, OAuth) are common — only Playwright handles them
+- One framework covers UI + API + visual + accessibility testing
+- TypeScript-first design = excellent IDE support and type safety
+
+---
+
+### 4. What Playwright Can Test — Beyond Just Clicking
+
+*💡 Analogy: Most QA engineers first see Playwright as a "click-through-the-UI" tool. That's like seeing a Swiss Army knife as just a knife. The blade is there — but so are the saw, screwdriver, magnifying glass, and corkscrew.*
+
+**UI / Functional Testing:**
+\`\`\`typescript
+await page.goto('/checkout');
+await page.getByLabel('Email').fill('test@example.com');
+await page.getByRole('button', { name: 'Place Order' }).click();
+await expect(page.getByText('Order confirmed!')).toBeVisible();
+\`\`\`
+
+**API Testing — built directly into Playwright:**
+\`\`\`typescript
+const response = await request.post('/api/users', {
+  data: { name: 'Alice', email: 'alice@test.com' }
+});
+expect(response.status()).toBe(201);
+\`\`\`
+
+**Network Mocking — simulate API failures:**
+\`\`\`typescript
+// Return fake 500 error to test error UI without backend changes
+await page.route('/api/orders', route => route.fulfill({
+  status: 500,
+  body: JSON.stringify({ error: 'Service unavailable' })
+}));
+\`\`\`
+
+**Visual Regression:**
+\`\`\`typescript
+await expect(page).toHaveScreenshot('checkout-page.png');
+\`\`\`
+
+**Mobile emulation:**
+\`\`\`typescript
+// In playwright.config.ts
+use: { ...devices['iPhone 14'] }
+\`\`\`
+
+For QA, this means **one framework** covers almost your entire testing portfolio.
+
+---
+
+### 5. When to Use Playwright — and When Not
+
+*💡 Analogy: You wouldn't deploy a helicopter to deliver a letter. Playwright is powerful and expensive — deploy it where it earns its cost.*
+
+**Use Playwright for:**
+- Critical user journeys: login → add to cart → checkout
+- Cross-browser verification ("Does this work in Safari?")
+- Workflows spanning multiple pages or tabs
+- Testing how UI handles API errors or slow networks
+- Visual regression checks before releases
+- File upload/download scenarios
+- Accessibility audits
+
+**Do NOT use Playwright for:**
+- Pure JavaScript utility functions → use **Jest** or **Vitest**
+- React component prop testing → use **React Testing Library**
+- Database query verification → integration tests
+- Class method return values → unit tests
+
+**The QA Rule of Thumb:**
+> "If a real user would see it in a browser, Playwright can test it. If it never touches a browser, use a lighter tool."
+
+E2E tests are the most expensive to write and maintain. Invest them in flows where a bug would directly cost your business money, users, or reputation.
         `
       },
+
+      {
+        id: 'pw-installation-setup',
+        title: 'Installing Playwright & Project Structure',
+        analogy: "Setting up a Playwright project is like setting up a new kitchen. First you need the building (Node.js — the platform). Then you bring in the cookware (the Playwright package). Then you stock the pantry (the browser binaries Playwright needs to actually drive Chrome, Firefox, Safari). Skip any step and you'll find yourself missing something mid-test, with the timer running.",
+        lessonMarkdown: `
+### 1. Prerequisites — What You Need Before You Install Playwright
+
+*💡 Analogy: Before installing a new appliance, you check your kitchen has the right power outlet. Node.js is the power outlet that all JavaScript-based tools plug into.*
+
+**Node.js** is a JavaScript runtime — it lets you run JavaScript code outside a browser, on your computer or a server. Playwright is built in JavaScript/TypeScript, so it runs on Node.js.
+
+**npm** (Node Package Manager) ships with Node.js. It's how you install JavaScript libraries (like Playwright).
+
+**Minimum requirements:**
+
+| Tool | Minimum Version | How to Check |
+|------|----------------|--------------|
+| Node.js | 18.0+ (LTS recommended) | \`node --version\` |
+| npm | 9.0+ | \`npm --version\` |
+| Operating System | Windows 10+, macOS 12+, Linux | — |
+| Disk space | ~500 MB (for browser binaries) | — |
+
+**Installing Node.js:** Download the **LTS** ("Long Term Support") version from [nodejs.org](https://nodejs.org). LTS means stable and supported — exactly what production QA work needs.
+
+After installation, open a terminal and verify:
+
+\`\`\`bash
+node --version
+# v20.10.0
+
+npm --version
+# 10.2.3
+\`\`\`
+
+If both commands print versions, you're ready.
+
+---
+
+### 2. Installing Playwright — The Magic Command
+
+*💡 Analogy: Most software installations are like buying flat-pack furniture — you assemble it yourself. \`npm init playwright@latest\` is like having IKEA deliver pre-assembled furniture, set it up in your room, and hand you the manual.*
+
+The official command:
+
+\`\`\`bash
+npm init playwright@latest
+\`\`\`
+
+This command does **everything** for you. It downloads Playwright, sets up the project structure, downloads browser binaries, and creates example tests.
+
+**What it asks you (and what to answer):**
+
+| Prompt | Recommended Answer | Why |
+|--------|-------------------|-----|
+| TypeScript or JavaScript? | **TypeScript** | Type safety catches bugs at compile time, IDE autocomplete is far better |
+| Where to put tests? | **tests** (default) | Standard convention everyone recognises |
+| Add a GitHub Actions workflow? | **Yes** if you'll use CI | Auto-creates \`.github/workflows/playwright.yml\` for you |
+| Install Playwright browsers? | **Yes** | Without this, your tests cannot run |
+
+**The whole thing takes about 60 seconds.** When complete, your project is fully runnable.
+
+---
+
+### 3. The Generated Folder Structure
+
+*💡 Analogy: When you move into a new flat, you look at every room to know what goes where. Playwright creates a small set of files — knowing what each does means you'll never get lost.*
+
+After running the init command, your project looks like:
+
+\`\`\`
+my-tests/
+├── tests/
+│   └── example.spec.ts          ← Your test files go here
+├── tests-examples/
+│   └── demo-todo-app.spec.ts    ← Reference example to study
+├── playwright.config.ts         ← THE MOST IMPORTANT FILE
+├── package.json                 ← Project dependencies
+├── package-lock.json            ← Locked versions
+├── .gitignore                   ← Prevents committing node_modules
+└── node_modules/                ← Installed dependencies (don't edit)
+\`\`\`
+
+**File-by-file meaning:**
+
+- **\`tests/\`** — Where you write your real test files. Naming convention: \`*.spec.ts\` (e.g. \`login.spec.ts\`).
+- **\`tests-examples/\`** — Reference tests. Read these to learn patterns. Delete when you no longer need them.
+- **\`playwright.config.ts\`** — Configures everything: which browsers to test, timeouts, retries, base URL. We'll cover this in depth in Module 7.
+- **\`package.json\`** — Lists Playwright as a dependency. Defines scripts like \`npm test\`.
+- **\`node_modules/\`** — The actual library code. Never edit, never commit.
+
+---
+
+### 4. The Browser Binaries — What \`npx playwright install\` Does
+
+*💡 Analogy: Installing the Playwright npm package is like buying a remote control. But the remote needs actual TVs to control. \`npx playwright install\` downloads the TVs (the browsers).*
+
+When you install Playwright, the npm package alone is small (~10 MB). But **Playwright needs actual browser installations** — Chromium, Firefox, WebKit — to drive.
+
+\`npx playwright install\` downloads:
+
+\`\`\`
+~/.cache/ms-playwright/
+├── chromium-XXXX/        ← ~150 MB
+├── firefox-XXXX/         ← ~80 MB
+└── webkit-XXXX/          ← ~70 MB
+\`\`\`
+
+**Important notes:**
+
+- These are **separate from** any Chrome/Firefox you already have installed. Playwright downloads its own consistent versions to ensure tests are reproducible.
+- Total download: roughly **300 MB**.
+- Stored centrally per user — multiple Playwright projects share the same binaries.
+- To install only one browser: \`npx playwright install chromium\`
+- To install only browsers you haven't installed yet, with system dependencies: \`npx playwright install --with-deps\`
+
+**Run this any time you upgrade Playwright** to download the matching browser versions.
+
+---
+
+### 5. Verifying Your Setup — Running the Example Test
+
+*💡 Analogy: After hanging a new TV, you turn it on to make sure it works before you start the football match. Always run the example test to verify your install before writing your own tests.*
+
+The init command creates an example file in \`tests/example.spec.ts\`. Open it — you'll see two simple tests that hit playwright.dev.
+
+**Run all tests:**
+
+\`\`\`bash
+npx playwright test
+\`\`\`
+
+**Expected output:**
+
+\`\`\`
+Running 6 tests using 5 workers
+  6 passed (8.3s)
+
+To open last HTML report run:
+  npx playwright show-report
+\`\`\`
+
+If you see this, **Playwright is fully installed and working.** If you see errors, the most common causes:
+
+| Error | Fix |
+|-------|-----|
+| \`browserType.launch: Executable doesn't exist\` | Run \`npx playwright install\` |
+| \`Error: getaddrinfo ENOTFOUND playwright.dev\` | No internet connection — example needs to load a real site |
+| \`Cannot find module '@playwright/test'\` | Run \`npm install\` |
+
+**Open the HTML report:**
+
+\`\`\`bash
+npx playwright show-report
+\`\`\`
+
+This launches a browser with a beautiful dashboard showing every test, screenshots on failure, and timing. This is the report your team and managers will look at.
+
+---
+
+### 6. The Three Files You'll Touch Daily
+
+After setup, only three things matter day-to-day:
+
+| File | What you do with it |
+|------|---------------------|
+| \`tests/*.spec.ts\` | Write your tests here |
+| \`playwright.config.ts\` | Tweak browsers, timeouts, base URL |
+| Terminal | Run \`npx playwright test\` and \`npx playwright show-report\` |
+
+Everything else (node_modules, lock files, browser binaries) is plumbing that just works. Your QA productivity comes from mastering the three above.
+        `
+      },
+
+      {
+        id: 'pw-first-test-anatomy',
+        title: 'Anatomy of a Playwright Test',
+        analogy: "Reading a Playwright test for the first time is like reading sheet music when you've never studied music. The symbols look random until someone shows you what each one means. Once you know that the staff is the page, the notes are actions, and the time signature is async/await, every test you read becomes a song you can hum.",
+        lessonMarkdown: `
+### 1. The Import Statement — What You're Bringing In
+
+*💡 Analogy: Before you cook, you bring the ingredients to the counter. The import statement is your shopping list — Playwright needs you to declare exactly which functions you'll use, so it can wire them up.*
+
+Every Playwright test file starts with:
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+\`\`\`
+
+**What you're importing:**
+
+| Symbol | What it is | What you'll do with it |
+|--------|-----------|------------------------|
+| \`test\` | A function that defines one test case | Wrap every test scenario in \`test('name', async () => {...})\` |
+| \`expect\` | The assertion library | Verify outcomes: \`await expect(locator).toBeVisible()\` |
+
+**Why \`@playwright/test\`** (with the \`@\`)? — \`@playwright\` is the npm "scope" — the official Microsoft Playwright organisation. \`/test\` is the test runner package. Other Playwright packages exist (\`@playwright/experimental-ct-react\` for component testing) but \`@playwright/test\` is your daily driver.
+
+You'll never write \`require\` in modern Playwright projects — TypeScript uses \`import\` syntax exclusively.
+
+---
+
+### 2. The \`test()\` Function — Every Part Dissected
+
+*💡 Analogy: A \`test()\` call is like a sealed envelope. You write the test name on the outside (anyone can read it), and inside you place the actual instructions. The envelope's seal is the function — Playwright opens it, runs what's inside, then seals it back up so it doesn't affect other envelopes.*
+
+Here's a complete minimal test:
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+test('user can see the homepage heading', async ({ page }) => {
+  await page.goto('https://example.com');
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+});
+\`\`\`
+
+**Breaking it down piece by piece:**
+
+\`\`\`typescript
+test(
+  'user can see the homepage heading',  // ← The test NAME — what you'll see in reports
+  async                                  // ← This function uses \`await\`, so it's async
+  ({ page })                             // ← Destructured fixture — Playwright gives you a fresh \`page\` object
+  =>                                     // ← Arrow function syntax
+  {                                      // ← Test body starts
+    await page.goto('https://example.com');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  }                                      // ← Test body ends
+);
+\`\`\`
+
+**Key terms QA engineers must know:**
+
+- **Test name** — A clear English sentence describing what the test verifies. Bad: \`'test1'\`. Good: \`'logged-in user can update their profile email'\`.
+- **Fixture** — A pre-prepared object Playwright hands you. \`page\` is the most important fixture: it represents one browser tab.
+- **\`page\`** — Each test gets its own brand new \`page\` (a fresh browser tab). Tests can't accidentally share state.
+- **Arrow function** — \`async ({ page }) => {...}\` — modern JavaScript syntax for an anonymous function.
+
+---
+
+### 3. async / await — Why Playwright Tests Cannot Be Synchronous
+
+*💡 Analogy: Talking to a browser is like talking to someone on the moon. Light takes 1.3 seconds to reach the moon, so you say something then wait for the response. \`await\` is the verbal equivalent of "...over" on a radio — "I sent the command, now I'm waiting for the response, don't move on yet."*
+
+JavaScript code normally runs **synchronously** — line by line, top to bottom. But browser actions take time:
+
+| Action | Time it takes |
+|--------|--------------|
+| Navigate to a URL | 100–3000 ms (network) |
+| Click a button | 50–200 ms |
+| Wait for an animation | 200–1000 ms |
+| Make an API call | 100–2000 ms |
+
+If your test ran synchronously, it would race ahead of the browser:
+
+\`\`\`typescript
+// ❌ Without await — DISASTER
+test('broken example', ({ page }) => {
+  page.goto('/login');                      // Browser starts navigating
+  page.getByLabel('Email').fill('a@b.com'); // Email field doesn't exist yet — page hasn't loaded!
+  page.getByRole('button').click();          // Button doesn't exist yet — fails silently!
+});
+\`\`\`
+
+The fix is **\`async\` / \`await\`**:
+
+\`\`\`typescript
+// ✅ With await — correct
+test('correct example', async ({ page }) => {
+  await page.goto('/login');                            // Wait for navigation to finish
+  await page.getByLabel('Email').fill('a@b.com');       // Now the field exists
+  await page.getByRole('button', { name: 'Login' }).click();  // Now the button exists
+});
+\`\`\`
+
+**The rule: every Playwright action returns a Promise. Every action must be awaited.**
+
+If you forget \`await\` on even one line, the test will look like it passes (because the failure happens after the test ends) but produce confusing flakiness. **TypeScript and ESLint will warn you** when you forget — listen to those warnings.
+
+---
+
+### 4. \`test.describe()\` — Grouping Related Tests
+
+*💡 Analogy: A book has chapters. Inside each chapter are sections. \`test.describe()\` is the chapter heading — it groups related tests together so reports are organised, not a flat list of 200 unrelated test names.*
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+test.describe('Login Page', () => {
+  test('shows error for invalid credentials', async ({ page }) => {
+    await page.goto('/login');
+    await page.getByLabel('Email').fill('wrong@example.com');
+    await page.getByLabel('Password').fill('wrongpass');
+    await page.getByRole('button', { name: 'Login' }).click();
+    await expect(page.getByText('Invalid credentials')).toBeVisible();
+  });
+
+  test('redirects to dashboard on success', async ({ page }) => {
+    await page.goto('/login');
+    await page.getByLabel('Email').fill('alice@example.com');
+    await page.getByLabel('Password').fill('correctpassword');
+    await page.getByRole('button', { name: 'Login' }).click();
+    await expect(page).toHaveURL('/dashboard');
+  });
+});
+\`\`\`
+
+**Why \`describe\` is useful for QA:**
+
+- Test reports show grouped results: "Login Page > shows error for invalid credentials"
+- You can run only one group: \`npx playwright test --grep "Login Page"\`
+- You can apply hooks (\`beforeEach\`) to one group only — without affecting other tests
+- It mirrors how features are organised in your application
+
+**Nested describes are allowed:**
+
+\`\`\`typescript
+test.describe('Checkout Flow', () => {
+  test.describe('Empty Cart', () => {
+    test('shows empty state message', async ({ page }) => { /* ... */ });
+  });
+
+  test.describe('With Items', () => {
+    test('shows order summary', async ({ page }) => { /* ... */ });
+    test('allows quantity changes', async ({ page }) => { /* ... */ });
+  });
+});
+\`\`\`
+
+---
+
+### 5. \`beforeEach\` and \`afterEach\` — Setup and Teardown
+
+*💡 Analogy: Before every chemistry experiment, you clean the test tubes. After every experiment, you dispose of waste. \`beforeEach\` and \`afterEach\` are your lab's standard procedure — automatic prep and cleanup that runs around every test.*
+
+\`\`\`typescript
+test.describe('Authenticated Pages', () => {
+  test.beforeEach(async ({ page }) => {
+    // Runs BEFORE every test in this describe
+    await page.goto('/login');
+    await page.getByLabel('Email').fill('alice@test.com');
+    await page.getByLabel('Password').fill('TestPass123');
+    await page.getByRole('button', { name: 'Login' }).click();
+    await expect(page).toHaveURL('/dashboard');
+  });
+
+  test.afterEach(async ({ page }) => {
+    // Runs AFTER every test (even if test failed)
+    // Useful for cleanup, screenshots on failure, etc.
+    await page.getByRole('button', { name: 'Logout' }).click();
+  });
+
+  test('user can view profile', async ({ page }) => {
+    await page.getByRole('link', { name: 'Profile' }).click();
+    await expect(page.getByRole('heading', { name: 'My Profile' })).toBeVisible();
+  });
+
+  test('user can update settings', async ({ page }) => {
+    await page.getByRole('link', { name: 'Settings' }).click();
+    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+  });
+});
+\`\`\`
+
+**The execution order:**
+
+\`\`\`
+beforeEach → test 1 → afterEach
+beforeEach → test 2 → afterEach
+\`\`\`
+
+**Why this matters:**
+
+- Eliminates **duplicate code** — no more copying login steps into every test
+- Tests stay **independent** — each test starts from the same clean state
+- Failures in cleanup don't mask test failures
+
+**Important:** \`beforeEach\` runs once for **every test** — not once for the whole describe. If you want code that runs once for the whole file, use \`beforeAll\` (rarely needed for E2E because tests should be independent).
+
+---
+
+### 6. A Complete, Real Test File — Everything Put Together
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+test.describe('Shopping Cart', () => {
+
+  test.beforeEach(async ({ page }) => {
+    // Set up: log in and navigate to product page
+    await page.goto('/login');
+    await page.getByLabel('Email').fill('alice@test.com');
+    await page.getByLabel('Password').fill('TestPass123');
+    await page.getByRole('button', { name: 'Login' }).click();
+    await page.goto('/products');
+  });
+
+  test('user can add a product to the cart', async ({ page }) => {
+    // Find the product and click Add to Cart
+    const product = page.getByRole('article').filter({ hasText: 'Wireless Mouse' });
+    await product.getByRole('button', { name: 'Add to Cart' }).click();
+
+    // Verify cart icon shows count of 1
+    await expect(page.getByTestId('cart-count')).toHaveText('1');
+
+    // Verify success toast appears
+    await expect(page.getByText('Added to cart')).toBeVisible();
+  });
+
+  test('user can remove a product from the cart', async ({ page }) => {
+    // Add a product first
+    await page.getByRole('article').first()
+      .getByRole('button', { name: 'Add to Cart' }).click();
+
+    // Open the cart
+    await page.getByRole('link', { name: 'Cart' }).click();
+
+    // Remove the item
+    await page.getByRole('button', { name: 'Remove' }).click();
+
+    // Verify cart is now empty
+    await expect(page.getByText('Your cart is empty')).toBeVisible();
+  });
+
+});
+\`\`\`
+
+Read this file top to bottom. Every concept from Modules 1–3 is here:
+- Imports (line 1)
+- \`describe\` grouping (line 3)
+- \`beforeEach\` setup (line 5)
+- Two independent tests (lines 14, 27)
+- \`async\` / \`await\` on every action (everywhere)
+- \`expect\` assertions verifying outcomes
+
+This is what production Playwright tests look like.
+        `
+      },
+
+      {
+        id: 'pw-locators',
+        title: 'Locators — Finding Elements on the Page',
+        analogy: "A locator is a description of how to find a specific element on a webpage, the same way you'd describe a friend in a crowded train station. Bad description: 'wearing a blue shirt' — what if they change shirts tomorrow? Good description: 'my friend Sarah, who's the conference organiser' — that identity stays stable forever. Locators are how Playwright tells the browser which element you mean. The QUALITY of your locators determines whether your tests survive minor UI changes or break every Tuesday.",
+        lessonMarkdown: `
+### 1. The DOM and Why Finding Elements Is Hard
+
+*💡 Analogy: A webpage is a tree. The root is the page itself. Branches are sections (header, main, footer). Leaves are individual elements (buttons, inputs, paragraphs). The DOM (Document Object Model) is what we call this tree. To click a button, you must point to the exact leaf — among potentially thousands.*
+
+When you visit a webpage, the HTML is parsed by the browser into a tree structure called the **DOM**. Your test must point to a specific node in that tree.
+
+\`\`\`html
+<body>
+  <header>
+    <nav>
+      <button>Login</button>     ← Which one?
+    </nav>
+  </header>
+  <main>
+    <form>
+      <button>Login</button>     ← Or this one?
+    </form>
+  </main>
+</body>
+\`\`\`
+
+There might be **multiple buttons with the same text**. Or the button might be inside a complex nested structure. Or the button's text might come from a database (so it changes per language). All of these create the central challenge: **how do we describe an element so Playwright finds the right one — and only that one?**
+
+**The answer is locators.** Playwright provides multiple locator strategies, ranked by how robust they are.
+
+---
+
+### 2. \`getByRole\` — The Gold Standard
+
+*💡 Analogy: \`getByRole\` is like asking for someone by their job title rather than their outfit. "The cashier" is stable; "the woman in the red sweater" might be different tomorrow. Roles describe what an element IS, not what it looks like.*
+
+ARIA roles are part of the web accessibility standard. Every interactive HTML element has a default role:
+
+| HTML | Role |
+|------|------|
+| \`<button>\` | \`button\` |
+| \`<a href>\` | \`link\` |
+| \`<input type="text">\` | \`textbox\` |
+| \`<input type="checkbox">\` | \`checkbox\` |
+| \`<input type="radio">\` | \`radio\` |
+| \`<select>\` | \`combobox\` |
+| \`<h1>...<h6>\` | \`heading\` |
+| \`<nav>\` | \`navigation\` |
+| \`<main>\` | \`main\` |
+| \`<form>\` | \`form\` |
+
+**Basic syntax:**
+
+\`\`\`typescript
+// Find ANY button
+page.getByRole('button');
+
+// Find a button with specific text
+page.getByRole('button', { name: 'Submit' });
+
+// Find a heading at level 1 (the H1)
+page.getByRole('heading', { level: 1 });
+
+// Find a link by its visible text
+page.getByRole('link', { name: 'Pricing' });
+
+// Find a textbox by its accessible name (label, placeholder, aria-label)
+page.getByRole('textbox', { name: 'Email' });
+\`\`\`
+
+**Why this is the gold standard:**
+
+1. **Mirrors how users find elements** — users see "the Submit button", not "the button with class .btn-primary-xl"
+2. **Stable across redesigns** — designers change colours, classes, and structure all the time. They rarely change a button into a div.
+3. **Forces accessibility** — if your test uses \`getByRole\`, the element must have proper semantic HTML. This benefits real users with screen readers.
+4. **Self-documenting** — \`getByRole('button', { name: 'Add to Cart' })\` reads like English.
+
+**The rule for QA:** Use \`getByRole\` first. Only fall back to other locators when \`getByRole\` cannot uniquely identify the element.
+
+---
+
+### 3. \`getByText\`, \`getByLabel\`, \`getByPlaceholder\` — User-Facing Locators
+
+*💡 Analogy: These are the locators that find elements the same way a user would describe them. "The button that says 'Submit'", "the field labelled 'Email'", "the search box that says 'Search products...'" — each is a real way humans navigate UIs.*
+
+**\`getByText\` — Find by visible text content:**
+
+\`\`\`typescript
+// Exact match (default behaviour)
+page.getByText('Welcome back, Alice');
+
+// Substring match
+page.getByText('Welcome', { exact: false });
+
+// Regex match
+page.getByText(/Welcome.*Alice/);
+\`\`\`
+
+Use \`getByText\` for **paragraphs, success messages, error messages, headings** — anything where the text itself identifies the element.
+
+**\`getByLabel\` — Find form inputs by their associated label:**
+
+\`\`\`html
+<label for="email-input">Email Address</label>
+<input id="email-input" type="email" />
+\`\`\`
+
+\`\`\`typescript
+// Finds the input above by its label text
+await page.getByLabel('Email Address').fill('alice@test.com');
+\`\`\`
+
+This is the **best way to find form fields** — labels are visible to users and rarely change. A test using \`getByLabel\` is robust to changes in the input's HTML structure, classes, or position.
+
+**\`getByPlaceholder\` — Find inputs by their placeholder text:**
+
+\`\`\`html
+<input type="search" placeholder="Search products..." />
+\`\`\`
+
+\`\`\`typescript
+await page.getByPlaceholder('Search products...').fill('laptop');
+\`\`\`
+
+Useful when an input has a placeholder but no proper \`<label>\`. Note that placeholders are sometimes localized — be careful with placeholder-based locators in multi-language apps.
+
+---
+
+### 4. \`getByTestId\` — Partnering With Developers
+
+*💡 Analogy: \`getByTestId\` is like attaching a small invisible tag to an element with the test name on it. The element can change colour, position, or wording — the tag stays. But this only works if developers attach the tag in the first place.*
+
+\`\`\`html
+<button data-testid="checkout-submit">Place Order</button>
+\`\`\`
+
+\`\`\`typescript
+await page.getByTestId('checkout-submit').click();
+\`\`\`
+
+**When to use \`getByTestId\`:**
+- The button text changes based on context ("Place Order" vs "Confirm Purchase")
+- Multiple buttons could match \`getByRole\` and you cannot easily disambiguate
+- You're testing a custom component with no clear semantic role
+
+**The golden rule:** \`getByTestId\` **requires developer cooperation**. Talk to your dev team. Add \`data-testid\` to:
+
+| Element | When |
+|---------|------|
+| Critical action buttons | When text might change |
+| Form submission buttons | Always |
+| Toast / banner notifications | Always (text often varies) |
+| Item lists | On the wrapper, so you can find a specific row |
+
+**Don't use \`data-testid\` everywhere** — it's a fallback when semantic locators don't work. Overusing it ties tests to internal naming, defeating the purpose of user-facing locators.
+
+---
+
+### 5. CSS Selectors — Use Sparingly, And Only When Necessary
+
+*💡 Analogy: A CSS selector is like finding someone by what they're wearing today. Works right now. Not stable.*
+
+\`\`\`typescript
+// CSS selector — uses the same syntax as CSS rules
+await page.locator('.btn-primary').click();
+await page.locator('#login-form').isVisible();
+await page.locator('div.product-card > h2').textContent();
+\`\`\`
+
+**Why CSS selectors are fragile:**
+
+- Class names exist for **styling**, not testing. Designers change them constantly.
+- IDs are theoretically stable, but in modern frameworks (React, Vue) they're often auto-generated and change between deploys.
+- Structural selectors (\`div > span:nth-child(3)\`) break when developers reorganise HTML.
+
+**When CSS is actually OK:**
+- Genuinely unique IDs: \`page.locator('#main-navigation')\`
+- Targeting attributes that exist for testing: \`page.locator('[data-cy="..."]')\`
+- Quick exploratory tests where stability isn't yet a concern
+
+**Don't use XPath** unless absolutely no other strategy works. XPath is even more fragile than CSS, harder to read, and rarely necessary in Playwright. \`page.locator('//div/button[@class="submit"]')\` is a code smell.
+
+---
+
+### 6. Chaining Locators — Narrowing the Scope
+
+*💡 Analogy: When searching a library, you don't scan every shelf. You go to the History section first, then narrow to "Roman Empire", then find the specific book. Chained locators do the same — start broad, narrow down.*
+
+\`\`\`typescript
+// Find the row in a user table where the name is "Alice", then click its Delete button
+await page.getByRole('row', { name: 'Alice' })
+          .getByRole('button', { name: 'Delete' })
+          .click();
+\`\`\`
+
+**Why this is powerful:**
+
+- The page might have **many** "Delete" buttons (one per row)
+- You don't want to click the wrong one
+- Chaining scopes the second search **inside** the first match
+
+**Common patterns:**
+
+\`\`\`typescript
+// In a list of products, find the one with text "Wireless Mouse" and add to cart
+await page.getByRole('listitem')
+          .filter({ hasText: 'Wireless Mouse' })
+          .getByRole('button', { name: 'Add to Cart' })
+          .click();
+
+// In a modal dialog, click the Confirm button
+await page.getByRole('dialog')
+          .getByRole('button', { name: 'Confirm' })
+          .click();
+
+// In the navigation, click the Profile link
+await page.getByRole('navigation')
+          .getByRole('link', { name: 'Profile' })
+          .click();
+\`\`\`
+
+**\`.filter()\` — Narrowing by content:**
+
+\`\`\`typescript
+// All product cards
+const allCards = page.getByRole('article');
+
+// Only the card containing the text "On Sale"
+const saleCard = allCards.filter({ hasText: 'On Sale' });
+
+// Only the card NOT containing the text "Out of Stock"
+const inStockCard = allCards.filter({ hasNotText: 'Out of Stock' });
+\`\`\`
+
+---
+
+### 7. Locator Priority — The QA Decision Tree
+
+*💡 Analogy: When you make a sandwich, there's an order of operations: bread, butter, fillings, top slice. Locators have an order of preference too. Following it produces tests that survive UI changes.*
+
+**Use this priority order, top to bottom:**
+
+| Priority | Locator | Use For |
+|----------|---------|---------|
+| 1 | \`getByRole\` | Buttons, links, headings, form fields |
+| 2 | \`getByLabel\` | Form inputs with proper labels |
+| 3 | \`getByPlaceholder\` | Inputs without labels but with placeholders |
+| 4 | \`getByText\` | Static text content, error messages |
+| 5 | \`getByTestId\` | When semantic locators won't disambiguate |
+| 6 | \`page.locator(css)\` | Last resort — only for genuinely unique IDs |
+| ❌ | XPath | Almost never |
+
+**A real test, applying the priority:**
+
+\`\`\`typescript
+test('user can complete checkout', async ({ page }) => {
+  await page.goto('/checkout');
+
+  // 1. getByLabel for form inputs
+  await page.getByLabel('Card Number').fill('4242 4242 4242 4242');
+  await page.getByLabel('Expiry').fill('12/25');
+  await page.getByLabel('CVV').fill('123');
+
+  // 2. getByRole for buttons
+  await page.getByRole('button', { name: 'Pay Now' }).click();
+
+  // 3. getByText for confirmation message
+  await expect(page.getByText('Payment successful')).toBeVisible();
+});
+\`\`\`
+
+Every locator in this test uses what a real user would describe. If the developer changes button styles, adds wrappers, or restructures the form — this test still passes.
+
+**Test the test:** A good locator survives a frontend redesign. A bad locator breaks every sprint. The priority above is your shield against fragility.
+        `
+      },
+
+      {
+        id: 'pw-actions',
+        title: 'Actions — Interacting With the Browser',
+        analogy: "If locators are the eyes of your test, actions are the hands. Once Playwright has spotted a button, the action tells it what to do — click it, type into it, drag it. Modern Playwright actions are smart hands: they wait for the element to be ready (visible, stable, enabled) before acting, so you don't have to manually wait. This single feature eliminates 90% of the flakiness that plagued older automation tools.",
+        lessonMarkdown: `
+### 1. Navigation — Going to Pages
+
+*💡 Analogy: \`page.goto()\` is like giving a taxi driver an address. The driver (the browser) gets you there, and you don't move on to the next instruction until you've actually arrived.*
+
+\`\`\`typescript
+// Basic navigation
+await page.goto('https://example.com');
+
+// Relative URL — uses the baseURL from playwright.config.ts
+await page.goto('/login');
+
+// Wait for a specific load event
+await page.goto('/dashboard', { waitUntil: 'networkidle' });
+
+// Reload current page
+await page.reload();
+
+// Browser back / forward
+await page.goBack();
+await page.goForward();
+\`\`\`
+
+**The \`waitUntil\` option — what Playwright considers "loaded":**
+
+| Value | Meaning |
+|-------|---------|
+| \`'load'\` (default) | The \`load\` event has fired (all resources loaded) |
+| \`'domcontentloaded'\` | HTML parsed, but images/styles may not be ready |
+| \`'networkidle'\` | No network requests for 500ms (good for SPAs) |
+| \`'commit'\` | Just the response received — fastest, least safe |
+
+For most pages, the default is correct. For Single Page Applications (React, Vue, Angular) where data fetches happen after page load, \`'networkidle'\` is often more reliable.
+
+---
+
+### 2. Clicking — The Most Common Action
+
+*💡 Analogy: A click in Playwright is not "press a coordinate at x=400, y=200". It's "click this specific element, but only after verifying it's actually clickable". Auto-waiting handles a list of conditions you'd otherwise need to check manually.*
+
+\`\`\`typescript
+// Basic click
+await page.getByRole('button', { name: 'Submit' }).click();
+
+// Double-click
+await page.getByRole('cell', { name: 'Edit me' }).dblclick();
+
+// Right-click (opens context menu)
+await page.getByText('File 1').click({ button: 'right' });
+
+// Click while holding modifier keys
+await page.getByText('File 1').click({ modifiers: ['Control'] });
+
+// Click without auto-waiting (rarely needed)
+await page.getByRole('button').click({ force: true });
+\`\`\`
+
+**What auto-waiting checks BEFORE every click:**
+
+1. ✅ The element is **attached** to the DOM
+2. ✅ The element is **visible** (not display:none, not hidden)
+3. ✅ The element is **stable** (not moving / animating)
+4. ✅ The element is **enabled** (not disabled)
+5. ✅ The element is **not covered** by another element (like a modal)
+6. ✅ The element receives **pointer events** (z-index, pointer-events:none)
+
+If any check fails, Playwright **retries** for up to 30 seconds before failing the test. This single feature replaces dozens of manual sleeps and waitFor calls.
+
+**\`force: true\`** — bypasses these checks. Use only when you genuinely need to click something covered, animating, or disabled. **It's almost always a code smell.**
+
+---
+
+### 3. Typing — \`fill\` vs \`type\`
+
+*💡 Analogy: \`fill\` is like dictating to a stenographer — the whole text appears at once. \`type\` is like watching someone hunt-and-peck — character by character, with delays. For tests, fill is faster and more reliable. Use type only when simulating real user behaviour matters.*
+
+**\`fill\` — Set the value of an input:**
+
+\`\`\`typescript
+await page.getByLabel('Email').fill('alice@test.com');
+await page.getByLabel('Password').fill('Secret123!');
+await page.getByLabel('Bio').fill('Multi\\\\nLine\\\\nText');
+\`\`\`
+
+\`fill\` clears the field first, then sets the new value in one operation. **This is what you should use 99% of the time.**
+
+**\`type\` — Type character by character (slower):**
+
+\`\`\`typescript
+// Types each character with a 100ms delay
+await page.getByLabel('Search').type('laptop', { delay: 100 });
+\`\`\`
+
+Use \`type\` only when you need to:
+- Test autocomplete behaviour (suggestions appearing as you type)
+- Test debounced input handlers
+- Reproduce specific timing-sensitive bugs
+
+**Clearing and pressing keys:**
+
+\`\`\`typescript
+// Clear an input
+await page.getByLabel('Search').clear();
+
+// Press a single key
+await page.getByLabel('Email').press('Tab');
+await page.getByRole('textbox').press('Enter');
+
+// Keyboard shortcut
+await page.keyboard.press('Control+A');
+await page.keyboard.press('Escape');
+\`\`\`
+
+---
+
+### 4. Form Controls — Checkboxes, Radios, Dropdowns
+
+*💡 Analogy: Different form controls behave differently in real browsers. Playwright provides specific actions for each — \`check\` for checkboxes (always sets to checked), \`selectOption\` for dropdowns (selects by value or text), so you don't have to manually click and verify.*
+
+**Checkboxes:**
+
+\`\`\`typescript
+// Check a checkbox (does nothing if already checked)
+await page.getByLabel('Subscribe to newsletter').check();
+
+// Uncheck
+await page.getByLabel('Remember me').uncheck();
+
+// Verify checked state
+await expect(page.getByLabel('Subscribe')).toBeChecked();
+\`\`\`
+
+**Radio buttons:**
+
+\`\`\`typescript
+// Selecting a radio is the same as checking
+await page.getByLabel('Standard shipping').check();
+\`\`\`
+
+**Dropdowns (\`<select>\` elements):**
+
+\`\`\`typescript
+// Select by visible label text
+await page.getByLabel('Country').selectOption('United Kingdom');
+
+// Select by value attribute
+await page.getByLabel('Country').selectOption({ value: 'gb' });
+
+// Select by index (0-based)
+await page.getByLabel('Country').selectOption({ index: 5 });
+
+// Multi-select dropdown — pass an array
+await page.getByLabel('Tags').selectOption(['javascript', 'testing']);
+\`\`\`
+
+**Custom dropdowns (not real \`<select>\` — built with divs):**
+
+Many modern UIs build their own dropdowns using divs and JavaScript (Material UI, Ant Design, custom React components). For these, you click to open then click an option:
+
+\`\`\`typescript
+// Open the custom dropdown
+await page.getByRole('combobox', { name: 'Country' }).click();
+
+// Click the desired option
+await page.getByRole('option', { name: 'United Kingdom' }).click();
+\`\`\`
+
+---
+
+### 5. Hover, Focus, and Keyboard
+
+*💡 Analogy: Some UI features only reveal themselves on hover (tooltips, dropdown menus). Others activate on focus (input highlight). These actions simulate the in-between states between "doing nothing" and "clicking".*
+
+\`\`\`typescript
+// Hover — reveals tooltips and hover-only menus
+await page.getByRole('link', { name: 'Help' }).hover();
+await expect(page.getByText('Contact support')).toBeVisible();
+
+// Focus an element (without clicking)
+await page.getByLabel('Email').focus();
+
+// Combined: focus then keyboard input
+await page.getByLabel('Search').focus();
+await page.keyboard.type('laptops');
+await page.keyboard.press('Enter');
+
+// Tab through elements
+await page.keyboard.press('Tab');
+await page.keyboard.press('Tab');
+await page.keyboard.press('Enter');
+\`\`\`
+
+---
+
+### 6. File Uploads and Downloads
+
+*💡 Analogy: Uploading a file in a real browser opens a system dialog you can't automate. Playwright bypasses this by directly attaching the file to the input — no dialog needed.*
+
+**Uploading a file:**
+
+\`\`\`typescript
+// Single file
+await page.getByLabel('Upload Avatar').setInputFiles('./fixtures/avatar.png');
+
+// Multiple files
+await page.getByLabel('Upload Photos').setInputFiles([
+  './fixtures/photo1.jpg',
+  './fixtures/photo2.jpg',
+]);
+
+// Upload from buffer (in-memory file)
+await page.getByLabel('Upload').setInputFiles({
+  name: 'test.txt',
+  mimeType: 'text/plain',
+  buffer: Buffer.from('hello world'),
+});
+
+// Clear the file input
+await page.getByLabel('Upload').setInputFiles([]);
+\`\`\`
+
+**Downloading a file:**
+
+\`\`\`typescript
+// Wait for the download to start, capture it, save it
+const downloadPromise = page.waitForEvent('download');
+await page.getByRole('link', { name: 'Download Report' }).click();
+const download = await downloadPromise;
+
+// Save it to a known location
+await download.saveAs('./downloads/report.pdf');
+
+// Or get its temp path to verify content
+console.log(await download.path());
+\`\`\`
+
+---
+
+### 7. A Complete Real Login Flow
+
+*Putting all actions together:*
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+test('user completes full registration and first purchase', async ({ page }) => {
+  // 1. Navigate
+  await page.goto('/register');
+
+  // 2. Fill the registration form
+  await page.getByLabel('Full Name').fill('Alice Tester');
+  await page.getByLabel('Email').fill('alice+' + Date.now() + '@test.com');
+  await page.getByLabel('Password').fill('SecurePass123!');
+  await page.getByLabel('Confirm Password').fill('SecurePass123!');
+
+  // 3. Select country (real <select> element)
+  await page.getByLabel('Country').selectOption('United Kingdom');
+
+  // 4. Agree to terms
+  await page.getByLabel('I agree to the Terms').check();
+
+  // 5. Submit
+  await page.getByRole('button', { name: 'Create Account' }).click();
+
+  // 6. Verify we landed on the dashboard
+  await expect(page).toHaveURL('/dashboard');
+  await expect(page.getByRole('heading', { name: 'Welcome, Alice' })).toBeVisible();
+
+  // 7. Navigate to products
+  await page.getByRole('link', { name: 'Shop' }).click();
+
+  // 8. Search for a product
+  await page.getByPlaceholder('Search products...').fill('wireless mouse');
+  await page.keyboard.press('Enter');
+
+  // 9. Add the first matching product to cart
+  await page.getByRole('article').first()
+    .getByRole('button', { name: 'Add to Cart' }).click();
+
+  // 10. Open cart and verify
+  await page.getByRole('link', { name: 'Cart' }).click();
+  await expect(page.getByText('Wireless Mouse')).toBeVisible();
+});
+\`\`\`
+
+This 30-line test exercises navigation, form filling, dropdown selection, checkboxes, button clicks, search input, and verification — every action you'll use in 90% of Playwright tests.
+        `
+      },
+
+      {
+        id: 'pw-assertions',
+        title: 'Assertions — Verifying What the Browser Shows',
+        analogy: "An assertion is the difference between a robot that types randomly on your keyboard and a QA engineer doing real testing. Without assertions, your test just clicks things — and a click that triggers a 500 error still 'succeeds' from the test's view. Assertions are the verification layer: they prove the application actually did what it was supposed to. Every test must end with at least one assertion. A test without assertions is not a test — it's a smoke check at best.",
+        lessonMarkdown: `
+### 1. Why Assertions Are the Heart of a Test
+
+*💡 Analogy: A test without assertions is like a security camera that records but never plays back. You captured something happened — but did anyone verify what was captured was correct? Assertions are the playback that compares "what was supposed to happen" with "what actually happened".*
+
+Look at this test that has **no assertions**:
+
+\`\`\`typescript
+// ❌ This 'test' tests nothing
+test('user can place an order', async ({ page }) => {
+  await page.goto('/checkout');
+  await page.getByLabel('Card Number').fill('4242424242424242');
+  await page.getByRole('button', { name: 'Pay' }).click();
+});
+\`\`\`
+
+**Problems:**
+- Did the payment actually succeed? Unknown.
+- Did the page show an error? We'd never know — the test passes either way.
+- Was the order created in the database? Unknown.
+
+**The same test, with assertions:**
+
+\`\`\`typescript
+// ✅ This test actually verifies behaviour
+test('user can place an order', async ({ page }) => {
+  await page.goto('/checkout');
+  await page.getByLabel('Card Number').fill('4242424242424242');
+  await page.getByRole('button', { name: 'Pay' }).click();
+
+  // ASSERTION: success message appears
+  await expect(page.getByText('Order confirmed!')).toBeVisible();
+
+  // ASSERTION: URL changed to confirmation page
+  await expect(page).toHaveURL(/\\\\/orders\\\\/[a-z0-9]+/);
+
+  // ASSERTION: order number is displayed
+  await expect(page.getByTestId('order-number')).toContainText('Order #');
+});
+\`\`\`
+
+**Every Playwright assertion starts with \`expect()\`** and is awaited:
+
+\`\`\`typescript
+await expect(<thing-to-check>).<matcher>(<expected-value>);
+\`\`\`
+
+---
+
+### 2. Visibility Assertions — \`toBeVisible\` and \`toBeHidden\`
+
+*💡 Analogy: These are the most common assertions because the most common QA question is "did this thing show up?". They handle CSS \`display:none\`, \`visibility:hidden\`, off-screen positioning, and zero opacity — all the ways an element can be technically present but not actually visible to a user.*
+
+\`\`\`typescript
+// Element is visible to the user
+await expect(page.getByText('Welcome back')).toBeVisible();
+
+// Element is hidden (not visible OR not in DOM)
+await expect(page.getByRole('alert')).toBeHidden();
+
+// Verifying a modal appeared
+await page.getByRole('button', { name: 'Delete' }).click();
+await expect(page.getByRole('dialog')).toBeVisible();
+await expect(page.getByText('Are you sure?')).toBeVisible();
+
+// Verifying the modal closed
+await page.getByRole('button', { name: 'Cancel' }).click();
+await expect(page.getByRole('dialog')).toBeHidden();
+\`\`\`
+
+**\`toBeVisible\` is smart:** it waits up to the configured timeout for the element to become visible. You don't need a manual wait — the assertion polls for you.
+
+---
+
+### 3. Content Assertions — \`toHaveText\`, \`toContainText\`, \`toHaveValue\`
+
+*💡 Analogy: Sometimes you need to check exactly what an element says. \`toHaveText\` is a strict match — every character must be exactly right. \`toContainText\` is a fuzzy match — "does this text appear somewhere inside?" Use the strict version when content is fully predictable, the fuzzy version when it's dynamic.*
+
+**\`toHaveText\` — Exact match:**
+
+\`\`\`typescript
+// Element's text must be EXACTLY this
+await expect(page.getByTestId('cart-count')).toHaveText('3');
+await expect(page.getByRole('heading', { level: 1 })).toHaveText('Welcome back, Alice');
+
+// Match against a regex
+await expect(page.getByTestId('order-number')).toHaveText(/^Order #\\\\d+$/);
+\`\`\`
+
+**\`toContainText\` — Substring match:**
+
+\`\`\`typescript
+// Element's text contains this substring
+await expect(page.getByRole('alert')).toContainText('Invalid email');
+
+// Useful for messages that include dynamic data
+await expect(page.getByTestId('confirmation')).toContainText('Order placed');
+// (Even if the actual text is "Order placed successfully on 2026-01-15")
+\`\`\`
+
+**\`toHaveValue\` — For input field current value:**
+
+\`\`\`typescript
+// Verify the input field currently contains this value
+await page.getByLabel('Email').fill('alice@test.com');
+await expect(page.getByLabel('Email')).toHaveValue('alice@test.com');
+
+// After form reset, value should be empty
+await page.getByRole('button', { name: 'Reset' }).click();
+await expect(page.getByLabel('Email')).toHaveValue('');
+\`\`\`
+
+**Important difference:** \`toHaveText\` reads what's RENDERED in the DOM. \`toHaveValue\` reads the current state of an \`<input>\`, \`<textarea>\`, or \`<select>\`.
+
+---
+
+### 4. State Assertions — Enabled, Disabled, Checked, Editable
+
+*💡 Analogy: These check the "metadata" of an element — not what it shows, but what state it's in. A submit button that LOOKS clickable but is actually disabled would be a critical bug in a real product.*
+
+\`\`\`typescript
+// Element is enabled (not disabled)
+await expect(page.getByRole('button', { name: 'Submit' })).toBeEnabled();
+
+// Element is disabled
+await expect(page.getByRole('button', { name: 'Submit' })).toBeDisabled();
+
+// Checkbox / radio is checked
+await expect(page.getByLabel('Subscribe to newsletter')).toBeChecked();
+
+// Checkbox is NOT checked
+await expect(page.getByLabel('Subscribe')).not.toBeChecked();
+
+// Input field is editable (not readonly)
+await expect(page.getByLabel('Email')).toBeEditable();
+
+// Input has focus
+await expect(page.getByLabel('Email')).toBeFocused();
+
+// Element is empty (no children, no text)
+await expect(page.getByTestId('empty-cart')).toBeEmpty();
+\`\`\`
+
+**The \`.not.\` modifier — negating any assertion:**
+
+\`\`\`typescript
+// All assertions can be negated
+await expect(page.getByText('Error')).not.toBeVisible();
+await expect(page.getByLabel('Email')).not.toHaveValue('');
+await expect(page.getByRole('button')).not.toBeDisabled();
+\`\`\`
+
+---
+
+### 5. Page-Level Assertions — URL and Title
+
+*💡 Analogy: Sometimes the most important assertion is "did navigation succeed?" After clicking Login, the URL should change. After clicking a product, the page title should change. These are page-level, not element-level checks.*
+
+\`\`\`typescript
+// Exact URL match
+await expect(page).toHaveURL('https://example.com/dashboard');
+
+// Relative path match (uses baseURL)
+await expect(page).toHaveURL('/dashboard');
+
+// Regex pattern match (for dynamic URLs)
+await expect(page).toHaveURL(/\\\\/orders\\\\/\\\\d+/);
+
+// Page <title> tag content
+await expect(page).toHaveTitle('Dashboard - MyApp');
+await expect(page).toHaveTitle(/Dashboard/);
+\`\`\`
+
+**Real-world login verification:**
+
+\`\`\`typescript
+test('successful login redirects to dashboard', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByLabel('Email').fill('alice@test.com');
+  await page.getByLabel('Password').fill('correctpass');
+  await page.getByRole('button', { name: 'Login' }).click();
+
+  // Verify navigation succeeded
+  await expect(page).toHaveURL('/dashboard');
+  await expect(page).toHaveTitle('Dashboard - MyApp');
+});
+\`\`\`
+
+---
+
+### 6. Count Assertions — Counting Matched Elements
+
+*💡 Analogy: When testing a list page, the question is often "how many results came back?" \`toHaveCount\` answers that — useful for search results, table rows, and dynamic lists.*
+
+\`\`\`typescript
+// Search returns exactly 5 results
+await page.getByPlaceholder('Search').fill('laptop');
+await page.keyboard.press('Enter');
+await expect(page.getByRole('article')).toHaveCount(5);
+
+// Cart should have 3 items
+await expect(page.getByTestId('cart-item')).toHaveCount(3);
+
+// No errors should be displayed
+await expect(page.getByRole('alert')).toHaveCount(0);
+\`\`\`
+
+---
+
+### 7. Soft Assertions — Continuing After Failure
+
+*💡 Analogy: A normal assertion is like a fire alarm — when it triggers, everything stops immediately. A soft assertion is like a warning light — it records the failure but lets the test keep running, so you discover all problems in one run instead of fixing them one at a time.*
+
+**Hard assertion (default) — stops on first failure:**
+
+\`\`\`typescript
+test('order summary is correct', async ({ page }) => {
+  await page.goto('/order/123');
+
+  // If this fails, the test stops here. The next 3 lines never run.
+  await expect(page.getByText('Order #123')).toBeVisible();
+  await expect(page.getByText('Total: $99.99')).toBeVisible();
+  await expect(page.getByText('Shipping: $5.00')).toBeVisible();
+});
+\`\`\`
+
+**Soft assertion — records failure, continues:**
+
+\`\`\`typescript
+test('order summary is correct', async ({ page }) => {
+  await page.goto('/order/123');
+
+  // All four assertions run, even if some fail
+  await expect.soft(page.getByText('Order #123')).toBeVisible();
+  await expect.soft(page.getByText('Total: $99.99')).toBeVisible();
+  await expect.soft(page.getByText('Shipping: $5.00')).toBeVisible();
+
+  // The test fails at the end if ANY soft assertion failed
+  // But you see all 3 results in the report, not just the first failure
+});
+\`\`\`
+
+**When to use soft assertions:**
+- Verifying multiple independent fields on a page (order details, profile fields)
+- You want to see ALL problems, not just the first
+- The assertions don't depend on each other
+
+**When NOT to use soft assertions:**
+- Steps that depend on previous steps (no point checking text on page B if you couldn't navigate there)
+- Critical preconditions (no point continuing if login failed)
+
+---
+
+### 8. The Built-in Retry Mechanism
+
+*💡 Analogy: Network requests, animations, and async UI updates take time. Without retry, you'd need to manually wait for everything. Playwright's assertions automatically retry every ~50ms until they pass or hit the timeout — like a polite delivery driver who rings the doorbell every few seconds for 30 seconds before giving up.*
+
+By default, Playwright assertions **automatically retry for up to 5 seconds**.
+
+\`\`\`typescript
+// This assertion will keep checking for up to 5 seconds
+// Useful when an element appears asynchronously (after an API call)
+await expect(page.getByText('Order placed')).toBeVisible();
+\`\`\`
+
+**Customising the timeout:**
+
+\`\`\`typescript
+// Wait up to 10 seconds for this specific assertion
+await expect(page.getByText('Slow async result')).toBeVisible({ timeout: 10_000 });
+
+// Or set a global default in playwright.config.ts:
+expect: { timeout: 10_000 }
+\`\`\`
+
+**This is the magic that makes Playwright tests stable.** No \`waitForTimeout\`, no manual sleeps. The assertion itself waits as long as needed (within the timeout) for the condition to become true.
+
+**\`waitFor\` for non-assertion waiting:**
+
+\`\`\`typescript
+// Wait for an element to be visible (without asserting)
+await page.getByRole('alert').waitFor({ state: 'visible' });
+
+// Wait for it to disappear
+await page.getByRole('progressbar').waitFor({ state: 'hidden' });
+\`\`\`
+
+---
+
+### 9. Putting It All Together — A Real Verification
+
+\`\`\`typescript
+test('checkout shows correct order summary', async ({ page }) => {
+  // Setup: add a product and go to checkout
+  await page.goto('/products');
+  await page.getByRole('article').first()
+    .getByRole('button', { name: 'Add to Cart' }).click();
+  await page.getByRole('link', { name: 'Checkout' }).click();
+
+  // VERIFY the page loaded
+  await expect(page).toHaveURL('/checkout');
+  await expect(page).toHaveTitle('Checkout - MyApp');
+
+  // VERIFY the order summary displays
+  const summary = page.getByTestId('order-summary');
+  await expect(summary).toBeVisible();
+
+  // Use soft assertions to see all problems at once
+  await expect.soft(summary.getByText('Subtotal:')).toBeVisible();
+  await expect.soft(summary.getByText('Shipping:')).toBeVisible();
+  await expect.soft(summary.getByText('Total:')).toBeVisible();
+
+  // VERIFY the submit button is initially disabled
+  const submitButton = page.getByRole('button', { name: 'Place Order' });
+  await expect(submitButton).toBeDisabled();
+
+  // Fill required fields
+  await page.getByLabel('Card Number').fill('4242424242424242');
+  await page.getByLabel('Expiry').fill('12/25');
+  await page.getByLabel('CVV').fill('123');
+
+  // VERIFY the button is now enabled
+  await expect(submitButton).toBeEnabled();
+
+  // VERIFY the field values are correct
+  await expect(page.getByLabel('Card Number')).toHaveValue('4242 4242 4242 4242');
+});
+\`\`\`
+
+Eight different assertions, each verifying a specific real-world expectation. This is what production E2E test code looks like.
+        `
+      },
+
+      {
+        id: 'pw-config',
+        title: 'playwright.config.ts — Configuring Your Test Suite',
+        analogy: "Your tests are the play. The config is the stage manager — deciding which theatres (browsers) the play runs in, how long each act can be (timeouts), what to do if an actor forgets their line (retries), and what photos to take during the performance (screenshots, videos, traces). Without a stage manager, every show is chaos. With one, the production runs the same way every night, on every stage.",
+        lessonMarkdown: `
+### 1. Why a Config File Exists
+
+*💡 Analogy: If every test had to declare which browser to use, what URL to start at, what timeout to apply — your test files would be 90% setup and 10% actual testing. The config file moves all that "how to run" knowledge to one place, so test files only describe "what to test".*
+
+Without a config, every test would look like this:
+
+\`\`\`typescript
+// ❌ Without config — repetitive infrastructure noise
+test('login works', async ({ page }) => {
+  await page.goto('https://staging.myapp.com/login');  // hardcoded URL
+  // ... test code ...
+}, { timeout: 30000, retries: 2, browsers: ['chromium', 'firefox'] });
+\`\`\`
+
+With a config, the test focuses purely on what it tests:
+
+\`\`\`typescript
+// ✅ With config — test reads cleanly
+test('login works', async ({ page }) => {
+  await page.goto('/login');  // baseURL applied automatically
+  // ... test code ...
+});
+\`\`\`
+
+The config solves three problems:
+1. **DRY (Don't Repeat Yourself)** — settings shared across all tests
+2. **Environment switching** — different config for staging vs production
+3. **Cross-browser execution** — run the same tests in Chrome AND Firefox AND Safari with one command
+
+---
+
+### 2. The Minimal Config — Required Fields Explained
+
+*💡 Analogy: Like a rental car form, you can fill out 50 fields, but only a few are required to get on the road. Most teams need fewer than 10 lines of config to start running tests.*
+
+\`\`\`typescript
+// playwright.config.ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './tests',                    // Where your test files live
+  timeout: 30_000,                       // 30 seconds per test
+  retries: 0,                            // No automatic retry on failure
+  use: {
+    baseURL: 'http://localhost:3000',    // Prepended to relative URLs
+  },
+  projects: [
+    { name: 'chromium', use: { browserName: 'chromium' } },
+  ],
+});
+\`\`\`
+
+**Field-by-field meaning:**
+
+| Field | What it does |
+|-------|-------------|
+| \`testDir\` | Folder Playwright searches for \`*.spec.ts\` files |
+| \`timeout\` | Maximum milliseconds per test before forced failure |
+| \`retries\` | How many times to retry a failed test before reporting failure |
+| \`use\` | Defaults applied to every test in every project |
+| \`use.baseURL\` | If you call \`page.goto('/foo')\`, it becomes \`baseURL + '/foo'\` |
+| \`projects\` | One or more named test runs (typically: one per browser) |
+
+---
+
+### 3. \`baseURL\` — The Single Most Important Setting
+
+*💡 Analogy: Hardcoded URLs in tests are like writing "123 Main Street, London" inside every email you send. If you move office, you rewrite every email. Use \`baseURL\` and you only update one line — every test follows.*
+
+**Without baseURL:**
+
+\`\`\`typescript
+// ❌ Every test has the URL hardcoded
+test('a', async ({ page }) => { await page.goto('https://staging.myapp.com/login'); });
+test('b', async ({ page }) => { await page.goto('https://staging.myapp.com/users'); });
+test('c', async ({ page }) => { await page.goto('https://staging.myapp.com/admin'); });
+
+// To switch to production: edit every test file
+\`\`\`
+
+**With baseURL:**
+
+\`\`\`typescript
+// playwright.config.ts
+use: { baseURL: 'https://staging.myapp.com' }
+
+// Tests use relative paths
+test('a', async ({ page }) => { await page.goto('/login'); });
+test('b', async ({ page }) => { await page.goto('/users'); });
+test('c', async ({ page }) => { await page.goto('/admin'); });
+
+// To switch to production: change ONE line in config
+\`\`\`
+
+**Combining with environment variables:**
+
+\`\`\`typescript
+use: {
+  baseURL: process.env.BASE_URL || 'http://localhost:3000',
+}
+
+// Now run against any environment from the command line:
+// BASE_URL=https://staging.myapp.com npx playwright test
+// BASE_URL=https://prod.myapp.com npx playwright test
+\`\`\`
+
+---
+
+### 4. Capturing Evidence — Screenshots, Videos, Traces
+
+*💡 Analogy: When a flight crashes, the black box explains what happened in the final seconds. Playwright's trace files are the black box for your tests — capturing every action, every DOM snapshot, every network call. When a test fails on CI at 3 AM, the trace is your only evidence of what went wrong.*
+
+\`\`\`typescript
+use: {
+  // Screenshot capture
+  screenshot: 'only-on-failure',  // Only when test fails (recommended)
+
+  // Video recording
+  video: 'retain-on-failure',     // Record but discard if test passed
+
+  // Trace recording (most powerful debugging tool)
+  trace: 'on-first-retry',        // Record only when retrying after failure
+}
+\`\`\`
+
+**Recommended values for each setting:**
+
+| Setting | Value | Why |
+|---------|-------|-----|
+| \`screenshot\` | \`'only-on-failure'\` | Cheap to capture, invaluable for debugging |
+| \`video\` | \`'retain-on-failure'\` | Records always but only saves on failure (cheap on success) |
+| \`trace\` | \`'on-first-retry'\` | Heaviest to record — capture only when needed |
+
+**The trace file is magic.** Open it with \`npx playwright show-trace trace.zip\` and you get:
+- Timeline of every action (click, fill, navigation)
+- DOM snapshot at each step
+- Network requests with response bodies
+- Console messages
+- Screenshots before/after each action
+
+This single file lets you debug a flaky test from a CI machine you've never seen.
+
+---
+
+### 5. \`projects\` — Running Across Multiple Browsers
+
+*💡 Analogy: Imagine you wrote a play, and you wanted to perform it in three different theatres on three different nights. Each performance uses the same script (your tests) but different theatre (browser). \`projects\` is the schedule that books all three theatres at once.*
+
+\`\`\`typescript
+import { devices } from '@playwright/test';
+
+projects: [
+  {
+    name: 'chromium',
+    use: { ...devices['Desktop Chrome'] },
+  },
+  {
+    name: 'firefox',
+    use: { ...devices['Desktop Firefox'] },
+  },
+  {
+    name: 'webkit',
+    use: { ...devices['Desktop Safari'] },
+  },
+  {
+    name: 'mobile-iphone',
+    use: { ...devices['iPhone 14'] },
+  },
+  {
+    name: 'mobile-android',
+    use: { ...devices['Pixel 7'] },
+  },
+],
+\`\`\`
+
+**One command runs all five:**
+
+\`\`\`bash
+npx playwright test
+# Runs every test 5 times — once per project
+\`\`\`
+
+**Run only one project:**
+
+\`\`\`bash
+npx playwright test --project=firefox
+# Runs only the Firefox project
+\`\`\`
+
+**The \`devices\` import is gold.** Playwright ships with predefined device emulation: iPhone, iPad, Galaxy, Desktop variants. No need to manually specify viewport sizes, user agents, or touch capabilities — they're all baked in.
+
+---
+
+### 6. \`reporter\` — How Test Results Are Displayed
+
+*💡 Analogy: After a football match, different audiences want different reports. The fans want a colour commentary. The coach wants stats. The TV station wants a summary clip. Playwright's reporters give different audiences the format they need — all from the same test run.*
+
+\`\`\`typescript
+reporter: [
+  ['html'],            // HTML dashboard (the QA favourite)
+  ['list'],            // Console-friendly progress (per-test status)
+  ['junit', { outputFile: 'results.xml' }],  // For CI systems
+],
+\`\`\`
+
+| Reporter | Best For |
+|----------|----------|
+| \`html\` | Local development — beautiful interactive dashboard |
+| \`list\` | Watching tests run in the terminal — colourful progress |
+| \`dot\` | Quick status — a dot per test, fits in narrow CI logs |
+| \`json\` | Programmatic processing — pipe to other tools |
+| \`junit\` | Jenkins, GitHub Actions, GitLab — XML format CI systems understand |
+| \`github\` | GitHub Actions — adds annotations directly on PRs |
+
+You can use **multiple reporters at once** (as shown above) — typical setup is HTML for humans + JUnit for CI.
+
+---
+
+### 7. A Complete, Annotated Production Config
+
+\`\`\`typescript
+import { defineConfig, devices } from '@playwright/test';
+
+export default defineConfig({
+  // ─── Test discovery ───
+  testDir: './tests',
+  testMatch: /.*\\\\.spec\\\\.ts$/,           // Only files ending in .spec.ts
+
+  // ─── Timeouts ───
+  timeout: 30_000,                       // 30s per test
+  expect: { timeout: 5_000 },            // 5s for individual assertions
+
+  // ─── Parallelism ───
+  fullyParallel: true,                   // Run tests within files in parallel
+  workers: process.env.CI ? 2 : undefined,  // Limit on CI to avoid overwhelming the server
+
+  // ─── Retries ───
+  retries: process.env.CI ? 2 : 0,       // Retry on CI only — local should fail fast
+  forbidOnly: !!process.env.CI,          // Fail CI build if anyone left .only() in code
+
+  // ─── Reporting ───
+  reporter: [
+    ['html', { open: 'never' }],         // Don't auto-open in CI
+    ['junit', { outputFile: 'results.xml' }],
+    ['list'],
+  ],
+
+  // ─── Defaults applied to every test ───
+  use: {
+    baseURL: process.env.BASE_URL || 'http://localhost:3000',
+    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+    actionTimeout: 10_000,               // 10s per action (click, fill, etc.)
+    navigationTimeout: 15_000,           // 15s for page.goto()
+  },
+
+  // ─── Browsers / projects ───
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox',  use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit',   use: { ...devices['Desktop Safari'] } },
+  ],
+
+  // ─── Auto-start dev server ───
+  webServer: {
+    command: 'npm run dev',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
+  },
+});
+\`\`\`
+
+This is what a **production-grade config** looks like. Every line solves a real problem QA engineers hit:
+
+- \`process.env.CI\` checks adapt behaviour for CI vs local
+- \`forbidOnly\` catches accidentally-committed \`.only()\` calls
+- \`webServer\` auto-starts your app — no manual "remember to run npm start"
+- \`actionTimeout\` per-action limit, separate from per-test timeout
+- Three browsers cover 95% of real-world traffic
+
+When you start a new Playwright project, copy this config, change the \`baseURL\`, and you're ready.
+        `
+      },
+
+      {
+        id: 'pw-running-tests',
+        title: 'Running Tests & Reading the HTML Report',
+        analogy: "Writing tests is half the job. Running them — and being able to read what happened when they failed — is the other half. Imagine cooking a beautiful meal but not knowing how to plate it for the customer. The CLI commands and the HTML report are how you serve your test results to your team, your manager, and (most importantly) your future self trying to debug a 3 AM failure.",
+        lessonMarkdown: `
+### 1. The Basic Run Command
+
+*💡 Analogy: \`npx playwright test\` is the equivalent of "press play" on your test suite. It's the one command you'll run thousands of times in your QA career. Knowing its variations is like knowing keyboard shortcuts — they save hours.*
+
+**Run all tests:**
+
+\`\`\`bash
+npx playwright test
+\`\`\`
+
+This runs every \`*.spec.ts\` file in your \`testDir\`, across every project (browser) defined in config, in parallel, in headless mode.
+
+**What you see:**
+
+\`\`\`
+Running 24 tests using 5 workers
+  ✓  [chromium] › tests/login.spec.ts:5:5 › successful login (1.2s)
+  ✓  [chromium] › tests/login.spec.ts:15:5 › invalid password shows error (0.9s)
+  ✗  [chromium] › tests/checkout.spec.ts:8:5 › can place order (5.1s)
+  ✓  [firefox]  › tests/login.spec.ts:5:5 › successful login (1.5s)
+  ...
+
+  23 passed, 1 failed (12.4s)
+
+To open last HTML report run:
+  npx playwright show-report
+\`\`\`
+
+The colours, ticks, and crosses make scanning easy. Failed tests are also listed at the bottom with their error messages.
+
+---
+
+### 2. Filtering Tests — Running Just What You Need
+
+*💡 Analogy: When fixing a specific bug, running the entire 200-test suite wastes time. Filtering is like a search-within-the-document feature — Ctrl+F for tests.*
+
+**Run a single file:**
+
+\`\`\`bash
+npx playwright test tests/login.spec.ts
+\`\`\`
+
+**Run a single test by name (grep pattern):**
+
+\`\`\`bash
+npx playwright test -g "successful login"
+# Runs only tests whose name matches "successful login"
+\`\`\`
+
+**Run by line number (run only the test starting at line 15):**
+
+\`\`\`bash
+npx playwright test tests/login.spec.ts:15
+\`\`\`
+
+**Run only one project (browser):**
+
+\`\`\`bash
+npx playwright test --project=chromium
+# Skips firefox and webkit
+\`\`\`
+
+**Combine filters:**
+
+\`\`\`bash
+npx playwright test tests/login.spec.ts --project=chromium -g "invalid"
+# One file, one browser, one matching test
+\`\`\`
+
+**Skipping flaky tests temporarily:**
+
+In your code, use \`test.skip()\` or \`test.fixme()\`:
+
+\`\`\`typescript
+test.skip('flaky test', async ({ page }) => { /* ... */ });
+test.fixme('known broken — will fix in TICKET-123', async ({ page }) => { /* ... */ });
+\`\`\`
+
+\`fixme\` is preferred over \`skip\` because it includes a reason that shows up in reports, reminding the team to fix it.
+
+---
+
+### 3. Headed Mode — Watching Tests Run
+
+*💡 Analogy: Headless tests run invisibly, like a chef working in a closed kitchen. Headed mode opens the door and lets you watch the cooking happen. Slower, but invaluable when something looks wrong.*
+
+\`\`\`bash
+# Watch the tests run in a real visible browser window
+npx playwright test --headed
+
+# Watch ONE specific test run
+npx playwright test tests/login.spec.ts -g "successful" --headed
+\`\`\`
+
+**When to use headed mode:**
+- When a test fails and you can't tell why from the error message
+- When developing a new test and verifying it does what you expect
+- When demonstrating tests to a teammate or manager
+
+**Don't run headed mode on CI** — there's no display attached, and it slows tests significantly.
+
+**Slow motion — see each step pause:**
+
+\`\`\`bash
+npx playwright test --headed --slow-mo=500
+# Each action waits 500ms — easy to follow visually
+\`\`\`
+
+---
+
+### 4. Debug Mode — The Playwright Inspector
+
+*💡 Analogy: Debug mode is like a movie director's edit suite. You can pause at any frame, step through one frame at a time, and inspect every detail. It opens a special UI alongside the browser where you can see exactly what Playwright is about to do.*
+
+\`\`\`bash
+npx playwright test --debug
+
+# Or debug a single test:
+npx playwright test tests/login.spec.ts -g "successful login" --debug
+\`\`\`
+
+**What \`--debug\` does:**
+
+1. Opens the test in a real browser (always headed)
+2. Launches the Playwright Inspector — a separate window
+3. Pauses at the first action
+4. Lets you step through actions one at a time
+5. Shows the locator highlights on the page in real time
+6. Lets you re-run any action
+
+**The Inspector window has:**
+- ▶️ **Resume** — continue running until next breakpoint
+- ⏭️ **Step over** — execute the next action and pause
+- ❌ **Cancel** — stop the test
+- 🔍 **Pick locator** — click any element on the page to see what locator finds it
+
+This is the **single most powerful tool** for diagnosing tricky failures. The first time you use it, you'll wonder how you ever debugged tests without it.
+
+**Inserting a manual breakpoint:**
+
+\`\`\`typescript
+test('debug me', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByLabel('Email').fill('alice@test.com');
+
+  await page.pause();  // Test pauses here when run with --debug
+
+  await page.getByLabel('Password').fill('pass');
+});
+\`\`\`
+
+---
+
+### 5. The HTML Report — Your Manager's Dashboard
+
+*💡 Analogy: The HTML report is to QA what a flight recorder review is to aviation accident investigation. After a test run completes, the HTML report has the complete history — every test, every screenshot, every trace, every error message — in a beautiful interactive format.*
+
+**Open the report:**
+
+\`\`\`bash
+npx playwright show-report
+\`\`\`
+
+This opens a local web server (default port 9323) and launches your default browser at the dashboard.
+
+**What the report shows:**
+
+| Section | Content |
+|---------|---------|
+| **Summary bar** | X passed, Y failed, Z flaky |
+| **Test list** | Every test with status, duration, and project |
+| **Filters** | Show only failures, only flaky, by project |
+| **Per-test detail** | Steps timeline, console logs, screenshots, video, trace |
+
+**Clicking a failed test reveals:**
+
+1. The exact error message and stack trace
+2. The line of code that failed
+3. A screenshot at the moment of failure
+4. The video (if enabled)
+5. A button to open the **trace viewer**
+
+**The Trace Viewer — the killer feature:**
+
+Click "Open Trace" and you get a full timeline. Hover over any action to see:
+- The DOM snapshot before and after
+- The locator that was used
+- Network requests that fired during that action
+- Console messages logged during that action
+- Source code line number
+
+If a test fails on CI, send your developer the \`trace.zip\` file — they can debug from their own laptop without re-running the test.
+
+---
+
+### 6. \`codegen\` — Recording Tests by Clicking
+
+*💡 Analogy: Imagine recording a macro in Excel by demonstrating the steps once. \`codegen\` is exactly that for browser tests — you click around the actual website, and Playwright writes the test code for you in real time.*
+
+\`\`\`bash
+npx playwright codegen https://playwright.dev
+# Or with your own site:
+npx playwright codegen http://localhost:3000
+\`\`\`
+
+**What happens:**
+
+1. A browser window opens at the URL
+2. The Playwright Inspector opens alongside it
+3. Every click, type, or assertion you make in the browser generates Playwright code
+4. The code appears live in the Inspector — copy/paste it into your test file
+
+**Why this is huge for QA productivity:**
+
+- **No memorising syntax** for new APIs — record it, then refine
+- **Best locators automatically** — codegen prefers \`getByRole\`, \`getByLabel\` (the priority we covered in Module 4)
+- **Onboarding new QA engineers** — they can produce working tests on day one
+
+**The workflow:**
+
+\`\`\`bash
+# 1. Record the happy path by clicking
+npx playwright codegen http://localhost:3000
+
+# 2. Copy the generated code into a new file
+# 3. Refine: rename test, add assertions, parameterise data
+
+# 4. Run it to verify
+npx playwright test tests/new-test.spec.ts --headed
+\`\`\`
+
+**Important:** \`codegen\` is a **starting point**, not a finished product. Generated tests need refinement — adding assertions, using fixtures, removing redundant waits. Treat it as a draft that saves typing time.
+
+---
+
+### 7. Your Daily QA Workflow
+
+A real day in the life of a Playwright user:
+
+\`\`\`bash
+# Morning: pull latest changes, run the full suite
+git pull
+npx playwright test
+
+# Test failed — investigate
+npx playwright show-report                # See which tests failed
+# Click into the failed test, view the trace, identify the cause
+
+# Reproduce locally with debug mode
+npx playwright test tests/checkout.spec.ts -g "place order" --debug
+
+# Find the bug, fix the test (or report a real bug to dev)
+# Re-run just the affected file
+npx playwright test tests/checkout.spec.ts
+
+# Once green, run the full suite again to make sure nothing else broke
+npx playwright test
+
+# Commit and push
+git add tests/
+git commit -m "fix: update checkout test for new API response shape"
+git push
+\`\`\`
+
+This is the loop. Master these commands and the HTML report, and you've mastered the operational side of Playwright. The actual test writing — Modules 1–7 — combined with this running and debugging workflow is what makes a productive QA automation engineer.
+        `
+      },
+
       {
         id: 'intermediate',
         title: 'Intermediate: Waiting & Asserting',
