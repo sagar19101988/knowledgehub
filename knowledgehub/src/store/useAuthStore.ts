@@ -9,23 +9,29 @@ import {
   resetPassword,
   saveUserProgress,
   loadUserProgress,
+  sendVerificationEmail,
+  reloadUser,
   type User,
 } from '../lib/firebase';
 import { useQuestStore } from './useQuestStore';
 
 interface AuthState {
   user: User | null;
-  authLoading: boolean;      // true while Firebase checks session on startup
-  actionLoading: boolean;    // true while login/signup/logout is in-flight
+  authLoading: boolean;         // true while Firebase checks session on startup
+  actionLoading: boolean;       // true while login/signup/logout is in-flight
+  pendingVerification: boolean; // true after signup until email is verified
+  unverifiedEmail: string | null; // email address awaiting verification
   error: string | null;
 
   // Actions
-  loginWithEmail:    (email: string, password: string) => Promise<void>;
-  signupWithEmail:   (name: string, email: string, password: string) => Promise<void>;
-  loginWithGoogle:   () => Promise<void>;
-  logout:            () => Promise<void>;
-  forgotPassword:    (email: string) => Promise<void>;
-  clearError:        () => void;
+  loginWithEmail:       (email: string, password: string) => Promise<void>;
+  signupWithEmail:      (name: string, email: string, password: string) => Promise<void>;
+  loginWithGoogle:      () => Promise<void>;
+  logout:               () => Promise<void>;
+  forgotPassword:       (email: string) => Promise<void>;
+  resendVerification:   () => Promise<void>;
+  checkVerification:    () => Promise<void>;
+  clearError:           () => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => {
@@ -33,7 +39,20 @@ export const useAuthStore = create<AuthState>((set, get) => {
   // ── Listen to Firebase session on startup ──────────────────
   onAuthStateChanged(auth, async (firebaseUser) => {
     if (firebaseUser) {
-      // User is logged in — load their progress from Firestore into the quest store
+      // If email/password signup and email not yet verified — hold in pending state.
+      // Google users are always pre-verified so they pass through immediately.
+      if (!firebaseUser.emailVerified && firebaseUser.providerData[0]?.providerId === 'password') {
+        set({
+          user: null,
+          authLoading: false,
+          actionLoading: false,
+          pendingVerification: true,
+          unverifiedEmail: firebaseUser.email,
+        });
+        return;
+      }
+
+      // User is logged in and verified — load their progress from Firestore
       try {
         const progress = await loadUserProgress(firebaseUser.uid);
         if (progress) {
@@ -45,9 +64,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
         // Firestore unavailable — fall back to localStorage data already in store
         useQuestStore.getState().setPlayerName(firebaseUser.displayName ?? 'Adventurer');
       }
-      // Also clear actionLoading here so the login spinner stays visible until
-      // this point — the moment the user is fully loaded and navigation fires.
-      set({ user: firebaseUser, authLoading: false, actionLoading: false });
+      // Clear actionLoading here so the login spinner stays visible until
+      // the user is fully loaded and LoginRoute fires the redirect.
+      set({ user: firebaseUser, authLoading: false, actionLoading: false, pendingVerification: false, unverifiedEmail: null });
     } else {
       // Logged out — clear progress UNLESS the user is in guest mode
       // (onAuthStateChanged fires on every page load when no Firebase user exists,
@@ -55,7 +74,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       if (!useQuestStore.getState().isGuest) {
         useQuestStore.getState().resetProgress();
       }
-      set({ user: null, authLoading: false, actionLoading: false });
+      set({ user: null, authLoading: false, actionLoading: false, pendingVerification: false, unverifiedEmail: null });
     }
   });
 
@@ -63,6 +82,8 @@ export const useAuthStore = create<AuthState>((set, get) => {
     user: null,
     authLoading: true,
     actionLoading: false,
+    pendingVerification: false,
+    unverifiedEmail: null,
     error: null,
 
     loginWithEmail: async (email, password) => {
@@ -81,8 +102,11 @@ export const useAuthStore = create<AuthState>((set, get) => {
     signupWithEmail: async (name, email, password) => {
       set({ actionLoading: true, error: null });
       try {
-        await signUpWithEmail(name, email, password);
-        // Keep actionLoading: true — onAuthStateChanged clears it once loaded.
+        const cred = await signUpWithEmail(name, email, password);
+        // Send verification email immediately after account creation
+        await sendVerificationEmail(cred.user);
+        // onAuthStateChanged will fire and set pendingVerification: true
+        // Keep actionLoading: true until that fires.
       } catch (err: unknown) {
         set({ error: friendlyError(err), actionLoading: false });
       }
@@ -128,6 +152,46 @@ export const useAuthStore = create<AuthState>((set, get) => {
         set({ error: friendlyError(err), actionLoading: false });
       } finally {
         set({ actionLoading: false });
+      }
+    },
+
+    resendVerification: async () => {
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) return;
+      set({ error: null });
+      try {
+        await sendVerificationEmail(firebaseUser);
+        set({ error: '✅ Verification email resent! Check your inbox.' });
+      } catch (err: unknown) {
+        set({ error: friendlyError(err) });
+      }
+    },
+
+    checkVerification: async () => {
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) return;
+      set({ actionLoading: true, error: null });
+      try {
+        const refreshed = await reloadUser(firebaseUser);
+        if (refreshed.emailVerified) {
+          // Trigger onAuthStateChanged flow by reloading — it will grant access
+          // Manually kick the same flow since reload doesn't re-fire onAuthStateChanged
+          try {
+            const progress = await loadUserProgress(refreshed.uid);
+            if (progress) {
+              useQuestStore.getState().hydrateFromFirestore(progress, refreshed.displayName ?? '');
+            } else {
+              useQuestStore.getState().setPlayerName(refreshed.displayName ?? 'Adventurer');
+            }
+          } catch {
+            useQuestStore.getState().setPlayerName(refreshed.displayName ?? 'Adventurer');
+          }
+          set({ user: refreshed, pendingVerification: false, unverifiedEmail: null, actionLoading: false });
+        } else {
+          set({ error: 'Email not verified yet. Please click the link in your inbox.', actionLoading: false });
+        }
+      } catch (err: unknown) {
+        set({ error: friendlyError(err), actionLoading: false });
       }
     },
 

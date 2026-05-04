@@ -9,6 +9,7 @@ import {
   updateProfile,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  sendEmailVerification,
   type User,
 } from 'firebase/auth';
 import {
@@ -102,6 +103,16 @@ export async function signInWithGoogle() {
     await setDoc(userRef, { lastLoginAt: new Date().toISOString() }, { merge: true });
   }
   return cred;
+}
+
+export async function sendVerificationEmail(user: User): Promise<void> {
+  await sendEmailVerification(user);
+}
+
+export async function reloadUser(user: User): Promise<User> {
+  await user.reload();
+  // auth.currentUser is refreshed after reload
+  return auth.currentUser!;
 }
 
 export async function signOutUser() {

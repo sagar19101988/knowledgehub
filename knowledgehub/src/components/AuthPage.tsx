@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen, Eye, EyeOff, Loader2, Mail, Lock, User,
-  AlertCircle, Sun, Moon, Volume2, VolumeX,
+  AlertCircle, Sun, Moon, Volume2, VolumeX, MailCheck,
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useQuestStore } from '../store/useQuestStore';
@@ -24,7 +24,11 @@ const PREVIEW_MODULES = ['Data Types', 'Control Flow', 'Functions', 'Async / Awa
 
 export function AuthPage() {
   const navigate = useNavigate();
-  const { loginWithEmail, signupWithEmail, loginWithGoogle, forgotPassword, actionLoading, error, clearError } = useAuthStore();
+  const {
+    loginWithEmail, signupWithEmail, loginWithGoogle, logout, forgotPassword,
+    resendVerification, checkVerification,
+    actionLoading, pendingVerification, unverifiedEmail, error, clearError,
+  } = useAuthStore();
   const theme        = useQuestStore((s) => s.theme);
   const toggleTheme  = useQuestStore((s) => s.toggleTheme);
   const enterGuestMode = useQuestStore((s) => s.enterGuestMode);
@@ -33,8 +37,17 @@ export function AuthPage() {
   const [mode, setMode]         = useState<Mode>('login');
   const [name, setName]         = useState('');
   const [email, setEmail]       = useState('');
+  const [emailError, setEmailError] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw]     = useState(false);
+
+  const validateEmail = (val: string) => {
+    if (!val) { setEmailError(''); return true; }
+    // Reject spaces anywhere, require local@domain.tld pattern
+    const ok = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val);
+    setEmailError(ok ? '' : 'Please enter a valid email address (e.g. you@example.com)');
+    return ok;
+  };
 
   // ── Narrator audio ────────────────────────────────────────
   const audioRef               = React.useRef<HTMLAudioElement | null>(null);
@@ -100,10 +113,11 @@ export function AuthPage() {
   }, [previewModuleIdx]);
 
   // ── Auth handlers ─────────────────────────────────────────
-  const switchMode = (m: Mode) => { clearError(); setMode(m); setName(''); setEmail(''); setPassword(''); };
+  const switchMode = (m: Mode) => { clearError(); setMode(m); setName(''); setEmail(''); setPassword(''); setEmailError(''); };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateEmail(email)) return;
     if (mode === 'login') {
       await loginWithEmail(email, password);
     } else {
@@ -328,8 +342,96 @@ export function AuthPage() {
             </button>
           </div>
 
+          <AnimatePresence mode="wait">
+          {pendingVerification ? (
+            /* ── Email verification holding screen ──────────────── */
+            <motion.div
+              key="verify"
+              initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.45, ease: 'easeOut' }}
+              className="w-full max-w-sm mx-auto text-center"
+            >
+              {/* Icon */}
+              <motion.div
+                animate={{ boxShadow: ['0 0 20px rgba(192,38,211,0.2)', '0 0 40px rgba(192,38,211,0.45)', '0 0 20px rgba(192,38,211,0.2)'] }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                className="w-16 h-16 rounded-2xl bg-fuchsia-500/15 border border-fuchsia-500/30 flex items-center justify-center mb-5 mx-auto"
+              >
+                <MailCheck size={30} className="text-fuchsia-400" />
+              </motion.div>
+
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Check your inbox</h2>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">
+                We sent a verification link to:
+              </p>
+              <p className="text-violet-600 dark:text-violet-400 font-semibold text-sm mb-6 break-all">
+                {unverifiedEmail}
+              </p>
+              <p className="text-slate-500 dark:text-slate-400 text-xs mb-8 leading-relaxed">
+                Click the link in the email to activate your account, then press the button below.
+              </p>
+
+              {/* Error / success */}
+              <AnimatePresence>
+                {error && (
+                  <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                    className={`flex items-center gap-2 text-sm rounded-xl px-4 py-3 border mb-4 ${
+                      error.startsWith('✅')
+                        ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/40'
+                        : 'text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/40'
+                    }`}
+                  >
+                    <AlertCircle size={15} className="shrink-0" />
+                    {error}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Continue button */}
+              <motion.button
+                onClick={checkVerification}
+                disabled={actionLoading}
+                whileHover={{ scale: actionLoading ? 1 : 1.01 }}
+                whileTap={{ scale: actionLoading ? 1 : 0.98 }}
+                className="w-full py-3 rounded-xl font-bold text-sm text-white transition-all
+                  bg-gradient-to-r from-fuchsia-500 to-violet-600
+                  shadow-[0_0_24px_rgba(192,38,211,0.35)]
+                  hover:shadow-[0_0_40px_rgba(192,38,211,0.5)]
+                  disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none
+                  flex items-center justify-center gap-2 mb-3"
+              >
+                {actionLoading
+                  ? <><Loader2 size={16} className="animate-spin" /> Checking…</>
+                  : <>I've verified — Continue →</>
+                }
+              </motion.button>
+
+              {/* Resend link */}
+              <button
+                type="button"
+                onClick={resendVerification}
+                disabled={actionLoading}
+                className="text-xs text-violet-500 dark:text-violet-400 hover:underline disabled:opacity-50 transition-colors mb-6 block w-full"
+              >
+                Resend verification email
+              </button>
+
+              {/* Back to login */}
+              <div className="pt-4 border-t border-violet-200/40 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={async () => { clearError(); await logout(); }}
+                  className="text-xs text-slate-400 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-400 transition-colors"
+                >
+                  ← Back to sign in
+                </button>
+              </div>
+            </motion.div>
+          ) : (
           <motion.div
-            initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.55, ease: 'easeOut' }}
+            key="form"
+            initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.55, ease: 'easeOut' }}
             className="w-full max-w-sm mx-auto"
           >
             {/* Logo */}
@@ -395,8 +497,28 @@ export function AuthPage() {
                 )}
               </AnimatePresence>
 
-              <AuthInput icon={<Mail size={15} />} type="email" placeholder="Email address"
-                value={email} onChange={setEmail} autoFocus={mode === 'login'} />
+              <div>
+                <AuthInput icon={<Mail size={15} />} type="email" placeholder="Email address"
+                  value={email} onChange={(v) => { setEmail(v); if (emailError) validateEmail(v); }}
+                  onBlur={() => validateEmail(email)}
+                  autoFocus={mode === 'login'} />
+                {/* Inline format error */}
+                <AnimatePresence>
+                  {emailError && (
+                    <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                      className="mt-1.5 text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
+                      <AlertCircle size={11} className="shrink-0" />{emailError}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+                {/* Signup hint — only shown when no format error */}
+                {mode === 'signup' && !emailError && (
+                  <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                    <Mail size={11} className="shrink-0 text-violet-400" />
+                    Use a real, accessible email — we'll send a verification link.
+                  </p>
+                )}
+              </div>
 
               <div className="relative">
                 <AuthInput icon={<Lock size={15} />} type={showPw ? 'text' : 'password'}
@@ -434,7 +556,7 @@ export function AuthPage() {
               </AnimatePresence>
 
               <motion.button type="submit"
-                disabled={actionLoading || !email || !password || (mode === 'signup' && !name)}
+                disabled={actionLoading || !email || !!emailError || !password || (mode === 'signup' && !name)}
                 whileHover={{ scale: actionLoading ? 1 : 1.01 }}
                 whileTap={{ scale: actionLoading ? 1 : 0.98 }}
                 className="w-full py-3 rounded-xl font-bold text-sm text-white transition-all
@@ -473,6 +595,8 @@ export function AuthPage() {
               </p>
             </div>
           </motion.div>
+          )}
+          </AnimatePresence>
         </div>
 
       </div>
@@ -481,16 +605,16 @@ export function AuthPage() {
 }
 
 // ─── Reusable styled input ────────────────────────────────────
-function AuthInput({ icon, type, placeholder, value, onChange, autoFocus, paddingRight }: {
+function AuthInput({ icon, type, placeholder, value, onChange, onBlur, autoFocus, paddingRight }: {
   icon: React.ReactNode; type: string; placeholder: string;
-  value: string; onChange: (v: string) => void;
+  value: string; onChange: (v: string) => void; onBlur?: () => void;
   autoFocus?: boolean; paddingRight?: boolean;
 }) {
   return (
     <div className="relative">
       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500">{icon}</span>
       <input type={type} placeholder={placeholder} value={value}
-        onChange={(e) => onChange(e.target.value)} autoFocus={autoFocus} required
+        onChange={(e) => onChange(e.target.value)} onBlur={onBlur} autoFocus={autoFocus} required
         className={`w-full bg-white/80 dark:bg-slate-800/60 border border-violet-300/60 dark:border-slate-700/60 rounded-xl
           pl-9 ${paddingRight ? 'pr-10' : 'pr-4'} py-3 text-sm
           text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600
