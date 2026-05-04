@@ -25197,25 +25197,1118 @@ export default defineConfig({
     id: 'ai-qa',
     levels: [
       {
-        id: 'basic',
-        title: 'Basic: Using AI',
-        analogy: "Talking to an AI is like talking to a genius intern who has read every book in the world, but has absolutely zero common sense. If you ask them to 'make a sandwich', they might use cardboard instead of bread because you didn't explicitly forbid it.",
+        id: 'ai-what-is-ai',
+        title: 'Module 1: What Even IS Artificial Intelligence?',
+        analogy: "AI is like a very well-read intern. They've read millions of books, articles, and code files. They can answer questions, write things for you, and help you think — but they haven't actually done your job before. They know about it from reading, not from experience.",
         lessonMarkdown: `
-### 1. What is a Prompt?
-*💡 Analogy: It's the exact blueprint you hand to a construction crew. If the blueprint is vague, you end up with a crooked house.*
+### What is AI?
 
-A "Prompt" is the text or instructions you type into a Large Language Model (LLM) like ChatGPT or Claude. AI is a garbage-in, garbage-out system. If you ask it a lazy, one-sentence question, you will get a generic, useless answer. Crafting high-quality prompts is a completely new skill for QA engineers, requiring you to be highly specific about context, desired formats, and limitations.
+*💡 Analogy: AI is like a very well-read intern. They've read millions of books and code files. They can help you think and write — but they've never actually done your job. They know about it from reading, not from experience.*
 
-### 2. The Human Element
-*💡 Analogy: AI can read sheet music faster than any human, but it cannot actually hear the music to know if it sounds beautiful or sad.*
+**AI (Artificial Intelligence)** is software that can understand language, generate text, write code, and answer questions — almost like a human would.
 
-There is a widespread fear that AI will completely replace manual testers. This is a misunderstanding of what AI is. AI is incredible at rapidly writing boilerplate test scripts, summarizing documentation, and generating data. However, AI completely lacks human empathy, intuition, and real-world context. An AI cannot look at a clunky, frustrating user interface and say, "This feels annoying to use." Exploratory testing and UX evaluation remain strictly human domains.
+The type of AI you use for testing (ChatGPT, Claude, Copilot) is called an **LLM — Large Language Model**.
 
-### 3. Hallucinations
-*💡 Analogy: A student taking a test who didn't study, so they confidently invent completely fake historical facts hoping the teacher won't notice.*
+---
 
-AI models do not possess a database of facts; they are massive probability engines designed to predict the next most likely word in a sentence. Because they are designed to be conversational and confident, they will frequently invent completely fake APIs, non-existent software libraries, or wrong test data just to complete a sentence that "sounds" correct. This is called a hallucination, and it is why a QA engineer must always rigorously verify any code an AI generates.
-        `
+### The 3 Things AI is Really Good At
+
+| Skill | Example |
+|-------|---------|
+| **Writing** | "Write 10 test cases for a login page" |
+| **Summarising** | "Explain this 500-line codebase in 5 bullet points" |
+| **Generating** | "Generate 50 fake user profiles as JSON" |
+
+---
+
+### The 3 Things AI is Bad At
+
+| Weakness | Why it matters to you |
+|----------|-----------------------|
+| **Facts** | AI can state wrong facts confidently |
+| **Maths** | AI sometimes calculates incorrectly |
+| **Knowing what it doesn't know** | It won't say "I'm not sure" — it guesses |
+
+---
+
+### Why AI Suddenly Got So Good (2022–2023)
+
+Before 2022, AI could do simple tasks. Then **ChatGPT** launched in November 2022 and everything changed.
+
+The reason: training on **massive amounts of text** (billions of web pages, books, code repos) combined with a new technique called **RLHF** (Reinforcement Learning from Human Feedback) — humans rated AI answers as good or bad, and the AI learned from that feedback.
+
+---
+
+### Real Example — The Hallucination Problem
+
+> You ask AI: *"What is the capital of Australia?"*
+>
+> AI answers: *"Sydney"* ← **WRONG** (it's Canberra)
+
+This is called a **hallucination** — AI gives a confident, wrong answer.
+
+**The golden rule: AI is your first draft, not your final answer. Always verify.**
+        `,
+      },
+      {
+        id: 'ai-how-it-thinks',
+        title: 'Module 2: How AI Actually Understands You',
+        analogy: "Imagine sending a letter to a brilliant friend, but the envelope has a size limit — only 10 pages. Everything you want them to know must fit in those 10 pages — your question AND their answer. That size limit is called the context window.",
+        lessonMarkdown: `
+### Tokens — The Unit of AI Thinking
+
+*💡 Analogy: Tokens are like LEGO bricks. Every word, punctuation mark, or space is roughly one brick. AI thinks in bricks, not full sentences.*
+
+AI doesn't read words like you do. It breaks everything into small pieces called **tokens**.
+
+- 1 token ≈ 1 word (roughly)
+- "Hello world" = 2 tokens
+- "Playwright" = 1 token
+- A full test script = hundreds of tokens
+
+**Why it matters:** AI has a limit on how many tokens it can process at once. This is called the **context window**.
+
+---
+
+### The Context Window
+
+*💡 Analogy: Sending a letter to a brilliant friend with a 10-page limit. Everything — your question AND their answer — must fit in those 10 pages.*
+
+The **context window** is how much information AI can "hold in its head" at once.
+
+| Model | Approx. Context Window |
+|-------|----------------------|
+| GPT-3.5 | ~4,000 tokens (~3,000 words) |
+| GPT-4 | ~128,000 tokens (~96,000 words) |
+| Claude | ~200,000 tokens (~150,000 words) |
+
+**Why it matters:**
+- If you paste a huge file, AI may "forget" the start by the time it reaches the end
+- Each new chat starts fresh — AI has no memory of your last conversation
+
+---
+
+### Why AI "Forgets" Previous Conversations
+
+When you start a new chat, AI has **zero memory** of what you talked about before. It only knows what's in the current conversation window.
+
+This is why experienced users:
+- Paste relevant context at the start of each session
+- Keep system prompts that describe their project
+
+---
+
+### Practical Tip: Context = Better Answers
+
+\`\`\`
+❌ Bad: "Write a test"
+
+✅ Good: "Write a Playwright TypeScript test for a login page.
+URL: /login. Email field: #email. Password field: #password.
+On success, it redirects to /dashboard."
+\`\`\`
+
+More context you give → much better output you get.
+
+---
+
+### System Prompt vs User Prompt
+
+When you open ChatGPT or Claude, there are actually two types of input:
+
+| Type | What it is | Example |
+|------|-----------|---------|
+| **System Prompt** | Background instructions set before the conversation starts — defines AI's role and rules | "You are a QA engineer assistant. Always format answers as bullet points." |
+| **User Prompt** | What you type each message | "Write test cases for a login page" |
+
+**Where you'll see this:**
+- **ChatGPT:** Settings → "Custom Instructions" — this becomes your permanent system prompt for every chat
+- **Claude:** "System Prompt" field in Projects
+- **API usage:** Developers set this in code before calling the AI
+
+**Practical tip for testers:** Set a Custom Instruction like:
+\`\`\`
+I am a QA engineer. Always:
+- Use professional QA terminology
+- Format test cases as numbered lists with Expected Result
+- Flag security risks in any code I share
+\`\`\`
+This applies to every conversation automatically — you don't need to repeat it.
+        `,
+      },
+      {
+        id: 'ai-your-first-prompt',
+        title: 'Module 3: Your First AI Prompt for Testing',
+        analogy: "Talking to AI is like ordering at a restaurant. If you say 'give me food', you'll get something random. If you say 'give me a medium-rare steak with chips and a side salad', you'll get exactly what you want. Be specific.",
+        lessonMarkdown: `
+### The Anatomy of a Good Prompt
+
+*💡 Analogy: Ordering at a restaurant. "Give me food" = random result. "Medium-rare steak, chips, side salad, no onions" = exactly what you want.*
+
+Every great AI prompt has 4 parts:
+
+| Part | What it means | Example |
+|------|---------------|---------|
+| **Role** | Who should AI act as? | "Act as a senior QA engineer" |
+| **Task** | What should it do? | "Write 10 test cases for a login page" |
+| **Context** | What is the situation? | "The login uses email + password, redirects to /dashboard" |
+| **Format** | How should the answer look? | "Format as a Gherkin table" |
+
+---
+
+### Your First 5 Prompts — Try These Today
+
+**Prompt 1 — Test Cases from scratch:**
+\`\`\`
+Act as a senior QA engineer.
+List 10 test cases for a login page with email and password fields.
+Include happy path, negative cases, and edge cases.
+\`\`\`
+
+**Prompt 2 — Professional bug report:**
+\`\`\`
+I found a bug. Convert my notes into a professional bug report
+with: Title, Steps to Reproduce, Expected Result, Actual Result, Severity.
+
+My notes: "login broken on safari, works on chrome,
+clicking login does nothing, console shows CORS error"
+\`\`\`
+
+**Prompt 3 — Edge cases from a user story:**
+\`\`\`
+User story: "As a user, I want to reset my password via email."
+What edge cases should I test that a developer might have missed?
+\`\`\`
+
+**Prompt 4 — Generate test data:**
+\`\`\`
+Generate 20 realistic test data entries for a user registration form.
+Fields: name, email, phone, date of birth.
+Include a mix of valid and invalid values.
+\`\`\`
+
+**Prompt 5 — Explain code:**
+\`\`\`
+Explain what this function does in simple English.
+Identify any potential bugs.
+List test cases I should write for it.
+
+[paste your function here]
+\`\`\`
+
+---
+
+### The Key Insight
+
+The difference between a bad AI response and a great one is almost always **the quality of your prompt**, not the AI itself.
+
+Think of yourself as the director and AI as the actor. Give clear direction → great performance.
+        `,
+      },
+      {
+        id: 'ai-prompt-craft',
+        title: 'Module 4: The CRAFT Method — Prompts That Actually Work',
+        analogy: "A prompt is like a job description you post on LinkedIn. A vague one ('we need someone good') gets terrible applicants. A detailed one ('Senior QA Engineer, 5 years Playwright, fintech domain, London') gets exactly who you need.",
+        lessonMarkdown: `
+### The CRAFT Framework
+
+*💡 Analogy: A prompt is like a LinkedIn job description. A vague one gets terrible applicants. A detailed one gets exactly the right person.*
+
+**CRAFT** is a simple method to write prompts that consistently get great results.
+
+| Letter | Stands For | Question to Ask Yourself |
+|--------|-----------|--------------------------|
+| **C** | Context | What is the background situation? |
+| **R** | Role | Who should the AI pretend to be? |
+| **A** | Action | What exactly do you want done? |
+| **F** | Format | How should the answer be structured? |
+| **T** | Tone | Technical? Simple? Formal? |
+
+---
+
+### CRAFT in Action
+
+**❌ Weak prompt:**
+\`\`\`
+Write test cases for checkout
+\`\`\`
+
+**✅ CRAFT prompt:**
+\`\`\`
+You are a senior QA engineer with 10 years of e-commerce testing experience. (Role)
+
+I am testing the checkout flow of an online store that sells electronics.
+The cart has quantity controls, a promo code field, and Stripe payment. (Context)
+
+Write 15 test cases covering: happy path, edge cases, and error scenarios. (Action)
+
+Format as a table: Test ID | Description | Steps | Expected Result. (Format)
+
+Use professional QA language. (Tone)
+\`\`\`
+
+---
+
+### How to Iterate When the First Answer Isn't Good Enough
+
+AI is not a one-shot machine. You're supposed to refine:
+
+1. **Ask it to improve:** *"This is good but add 5 more edge cases around payment failures."*
+2. **Ask it to change format:** *"Re-format this as Gherkin scenarios."*
+3. **Ask it to self-critique:** *"Review your own answer. What test cases are missing?"*
+4. **Ask it to go deeper:** *"Expand test case #7 with step-by-step detail."*
+
+---
+
+### Quick Reference — CRAFT Starters
+
+\`\`\`
+"You are a [role] with [X] years of experience in [domain]."
+"I am working on [context]."
+"Please [specific action]."
+"Format the output as [table/list/JSON/Gherkin]."
+"Use [formal/simple/technical] language."
+\`\`\`
+        `,
+      },
+      {
+        id: 'ai-test-cases',
+        title: 'Module 5: Using AI to Write Test Cases 10x Faster',
+        analogy: "Writing test cases manually is like painting a wall with a tiny brush. AI is the paint roller — it covers the same area in a fraction of the time. You still need to check the quality, but the heavy lifting is done.",
+        lessonMarkdown: `
+### Why AI is Perfect for Test Cases
+
+*💡 Analogy: Writing test cases manually is like painting a wall with a tiny brush. AI is the paint roller — covers more ground faster. You still need to check the quality, but AI does the heavy lifting.*
+
+Test case generation is one of the best uses of AI in QA because:
+- It's repetitive and structured (AI loves this)
+- You know what good output looks like (you can review it)
+- AI catches edge cases humans often miss
+
+---
+
+### Converting a User Story to a Full Test Suite
+
+**User story:**
+> "As a user, I want to reset my password by entering my email and receiving a reset link."
+
+**Prompt:**
+\`\`\`
+Act as a QA engineer. Based on this user story, write test cases for:
+1. Happy path
+2. Invalid email formats
+3. Email not registered in the system
+4. Rate limiting (too many requests)
+5. Expired reset link
+6. Security concerns (token reuse, etc.)
+
+Format as Gherkin (Given/When/Then).
+\`\`\`
+
+**Example AI output:**
+\`\`\`gherkin
+Scenario: Successful password reset request
+  Given I am on the forgot password page
+  When I enter a valid registered email "user@example.com"
+  And I click "Send Reset Link"
+  Then I should see "Check your inbox" message
+  And a reset email should be sent within 60 seconds
+
+Scenario: Email not registered
+  Given I am on the forgot password page
+  When I enter an unregistered email "unknown@example.com"
+  And I click "Send Reset Link"
+  Then I should see "If this email exists, a reset link has been sent"
+\`\`\`
+
+---
+
+### Asking AI to Think About Negative Cases
+
+Most testers write happy path first and run out of energy before negative cases. Use this prompt:
+
+\`\`\`
+I've already written happy path tests.
+Now focus ONLY on: negative tests, boundary values, security edge cases,
+and scenarios that a developer might have forgotten to handle.
+\`\`\`
+
+---
+
+### Asking AI to Prioritise by Risk
+
+\`\`\`
+Here are 30 test cases for our payment flow.
+Rank them from highest to lowest risk, assuming we only have time
+to run 10 before the release. Explain your reasoning.
+\`\`\`
+
+---
+
+### How to Review AI-Generated Test Cases
+
+AI test cases are a starting point, not a final answer. Always check:
+- ✅ Are steps specific enough to follow?
+- ✅ Is the expected result clearly defined?
+- ✅ Are there domain-specific cases AI wouldn't know about?
+- ✅ Does anything assume wrong system behaviour?
+
+---
+
+### Getting AI Output Into Your Team's Tools
+
+AI generates great test cases — but they're useless if they're stuck in a chat window. Tell AI exactly what format your team uses:
+
+**For Jira (as a user story acceptance criteria):**
+\`\`\`
+Format each test case as a Jira acceptance criterion:
+"Given [precondition], When [action], Then [expected result]"
+\`\`\`
+
+**For Gherkin / Cucumber / SpecFlow:**
+\`\`\`
+Format all test cases as Gherkin scenarios using Given/When/Then.
+Group related scenarios under a Feature block.
+\`\`\`
+
+**For TestRail / Zephyr (table format):**
+\`\`\`
+Format as a table with columns:
+Test Case ID | Title | Precondition | Steps | Expected Result | Priority
+\`\`\`
+
+**For a plain Excel/CSV export:**
+\`\`\`
+Format as CSV with headers:
+ID,Title,Steps,Expected Result,Actual Result,Pass/Fail
+\`\`\`
+
+Once AI generates in your format, you can paste directly into your tool with minimal cleanup.
+        `,
+      },
+      {
+        id: 'ai-bug-reports',
+        title: 'Module 6: Writing Perfect Bug Reports with AI',
+        analogy: "A bad bug report is like calling a plumber and saying 'my house is wet'. A good one is 'the cold water pipe under the kitchen sink is leaking from the joint, dripping every 3 seconds'. AI helps you write the second kind every time.",
+        lessonMarkdown: `
+### Why Bug Reports Matter
+
+*💡 Analogy: A bad bug report is like calling a plumber and saying "my house is wet." A good one says "the cold water pipe under the kitchen sink is leaking from the joint, started 2 hours ago, drips every 3 seconds." AI turns your messy notes into the second kind.*
+
+A good bug report means:
+- The developer can reproduce it immediately
+- No back-and-forth asking "what did you do?"
+- It gets fixed faster
+
+---
+
+### The Standard Bug Report Template
+
+| Field | What goes here |
+|-------|---------------|
+| **Title** | Short, specific, actionable |
+| **Environment** | Browser, OS, version, URL |
+| **Steps to Reproduce** | Numbered list, exact steps |
+| **Expected Result** | What should have happened |
+| **Actual Result** | What actually happened |
+| **Severity** | Critical / High / Medium / Low |
+| **Attachments** | Screenshot, video, logs |
+
+---
+
+### Converting Messy Notes into a Professional Report
+
+**Your messy notes:**
+\`\`\`
+login broken on safari, works on chrome, when i click login button
+nothing happens, checked console there's a CORS error, only happens
+on prod not staging
+\`\`\`
+
+**The prompt:**
+\`\`\`
+Convert these QA notes into a professional bug report with:
+Title, Environment, Steps to Reproduce, Expected Result,
+Actual Result, Severity, and Possible Root Cause.
+
+Notes: [paste your notes here]
+\`\`\`
+
+**AI output:**
+\`\`\`
+Title: Login button unresponsive on Safari (Production only) — CORS error
+
+Environment: Safari 17, macOS 14, Production (https://app.example.com)
+
+Steps to Reproduce:
+1. Open https://app.example.com/login in Safari
+2. Enter valid credentials
+3. Click the "Login" button
+
+Expected Result: User is authenticated and redirected to /dashboard
+
+Actual Result: Nothing happens. Browser console shows:
+"Access to fetch at 'https://api.example.com/auth' from origin
+'https://app.example.com' has been blocked by CORS policy"
+
+Severity: Critical — blocks all Safari users from logging in
+
+Possible Root Cause: The production API server is missing the
+Access-Control-Allow-Origin header for the app domain.
+This works on staging, suggesting a deployment configuration mismatch.
+\`\`\`
+
+---
+
+### Asking AI to Suggest Severity
+
+\`\`\`
+Based on this bug description, suggest the appropriate severity (Critical/High/Medium/Low)
+and explain why. Consider: user impact, frequency, workaround availability.
+\`\`\`
+        `,
+      },
+      {
+        id: 'ai-test-data',
+        title: 'Module 7: Generating Test Data with AI',
+        analogy: "Using 'test@test.com' for all your tests is like testing a restaurant by only ordering water. You're not testing the real thing. AI generates thousands of realistic, varied test entries in seconds.",
+        lessonMarkdown: `
+### Why Good Test Data Matters
+
+*💡 Analogy: Using "test@test.com" and "Password123" for everything is like testing a restaurant by only ordering water. You're not testing the real experience. AI can generate thousands of realistic, varied entries in seconds.*
+
+Bad test data causes real bugs to slip through:
+- Names with apostrophes (O'Brien) crash poorly coded forms
+- Very long names overflow UI elements
+- Special characters break SQL queries
+- Unicode characters expose encoding issues
+
+---
+
+### Basic Test Data Generation
+
+**Simple request:**
+\`\`\`
+Generate 10 realistic test users for a UK e-commerce site.
+Each user needs: full name, email, UK phone number, UK address,
+date of birth (mix of ages 18–80).
+Output as a JSON array.
+\`\`\`
+
+---
+
+### Edge Case Data — The Real Value
+
+\`\`\`
+Generate 10 edge case email addresses that are technically valid but unusual.
+Examples: emails with + signs, dots, very long local parts, unicode.
+\`\`\`
+
+\`\`\`
+Generate 10 test names that include edge cases:
+apostrophes (O'Brien), hyphens (Mary-Jane), accents (José),
+very long names (50+ characters), single character names.
+\`\`\`
+
+---
+
+### Generating SQL Test Data
+
+\`\`\`
+Generate SQL INSERT statements for 20 test users in this table:
+CREATE TABLE users (id INT, name VARCHAR(100), email VARCHAR(255),
+created_at TIMESTAMP, is_active BOOLEAN);
+
+Mix of: active/inactive users, various dates, edge case names.
+\`\`\`
+
+---
+
+### Generating API Payloads
+
+\`\`\`
+Generate 5 JSON request bodies for POST /api/users endpoint.
+Fields: name, email, phone, role (admin/user/guest), age.
+Include: 2 valid requests, 1 with missing required field,
+1 with invalid email format, 1 with age below 18.
+\`\`\`
+
+---
+
+### What NOT to Ask AI For
+
+⚠️ Never paste real customer data into AI tools — it's a privacy violation.
+
+Use AI to **generate fake** data, not to process real data.
+
+| ✅ Safe | ❌ Never do this |
+|---------|-----------------|
+| Generate 50 fake user profiles | Paste real customer emails |
+| Create mock payment data | Share real card numbers |
+| Generate test addresses | Use real employee data |
+        `,
+      },
+      {
+        id: 'ai-tools-overview',
+        title: 'Module 8: The AI Toolkit — Which Tool Does What?',
+        analogy: "AI tools are like vehicles. A bicycle (ChatGPT free), a car (ChatGPT Plus/Claude), a van (Copilot in your IDE), a truck (AI in CI/CD). Pick the right vehicle for the journey.",
+        lessonMarkdown: `
+### Not All AI Tools Are the Same
+
+*💡 Analogy: AI tools are like vehicles. A bicycle gets you somewhere slowly. A car is faster. A van carries more. A truck handles heavy loads. Pick the right vehicle for the journey.*
+
+Different tools are built for different jobs. Using the wrong one is like driving a bicycle on a motorway.
+
+---
+
+### The Main AI Tools for QA Engineers
+
+**ChatGPT (OpenAI)**
+- Great for: test cases, bug reports, explanations, general QA tasks
+- Free version: GPT-3.5 (good but older)
+- Paid version: GPT-4o (much better, worth it)
+- Best for: everyday QA writing tasks
+
+**Claude (Anthropic)**
+- Great for: reading large documents, codebases, nuanced writing
+- Handles very long context (200k tokens — entire test suites)
+- Best for: understanding large codebases, long documentation
+
+**GitHub Copilot**
+- Lives inside your IDE (VS Code, JetBrains)
+- Autocompletes code as you type
+- Best for: writing Playwright/TypeScript test code faster
+
+**Cursor**
+- AI-powered code editor
+- Can edit multiple files at once based on your instructions
+- Best for: refactoring test frameworks, adding new pages to POM
+
+---
+
+### Choose the Right Tool
+
+| Task | Best Tool |
+|------|-----------|
+| Writing test cases from user stories | ChatGPT / Claude |
+| Autocompleting Playwright scripts | GitHub Copilot |
+| Understanding a large codebase | Claude |
+| Generating test data | ChatGPT |
+| Writing tests from a screenshot | GPT-4o / Claude |
+| Refactoring a test framework | Cursor |
+
+---
+
+### The Free Tier Strategy
+
+You don't need to pay for everything on day one:
+
+1. **Start free:** ChatGPT free tier covers most basic tasks
+2. **Upgrade one tool:** GitHub Copilot ($10/month) gives the biggest daily ROI for automation engineers
+3. **Add Claude free:** Great for reading long documents and understanding code
+4. **Go premium when you're ready:** ChatGPT Plus ($20/month) for complex tasks
+
+---
+
+### The Most Important Lesson
+
+The tool matters less than **the skill of the person using it**.
+
+A great prompt on the free tier often beats a lazy prompt on the paid tier.
+
+---
+
+### Adding Gemini to Your Toolkit
+
+**Gemini (Google)**
+- Built into Google Workspace (Docs, Gmail, Sheets) — if your company uses Google, you already have access
+- Great for: summarising long documents, drafting in Google Docs, analysing data in Sheets
+- Gemini Advanced (paid): comparable to GPT-4o for general tasks
+
+| Task | Best Tool |
+|------|-----------|
+| Writing test cases from user stories | ChatGPT / Claude |
+| Autocompleting Playwright scripts (inline) | GitHub Copilot |
+| Asking questions about your codebase | GitHub Copilot Chat |
+| Understanding a large codebase | Claude |
+| Drafting test plans in Google Docs | Gemini |
+| Generating test data | ChatGPT |
+
+---
+
+### Copilot Chat vs Copilot Inline — What's the Difference?
+
+Many beginners install Copilot and only use one mode without realising there are two:
+
+**Copilot Inline (autocomplete)**
+- Appears as grey "ghost text" as you type
+- Press Tab to accept, Escape to dismiss
+- Best for: completing repetitive test steps, selector patterns, assertion lines
+
+**Copilot Chat (conversation)**
+- A chat panel inside VS Code (Ctrl+Shift+I)
+- You ask questions, explain what you need, paste errors
+- Best for: "Explain this function", "Fix this failing test", "Add POM structure to this script"
+
+Use **both** — inline for speed while coding, Chat for understanding and refactoring.
+        `,
+      },
+      {
+        id: 'ai-reading-code',
+        title: 'Module 9: Using AI to Understand Code You\'ve Never Seen',
+        analogy: "Joining a new project with an existing codebase is like being handed a 500-page instruction manual in a foreign language. AI is the translator that reads it for you and explains what actually matters.",
+        lessonMarkdown: `
+### The Problem Every QA Engineer Faces
+
+*💡 Analogy: Joining a new project is like being handed a 500-page instruction manual in a foreign language. AI is the translator — it reads it for you and explains what matters in plain English.*
+
+As a QA engineer, you constantly encounter code written by others:
+- Complex functions you need to test but don't fully understand
+- New projects with thousands of lines of code
+- Pull request diffs before a release
+- Backend logic that determines what to test
+
+AI turns code comprehension from hours into minutes.
+
+---
+
+### Prompt 1 — Explain this function in plain English
+
+\`\`\`
+Here is a JavaScript function from our codebase.
+Please explain:
+1. What it does in simple English (no jargon)
+2. What inputs it expects and what it returns
+3. Any potential bugs or edge cases you can see
+4. What test cases I should write to test it properly
+
+[paste the function here]
+\`\`\`
+
+---
+
+### Prompt 2 — What could go wrong?
+
+\`\`\`
+Look at this code and answer: "What could break in production?"
+Focus on: null/undefined errors, race conditions, incorrect assumptions,
+missing error handling, and security issues.
+
+[paste code here]
+\`\`\`
+
+---
+
+### Prompt 3 — Find what to test in a PR diff
+
+\`\`\`
+Here is a git diff from a pull request.
+List the test cases I should write or update based on these changes.
+Flag anything that looks risky from a QA perspective.
+
+[paste the diff here]
+\`\`\`
+
+---
+
+### Prompt 4 — Make legacy code readable
+
+\`\`\`
+This is legacy code with no comments. Please:
+1. Add inline comments explaining what each section does
+2. Rename any unclear variable names to something readable
+3. Flag any parts that look dangerous or outdated
+\`\`\`
+
+---
+
+### Real Scenario
+
+A developer says: *"The payment calculation function changed in this PR."*
+
+You paste the diff into Claude and ask: *"What changed and what should I retest?"*
+
+In 10 seconds you have:
+- A plain English explanation of what changed
+- A list of affected test scenarios
+- Any risky patterns spotted
+
+That's an hour of reading condensed into 10 seconds.
+        `,
+      },
+      {
+        id: 'ai-limitations',
+        title: 'Module 10: When NOT to Trust AI — Hallucinations & Blind Spots',
+        analogy: "AI is like a brilliant colleague who sometimes makes things up and says them with complete confidence. You'd never submit their work without checking it first. Same rule applies to AI output — always verify before you ship.",
+        lessonMarkdown: `
+### The Golden Rule
+
+*💡 Analogy: AI is like a brilliant colleague who sometimes makes things up and states them with total confidence. You'd never submit their work without checking it. Same rule: AI is your first draft, not your final answer.*
+
+---
+
+### The 5 Types of AI Mistakes
+
+**1. Hallucinated APIs**
+
+AI invents function names, library methods, or npm packages that don't exist.
+
+> *Example: AI writes* \`playwright.waitForNetworkIdle()\` *which doesn't exist in that form in modern Playwright.*
+
+**Fix:** Always run AI-generated code before trusting it. Check the official docs.
+
+---
+
+**2. Outdated Information**
+
+AI has a **training cutoff date**. It doesn't know about:
+- Features released after its training
+- Security patches
+- Framework version changes
+
+> *Example: AI might suggest Playwright v1.20 syntax when you're using v1.45.*
+
+**Fix:** Always check the version number. Ask AI: *"Is this still correct in [version]?"*
+
+---
+
+**3. Confident Wrongness**
+
+AI doesn't say "I'm not sure." It answers with the same confident tone whether it's right or wrong.
+
+**Fix:** Verify any specific fact, number, or claim that matters.
+
+---
+
+**4. Missing Edge Cases**
+
+AI tends to give you happy path tests unless you explicitly ask for edge cases.
+
+**Fix:** Always follow up with: *"What edge cases and failure scenarios are missing from this list?"*
+
+---
+
+**5. Context Blindness**
+
+AI doesn't know your specific system, your internal APIs, your company rules, or your production quirks.
+
+> *Example: AI generates a test that checks for an error message your app doesn't actually show.*
+
+**Fix:** Give AI your specific context. Paste real field names, real URLs, real error messages.
+
+---
+
+### When NOT to Paste Things into AI
+
+⚠️ **Never paste:**
+- Real customer data (PII — names, emails, addresses)
+- Production passwords or API keys
+- Internal confidential business information
+- GDPR-regulated data
+
+Some AI tools (ChatGPT, Claude web) may use your input to improve their models. Always use the **API mode** or **enterprise version** for sensitive work.
+
+---
+
+### The Checklist Before Trusting AI Output
+
+- [ ] Did I run the code and check it works?
+- [ ] Did I verify against the official documentation?
+- [ ] Did I check the version is still current?
+- [ ] Did I add domain-specific context AI wouldn't know?
+- [ ] Did I follow up asking for edge cases?
+
+If you tick all five — you're using AI properly.
+
+---
+
+### Safe vs Unsafe — The Full Checklist
+
+Print this and keep it at your desk. When in doubt, check it.
+
+**✅ SAFE to paste into public AI tools:**
+- User stories and requirements (with no internal code names / pricing)
+- Sample code with no real credentials
+- Playwright / test scripts using mock data
+- Generic bug descriptions (no customer names)
+- Public API documentation
+- Anonymised log files
+
+**⚠️ THINK BEFORE YOU PASTE:**
+- Internal architecture diagrams
+- Unreleased product features
+- Internal pricing or business strategy
+- Employee details
+
+**❌ NEVER paste into public AI tools:**
+- Real customer names, emails, addresses, phone numbers (PII)
+- Passwords, API keys, tokens, secrets
+- Database connection strings
+- Medical or financial records
+- Confidential legal or HR documents
+- Production data of any kind
+
+**The safe alternative:**
+If you need AI help with something sensitive — replace real values with placeholders before pasting:
+\`\`\`
+// Instead of pasting: user.email = "john.smith@realcompany.com"
+// Paste this:        user.email = "testuser@example.com"
+\`\`\`
+Same problem, zero risk.
+        `,
+      },
+      {
+        id: 'ai-test-planning',
+        title: 'Module 11: AI for Test Planning — PRD to Test Plan in Minutes',
+        analogy: "Writing a test plan from a PRD used to be like building a house from an architect's sketches — hours of translating someone else's vision into your own structure. AI is like a contractor who reads the sketches and hands you a ready-to-review build plan in 5 minutes.",
+        lessonMarkdown: `
+### What is a Test Plan?
+
+*💡 Analogy: A test plan is like a travel itinerary. Before a big trip, you don't just show up at the airport — you plan destinations, routes, budget, and what to do if things go wrong. A test plan does the same for a release.*
+
+A **test plan** typically covers:
+- What features are in scope
+- What types of testing will be done
+- What environments and tools will be used
+- Entry and exit criteria
+- Risks and mitigation
+
+Writing one from scratch takes hours. With AI, it takes minutes.
+
+---
+
+### Prompt: PRD → Test Plan
+
+\`\`\`
+You are a senior QA lead. I am going to paste a Product Requirements Document (PRD).
+Based on it, create a test plan that includes:
+
+1. Scope (what features are in/out of scope for testing)
+2. Test types needed (functional, regression, performance, security, etc.)
+3. Key risk areas and what could go wrong
+4. Test environments required
+5. Entry criteria (what must be true before testing starts)
+6. Exit criteria (what must be true before testing ends)
+7. A priority-ordered list of the top 10 test scenarios to cover first
+
+Keep it concise — a working document, not an essay.
+
+PRD: [paste your PRD here]
+\`\`\`
+
+---
+
+### Prompt: User Story → Mini Test Plan
+
+When you don't have a full PRD — just a sprint ticket:
+
+\`\`\`
+Here is a user story from our sprint:
+[paste ticket]
+
+Create a mini test plan with:
+- Test objectives (what are we trying to prove?)
+- In-scope and out-of-scope scenarios
+- Test data requirements
+- Dependencies or blockers to test this
+- The 5 highest-risk test cases to run first
+\`\`\`
+
+---
+
+### Prompt: Risk-Based Test Planning
+
+When time is short and you can't test everything:
+
+\`\`\`
+Here are the features being released this sprint:
+[list features]
+
+We have 4 hours of testing time before release.
+Using risk-based testing principles, tell me:
+1. Which features carry the highest risk if broken?
+2. What are the 15 most critical test cases to run in 4 hours?
+3. What can safely be deferred to post-release testing?
+\`\`\`
+
+---
+
+### How to Review an AI-Generated Test Plan
+
+AI test plans are excellent first drafts. Before using one, check:
+
+- ✅ Does it match the actual scope of the sprint?
+- ✅ Are the risk areas relevant to your domain?
+- ✅ Are entry/exit criteria realistic for your team?
+- ✅ Has AI missed any known legacy issues?
+- ✅ Is the priority order reasonable?
+
+Add your domain knowledge on top — that's what makes it yours.
+        `,
+      },
+      {
+        id: 'ai-verify-output',
+        title: 'Module 12: How to Verify AI Output — Never Trust Blindly',
+        analogy: "A junior colleague hands you their work and says 'it's done.' You wouldn't submit it without reading it. AI is the same — confident, capable, and occasionally completely wrong. Verification is not optional.",
+        lessonMarkdown: `
+### Why Verification is a Skill
+
+*💡 Analogy: A junior colleague hands you work and says "it's done." You don't submit it without reading it. AI is that junior colleague — capable, fast, and occasionally confident about something completely wrong.*
+
+Knowing how to verify AI output is just as important as knowing how to prompt it. This module gives you a systematic approach.
+
+---
+
+### Verifying AI-Generated Code
+
+AI writes code that *looks* correct but may have subtle bugs. Here is the verification workflow:
+
+**Step 1 — Read it first**
+Before running anything, read the code. Does it make logical sense? Are there function names you don't recognise?
+
+**Step 2 — Check function names against official docs**
+AI frequently invents plausible-sounding method names. If you see a function you haven't used before, look it up.
+\`\`\`
+// AI generated this — does waitForNetworkIdle() actually exist?
+await page.waitForNetworkIdle();
+// → Check: https://playwright.dev/docs/api/class-page
+\`\`\`
+
+**Step 3 — Run it in isolation first**
+Don't add AI code straight into your main test suite. Run it standalone first. A small, isolated test reveals issues fast.
+
+**Step 4 — Check the version**
+\`\`\`
+// Ask AI: "Is this syntax still correct in Playwright v1.45?"
+// Or check: what version does my package.json say?
+\`\`\`
+
+---
+
+### Verifying AI-Generated Test Cases
+
+Test cases can look thorough but have hidden gaps:
+
+| Check | What to look for |
+|-------|-----------------|
+| **Specificity** | Are steps generic ("click login") or precise ("click button with id='submit'")? |
+| **Expected results** | Is each expected result clearly defined, or vague ("works correctly")? |
+| **Domain knowledge** | Does AI know your system's specific error messages and behaviour? |
+| **Edge cases** | Did AI only cover happy path? Ask: "What's missing?" |
+| **Duplicates** | AI sometimes generates the same test case twice with slightly different wording |
+
+---
+
+### Verifying AI-Generated Facts
+
+If AI states a fact (a number, a date, a specification):
+
+1. **Don't trust it** if it's critical
+2. Ask AI: *"How confident are you in this? When was this information last accurate?"*
+3. Verify against the primary source (official docs, changelog, spec)
+
+---
+
+### The 2-Minute Verification Checklist
+
+Before using any AI output:
+
+- [ ] Read it — does it make logical sense?
+- [ ] Run code in isolation before adding to the suite
+- [ ] Verify any method/function names against official docs
+- [ ] Check version compatibility
+- [ ] Confirm domain-specific details are correct for YOUR system
+- [ ] Ask "What's missing?" for test cases
+- [ ] No real data or secrets were included in what you're about to use
+
+This takes 2 minutes. Skipping it can cost you hours of debugging.
+        `,
+      },
+      {
+        id: 'ai-iterative-prompting',
+        title: 'Module 13: Iterative Prompting — Getting Better Answers in the Same Chat',
+        analogy: "Using AI is like sculpting. You don't carve the final statue in one strike. You start with a rough block, then refine — chip away here, smooth there, add detail. Each message in a chat is a chisel stroke that brings the output closer to perfect.",
+        lessonMarkdown: `
+### The Biggest Mistake Beginners Make
+
+*💡 Analogy: Sculpting a statue. You don't carve the final version in one strike. You start rough, then refine. Each follow-up message is a chisel stroke closer to perfect.*
+
+Most beginners send one prompt, get an OK answer, and stop. Then they switch to a new chat for the next task — losing all context.
+
+**The better approach:** Stay in the same conversation and refine iteratively.
+
+---
+
+### The 4 Refinement Moves
+
+**Move 1 — Ask for more**
+\`\`\`
+That's good. Now add 5 more edge cases specifically around
+network timeouts and session expiry.
+\`\`\`
+
+**Move 2 — Ask to change format**
+\`\`\`
+Reformat the test cases as a Gherkin feature file.
+Keep all the same scenarios.
+\`\`\`
+
+**Move 3 — Ask AI to self-critique**
+\`\`\`
+Review your own answer. What important scenarios are missing?
+What assumptions did you make that might be wrong?
+\`\`\`
+
+**Move 4 — Ask to go deeper on one item**
+\`\`\`
+Expand test case #7 into a full step-by-step test script
+with exact locators and assertions.
+\`\`\`
+
+---
+
+### When to Start a New Chat vs Continue
+
+| Situation | Action |
+|-----------|--------|
+| Refining the same output | Stay in the same chat — AI has full context |
+| Adding detail to existing work | Stay in the same chat |
+| Completely new topic / new feature | Start a new chat — cleaner context |
+| Previous chat has become very long | Start fresh and paste only the relevant context |
+| AI seems "confused" or off-track | Start fresh — long chats can cause AI to drift |
+
+---
+
+### The "Improve Your Own Answer" Technique
+
+This is one of the most powerful prompts in a QA toolkit:
+
+\`\`\`
+Look at the test cases you just wrote.
+Act as a critical QA reviewer.
+Identify: 3 scenarios that are too vague, 3 that are missing,
+and 2 that are duplicates. Then rewrite the improved version.
+\`\`\`
+
+AI is genuinely good at critiquing its own output when asked directly. This technique consistently produces better results than re-prompting from scratch.
+
+---
+
+### Building a Reusable Context Block
+
+For daily use, keep a short "context block" that you paste at the start of any new chat:
+
+\`\`\`
+Context for all my prompts:
+- I am a QA engineer testing a React + Node.js e-commerce platform
+- We use Playwright + TypeScript for automation
+- Our test cases are stored in Jira (Gherkin format)
+- Our API uses REST with JWT authentication
+- Always format test cases as Gherkin unless I ask otherwise
+\`\`\`
+
+Paste this once at the start → AI stays in the right context for the entire session.
+        `,
       },
       {
         id: 'intermediate',

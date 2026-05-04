@@ -6562,36 +6562,719 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
   ],
   'ai-qa': [
     {
-      level: 'basic',
+      level: 'ai-what-is-ai',
       questions: [
         {
-          question: 'What is an AI Prompt?',
+          question: 'What type of AI powers tools like ChatGPT and Claude?',
           options: [
-            { id: 'a', text: 'The instructions or question you give the AI to get it to do what you want.', isCorrect: true },
-            { id: 'b', text: 'A timer that limits how long the AI thinks.', isCorrect: false },
-            { id: 'c', text: 'The server the AI runs on.', isCorrect: false }
+            { id: 'a', text: 'A database of pre-written answers', isCorrect: false },
+            { id: 'b', text: 'A Large Language Model (LLM) trained on massive amounts of text', isCorrect: true },
+            { id: 'c', text: 'A search engine with smart filters', isCorrect: false },
+            { id: 'd', text: 'A rules engine that follows if/else logic', isCorrect: false },
           ],
-          explanation: 'A prompt is just the text you type. Good prompts equal good AI results.'
+          explanation: 'LLMs (Large Language Models) are trained on billions of web pages, books, and code. They predict the next most likely word — they don\'t "look things up" like a search engine.',
         },
         {
-          question: 'Can AI completely replace Manual Testers?',
+          question: 'A QA engineer asks AI: "What is the capital of Australia?" and AI confidently answers "Sydney." What is this called?',
           options: [
-            { id: 'a', text: 'Yes, it can test everything.', isCorrect: false },
-            { id: 'b', text: 'No, AI lacks human empathy, intuition, and real-world context.', isCorrect: true },
-            { id: 'c', text: 'Yes, but only on Tuesdays.', isCorrect: false }
+            { id: 'a', text: 'A timeout error', isCorrect: false },
+            { id: 'b', text: 'A hallucination — AI gave a confident but wrong answer', isCorrect: true },
+            { id: 'c', text: 'A correct answer', isCorrect: false },
+            { id: 'd', text: 'A context window overflow', isCorrect: false },
           ],
-          explanation: 'AI is a tool to make you faster, but it does not know what a "frustrating" user experience feels like.'
+          explanation: 'Hallucination is when AI states incorrect information with confidence. The actual capital is Canberra. AI doesn\'t "know" facts — it predicts text that sounds plausible. Always verify critical information.',
         },
         {
-          question: 'What is a Hallucination?',
+          question: 'Which of these is AI genuinely bad at?',
           options: [
-            { id: 'a', text: 'When the AI makes up a confident-sounding answer that is completely wrong or fake.', isCorrect: true },
-            { id: 'b', text: 'When the AI writes good code.', isCorrect: false },
-            { id: 'c', text: 'When the website is displaying correctly.', isCorrect: false }
+            { id: 'a', text: 'Writing test cases from a user story', isCorrect: false },
+            { id: 'b', text: 'Summarising a long requirements document', isCorrect: false },
+            { id: 'c', text: 'Knowing when it doesn\'t know something', isCorrect: true },
+            { id: 'd', text: 'Generating realistic test data', isCorrect: false },
           ],
-          explanation: 'AI tries to predict the next word. Sometimes it predicts a totally fake library or method because it sounds right.'
-        }
-      ]
+          explanation: 'AI doesn\'t say "I\'m not sure." It answers with the same confident tone whether it\'s right or completely wrong. This is the most dangerous characteristic for QA engineers to understand.',
+        },
+        {
+          question: 'What does LLM stand for, and what does it describe?',
+          options: [
+            { id: 'a', text: 'Logical Learning Machine — a robot that follows rules', isCorrect: false },
+            { id: 'b', text: 'Large Language Model — an AI trained on massive text data to predict and generate human-like language', isCorrect: true },
+            { id: 'c', text: 'Linear Logic Module — a type of automated test runner', isCorrect: false },
+            { id: 'd', text: 'Low Latency Model — a fast-response database system', isCorrect: false },
+          ],
+          explanation: 'LLM stands for Large Language Model. Models like GPT-4 and Claude are LLMs — they are trained on billions of pages of text and code, learning to predict the next most likely word in any context.',
+        },
+        {
+          question: 'Which of these tasks is AI genuinely excellent at for QA engineers?',
+          options: [
+            { id: 'a', text: 'Experiencing a frustrating user interface and reporting it', isCorrect: false },
+            { id: 'b', text: 'Generating 50 realistic test data entries from a single prompt', isCorrect: true },
+            { id: 'c', text: 'Knowing your company\'s internal system behaviour without being told', isCorrect: false },
+            { id: 'd', text: 'Autonomously running tests against a live application', isCorrect: false },
+          ],
+          explanation: 'Test data generation is one of AI\'s strongest use cases for QA — it\'s repetitive, structured, and AI can produce varied, realistic results instantly. Tasks requiring human intuition or system-specific knowledge still require you.',
+        },
+      ],
+    },
+    {
+      level: 'ai-how-it-thinks',
+      questions: [
+        {
+          question: 'What is a "token" in the context of AI?',
+          options: [
+            { id: 'a', text: 'A security key used to authenticate with the AI API', isCorrect: false },
+            { id: 'b', text: 'The smallest unit AI processes — roughly one word or punctuation mark', isCorrect: true },
+            { id: 'c', text: 'The AI\'s memory of your previous conversations', isCorrect: false },
+            { id: 'd', text: 'A credit you buy to use the AI service', isCorrect: false },
+          ],
+          explanation: 'AI processes text in tokens, not words. Roughly 1 token ≈ 1 word. The context window (how much AI can "hold in its head") is measured in tokens.',
+        },
+        {
+          question: 'You start a brand new chat with ChatGPT. What does it remember from your conversation yesterday?',
+          options: [
+            { id: 'a', text: 'Everything — AI has permanent memory', isCorrect: false },
+            { id: 'b', text: 'Only the last 10 messages', isCorrect: false },
+            { id: 'c', text: 'Nothing — each new chat starts completely fresh', isCorrect: true },
+            { id: 'd', text: 'Only what you saved to your account', isCorrect: false },
+          ],
+          explanation: 'AI has no memory between sessions. Each new chat is a blank slate. This is why experienced users paste relevant context at the start of each session.',
+        },
+        {
+          question: 'Why does giving AI more context in your prompt lead to better answers?',
+          options: [
+            { id: 'a', text: 'It makes the AI run on faster servers', isCorrect: false },
+            { id: 'b', text: 'It fills the context window so AI can\'t make things up', isCorrect: false },
+            { id: 'c', text: 'AI uses everything in the current conversation to generate its answer — more relevant input = more relevant output', isCorrect: true },
+            { id: 'd', text: 'It trains the AI permanently for future sessions', isCorrect: false },
+          ],
+          explanation: 'AI generates answers based solely on what\'s in the current context window. The more relevant detail you provide (URLs, field names, error messages), the more targeted and accurate the output.',
+        },
+        {
+          question: 'You start a new chat and paste a 500-line test file. AI seems to ignore the first 200 lines in its answer. What is the most likely cause?',
+          options: [
+            { id: 'a', text: 'AI deliberately skips large inputs to save processing time', isCorrect: false },
+            { id: 'b', text: 'The context window was nearly full — AI prioritises the end of long inputs over the beginning', isCorrect: true },
+            { id: 'c', text: 'The file format was incompatible', isCorrect: false },
+            { id: 'd', text: 'AI only reads the first 100 lines of any input', isCorrect: false },
+          ],
+          explanation: 'When context windows fill up, AI tends to "lose" content from the beginning of the conversation. For large files, break them into smaller chunks or paste only the relevant section rather than the whole file.',
+        },
+        {
+          question: 'Why does AI have no memory of a conversation you had with it last week?',
+          options: [
+            { id: 'a', text: 'AI deletes old conversations for privacy', isCorrect: false },
+            { id: 'b', text: 'Each session starts with a fresh context window — AI has no persistent memory between separate conversations', isCorrect: true },
+            { id: 'c', text: 'You need a paid account for AI to remember conversations', isCorrect: false },
+            { id: 'd', text: 'AI only remembers conversations if you ask it to', isCorrect: false },
+          ],
+          explanation: 'AI memory is session-scoped. When a conversation ends, that context is gone. Tools like ChatGPT\'s "Memory" feature work around this by injecting saved summaries into new sessions, but the base model itself has no persistence.',
+        },
+      ],
+    },
+    {
+      level: 'ai-your-first-prompt',
+      questions: [
+        {
+          question: 'What are the 4 key parts of a well-structured AI prompt?',
+          options: [
+            { id: 'a', text: 'Login, model, temperature, output', isCorrect: false },
+            { id: 'b', text: 'Role, Task, Context, Format', isCorrect: true },
+            { id: 'c', text: 'Question, answer, retry, verify', isCorrect: false },
+            { id: 'd', text: 'Subject, verb, object, tone', isCorrect: false },
+          ],
+          explanation: 'Role (who AI should be), Task (what to do), Context (background info), Format (how the answer should look). These four elements turn a vague prompt into a precise one.',
+        },
+        {
+          question: 'Which prompt will get a better test case response from AI?',
+          options: [
+            { id: 'a', text: '"Write some tests"', isCorrect: false },
+            { id: 'b', text: '"Act as a senior QA engineer. Write 10 test cases for a login page with email and password fields. Include happy path and negative cases."', isCorrect: true },
+            { id: 'c', text: '"Give me login tests please thank you"', isCorrect: false },
+            { id: 'd', text: '"Tests for login"', isCorrect: false },
+          ],
+          explanation: 'The second prompt gives AI a role (senior QA engineer), a specific task (10 test cases), context (login page, email + password), and scope (happy path + negative). Vague prompts produce vague answers.',
+        },
+        {
+          question: 'A tester pastes a bug description into AI and asks it to "convert this into a professional bug report." What is this an example of?',
+          options: [
+            { id: 'a', text: 'AI automation', isCorrect: false },
+            { id: 'b', text: 'A hallucination prompt', isCorrect: false },
+            { id: 'c', text: 'Using AI as a writing assistant for QA tasks', isCorrect: true },
+            { id: 'd', text: 'Self-healing test generation', isCorrect: false },
+          ],
+          explanation: 'This is one of the most practical daily uses of AI for QA — turning rough notes into polished, professional output. It\'s writing assistance, not automation.',
+        },
+        {
+          question: 'A tester wants AI to explain an unfamiliar JavaScript function. Which prompt structure gets the most useful response?',
+          options: [
+            { id: 'a', text: '"Is this function OK?"', isCorrect: false },
+            { id: 'b', text: '"Explain what this function does in plain English, identify any bugs, and list test cases I should write. [paste function]"', isCorrect: true },
+            { id: 'c', text: '"Fix this function"', isCorrect: false },
+            { id: 'd', text: '"What language is this code written in?"', isCorrect: false },
+          ],
+          explanation: 'Combining Role + Task + Context in one prompt gets a multi-part useful answer: explanation, risk spots, and a test list. Single-question prompts like "is this OK?" get one-line answers that don\'t help you test anything.',
+        },
+        {
+          question: 'You need to generate test data for a UK phone number field. Which prompt gives the most useful output?',
+          options: [
+            { id: 'a', text: '"Give me phone numbers"', isCorrect: false },
+            { id: 'b', text: '"Generate 10 UK phone numbers for testing: include valid mobile, valid landline, too short, too long, with spaces, with +44 prefix, and with letters mixed in"', isCorrect: true },
+            { id: 'c', text: '"What is a UK phone number?"', isCorrect: false },
+            { id: 'd', text: '"Generate numbers"', isCorrect: false },
+          ],
+          explanation: 'Specifying each category (valid, invalid, edge cases) forces AI to produce data that will actually find bugs. Generic prompts produce generic data — mostly valid examples that miss the edge cases where real bugs hide.',
+        },
+      ],
+    },
+    {
+      level: 'ai-prompt-craft',
+      questions: [
+        {
+          question: 'In the CRAFT framework, what does the "R" stand for?',
+          options: [
+            { id: 'a', text: 'Result', isCorrect: false },
+            { id: 'b', text: 'Retry', isCorrect: false },
+            { id: 'c', text: 'Role', isCorrect: true },
+            { id: 'd', text: 'Request', isCorrect: false },
+          ],
+          explanation: 'CRAFT = Context, Role, Action, Format, Tone. Role tells AI who it should act as (e.g., "You are a senior QA engineer"). This filters AI\'s output to match that expertise level.',
+        },
+        {
+          question: 'You ask AI for test cases and the answer is too generic. What is the best next step?',
+          options: [
+            { id: 'a', text: 'Switch to a different AI tool', isCorrect: false },
+            { id: 'b', text: 'Accept the generic output — AI can\'t do better', isCorrect: false },
+            { id: 'c', text: 'Iterate: ask AI to improve its own answer with more specific requirements', isCorrect: true },
+            { id: 'd', text: 'Start a completely new conversation', isCorrect: false },
+          ],
+          explanation: 'AI prompting is iterative. You can ask "Add 5 more edge cases for payment failures" or "Reformat this as a Gherkin table" in the same conversation. You don\'t need to start over.',
+        },
+        {
+          question: 'A tester writes: "Write checkout tests." This is an example of which prompt problem?',
+          options: [
+            { id: 'a', text: 'Too much context', isCorrect: false },
+            { id: 'b', text: 'Wrong tone', isCorrect: false },
+            { id: 'c', text: 'Missing Role, Context, Format, and Tone — only Action is present', isCorrect: true },
+            { id: 'd', text: 'Correct prompt structure', isCorrect: false },
+          ],
+          explanation: 'This prompt only has "Action" from CRAFT. It\'s missing Role (who is AI?), Context (what checkout? what system?), Format (table? list? Gherkin?), and Tone. That\'s why the output will be generic.',
+        },
+        {
+          question: 'What does the "T" (Tone) in CRAFT control in a prompt?',
+          options: [
+            { id: 'a', text: 'The volume of the AI\'s response', isCorrect: false },
+            { id: 'b', text: 'Whether the answer is formal/technical/casual — shaping how the content is written, not what it contains', isCorrect: true },
+            { id: 'c', text: 'The temperature setting in the AI API', isCorrect: false },
+            { id: 'd', text: 'The number of test cases generated', isCorrect: false },
+          ],
+          explanation: 'Tone changes the writing style, not the content. "Use professional QA language" produces a formal test plan. "Explain simply like I\'m new to testing" produces beginner-friendly language. Same facts, different delivery.',
+        },
+        {
+          question: 'You asked AI for test cases and got 10 good ones. You want 5 more focusing only on security. What is the correct move?',
+          options: [
+            { id: 'a', text: 'Start a new chat and re-prompt everything from scratch', isCorrect: false },
+            { id: 'b', text: 'In the same chat, type: "Add 5 more test cases focused specifically on security vulnerabilities — XSS, CSRF, input injection"', isCorrect: true },
+            { id: 'c', text: 'Copy the 10 test cases and paste them back as context', isCorrect: false },
+            { id: 'd', text: 'Ask the developer to write security tests instead', isCorrect: false },
+          ],
+          explanation: 'Iterating in the same chat is more efficient — AI already has all your context. Adding a focused follow-up instruction narrows the output precisely. Starting a new chat loses all that context and wastes your effort.',
+        },
+      ],
+    },
+    {
+      level: 'ai-test-cases',
+      questions: [
+        {
+          question: 'A tester gives AI a user story about password reset. Which prompt adds the most value beyond happy path?',
+          options: [
+            { id: 'a', text: '"Write test cases for password reset"', isCorrect: false },
+            { id: 'b', text: '"Write happy path tests for password reset"', isCorrect: false },
+            { id: 'c', text: '"Write test cases for: happy path, invalid emails, unregistered email, rate limiting, expired link, and security concerns"', isCorrect: true },
+            { id: 'd', text: '"Write a Playwright script for password reset"', isCorrect: false },
+          ],
+          explanation: 'Specifying each scenario category forces AI to cover areas it would otherwise skip. Security edge cases and rate limiting are especially valuable — AI usually omits these without being asked.',
+        },
+        {
+          question: 'After AI generates 30 test cases for a payment flow, what should you ask next to improve coverage?',
+          options: [
+            { id: 'a', text: '"That\'s great, I\'ll use all of these"', isCorrect: false },
+            { id: 'b', text: '"What edge cases, boundary values, and failure scenarios are missing from this list?"', isCorrect: true },
+            { id: 'c', text: '"Write these in Python"', isCorrect: false },
+            { id: 'd', text: '"Delete the ones that look hard to test"', isCorrect: false },
+          ],
+          explanation: 'AI defaults to happy path. Always follow up asking specifically for what\'s missing — edge cases, negative scenarios, security issues. This two-step approach consistently produces better coverage than a single prompt.',
+        },
+        {
+          question: 'What is the most important thing to do after AI generates a set of test cases?',
+          options: [
+            { id: 'a', text: 'Run them immediately in production', isCorrect: false },
+            { id: 'b', text: 'Review them — check steps are specific, expected results are defined, and domain context is correct', isCorrect: true },
+            { id: 'c', text: 'Submit them to the developer without reading them', isCorrect: false },
+            { id: 'd', text: 'Ask AI to review them again', isCorrect: false },
+          ],
+          explanation: 'AI-generated test cases are a starting point. You must review: are steps specific? Are expected results precise? Does anything assume system behaviour AI wouldn\'t know about? Your domain knowledge is essential.',
+        },
+        {
+          question: 'A tester asks AI to write test cases in Gherkin format for a Jira ticket. AI produces them in a plain numbered list instead. What should the tester do?',
+          options: [
+            { id: 'a', text: 'Accept the numbered list — Gherkin is too complex', isCorrect: false },
+            { id: 'b', text: 'In the same chat, type: "Reformat all of these as Gherkin Given/When/Then scenarios"', isCorrect: true },
+            { id: 'c', text: 'Manually rewrite each test case into Gherkin', isCorrect: false },
+            { id: 'd', text: 'Start over with a completely new prompt', isCorrect: false },
+          ],
+          explanation: 'Format correction is one of the fastest iterative moves. Tell AI to reformat in the same chat — it already has all the test cases. A one-line instruction converts them all instantly without losing any content.',
+        },
+        {
+          question: 'What does "risk-based prioritisation" mean when applied to AI-generated test cases?',
+          options: [
+            { id: 'a', text: 'Running only the tests that are easiest to write', isCorrect: false },
+            { id: 'b', text: 'Asking AI to rank test cases from highest to lowest impact if that scenario were to fail in production', isCorrect: true },
+            { id: 'c', text: 'Deleting test cases that are too risky to run', isCorrect: false },
+            { id: 'd', text: 'Running all tests in alphabetical order', isCorrect: false },
+          ],
+          explanation: 'Risk-based prioritisation asks: "if this bug reached production, how bad would it be?" Payment failures and auth bugs rank higher than cosmetic issues. Ask AI to apply this ranking when you have limited time before a release.',
+        },
+      ],
+    },
+    {
+      level: 'ai-bug-reports',
+      questions: [
+        {
+          question: 'A developer says "I can\'t reproduce this bug." What is most likely missing from the bug report?',
+          options: [
+            { id: 'a', text: 'A screenshot', isCorrect: false },
+            { id: 'b', text: 'Clear, numbered steps to reproduce with exact inputs and environment details', isCorrect: true },
+            { id: 'c', text: 'The severity rating', isCorrect: false },
+            { id: 'd', text: 'The reporter\'s name', isCorrect: false },
+          ],
+          explanation: 'The most common reason bugs can\'t be reproduced is vague steps. Developers need: exact environment (browser, OS, URL), numbered steps they can follow exactly, and specific inputs used.',
+        },
+        {
+          question: 'You paste messy notes into AI and ask it to write a professional bug report. What should you always add to your prompt?',
+          options: [
+            { id: 'a', text: 'Nothing — AI knows the format automatically', isCorrect: false },
+            { id: 'b', text: 'The fields you want: Title, Environment, Steps, Expected, Actual, Severity', isCorrect: true },
+            { id: 'c', text: 'Ask AI to make the bug sound less serious', isCorrect: false },
+            { id: 'd', text: 'The developer\'s name so AI can assign it', isCorrect: false },
+          ],
+          explanation: 'Specify the exact fields you want in the bug report. Different teams use different formats. Telling AI "Include: Title, Environment, Steps to Reproduce, Expected Result, Actual Result, Severity, Possible Root Cause" guarantees the right structure.',
+        },
+        {
+          question: 'AI generates a "Possible Root Cause" section in a bug report. How should you treat this?',
+          options: [
+            { id: 'a', text: 'Accept it as fact and tell the developer what to fix', isCorrect: false },
+            { id: 'b', text: 'Treat it as a helpful hypothesis to investigate — not a confirmed diagnosis', isCorrect: true },
+            { id: 'c', text: 'Delete it — root cause analysis is not part of QA', isCorrect: false },
+            { id: 'd', text: 'AI root causes are always accurate', isCorrect: false },
+          ],
+          explanation: 'AI\'s root cause suggestions are educated guesses based on patterns in its training data. They\'re valuable starting points for investigation, but the developer must confirm the actual cause.',
+        },
+        {
+          question: 'A bug only happens on iOS Safari in production but not in staging. Which bug report field is most critical to fill in for this specific issue?',
+          options: [
+            { id: 'a', text: 'Title', isCorrect: false },
+            { id: 'b', text: 'Environment — including exact browser, OS version, and whether it\'s production or staging', isCorrect: true },
+            { id: 'c', text: 'Severity', isCorrect: false },
+            { id: 'd', text: 'Attachments', isCorrect: false },
+          ],
+          explanation: 'Environment details are the difference between a bug being reproducible or not. "iOS Safari, production only, not staging" immediately tells the developer where to look — a config difference between environments, not a code bug.',
+        },
+        {
+          question: 'You have messy testing notes. Which is the most effective way to turn them into a polished bug report using AI?',
+          options: [
+            { id: 'a', text: 'Ask AI: "Fix my notes"', isCorrect: false },
+            { id: 'b', text: 'Ask AI: "Convert these notes into a bug report with: Title, Environment, Steps to Reproduce, Expected Result, Actual Result, Severity, Possible Root Cause. Notes: [paste notes]"', isCorrect: true },
+            { id: 'c', text: 'Ask AI: "Write a bug report about login"', isCorrect: false },
+            { id: 'd', text: 'Email the notes directly to the developer', isCorrect: false },
+          ],
+          explanation: 'Specifying the exact fields you want guarantees the right structure. Vague prompts like "fix my notes" give vague output. Listing the required sections forces AI to structure the report in exactly the format your team uses.',
+        },
+      ],
+    },
+    {
+      level: 'ai-test-data',
+      questions: [
+        {
+          question: 'Why is "test@test.com" considered poor test data?',
+          options: [
+            { id: 'a', text: 'It is not a valid email format', isCorrect: false },
+            { id: 'b', text: 'It doesn\'t reflect realistic user data and misses edge cases like special characters, long inputs, and valid-but-unusual formats', isCorrect: true },
+            { id: 'c', text: 'AI refuses to generate tests using it', isCorrect: false },
+            { id: 'd', text: 'It causes performance issues in test suites', isCorrect: false },
+          ],
+          explanation: 'Real users have names with apostrophes (O\'Brien), hyphens (Mary-Jane), long email addresses, and accented characters. Using only "test@test.com" misses bugs that only surface with real-world data patterns.',
+        },
+        {
+          question: 'A tester needs to test a name field in a form. Which AI prompt produces the most useful edge case data?',
+          options: [
+            { id: 'a', text: '"Give me some names to test"', isCorrect: false },
+            { id: 'b', text: '"Generate 10 test names including: apostrophes (O\'Brien), hyphens (Mary-Jane), accents (José), a name over 50 characters, and a single character name"', isCorrect: true },
+            { id: 'c', text: '"Generate names like John Smith"', isCorrect: false },
+            { id: 'd', text: '"Write 10 random words"', isCorrect: false },
+          ],
+          explanation: 'Specifying exact edge case categories forces AI to cover scenarios that commonly cause bugs. Forms that work with "John Smith" often break with "O\'Brien", very long names, or unicode characters.',
+        },
+        {
+          question: 'Which of these should you NEVER paste into a public AI tool like ChatGPT?',
+          options: [
+            { id: 'a', text: 'A request to generate 50 fake user profiles', isCorrect: false },
+            { id: 'b', text: 'Real customer email addresses from your production database', isCorrect: true },
+            { id: 'c', text: 'A sample JSON schema with example field names', isCorrect: false },
+            { id: 'd', text: 'A Playwright test script using mock data', isCorrect: false },
+          ],
+          explanation: 'Real customer data is PII (Personally Identifiable Information). Pasting it into public AI tools violates GDPR and your company\'s data policies. Always generate FAKE data — never process real data in public AI tools.',
+        },
+        {
+          question: 'A tester needs to test an age validation field (minimum age: 18). Which AI prompt produces the most useful boundary value test data?',
+          options: [
+            { id: 'a', text: '"Give me some ages to test"', isCorrect: false },
+            { id: 'b', text: '"Generate date of birth values for boundary testing of an 18+ age check: include exactly 18, exactly 17 years 364 days, 17 years, 100 years, and 0 years"', isCorrect: true },
+            { id: 'c', text: '"Generate 10 random ages"', isCorrect: false },
+            { id: 'd', text: '"What ages should I test?"', isCorrect: false },
+          ],
+          explanation: 'Boundary value analysis tests the values just above, at, and just below the boundary. Asking AI for exact boundary dates (17y 364d, exactly 18, 18y 1d) generates the most bug-finding test data for validation rules.',
+        },
+        {
+          question: 'What is the safest way to generate test data for a form that includes address fields?',
+          options: [
+            { id: 'a', text: 'Use real addresses from Google Maps', isCorrect: false },
+            { id: 'b', text: 'Ask AI to generate fictional but realistic-looking addresses with edge cases like very long street names and unusual postcodes', isCorrect: true },
+            { id: 'c', text: 'Use your own home address for all tests', isCorrect: false },
+            { id: 'd', text: 'Use "123 Test Street" for every test case', isCorrect: false },
+          ],
+          explanation: 'AI-generated fictional addresses are safe, varied, and include edge cases. Real addresses expose privacy risks. A single repeated address like "123 Test Street" misses bugs caused by long names, special characters, and unusual postcode formats.',
+        },
+      ],
+    },
+    {
+      level: 'ai-tools-overview',
+      questions: [
+        {
+          question: 'A QA automation engineer writes Playwright TypeScript tests in VS Code all day. Which AI tool gives them the most daily value?',
+          options: [
+            { id: 'a', text: 'ChatGPT web interface', isCorrect: false },
+            { id: 'b', text: 'GitHub Copilot — it lives in the IDE and autocompletes test code as you type', isCorrect: true },
+            { id: 'c', text: 'Claude web interface', isCorrect: false },
+            { id: 'd', text: 'Google Bard', isCorrect: false },
+          ],
+          explanation: 'GitHub Copilot integrates directly into VS Code and JetBrains. It sees your code as you write and autocompletes functions, test steps, and assertions inline — massively faster than switching to a browser chat.',
+        },
+        {
+          question: 'A tester needs to understand a 10,000-line legacy test framework. Which AI tool handles this best and why?',
+          options: [
+            { id: 'a', text: 'ChatGPT free — it\'s the most popular', isCorrect: false },
+            { id: 'b', text: 'Claude — it supports up to 200,000 tokens allowing entire codebases to be analysed at once', isCorrect: true },
+            { id: 'c', text: 'GitHub Copilot — it reads all your project files automatically', isCorrect: false },
+            { id: 'd', text: 'Any AI tool performs equally for large inputs', isCorrect: false },
+          ],
+          explanation: 'Claude\'s 200k token context window (≈150,000 words) is designed for large document and codebase analysis. Pasting a large framework into ChatGPT free (4k tokens) would lose most of the content.',
+        },
+        {
+          question: 'Which statement best describes the right approach to AI tool selection?',
+          options: [
+            { id: 'a', text: 'Always use the most expensive tool available', isCorrect: false },
+            { id: 'b', text: 'Use the same tool for every task', isCorrect: false },
+            { id: 'c', text: 'Match the tool to the task — each tool has different strengths for different QA scenarios', isCorrect: true },
+            { id: 'd', text: 'The tool matters more than the quality of the prompt', isCorrect: false },
+          ],
+          explanation: 'Copilot for in-IDE coding, Claude for large documents, ChatGPT for everyday tasks. The tool matters less than prompt quality — but using the right tool for the right job makes you significantly more efficient.',
+        },
+        {
+          question: 'What is the difference between GitHub Copilot Chat and GitHub Copilot inline autocomplete?',
+          options: [
+            { id: 'a', text: 'They are the same feature with different names', isCorrect: false },
+            { id: 'b', text: 'Inline autocomplete suggests code as you type; Copilot Chat is a conversation panel for asking questions, explaining code, and refactoring', isCorrect: true },
+            { id: 'c', text: 'Chat is free; inline requires a paid subscription', isCorrect: false },
+            { id: 'd', text: 'Inline works in VS Code; Chat only works in the browser', isCorrect: false },
+          ],
+          explanation: 'They serve different purposes: inline autocomplete appears as ghost text while you type (accept with Tab), while Copilot Chat (Ctrl+Shift+I) is a full conversation interface for explaining code, fixing bugs, and answering questions about your codebase.',
+        },
+        {
+          question: 'A QA engineer joins a new company using a Google Workspace environment. Which AI tool is most likely already available to them at no extra cost?',
+          options: [
+            { id: 'a', text: 'Claude', isCorrect: false },
+            { id: 'b', text: 'ChatGPT Plus', isCorrect: false },
+            { id: 'c', text: 'Gemini — Google\'s AI is built into Google Workspace (Docs, Gmail, Sheets)', isCorrect: true },
+            { id: 'd', text: 'GitHub Copilot', isCorrect: false },
+          ],
+          explanation: 'Gemini is integrated into Google Workspace. If your company uses Gmail, Docs, or Sheets, Gemini is already there — available for summarising documents, drafting emails, and analysing data without any extra setup or cost.',
+        },
+      ],
+    },
+    {
+      level: 'ai-reading-code',
+      questions: [
+        {
+          question: 'A developer hands you an unfamiliar function before a release. What AI prompt gives you the most useful information fastest?',
+          options: [
+            { id: 'a', text: '"Is this function correct?"', isCorrect: false },
+            { id: 'b', text: '"Explain what this function does, identify potential bugs, and list what test cases I should write." [paste function]', isCorrect: true },
+            { id: 'c', text: '"Rewrite this function"', isCorrect: false },
+            { id: 'd', text: '"What language is this?"', isCorrect: false },
+          ],
+          explanation: 'This three-part prompt gets you: (1) understanding of what the code does, (2) risk identification, and (3) a test plan — everything you need before testing a new function.',
+        },
+        {
+          question: 'A PR diff shows changes to a payment calculation module. What is the best use of AI here?',
+          options: [
+            { id: 'a', text: 'Ask AI to approve the PR', isCorrect: false },
+            { id: 'b', text: 'Paste the diff and ask: "What changed? What should I retest? What looks risky?"', isCorrect: true },
+            { id: 'c', text: 'Ask AI to write the production code instead', isCorrect: false },
+            { id: 'd', text: 'AI cannot read git diffs', isCorrect: false },
+          ],
+          explanation: 'Pasting a diff into AI is one of the highest-ROI QA tasks. In seconds you get a plain-English explanation of what changed, affected test scenarios, and a risk assessment — replacing an hour of manual reading.',
+        },
+        {
+          question: 'AI analyses a function and says "This code looks correct." Should you skip writing tests for it?',
+          options: [
+            { id: 'a', text: 'Yes — if AI says it\'s correct, it is', isCorrect: false },
+            { id: 'b', text: 'No — AI has context blindness and doesn\'t know your system\'s specific behaviour and requirements', isCorrect: true },
+            { id: 'c', text: 'Yes — AI-approved code never has bugs', isCorrect: false },
+            { id: 'd', text: 'Only skip tests if two AI tools agree', isCorrect: false },
+          ],
+          explanation: 'AI doesn\'t know your specific system, internal APIs, or domain rules. "Correct" to AI means it\'s syntactically valid and follows common patterns. You still need tests that verify it works correctly in YOUR system.',
+        },
+        {
+          question: 'A tester pastes a function into AI and asks "what could go wrong?" What type of analysis is this?',
+          options: [
+            { id: 'a', text: 'Performance testing', isCorrect: false },
+            { id: 'b', text: 'AI-assisted risk analysis — using AI to identify potential failure points before writing tests', isCorrect: true },
+            { id: 'c', text: 'Code review on behalf of the developer', isCorrect: false },
+            { id: 'd', text: 'Static code analysis using a linting tool', isCorrect: false },
+          ],
+          explanation: 'Asking AI "what could go wrong?" is AI-assisted risk analysis — a high-value QA technique. AI scans for null/undefined issues, missing error handling, race conditions, and edge cases you might not spot in a first read.',
+        },
+        {
+          question: 'You are testing a new feature and ask AI to identify what to test in a PR diff. AI misses a critical edge case specific to your payment gateway. Why?',
+          options: [
+            { id: 'a', text: 'AI tools cannot read code diffs', isCorrect: false },
+            { id: 'b', text: 'AI has context blindness — it doesn\'t know your specific payment gateway\'s behaviour unless you tell it', isCorrect: true },
+            { id: 'c', text: 'AI only reviews front-end code', isCorrect: false },
+            { id: 'd', text: 'The diff was too short for AI to analyse properly', isCorrect: false },
+          ],
+          explanation: 'Context blindness is a key AI limitation. AI knows general payment patterns but not your specific gateway\'s quirks, custom error codes, or known fragile integration points. You must add that context explicitly: "Our payment gateway has a known issue with X — check if this diff affects it."',
+        },
+      ],
+    },
+    {
+      level: 'ai-limitations',
+      questions: [
+        {
+          question: 'AI generates a Playwright test using a method called `page.waitForNetworkIdle()`. You run it and get an error saying the method doesn\'t exist. What type of AI mistake is this?',
+          options: [
+            { id: 'a', text: 'Context blindness', isCorrect: false },
+            { id: 'b', text: 'Outdated information', isCorrect: false },
+            { id: 'c', text: 'A hallucinated API — AI invented a method name that doesn\'t exist', isCorrect: true },
+            { id: 'd', text: 'A rate limit error', isCorrect: false },
+          ],
+          explanation: 'Hallucinated APIs are one of the most common AI mistakes in code generation. AI predicts plausible-sounding method names that don\'t actually exist. Always run AI-generated code and check against official documentation.',
+        },
+        {
+          question: 'You ask AI to help you test a feature released in a new framework version last month. AI gives you detailed but completely wrong instructions. What is the most likely cause?',
+          options: [
+            { id: 'a', text: 'The AI is broken', isCorrect: false },
+            { id: 'b', text: 'AI training has a cutoff date — it has no knowledge of features released after that date', isCorrect: true },
+            { id: 'c', text: 'You used the wrong tool', isCorrect: false },
+            { id: 'd', text: 'AI cannot process framework documentation', isCorrect: false },
+          ],
+          explanation: 'AI training data has a cutoff date. Anything released after that date is unknown to the model. Always check: "Is this still correct in version X?" and verify against the official changelog.',
+        },
+        {
+          question: 'Which of these items should NEVER be pasted into a public AI tool for QA work?',
+          options: [
+            { id: 'a', text: 'A user story from your backlog', isCorrect: false },
+            { id: 'b', text: 'A Playwright test script using mock data', isCorrect: false },
+            { id: 'c', text: 'Production API keys, real customer PII, or confidential business data', isCorrect: true },
+            { id: 'd', text: 'A JavaScript function with no sensitive logic', isCorrect: false },
+          ],
+          explanation: 'Public AI tools (ChatGPT, Claude web) may use inputs to improve their models. API keys, real customer data, and confidential information must never be shared. Use enterprise/API versions for sensitive work.',
+        },
+        {
+          question: 'AI generates a test using Playwright v1.20 syntax, but your project uses v1.45. Some methods have changed. What type of AI limitation caused this?',
+          options: [
+            { id: 'a', text: 'Hallucination — AI invented the method names', isCorrect: false },
+            { id: 'b', text: 'Outdated information — AI\'s training data has a cutoff and doesn\'t include recent framework changes', isCorrect: true },
+            { id: 'c', text: 'Context blindness — AI doesn\'t know your system', isCorrect: false },
+            { id: 'd', text: 'Missing edge cases — AI only covered happy path', isCorrect: false },
+          ],
+          explanation: 'Training cutoff dates mean AI\'s knowledge of rapidly evolving tools like Playwright can be months or years behind. Always specify your version in the prompt ("using Playwright v1.45") and verify the syntax against the current official changelog.',
+        },
+        {
+          question: 'What is the golden rule for using AI output in professional QA work?',
+          options: [
+            { id: 'a', text: 'Use AI output only if two different AI tools agree', isCorrect: false },
+            { id: 'b', text: 'AI is your first draft, not your final answer — always verify before shipping', isCorrect: true },
+            { id: 'c', text: 'Avoid AI for any task that involves code', isCorrect: false },
+            { id: 'd', text: 'AI output is production-ready as long as the prompt was detailed', isCorrect: false },
+          ],
+          explanation: 'This is the single most important principle of professional AI use. AI dramatically speeds up the first draft of test cases, bug reports, scripts, and plans — but your critical review, domain knowledge, and verification is what makes it reliable enough to ship.',
+        },
+      ],
+    },
+    {
+      level: 'ai-test-planning',
+      questions: [
+        {
+          question: 'A QA lead has a PRD for a new checkout feature and 30 minutes before sprint planning. What is the fastest way to produce a draft test plan?',
+          options: [
+            { id: 'a', text: 'Write the test plan manually to ensure accuracy', isCorrect: false },
+            { id: 'b', text: 'Paste the PRD into AI with a prompt asking for scope, risk areas, test types, and priority test scenarios', isCorrect: true },
+            { id: 'c', text: 'Skip the test plan and go straight to writing test cases', isCorrect: false },
+            { id: 'd', text: 'Ask a developer to write the test plan', isCorrect: false },
+          ],
+          explanation: 'AI can convert a PRD into a structured test plan draft in under a minute. Specify the sections you need: scope, risk areas, test types, entry/exit criteria, and top scenarios. The draft gives you a working starting point to refine — massively faster than writing from scratch.',
+        },
+        {
+          question: 'The team has 4 hours before a release and 60 test cases. Which AI prompt helps most?',
+          options: [
+            { id: 'a', text: '"Run all 60 test cases automatically"', isCorrect: false },
+            { id: 'b', text: '"Using risk-based testing principles, rank these 60 test cases and identify the 15 most critical to run in 4 hours"', isCorrect: true },
+            { id: 'c', text: '"Write 60 more test cases"', isCorrect: false },
+            { id: 'd', text: '"Which tests can I delete?"', isCorrect: false },
+          ],
+          explanation: 'Risk-based testing is about maximising coverage of high-risk areas in limited time. AI can apply risk-based prioritisation to a list of test cases, identifying what to run first and what can be safely deferred.',
+        },
+        {
+          question: 'After AI generates a test plan from your PRD, what is the most important thing to add before sharing it with the team?',
+          options: [
+            { id: 'a', text: 'More formatting and colours', isCorrect: false },
+            { id: 'b', text: 'Your domain knowledge — known legacy issues, system-specific risks, and team constraints AI cannot know about', isCorrect: true },
+            { id: 'c', text: 'A disclaimer that AI wrote it', isCorrect: false },
+            { id: 'd', text: 'Nothing — AI test plans are complete as generated', isCorrect: false },
+          ],
+          explanation: 'AI has no knowledge of your specific system\'s history, known fragile areas, or team capacity. Your domain expertise is the layer that turns a generic AI draft into a relevant, actionable test plan.',
+        },
+        {
+          question: 'What are "entry criteria" in a test plan, and why can AI help define them?',
+          options: [
+            { id: 'a', text: 'The list of browsers to test in — AI knows which browsers are most popular', isCorrect: false },
+            { id: 'b', text: 'Conditions that must be true before testing starts (e.g. build deployed, test data ready) — AI can suggest standard criteria based on the feature type', isCorrect: true },
+            { id: 'c', text: 'The first test case in the test suite', isCorrect: false },
+            { id: 'd', text: 'Entry criteria are only relevant for performance testing', isCorrect: false },
+          ],
+          explanation: 'Entry criteria define readiness — "testing can start when: the build is deployed to staging, test data is seeded, and API documentation is finalised." AI can suggest standard entry/exit criteria for common feature types, saving time on a part of test planning that\'s often forgotten.',
+        },
+        {
+          question: 'When using AI for test planning with a sprint ticket, what context is most important to include in your prompt?',
+          options: [
+            { id: 'a', text: 'The developer\'s name and the ticket creation date', isCorrect: false },
+            { id: 'b', text: 'The full ticket description, acceptance criteria, and any known dependencies or integrations', isCorrect: true },
+            { id: 'c', text: 'The project management tool you are using (Jira, Linear, etc.)', isCorrect: false },
+            { id: 'd', text: 'The sprint number and team velocity', isCorrect: false },
+          ],
+          explanation: 'Acceptance criteria are the most valuable context for AI test planning — they define exactly what "done" looks like. Known dependencies and integrations tell AI where the highest risk areas are. Without these, AI produces a generic plan that may miss what actually matters.',
+        },
+      ],
+    },
+    {
+      level: 'ai-verify-output',
+      questions: [
+        {
+          question: 'AI generates a Playwright test and you notice the method `page.interceptNetwork()`. You\'ve never seen this before. What should you do?',
+          options: [
+            { id: 'a', text: 'Trust it — AI wouldn\'t generate a method that doesn\'t exist', isCorrect: false },
+            { id: 'b', text: 'Check the official Playwright documentation before using it — AI frequently invents plausible-sounding method names', isCorrect: true },
+            { id: 'c', text: 'Ask a colleague if they\'ve heard of it', isCorrect: false },
+            { id: 'd', text: 'Run it directly in your production test suite', isCorrect: false },
+          ],
+          explanation: 'Hallucinated APIs are one of the most common AI code mistakes. `page.interceptNetwork()` doesn\'t exist in Playwright — the correct method is `page.route()`. Always verify unfamiliar method names against the official docs before using them.',
+        },
+        {
+          question: 'An AI-generated test case says: "Click login button and verify it works correctly." What is wrong with this?',
+          options: [
+            { id: 'a', text: 'Nothing — this is a perfectly good test case', isCorrect: false },
+            { id: 'b', text: 'The expected result is vague — "works correctly" is not a testable, measurable outcome', isCorrect: true },
+            { id: 'c', text: 'The step count is too low', isCorrect: false },
+            { id: 'd', text: 'It should mention which browser to use', isCorrect: false },
+          ],
+          explanation: 'A good expected result is specific and measurable: "User is redirected to /dashboard and the greeting \'Welcome back, [name]\' is visible." Vague expected results like \'works correctly\' make it impossible to determine pass or fail.',
+        },
+        {
+          question: 'What is the safest way to test AI-generated code before adding it to your main test suite?',
+          options: [
+            { id: 'a', text: 'Run it directly in the main suite — if it breaks, you\'ll see the error', isCorrect: false },
+            { id: 'b', text: 'Run it in isolation first — a small standalone script that you can safely discard if it fails', isCorrect: true },
+            { id: 'c', text: 'Send it to the developer for review first', isCorrect: false },
+            { id: 'd', text: 'AI code never needs testing — it\'s already tested by the model', isCorrect: false },
+          ],
+          explanation: 'Running AI code in isolation first is the safest verification step. It reveals syntax errors, missing imports, and hallucinated methods without touching your main test suite. Only merge it after it runs cleanly in isolation.',
+        },
+        {
+          question: 'AI generates a test case with the expected result: "The page loads successfully." What is wrong with this?',
+          options: [
+            { id: 'a', text: 'Nothing — this is a valid expected result', isCorrect: false },
+            { id: 'b', text: 'It is too vague — a testable expected result must be specific and measurable, e.g. "The /dashboard page loads and displays the heading \'Welcome back\'"', isCorrect: true },
+            { id: 'c', text: 'Expected results should always be written in Gherkin', isCorrect: false },
+            { id: 'd', text: 'The expected result is too long', isCorrect: false },
+          ],
+          explanation: 'Vague expected results like "loads successfully" or "works correctly" are untestable — there\'s no clear pass/fail criterion. A good expected result specifies: what URL, what element, what text, what state. That\'s what makes a test repeatable and unambiguous.',
+        },
+        {
+          question: 'You ask AI "is this test script correct?" and it says "Yes, this looks good." Should you trust this?',
+          options: [
+            { id: 'a', text: 'Yes — if AI reviewed it and said it\'s good, it is', isCorrect: false },
+            { id: 'b', text: 'No — AI lacks context of your system and may approve code that won\'t work in your specific environment', isCorrect: true },
+            { id: 'c', text: 'Yes, but only if you asked a paid version of AI', isCorrect: false },
+            { id: 'd', text: 'Only trust it if the script has no TypeScript errors', isCorrect: false },
+          ],
+          explanation: '"Looks good" from AI means it\'s syntactically valid and follows common patterns — not that it will work in your system. Always run the script yourself. AI cannot know your environment, your selectors, or whether your application actually behaves as the script expects.',
+        },
+      ],
+    },
+    {
+      level: 'ai-iterative-prompting',
+      questions: [
+        {
+          question: 'AI gives you 10 test cases for a feature, but they all focus on happy path. What is the best next message to send in the same chat?',
+          options: [
+            { id: 'a', text: 'Start a completely new chat and re-prompt from scratch', isCorrect: false },
+            { id: 'b', text: '"Now add 5 edge cases focused on: invalid inputs, network failures, and session expiry"', isCorrect: true },
+            { id: 'c', text: '"These are perfect, thank you"', isCorrect: false },
+            { id: 'd', text: '"Write the same test cases again"', isCorrect: false },
+          ],
+          explanation: 'Iterative prompting in the same chat is more efficient than restarting. AI already has all your context. Adding a specific follow-up ("add edge cases for X, Y, Z") consistently produces better results than a single comprehensive prompt.',
+        },
+        {
+          question: 'When should you start a NEW chat instead of continuing in the existing one?',
+          options: [
+            { id: 'a', text: 'After every single prompt', isCorrect: false },
+            { id: 'b', text: 'When the conversation has become very long and AI seems confused, or when you are switching to a completely unrelated topic', isCorrect: true },
+            { id: 'c', text: 'Never — always continue in the same chat', isCorrect: false },
+            { id: 'd', text: 'After getting your first good answer', isCorrect: false },
+          ],
+          explanation: 'Long chats can cause AI to drift or mix contexts. Start fresh for new topics, and paste only the relevant context. But for refining the same output — keep going in the same chat, AI benefits from the accumulated context.',
+        },
+        {
+          question: 'Which prompt technique asks AI to find flaws in its own output?',
+          options: [
+            { id: 'a', text: 'Zero-shot prompting', isCorrect: false },
+            { id: 'b', text: 'The CRAFT method', isCorrect: false },
+            { id: 'c', text: 'Self-critique: "Review your answer as a critical QA reviewer. What scenarios are missing, vague, or duplicated?"', isCorrect: true },
+            { id: 'd', text: 'Context window overflow', isCorrect: false },
+          ],
+          explanation: 'AI self-critique is one of the most powerful iterative techniques. Asking AI to play the role of a reviewer of its own work consistently surfaces gaps that re-prompting from scratch misses. It\'s a two-step: generate → self-review → improved output.',
+        },
+        {
+          question: 'What is a "reusable context block" and why is it useful for QA engineers?',
+          options: [
+            { id: 'a', text: 'A saved test case template in TestRail', isCorrect: false },
+            { id: 'b', text: 'A short paragraph you paste at the start of every new AI chat describing your tech stack, team format, and preferences — so AI always has the right context', isCorrect: true },
+            { id: 'c', text: 'A ChatGPT plugin for QA automation', isCorrect: false },
+            { id: 'd', text: 'A Playwright fixture shared across multiple test files', isCorrect: false },
+          ],
+          explanation: 'A reusable context block (e.g. "I use Playwright+TypeScript, Jira for tickets, Gherkin format") pasted at the start of each chat means AI immediately responds in the right language and format. It replaces repeating the same setup instructions in every single prompt.',
+        },
+        {
+          question: 'AI gave you a solid list of test cases. You want to know if anything important was missed. What is the most effective next prompt?',
+          options: [
+            { id: 'a', text: '"Good job, thank you"', isCorrect: false },
+            { id: 'b', text: '"Now act as a critical QA reviewer. What scenarios are missing, too vague, or duplicated in the list above?"', isCorrect: true },
+            { id: 'c', text: '"Write the same list again"', isCorrect: false },
+            { id: 'd', text: '"Convert this to code"', isCorrect: false },
+          ],
+          explanation: 'The self-critique technique — asking AI to review its own output as a "critical reviewer" — is one of the fastest ways to find gaps. AI sees its own output differently when given a reviewer persona, and consistently identifies missing scenarios that didn\'t appear in the first pass.',
+        },
+      ],
     },
     {
       level: 'intermediate',

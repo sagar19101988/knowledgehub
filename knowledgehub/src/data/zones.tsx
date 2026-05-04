@@ -158,7 +158,10 @@ export const ZONE_TIERS: Record<string, { id: string; label: string; color: stri
     { id: 'expert',       label: 'Expert',       color: 'text-amber-400',   moduleIds: ['pw-auth-at-scale','pw-visual-regression','pw-ci-cd-sharding','pw-debugging-cdp','pw-test-data-management','pw-component-testing','pw-custom-reporters','pw-advanced-architecture'] },
   ],
   'ai-qa': [
-    { id: 'beginner',     label: 'Beginner',     color: 'text-emerald-400', moduleIds: ['basic']        },
+    {
+      id: 'beginner', label: 'Beginner', color: 'text-emerald-400',
+      moduleIds: ['ai-what-is-ai','ai-how-it-thinks','ai-your-first-prompt','ai-prompt-craft','ai-test-cases','ai-bug-reports','ai-test-data','ai-tools-overview','ai-reading-code','ai-limitations','ai-test-planning','ai-verify-output','ai-iterative-prompting'],
+    },
     { id: 'intermediate', label: 'Intermediate', color: 'text-sky-400',     moduleIds: ['intermediate'] },
     { id: 'expert',       label: 'Expert',       color: 'text-amber-400',   moduleIds: ['expert']       },
   ],
