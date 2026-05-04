@@ -143,7 +143,7 @@ export const ZONE_TIERS: Record<string, { id: string; label: string; color: stri
   playwright: [
     { id: 'beginner',     label: 'Beginner',     color: 'text-emerald-400', moduleIds: ['pw-what-is-playwright','pw-installation-setup','pw-first-test-anatomy','pw-locators','pw-actions','pw-assertions','pw-config','pw-running-tests'] },
     { id: 'intermediate', label: 'Intermediate', color: 'text-sky-400',     moduleIds: ['pw-auto-waiting','pw-fixtures-lifecycle','pw-page-object-model','pw-network-interception','pw-advanced-locators','pw-ui-interactions','pw-dialogs-popups-iframes','pw-test-organisation','pw-api-testing'] },
-    { id: 'expert',       label: 'Expert',       color: 'text-amber-400',   moduleIds: ['expert']       },
+    { id: 'expert',       label: 'Expert',       color: 'text-amber-400',   moduleIds: ['pw-auth-at-scale','pw-visual-regression','pw-ci-cd-sharding','pw-debugging-cdp','pw-test-data-management','pw-component-testing','pw-custom-reporters','pw-advanced-architecture'] },
   ],
   'ai-qa': [
     { id: 'beginner',     label: 'Beginner',     color: 'text-emerald-400', moduleIds: ['basic']        },

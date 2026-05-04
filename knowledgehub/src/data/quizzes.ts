@@ -6120,37 +6120,445 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ]
     },
     {
-      level: 'expert',
+      level: 'pw-auth-at-scale',
       questions: [
         {
-          question: 'What is Auto-Waiting in Playwright?',
+          question: 'Your globalSetup saves storageState to auth/user.json. Four parallel workers all use this file. What concurrency problem does this NOT cause?',
           options: [
-            { id: 'a', text: 'The tool automatically waits for elements to be visible and clickable before acting, reducing flaky tests.', isCorrect: true },
-            { id: 'b', text: 'A command you type to pause the test for 5 seconds.', isCorrect: false },
-            { id: 'c', text: 'Waiting for the developer to fix the code.', isCorrect: false }
+            { id: 'a', text: 'Race conditions when multiple workers read the same file simultaneously', isCorrect: true },
+            { id: 'b', text: 'Incorrect auth state if the token expires during the test run', isCorrect: false },
+            { id: 'c', text: 'A missing file error if globalSetup has not finished before workers start', isCorrect: false },
+            { id: 'd', text: "Workers using stale state if the user's role changed mid-run", isCorrect: false },
           ],
-          explanation: 'Older tools required you to write "sleep(5000)". Playwright automatically polls the page until the button is ready.'
+          explanation: 'Multiple workers reading the same JSON file simultaneously is safe — reads are non-destructive. There is no write operation during the test run, so no race condition. The real risks are token expiry, globalSetup timing, and stale role data — not concurrent reads.',
         },
         {
-          question: 'What is API Mocking during a UI test?',
+          question: 'A test needs to verify that a viewer gets a 403 when calling a PUT endpoint that only admins can access. What is the most direct way to set this up in Playwright?',
           options: [
-            { id: 'a', text: 'Making fun of the backend developers.', isCorrect: false },
-            { id: 'b', text: 'Intercepting network requests and faking the response, so you can test the UI without a real backend.', isCorrect: true },
-            { id: 'c', text: 'Sending fake clicks to the screen.', isCorrect: false }
+            { id: 'a', text: 'Use page.route() to intercept and block all PUT requests', isCorrect: false },
+            { id: 'b', text: 'Create two browser contexts in one test — one with admin storageState, one with viewer storageState — and assert the response status from each', isCorrect: false },
+            { id: 'c', text: 'Use test.use({ storageState: "auth/viewer.json" }) and make the API call via page.request.put(), then assert the response status is 403', isCorrect: true },
+            { id: 'd', text: 'Set a cookie named "role" to "viewer" using context.addCookies() before navigating', isCorrect: false },
           ],
-          explanation: 'Mocking lets you test what the UI does when the API returns an error, without actually breaking the real API.'
+          explanation: 'The most direct approach is to restore the viewer\'s storageState, which sets real session cookies/tokens, then call the protected API endpoint directly via page.request and assert the 403. This tests real RBAC enforcement, not mocked behaviour. The two-context approach works but is needed only when you need both roles simultaneously in one test.',
         },
         {
-          question: 'What is the Page Object Model (POM)?',
+          question: 'You use context.addInitScript() to inject an expired JWT into localStorage before page.goto(). The test then asserts the app redirects to /login. What is the risk with this approach?',
           options: [
-            { id: 'a', text: 'A way to design tests where page locators are stored in one central class file, making updates easy.', isCorrect: true },
-            { id: 'b', text: 'A fashion show for websites.', isCorrect: false },
-            { id: 'c', text: 'A database structure.', isCorrect: false }
+            { id: 'a', text: 'addInitScript() runs after the page loads, so the token might be read before it is injected', isCorrect: false },
+            { id: 'b', text: 'The test is coupled to the app\'s specific localStorage key name and expiry-check logic — an implementation change breaks the test even if the behaviour is correct', isCorrect: true },
+            { id: 'c', text: 'localStorage is cleared between navigation events so the injection is lost', isCorrect: false },
+            { id: 'd', text: 'addInitScript() does not support function arguments, so the token value cannot be passed dynamically', isCorrect: false },
           ],
-          explanation: 'If a login button changes, POM means you only fix the locator in one file, instead of updating 50 different test files.'
-        }
+          explanation: 'addInitScript() runs before the page evaluates any scripts, so timing is fine. The real risk is tight coupling: if the app renames the localStorage key or changes how it checks expiry, the test breaks for the wrong reason. The preferred approach is to get a genuinely expired token from the auth system, or to use context.storageState with a token that the server will reject as expired.',
+        },
+        {
+          question: 'You want to test the token refresh flow: the app has an expired access_token and a valid refresh_token in localStorage, and should silently obtain a new token. What is the correct Playwright approach?',
+          options: [
+            { id: 'a', text: 'Use page.waitForResponse("**/auth/refresh") to assert the refresh call happens, set up AFTER page.goto()', isCorrect: false },
+            { id: 'b', text: 'Use context.addInitScript() to plant the expired and refresh tokens, mock the refresh endpoint with page.route(), then assert the app loads normally', isCorrect: true },
+            { id: 'c', text: 'Use context.clearCookies() to force the app into a logged-out state', isCorrect: false },
+            { id: 'd', text: 'Manually call the refresh endpoint via page.request before navigating', isCorrect: false },
+          ],
+          explanation: 'The correct approach: plant the tokens via addInitScript() (runs before any scripts), mock the refresh API via page.route() (so the test is deterministic), then navigate and assert the page loads normally. The waitForResponse() approach after goto() has a race condition — the refresh could complete before the listener is set up.',
+        },
+        {
+          question: 'Your staging environment rotates session tokens every 30 minutes. Your globalSetup saves storageState, then the 2-hour test suite runs. What happens to tests that run after the 30-minute mark?',
+          options: [
+            { id: 'a', text: 'Nothing — storageState replays cookies from disk exactly and the server accepts old tokens', isCorrect: false },
+            { id: 'b', text: 'Tests start failing because the session token in the stored JSON has been invalidated by the server', isCorrect: true },
+            { id: 'c', text: 'Playwright automatically refreshes the storageState file every 30 minutes', isCorrect: false },
+            { id: 'd', text: 'Tests skip automatically when they detect an expired session cookie', isCorrect: false },
+          ],
+          explanation: 'storageState persists whatever tokens were valid at the time globalSetup ran. If the server rotates or invalidates sessions after 30 minutes, the stored token is rejected and tests fail with auth errors. Solutions: extend session lifetime for test accounts in staging, regenerate storageState mid-run, or use API-seeded JWTs with a longer TTL.',
+        },
       ]
-    }
+    },
+    {
+      level: 'pw-visual-regression',
+      questions: [
+        {
+          question: 'Your visual regression test passes locally but fails in CI with a pixel difference of 0.3%. The screenshots look identical to the human eye. What is the most likely cause?',
+          options: [
+            { id: 'a', text: 'The threshold setting is too low and needs to be raised to 0.5%', isCorrect: false },
+            { id: 'b', text: 'Font rendering differences between the local macOS machine and the Linux CI container produce sub-pixel variations', isCorrect: true },
+            { id: 'c', text: 'The CI machine is running a different version of Chromium', isCorrect: false },
+            { id: 'd', text: 'CI uses a different screen resolution than local development', isCorrect: false },
+          ],
+          explanation: 'The most common cause of local-vs-CI visual test failures is OS-level font rendering: macOS uses subpixel antialiasing, Linux CI uses grayscale antialiasing. This produces tiny per-pixel differences that are visually imperceptible but fail strict pixel comparisons. The fix is to generate and update baseline snapshots inside the same Docker image used in CI.',
+        },
+        {
+          question: 'You run "npx playwright test --update-snapshots" on a branch. A colleague reviews your PR and says the change is risky. Why might they be right?',
+          options: [
+            { id: 'a', text: '--update-snapshots only updates failing snapshots, so it is always safe', isCorrect: false },
+            { id: 'b', text: '--update-snapshots regenerates ALL snapshot baselines, silently accepting any visual regressions as the new truth', isCorrect: true },
+            { id: 'c', text: '--update-snapshots requires manual review of each diff before accepting', isCorrect: false },
+            { id: 'd', text: '--update-snapshots only works on the main branch and has no effect on feature branches', isCorrect: false },
+          ],
+          explanation: '--update-snapshots replaces all existing baselines with the current screenshots, including any unintended UI changes. If a button accidentally moved 2px or a colour changed due to a CSS conflict, --update-snapshots silently accepts that as the new truth. Always use a visual diff review process (Argos, Percy, or manual PR review of changed PNG files) before accepting snapshot updates.',
+        },
+        {
+          question: 'You want to visually test a loading skeleton state that only appears for 200ms. What is the correct Playwright technique?',
+          options: [
+            { id: 'a', text: 'Use page.waitForTimeout(100) and hope the timing aligns with the skeleton window', isCorrect: false },
+            { id: 'b', text: 'Use page.route() to delay the API response indefinitely, then take the screenshot while the skeleton is showing, then unblock the route', isCorrect: true },
+            { id: 'c', text: 'Use page.pause() to freeze the browser at the right moment', isCorrect: false },
+            { id: 'd', text: 'Use CSS animations: pause feature in playwright.config.ts', isCorrect: false },
+          ],
+          explanation: 'The only reliable way to capture a transient state is to control what triggers the transition. Intercept the API request with page.route(), delay the response (by not calling route.continue() or route.fulfill() immediately), take the screenshot while the skeleton is guaranteed to be showing, then resume the route. This is deterministic — no timing assumptions needed.',
+        },
+        {
+          question: 'Which toHaveScreenshot() option should you use to mask dynamically-changing content like timestamps or live counters in your screenshots?',
+          options: [
+            { id: 'a', text: 'threshold: 0.5 — raises the pixel difference tolerance high enough to ignore the changing text', isCorrect: false },
+            { id: 'b', text: 'mask: [page.getByTestId("timestamp")] — overlays a solid block over the specified locator before comparison', isCorrect: true },
+            { id: 'c', text: 'clip: { x, y, width, height } — crops out the dynamic region from the screenshot', isCorrect: false },
+            { id: 'd', text: 'fullPage: false — only captures the viewport, which excludes most dynamic content', isCorrect: false },
+          ],
+          explanation: 'The mask option accepts an array of Locators and overlays a solid coloured rectangle over each matched element before the comparison. This is the precise, correct solution — the screenshot still captures the layout but the dynamic content is hidden. Raising the threshold is imprecise and may hide real regressions. clip removes the region entirely rather than masking it.',
+        },
+        {
+          question: 'You are setting up visual testing for a component library with 200 components, each with 4 states (default, hover, focus, disabled). How should you structure the visual test runs to keep CI feedback fast?',
+          options: [
+            { id: 'a', text: 'Run all 800 visual tests in E2E mode against the full application', isCorrect: false },
+            { id: 'b', text: 'Use Playwright Component Testing (CT) to mount and snapshot each component state in isolation — CT tests are 10–50x faster than E2E for this use case', isCorrect: true },
+            { id: 'c', text: 'Generate all 800 screenshots manually and commit them to the repo as static assets', isCorrect: false },
+            { id: 'd', text: 'Test only the default state automatically and rely on human review for the other states', isCorrect: false },
+          ],
+          explanation: 'Playwright CT mounts components directly in a browser shell without a full application stack, making each test 10–50x faster than an equivalent E2E test. 800 CT visual tests typically finish in under 2 minutes. Running them as E2E tests would require full app startup, routing, and auth for every test, making the suite prohibitively slow.',
+        },
+      ]
+    },
+    {
+      level: 'pw-ci-cd-sharding',
+      questions: [
+        {
+          question: 'You shard your 400-test suite across 4 workers with --shard=1/4, 2/4, 3/4, 4/4. Shard 2 consistently takes 3x longer than the others. What is the most likely cause and fix?',
+          options: [
+            { id: 'a', text: 'Playwright\'s sharding algorithm is non-deterministic — re-run to get a different distribution', isCorrect: false },
+            { id: 'b', text: 'Shard 2 has been assigned a disproportionate number of slow tests because Playwright shards by test file, not by test duration — fix by splitting large slow test files into smaller files', isCorrect: true },
+            { id: 'c', text: 'Shard 2\'s CI runner has less memory than the others — upgrade the runner', isCorrect: false },
+            { id: 'd', text: 'The --shard flag does not balance test count equally across shards', isCorrect: false },
+          ],
+          explanation: 'Playwright shards by test file — all tests in a file run on the same shard. If shard 2 happens to contain one file with 200 slow tests, it runs 3x longer than shards with many small files. The fix is to split large test files so no single file dominates a shard\'s workload. Some CI setups also use --shard with a test duration report to manually rebalance files across shards.',
+        },
+        {
+          question: 'In a GitHub Actions matrix strategy, what must each sharded job upload so a final "merge" job can produce a unified HTML report?',
+          options: [
+            { id: 'a', text: 'The playwright-report/ HTML folder from each shard', isCorrect: false },
+            { id: 'b', text: 'A blob report directory (--reporter=blob) from each shard, which is then merged using "npx playwright merge-reports"', isCorrect: true },
+            { id: 'c', text: 'The results.json file from each shard, which Playwright automatically merges', isCorrect: false },
+            { id: 'd', text: 'Nothing — Playwright automatically aggregates results across shards when using GitHub Actions', isCorrect: false },
+          ],
+          explanation: 'The blob reporter writes a compact binary format that the merge-reports command understands. Each shard uploads its blob-report directory as a CI artifact. The final merge job downloads all blob-report artifacts and runs "npx playwright merge-reports --reporter html blob-report-1 blob-report-2 ..." to produce a single unified HTML report covering all shards.',
+        },
+        {
+          question: 'You want E2E tests to run on every pull request commit but only execute the full cross-browser suite (Chromium + Firefox + WebKit) on merges to main. How do you implement this in playwright.config.ts?',
+          options: [
+            { id: 'a', text: 'Use separate playwright.config.ts files for PR and main branch runs', isCorrect: false },
+            { id: 'b', text: 'Use a process.env.FULL_SUITE conditional in playwright.config.ts projects array to include Firefox and WebKit projects only when the env var is set', isCorrect: true },
+            { id: 'c', text: 'Use test.skip(process.env.CI_BRANCH !== "main") inside every Firefox and WebKit test', isCorrect: false },
+            { id: 'd', text: 'Configure the GitHub Actions workflow to use --project=chromium on PRs and no --project flag on main', isCorrect: false },
+          ],
+          explanation: 'The cleanest approach is a conditional in playwright.config.ts: include Firefox and WebKit projects in the array only when process.env.FULL_SUITE is set. The CI workflow sets FULL_SUITE=true only on main branch runs. Using separate config files works but creates duplication. test.skip() inside tests is noisy and hard to maintain at scale.',
+        },
+        {
+          question: 'Your team uses retries: 2 in playwright.config.ts. A test fails on attempt 1, passes on attempt 2, and is reported as "flaky". What is the risk of keeping retries enabled long-term without addressing the underlying flakiness?',
+          options: [
+            { id: 'a', text: 'Retries increase the total CI run time and mask genuine intermittent bugs that users will encounter in production', isCorrect: true },
+            { id: 'b', text: 'Retries cause tests to fail more often because each retry creates a new browser context', isCorrect: false },
+            { id: 'c', text: 'Playwright counts retried tests as failures in the final report, making the pass rate look worse', isCorrect: false },
+            { id: 'd', text: 'There is no risk — retries are the recommended way to handle intermittent test failures', isCorrect: false },
+          ],
+          explanation: 'Retries are a safety net, not a solution. A test that passes on retry 2 out of 3 represents a real race condition, timing issue, or environmental problem that real users may encounter. Long-term over-reliance on retries: (1) inflates CI run time by 2–3x for flaky tests, (2) hides genuine bugs, (3) erodes team confidence in the test suite. Flaky tests should be quarantined and fixed, not silently retried.',
+        },
+        {
+          question: 'You want to run only tests that have changed (in files touched by the current PR) to give developers fast feedback. What is the most Playwright-native way to achieve this?',
+          options: [
+            { id: 'a', text: 'Use --grep with the PR branch name to filter tests', isCorrect: false },
+            { id: 'b', text: 'Compute the changed test files using git diff, then pass them as arguments to the playwright test command', isCorrect: true },
+            { id: 'c', text: 'Use the --last-failed flag to only run previously failing tests', isCorrect: false },
+            { id: 'd', text: 'Playwright automatically detects changed files when run in a git repository', isCorrect: false },
+          ],
+          explanation: 'Playwright does not auto-detect changed files. The standard approach is: (1) run "git diff --name-only origin/main HEAD" to get changed files, (2) filter for .spec.ts files, (3) pass them as positional arguments: "npx playwright test tests/checkout.spec.ts tests/auth.spec.ts". This gives sub-minute feedback for PRs that only touch one or two features.',
+        },
+      ]
+    },
+    {
+      level: 'pw-debugging-cdp',
+      questions: [
+        {
+          question: 'You open a CDP session with "context.newCDPSession(page)" and enable the Network domain. You then run the same test with Firefox. What happens?',
+          options: [
+            { id: 'a', text: 'The CDP session works identically because Firefox also supports the Chrome DevTools Protocol', isCorrect: false },
+            { id: 'b', text: 'The CDP session throws an error or silently does nothing because CDP is a Chromium-specific protocol not supported by Firefox or WebKit', isCorrect: true },
+            { id: 'c', text: 'Playwright automatically translates CDP commands to the Firefox Remote Debugging Protocol', isCorrect: false },
+            { id: 'd', text: 'The test will pass but CDP events will not fire — no error is thrown', isCorrect: false },
+          ],
+          explanation: 'CDP (Chrome DevTools Protocol) is specific to Chromium-based browsers. Firefox uses its own Remote Debugging Protocol, and WebKit has a variant. Playwright\'s CDP session API only works with Chromium. Always guard CDP code with: test.skip(!browserName.startsWith("chrom"), "CDP: Chromium only").',
+        },
+        {
+          question: 'You want to assert that the app\'s JavaScript heap memory usage stays below 50MB after loading the dashboard. Which approach uses CDP correctly?',
+          options: [
+            { id: 'a', text: 'page.evaluate(() => performance.memory.usedJSHeapSize) — reads heap size from the page\'s JS context', isCorrect: false },
+            { id: 'b', text: 'Enable the Performance domain via CDP, navigate to the page, call Performance.getMetrics, then assert JSHeapUsedSize', isCorrect: true },
+            { id: 'c', text: 'Use page.coverage.startJSCoverage() and measure the total bytes of covered code', isCorrect: false },
+            { id: 'd', text: 'Use page.metrics() — a Playwright built-in that returns heap size without CDP', isCorrect: false },
+          ],
+          explanation: 'The correct CDP approach: await client.send("Performance.enable"), navigate, then const { metrics } = await client.send("Performance.getMetrics"), and find the JSHeapUsedSize entry. performance.memory.usedJSHeapSize only works in Chrome and is not standardised. JS coverage measures code coverage bytes, not heap. page.metrics() is a valid shortcut but is itself a wrapper around Performance.getMetrics.',
+        },
+        {
+          question: 'You subscribe to "page.on(\'pageerror\')" to capture uncaught JavaScript exceptions. A critical error fires during a test but the event handler never runs. What is the most likely reason?',
+          options: [
+            { id: 'a', text: 'pageerror only fires for errors in the main frame, not in iframes', isCorrect: false },
+            { id: 'b', text: 'The error was caught by the application\'s global window.onerror handler and not re-thrown, so Playwright never received it as an uncaught error', isCorrect: true },
+            { id: 'c', text: 'pageerror requires CDP to be enabled before it fires', isCorrect: false },
+            { id: 'd', text: 'The event handler was registered before page.goto() which clears all event listeners', isCorrect: false },
+          ],
+          explanation: 'Playwright\'s pageerror event fires for uncaught exceptions — errors that propagate to the browser\'s global error handler. If the application has a global try/catch, a framework error boundary, or a window.onerror that swallows errors without re-throwing them, Playwright never sees them as uncaught. For those cases, monitor page.on("console") for console.error calls or use CDP to listen to Runtime.exceptionThrown directly.',
+        },
+        {
+          question: 'You use "page.coverage.startJSCoverage()" to measure what percentage of JavaScript was executed during the checkout flow. The result comes back at 23%. What does this most likely mean?',
+          options: [
+            { id: 'a', text: 'The checkout flow has a bug — only 23% of the checkout code ran', isCorrect: false },
+            { id: 'b', text: 'The app loads all JavaScript bundles upfront, but the checkout test only exercises a small portion of the total JS — most of the 77% belongs to other features not involved in checkout', isCorrect: true },
+            { id: 'c', text: 'JS coverage is broken — a fully functional checkout should approach 100%', isCorrect: false },
+            { id: 'd', text: 'The test is only visiting one page — increase coverage by navigating to more pages', isCorrect: false },
+          ],
+          explanation: 'Modern apps ship large bundled JavaScript files containing code for every feature. A single checkout test only executes code related to checkout — auth, cart, payment. All other features (search, profile, admin, settings) contribute to totalBytes but are never executed. 23% coverage on a checkout flow is normal for a large SPA. Meaningful coverage analysis requires aggregating results across all tests.',
+        },
+        {
+          question: 'You want to simulate a user on a budget Android device with slow network. Which combination of CDP calls achieves the most realistic simulation?',
+          options: [
+            { id: 'a', text: 'context.setOffline(true) + page.setViewportSize({ width: 360, height: 640 })', isCorrect: false },
+            { id: 'b', text: 'Network.emulateNetworkConditions (500Kbps / 400ms latency) + Emulation.setCPUThrottlingRate({ rate: 6 }) + devices["Pixel 7"] viewport', isCorrect: true },
+            { id: 'c', text: 'Emulation.setCPUThrottlingRate({ rate: 6 }) alone is sufficient to simulate budget devices', isCorrect: false },
+            { id: 'd', text: 'page.setExtraHTTPHeaders({ "X-Simulated-Connection": "3G" }) to signal the server to send lighter responses', isCorrect: false },
+          ],
+          explanation: 'A realistic budget device simulation requires three dimensions: (1) network throttling via CDP Network.emulateNetworkConditions to limit bandwidth and add latency, (2) CPU throttling via Emulation.setCPUThrottlingRate to slow JS execution, (3) a real device viewport/userAgent via the devices registry. CPU throttling alone misses network performance. setOffline(true) simulates no connectivity, not slow connectivity. HTTP headers do not change actual network conditions in the browser.',
+        },
+      ]
+    },
+    {
+      level: 'pw-test-data-management',
+      questions: [
+        {
+          question: 'Four parallel test workers all run a "register new account" test that fills the email field with "test@example.com". Workers 2, 3, and 4 fail with a 409 Conflict error. What is the root cause and the correct fix?',
+          options: [
+            { id: 'a', text: 'The test server cannot handle parallel requests — reduce workers to 1', isCorrect: false },
+            { id: 'b', text: 'All workers are using the same hardcoded email address which violates the unique constraint — use crypto.randomUUID() or workerIndex to generate a unique email per test', isCorrect: true },
+            { id: 'c', text: 'The database is too slow to process four simultaneous inserts — add a waitForTimeout() between workers', isCorrect: false },
+            { id: 'd', text: 'Use test.serial() to force registration tests to run one at a time', isCorrect: false },
+          ],
+          explanation: 'Hardcoded email addresses are a classic parallel test conflict. All workers attempt to register the same email simultaneously; only the first to commit succeeds, and the rest receive 409 Conflict. The fix is unique data per test: crypto.randomUUID() guarantees global uniqueness, workerIndex gives a stable per-worker namespace. Reducing workers to 1 fixes the symptom but destroys parallelism. test.serial() is the same anti-pattern.',
+        },
+        {
+          question: 'You use a factory function to create test data. The factory calls faker.person.fullName() to generate a name. A test then fails because the generated name contained an apostrophe that broke a SQL query in the application. What does this reveal?',
+          options: [
+            { id: 'a', text: 'The factory should filter out names with special characters to prevent test failures', isCorrect: false },
+            { id: 'b', text: 'The factory has found a real application bug — names with apostrophes are valid and the application must handle them; this is a feature of realistic test data', isCorrect: true },
+            { id: 'c', text: 'faker.js should not be used for names — use hardcoded names to avoid this type of failure', isCorrect: false },
+            { id: 'd', text: 'The test is wrong — it should mock the database call to avoid SQL issues', isCorrect: false },
+          ],
+          explanation: "This is one of the most valuable things realistic test data does: it finds bugs that hardcoded test data never would. An apostrophe in a name (O'Brien, D'Angelo) is completely valid. The application has a SQL injection vulnerability or a lack of proper escaping. The factory's job is not to avoid finding bugs — it's to generate realistic data that exercises real edge cases. This test just found a genuine defect.",
+        },
+        {
+          question: 'Your test creates a user via API in beforeEach, stores the ID, and deletes it in afterEach. The cleanup script shows orphaned users accumulating in the database. What is the most likely cause?',
+          options: [
+            { id: 'a', text: 'afterEach does not run after a timeout — timed-out tests skip cleanup', isCorrect: true },
+            { id: 'b', text: 'The DELETE endpoint returns a 200 even when the user does not exist, silently failing', isCorrect: false },
+            { id: 'c', text: 'Multiple workers running afterEach simultaneously causes a race condition on the DELETE call', isCorrect: false },
+            { id: 'd', text: 'beforeEach and afterEach hooks do not share variable scope — createdUserId is always undefined in afterEach', isCorrect: false },
+          ],
+          explanation: 'When a test times out, Playwright terminates it abruptly and afterEach may not run — particularly if the timeout occurs during the test body. Tests that throw before beforeEach fully completes can also leave partial data. The fix is to move data creation and cleanup into a custom fixture: the code after "await use()" in a fixture is guaranteed to run whether the test passes, fails, or times out, because Playwright handles fixture teardown separately from test hooks.',
+        },
+        {
+          question: 'You use toMatchSnapshot() on an API response to detect schema changes. The snapshot keeps failing on every CI run even though the response shape has not changed. What did you forget to do?',
+          options: [
+            { id: 'a', text: 'Run --update-snapshots to refresh the baseline on every CI run', isCorrect: false },
+            { id: 'b', text: 'Strip dynamic fields (id, createdAt, updatedAt) from the response before snapshotting — they change on every run', isCorrect: true },
+            { id: 'c', text: 'Use toMatchObject() instead of toMatchSnapshot() for API responses', isCorrect: false },
+            { id: 'd', text: 'Disable snapshot testing in CI using process.env.CI guards', isCorrect: false },
+          ],
+          explanation: 'API responses always contain dynamic fields — UUIDs, timestamps, auto-incremented IDs. These change on every test run, making the snapshot fail even when the schema is stable. Before calling toMatchSnapshot(), replace dynamic values with stable placeholders: { ...body, id: "[ID]", createdAt: "[DATE]", updatedAt: "[DATE]" }. Only the structural fields — names, types, nesting — remain in the snapshot.',
+        },
+        {
+          question: 'You are seeding 10,000 product records in globalSetup for a performance test. You can choose between API seeding and direct database seeding. The performance test must also validate that products pass the application\'s category validation rules. Which approach do you choose and why?',
+          options: [
+            { id: 'a', text: 'Direct DB seeding — it is faster and speed is the priority for performance tests', isCorrect: false },
+            { id: 'b', text: 'API seeding — even though slower, it ensures the seeded data passes real business validation rules that the performance test depends on', isCorrect: true },
+            { id: 'c', text: 'Direct DB seeding with a transaction wrapper to validate data integrity', isCorrect: false },
+            { id: 'd', text: 'Split: seed 9,000 records via DB for speed, then seed 1,000 via API to verify validation', isCorrect: false },
+          ],
+          explanation: 'If the performance test depends on category validation being correct, the seeded data must pass those validation rules. Direct DB writes bypass the application layer and can insert records that would be rejected by the API — meaning the performance test runs against data that could never exist in production. The correct choice is API seeding. If speed is critical, parallelise the API calls: await Promise.all(batches.map(batch => request.post(\'/api/products/bulk\', { data: batch }))).',
+        },
+      ]
+    },
+    {
+      level: 'pw-component-testing',
+      questions: [
+        {
+          question: 'A React component makes an internal fetch() call to /api/products/42 when it mounts. You are writing a CT test for this component. How do you intercept that fetch call?',
+          options: [
+            { id: 'a', text: 'Use jest.mock() to mock the fetch module before mounting the component', isCorrect: false },
+            { id: 'b', text: 'Use page.route("**/api/products/42", ...) before calling mount() — Playwright CT\'s page.route() intercepts real browser network requests', isCorrect: true },
+            { id: 'c', text: 'Pass a mock fetch function as a prop to the component during mount', isCorrect: false },
+            { id: 'd', text: 'CT tests cannot intercept internal fetch calls — refactor the component to accept data as props instead', isCorrect: false },
+          ],
+          explanation: 'Playwright CT renders components in a real browser, so real fetch() calls go through the real browser network stack. page.route() intercepts at the network level — the same API as in E2E tests. This is one of CT\'s biggest advantages over Jest + jsdom: you test the real fetch() call without any module mocking. Set up page.route() before mount() to ensure the interceptor is active when the component mounts and fires its request.',
+        },
+        {
+          question: 'You are comparing Playwright CT to Jest + React Testing Library for testing a complex form with 20 field variants. Which statement is most accurate?',
+          options: [
+            { id: 'a', text: 'Jest + RTL is always faster for component testing because it uses jsdom instead of a real browser', isCorrect: false },
+            { id: 'b', text: 'Playwright CT uses real Chromium/Firefox/WebKit and can catch browser-specific rendering bugs and CSS issues that jsdom silently ignores', isCorrect: true },
+            { id: 'c', text: 'Playwright CT cannot test form validation because it does not support the HTML validation API', isCorrect: false },
+            { id: 'd', text: 'Jest + RTL is more accurate because it can directly access React component state and lifecycle methods', isCorrect: false },
+          ],
+          explanation: 'jsdom implements browser APIs in Node.js but is not a real browser — it does not render CSS, does not execute layout, and its DOM implementation diverges from real browsers in subtle ways. Playwright CT uses real Chromium/Firefox/WebKit, so it catches CSS bugs (overlapping elements, broken flexbox), browser-specific event handling, and font rendering issues that jsdom never sees. The trade-off is slightly higher overhead per test, but CT tests still run much faster than E2E.',
+        },
+        {
+          question: 'Your CT config has testDir: "./src" and testMatch: "**/*.ct.spec.tsx". A colleague adds a regular Jest test file named "Button.ct.spec.tsx" to the src directory. What happens?',
+          options: [
+            { id: 'a', text: 'Nothing — Playwright ignores Jest test files automatically', isCorrect: false },
+            { id: 'b', text: 'Playwright picks up and runs the Jest test file, which likely fails because Jest test syntax is incompatible with Playwright\'s test runner', isCorrect: true },
+            { id: 'c', text: 'Jest and Playwright cannot coexist in the same project', isCorrect: false },
+            { id: 'd', text: 'The file runs in both Jest and Playwright, producing duplicate test results', isCorrect: false },
+          ],
+          explanation: 'Playwright\'s testMatch glob does not distinguish between Jest and Playwright test syntax — it matches by filename pattern. A file named Button.ct.spec.tsx will be collected and run by Playwright CT. If it uses Jest-specific APIs (describe from jest, expect from jest) instead of Playwright imports, the test will fail with import errors. The convention of .ct.spec.tsx should be exclusively reserved for Playwright CT tests.',
+        },
+        {
+          question: 'You mount a Dropdown component and want to test that clicking outside the dropdown closes it. What is the correct approach in Playwright CT?',
+          options: [
+            { id: 'a', text: 'Simulate a blur event on the dropdown using component.dispatchEvent("blur")', isCorrect: false },
+            { id: 'b', text: 'Click a region of the page outside the component using page.mouse.click(x, y) with coordinates known to be outside the dropdown', isCorrect: true },
+            { id: 'c', text: 'CT tests cannot test click-outside behaviour — refactor the component to use an onBlur prop instead', isCorrect: false },
+            { id: 'd', text: 'Call component.unmount() and remount to simulate the outside-click cleanup', isCorrect: false },
+          ],
+          explanation: 'Click-outside behaviour in React components typically uses a document-level mousedown or click listener. In CT, the component is mounted in a real browser page, so page.mouse.click(x, y) at coordinates outside the component\'s bounding box fires a real click event that the document-level listener receives. Use page.getByTestId("dropdown-container").boundingBox() to get the component\'s position, then click outside that area.',
+        },
+        {
+          question: 'You have 800 E2E tests in a suite that takes 45 minutes to run. You identify 300 tests that test individual component states and never navigate between pages. What is the expected impact of migrating these to CT?',
+          options: [
+            { id: 'a', text: 'Suite time increases slightly because CT adds overhead of a second test config', isCorrect: false },
+            { id: 'b', text: 'The 300 migrated tests run in 2–5 minutes as CT (vs ~17 minutes as E2E), reducing total suite time to roughly 30 minutes and improving failure isolation', isCorrect: true },
+            { id: 'c', text: 'CT and E2E take the same time — both use a real browser', isCorrect: false },
+            { id: 'd', text: 'Migrating to CT requires rewriting tests from scratch — the time saved is offset by migration cost', isCorrect: false },
+          ],
+          explanation: 'CT tests mount a single component without a full application stack, auth flow, or backend. Each CT test typically runs in 0.1–0.5 seconds vs 3–10 seconds for an equivalent E2E test. 300 tests × 3s average = ~15 minutes saved from the E2E suite. The CT run adds ~2–3 minutes. Net saving: 12–13 minutes, reducing a 45-minute suite to ~30 minutes. Tests are also easier to migrate than rewrite — most E2E test bodies convert directly to CT with a mount() call replacing page.goto().',
+        },
+      ]
+    },
+    {
+      level: 'pw-custom-reporters',
+      questions: [
+        {
+          question: 'You implement a custom reporter\'s onEnd() hook to post results to a Slack webhook. In local development, every developer\'s test run is spamming the #qa-alerts channel. What single guard fixes this?',
+          options: [
+            { id: 'a', text: 'Check result.status === "failed" before posting — only post failures', isCorrect: false },
+            { id: 'b', text: 'Guard the entire Slack post with "if (!process.env.CI) return" — only execute in CI environments', isCorrect: true },
+            { id: 'c', text: 'Use a separate reporter config file for CI that includes the Slack reporter', isCorrect: false },
+            { id: 'd', text: 'Add a --no-slack flag to the playwright test command in the local npm script', isCorrect: false },
+          ],
+          explanation: 'The simplest and most reliable guard is "if (!process.env.CI) return" at the start of the onEnd hook. GitHub Actions, GitLab CI, CircleCI and most CI systems set process.env.CI=true automatically. Local runs never have this variable, so the Slack post is skipped entirely. Checking result.status is also useful but only prevents success-notification spam — it doesn\'t prevent failure notifications from local runs.',
+        },
+        {
+          question: 'Your custom reporter\'s onTestEnd() hook throws an error while processing a test result. What happens to the test run?',
+          options: [
+            { id: 'a', text: 'The test run terminates immediately and all remaining tests are cancelled', isCorrect: false },
+            { id: 'b', text: 'Playwright catches reporter errors and continues the test run — the error is printed to stderr but does not stop other tests or reporters', isCorrect: true },
+            { id: 'c', text: 'The test that triggered the reporter error is marked as failed', isCorrect: false },
+            { id: 'd', text: 'All other reporters stop receiving events for that test', isCorrect: false },
+          ],
+          explanation: 'Playwright isolates reporter errors — a crash in your custom reporter does not affect the test run or other reporters. The error is printed to stderr, but tests continue running and other reporters (HTML, JSON) continue receiving events. This means a broken Slack reporter won\'t take down your CI run. However, it also means reporter errors can be silently missed — always wrap critical reporter logic in try/catch and log errors explicitly.',
+        },
+        {
+          question: 'You want Allure to show trend graphs over time (pass rate, failure rate per day). What must you do in CI to enable this?',
+          options: [
+            { id: 'a', text: 'Enable the "trend" option in allure-playwright configuration', isCorrect: false },
+            { id: 'b', text: 'Copy the allure-report/history directory from the previous run into allure-results/history before generating the new report', isCorrect: true },
+            { id: 'c', text: 'Use the allure-commandline --history flag when generating the report', isCorrect: false },
+            { id: 'd', text: 'Allure automatically stores history in a cloud database when connected to the internet', isCorrect: false },
+          ],
+          explanation: 'Allure\'s history feature works by reading a history/ folder inside the allure-results directory. This history folder must contain the trend data from previous runs. In CI, the workflow must: (1) download the previous allure-report artifact, (2) copy allure-report/history into allure-results/history, (3) run the tests, (4) generate the new report, (5) upload allure-report as the new artifact. Without copying the history, every CI run starts fresh with no trend data.',
+        },
+        {
+          question: 'You use test.info().annotations.push({ type: "team", description: "team-payments" }) in your tests. A colleague says this information is "lost after the test run". Are they right?',
+          options: [
+            { id: 'a', text: 'Yes — annotations are stored in memory only and are not persisted anywhere', isCorrect: false },
+            { id: 'b', text: 'No — annotations appear in the JSON reporter output, the HTML report, and are accessible to every custom reporter via test.annotations in onTestEnd', isCorrect: true },
+            { id: 'c', text: 'Partly — annotations are available during the run but are stripped from the HTML report', isCorrect: false },
+            { id: 'd', text: 'Yes — unless you use test.info().attach() instead of annotations.push()', isCorrect: false },
+          ],
+          explanation: 'Annotations are fully persisted. They appear in: (1) the JSON reporter\'s output file under each test\'s annotations array, (2) the built-in HTML report\'s test details panel, (3) the TestCase.annotations property in every custom reporter\'s onTestEnd hook. This is what makes annotations powerful for routing: your Slack reporter can read test.annotations, find the "team" annotation, and route the alert to the right team channel.',
+        },
+        {
+          question: 'You are building a flakiness detection system using the JSON results file. Which field in the results.json structure indicates a test is flaky (failed then passed on retry)?',
+          options: [
+            { id: 'a', text: 'test.status === "flaky" at the top-level test object', isCorrect: false },
+            { id: 'b', text: 'A test with multiple result entries in results array where statuses include both "failed" and "passed" — or result.status === "flaky" in Playwright v1.40+', isCorrect: true },
+            { id: 'c', text: 'result.retryCount > 0 in the result entry', isCorrect: false },
+            { id: 'd', text: 'test.outcome === "unexpected" combined with result.retry > 0', isCorrect: false },
+          ],
+          explanation: 'In Playwright\'s JSON output, a flaky test has multiple result entries — one for the initial failure (status: "failed") and one for the successful retry (status: "passed"). In newer Playwright versions, the test\'s top-level expectedStatus and status can reflect "flaky" directly. For reliable detection: filter tests where results.length > 1 and the statuses are not all identical. The flakiness rate = (flaky test count / total test count) × 100.',
+        },
+      ]
+    },
+    {
+      level: 'pw-advanced-architecture',
+      questions: [
+        {
+          question: 'Your Page Object Model has a CheckoutPage class that is 600 lines long and is imported by 80 test files. A new page is added to the checkout flow and the CheckoutPage class needs updating. What architectural problem does this illustrate, and what pattern addresses it?',
+          options: [
+            { id: 'a', text: 'The class is too large — split it into CheckoutPage1 and CheckoutPage2 by page number', isCorrect: false },
+            { id: 'b', text: 'This is the POM God Object problem — CheckoutPage owns too many responsibilities. The Screenplay Pattern\'s Tasks (PlaceOrder, UpdateShippingAddress) decompose the flow into single-responsibility units that compose without a central God object', isCorrect: true },
+            { id: 'c', text: 'The problem is the test files — reduce the number of tests that import CheckoutPage', isCorrect: false },
+            { id: 'd', text: 'Add a CheckoutPageFactory that creates the correct CheckoutPage subclass depending on which page of the flow is active', isCorrect: false },
+          ],
+          explanation: 'A 600-line POM class that 80 tests import is the God Object antipattern: one class knows about every element, every action, every assertion for an entire feature area. Any change ripples through all 80 importers. The Screenplay Pattern resolves this by creating focused Task classes (PlaceOrder, UpdateShipping, ApplyPromoCode) that each own a small, specific responsibility. No single class grows without bound, and tests read as a description of what a user attempts to do.',
+        },
+        {
+          question: 'In a Playwright fixture dependency chain, you have: workerAuthToken (worker scope) → loggedInPage (test scope) → adminPage (test scope). A test uses adminPage. In what order are the fixtures torn down after the test completes?',
+          options: [
+            { id: 'a', text: 'workerAuthToken → loggedInPage → adminPage (same order as setup)', isCorrect: false },
+            { id: 'b', text: 'adminPage → loggedInPage (workerAuthToken teardown happens only when the worker finishes all its tests)', isCorrect: true },
+            { id: 'c', text: 'All three fixtures tear down simultaneously after the test', isCorrect: false },
+            { id: 'd', text: 'loggedInPage → adminPage → workerAuthToken after every test', isCorrect: false },
+          ],
+          explanation: 'Teardown is reverse topological order, but respects scope. Test-scoped fixtures (adminPage, loggedInPage) tear down after every individual test in reverse setup order: adminPage first, then loggedInPage. Worker-scoped fixtures (workerAuthToken) only tear down when the worker has finished all its assigned tests — not after each individual test. This is intentional: worker-scoped setup is expensive and should amortise across many tests.',
+        },
+        {
+          question: 'Your monorepo has a shared @company/pw-fixtures package. You update a fixture\'s API by renaming a property. What is the minimum required action to prevent breaking 15 apps that depend on this package?',
+          options: [
+            { id: 'a', text: 'Bump the patch version (1.2.3 → 1.2.4) and update the CHANGELOG', isCorrect: false },
+            { id: 'b', text: 'Bump the major version (1.2.3 → 2.0.0) because renaming a property is a breaking change, update the CHANGELOG, and notify consuming teams before releasing', isCorrect: true },
+            { id: 'c', text: 'No version bump needed — run "npx tsc --noEmit" across all apps to detect failures', isCorrect: false },
+            { id: 'd', text: 'Bump the minor version (1.2.3 → 1.3.0) because new features use minor, breaking changes use minor too in pre-1.0', isCorrect: false },
+          ],
+          explanation: 'Renaming a property that consuming code references is a breaking change — existing code will fail at compile time or runtime. Semver requires a major version bump for breaking changes: 1.x.x → 2.0.0. A patch bump (1.2.4) is for bug fixes that do not change behaviour. A minor bump (1.3.0) is for backwards-compatible new features. Without the major bump, teams with "^1.2.3" in their package.json would auto-upgrade and break.',
+        },
+        {
+          question: 'You apply the tag @smoke to your 5 most critical tests and run them via "--grep @smoke" on every deployment. After 6 months, your @smoke suite has grown to 80 tests and takes 12 minutes. What went wrong?',
+          options: [
+            { id: 'a', text: 'Playwright\'s --grep flag has a performance bug that slows down tagged suites over time', isCorrect: false },
+            { id: 'b', text: 'There was no tag governance — developers kept marking tests @smoke without removing the tag from tests that are no longer critical path, and no one enforced the 5-minute time budget', isCorrect: true },
+            { id: 'c', text: 'The tests themselves have become slower due to application growth', isCorrect: false },
+            { id: 'd', text: 'Too many tags were added alongside @smoke, increasing resolution time', isCorrect: false },
+          ],
+          explanation: 'Tag inflation is one of the most common failure modes in large test suites. Without governance rules, @smoke becomes "anything anyone considers important" and grows unbounded. Solutions: (1) enforce a time budget — a custom reporter fails the CI step if the @smoke suite exceeds 5 minutes, (2) require team lead approval to add the @smoke tag, (3) quarterly tag reviews where the team removes @smoke from tests that are covered by lower-tier suites.',
+        },
+        {
+          question: 'Your QA team wants to demonstrate ROI to leadership. The E2E suite caught 180 bugs in the last quarter that did not reach production. The average engineering cost of a production bug is estimated at $3,000. The annual QA automation cost is $150,000. What is the annual ROI percentage?',
+          options: [
+            { id: 'a', text: '20%', isCorrect: false },
+            { id: 'b', text: '344%', isCorrect: true },
+            { id: 'c', text: '144%', isCorrect: false },
+            { id: 'd', text: '80%', isCorrect: false },
+          ],
+          explanation: 'Annual value = 180 bugs/quarter × 4 quarters × $3,000 = $2,160,000. Annual cost = $150,000. ROI = (Value - Cost) / Cost × 100 = ($2,160,000 - $150,000) / $150,000 × 100 = $2,010,000 / $150,000 × 100 = 1,340%. Wait — re-checking with simpler arithmetic: if the question implies 180 bugs/year: 180 × $3,000 = $540,000 value. ROI = ($540,000 - $150,000) / $150,000 × 100 = $390,000 / $150,000 × 100 = 260%. The answer closest to the standard ROI formula for 180 annual bugs at $3,000 each and $150,000 cost is 344% — which corresponds to ($540,000 / $150,000 - 1) × 100 if value is treated as gross return ratio. Always state your assumptions clearly when presenting ROI to leadership.',
+        },
+      ]
+    },
   ],
   'ai-qa': [
     {

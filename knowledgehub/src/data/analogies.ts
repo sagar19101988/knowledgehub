@@ -20225,26 +20225,4972 @@ you're using Playwright for UI tests.
       },
 
       {
-        id: 'expert',
-        title: 'Expert: Advanced Playwright',
-        analogy: "Expert automation is about taking total control of reality. It's intercepting the website's radio communications and feeding it fake weather reports to see if the website's umbrella opens correctly.",
+        id: 'pw-auth-at-scale',
+        title: 'Authentication at Scale',
+        analogy: "Amateur QA engineers log into the app before every test — like a hotel guest who checks in, goes to their room, comes back to the lobby, checks in again, goes to their room, comes back, checks in again — for every single thing they need to do. Expert QA engineers check in once, get a key card, clone the key card, and hand a copy to every room. storageState is the key card cloner. You authenticate once, save the serialised browser session, and every test starts already logged in — instantly, with zero network round-trips.",
         lessonMarkdown: `
-### 1. Auto-Waiting
-*💡 Analogy: A polite person at a crosswalk. Instead of blindly stepping into the street at an exact second, they actively watch the cars and wait for it to be completely clear before walking.*
+## Authentication at Scale
 
-Flakiness (tests that pass on Monday but fail on Tuesday for no reason) is the enemy of QA. Old tools forced testers to write hardcoded \`sleep(5000)\` commands to wait for slow animations. Playwright features brilliant "Auto-Waiting". Before clicking a button, Playwright rapidly checks a massive list of conditions: Is the button attached to the DOM? Is it visible? Is it no longer animating? Is it not covered by a modal? It polls these conditions automatically, making tests incredibly stable.
+Managing authentication efficiently is one of the clearest dividing lines between beginner and expert Playwright engineers. This module covers every technique you need — from basic session saving to multi-role parallel testing and mocking OAuth flows.
 
-### 2. API Mocking
-*💡 Analogy: Testing an airplane's wings in a wind tunnel on the ground. You generate fake wind so you can safely test the plane without actually risking a real flight in the sky.*
+---
 
-Sometimes you want to test how the Frontend UI reacts when the Backend database crashes. But you can't deliberately crash the real production database just for a test! Playwright allows you to intercept the network traffic originating from the browser. You can catch a GET request before it leaves the browser, block it, and instantly return a fake \`500 Internal Server Error\` JSON payload. This allows you to verify that the UI displays the red "Oops, something went wrong!" banner perfectly.
+### 1. storageState — Serialise & Restore Auth Sessions
 
-### 3. Page Object Model (POM)
-*💡 Analogy: Keeping all your tools in a meticulously organized toolbox in the garage. If your hammer breaks, you know exactly which drawer to open to replace it, instead of hunting all over the house.*
+💡 **Analogy:** A hotel key card encodes your room access. \`storageState\` is a USB copier that duplicates that card so every test worker starts with a valid copy — no front-desk queue.
 
-The Page Object Model is a structural design pattern meant to save your sanity. Imagine you have 100 tests that all click the 'Login' button. If the developer changes the login button, you have to manually edit 100 test files. With POM, you create a dedicated class file for the LoginPage, and store the locator there once. All 100 tests reference that one class. When the button changes, you update the locator in exactly one place, and all 100 tests are instantly fixed.
-        `
+\`storageState\` captures the full browser session:
+
+| What it captures | Where it lives in the browser |
+|---|---|
+| Cookies | Document cookies + HttpOnly cookies |
+| localStorage | Per-origin key/value store |
+| sessionStorage | Per-tab key/value store |
+
+**Saving state after a real login:**
+
+\`\`\`typescript
+// scripts/save-auth.ts
+import { chromium } from '@playwright/test';
+
+async function saveAuth() {
+  const browser = await chromium.launch();
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  await page.goto('https://app.example.com/login');
+  await page.getByLabel('Email').fill('testuser@example.com');
+  await page.getByLabel('Password').fill('SuperSecret123');
+  await page.getByRole('button', { name: 'Sign In' }).click();
+  await page.waitForURL('**/dashboard');
+
+  // Serialise cookies + localStorage + sessionStorage to disk
+  await page.context().storageState({ path: 'auth/user.json' });
+  await browser.close();
+  console.log('Auth state saved to auth/user.json');
+}
+
+saveAuth();
+\`\`\`
+
+**Restoring state in every test:**
+
+\`\`\`typescript
+// playwright.config.ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  use: {
+    storageState: 'auth/user.json',   // every test starts logged in
+    baseURL: 'https://app.example.com',
+  },
+});
+\`\`\`
+
+**Or per test file:**
+
+\`\`\`typescript
+import { test } from '@playwright/test';
+
+test.use({ storageState: 'auth/user.json' });
+
+test('dashboard loads', async ({ page }) => {
+  await page.goto('/dashboard');
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+  // Already logged in — no login steps needed
+});
+\`\`\`
+
+**The performance win:**
+
+\`\`\`
+200 tests × 2s login per test = 400 seconds wasted per run
+With storageState:           = ~0 seconds for auth setup
+Net saving per CI run:       = ~6.5 minutes
+\`\`\`
+
+> **QA Tip:** Commit \`auth/*.json\` files to \`.gitignore\` — they contain real session tokens. Generate them fresh in CI via \`globalSetup\`.
+
+---
+
+### 2. globalSetup — Authenticate Once for the Entire Suite
+
+💡 **Analogy:** A bakery's head chef preps all the dough at 5 AM so every baker arriving at 6 AM finds everything ready. \`globalSetup\` is that 5 AM prep run — it executes once before any worker starts.
+
+**playwright.config.ts:**
+
+\`\`\`typescript
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  globalSetup: require.resolve('./global-setup'),
+  globalTeardown: require.resolve('./global-teardown'),
+  use: {
+    baseURL: 'https://app.example.com',
+  },
+  projects: [
+    {
+      name: 'chromium',
+      use: { storageState: 'auth/user.json' },
+    },
+    {
+      name: 'admin',
+      use: { storageState: 'auth/admin.json' },
+    },
+  ],
+});
+\`\`\`
+
+**global-setup.ts — save state for every role:**
+
+\`\`\`typescript
+import { chromium, FullConfig } from '@playwright/test';
+
+async function loginAs(
+  email: string,
+  password: string,
+  savePath: string
+): Promise<void> {
+  const browser = await chromium.launch();
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  await page.goto('https://app.example.com/login');
+  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Password').fill(password);
+  await page.getByRole('button', { name: 'Sign In' }).click();
+  await page.waitForURL('**/dashboard');
+
+  await context.storageState({ path: savePath });
+  await browser.close();
+}
+
+async function globalSetup(config: FullConfig): Promise<void> {
+  await Promise.all([
+    loginAs('user@example.com',  'pass123', 'auth/user.json'),
+    loginAs('admin@example.com', 'admin456', 'auth/admin.json'),
+    loginAs('guest@example.com', 'guest789', 'auth/guest.json'),
+  ]);
+  console.log('All auth states ready');
+}
+
+export default globalSetup;
+\`\`\`
+
+**global-teardown.ts:**
+
+\`\`\`typescript
+import { FullConfig } from '@playwright/test';
+import * as fs from 'fs';
+
+async function globalTeardown(config: FullConfig): Promise<void> {
+  // Optional: delete auth files after the suite finishes
+  ['auth/user.json', 'auth/admin.json', 'auth/guest.json'].forEach(f => {
+    if (fs.existsSync(f)) fs.unlinkSync(f);
+  });
+}
+
+export default globalTeardown;
+\`\`\`
+
+**How workers share the state file:**
+
+All parallel workers read the same JSON file from disk — it is purely a read operation, so there is no race condition. Workers never write to the file during the test run.
+
+> **QA Tip:** Run \`globalSetup\` in the same Docker image as your CI workers so the session tokens are issued from the same IP and user-agent.
+
+---
+
+### 3. Multi-Role Testing — Multiple Users in One Test
+
+💡 **Analogy:** A security audit needs two investigators in the same building at the same time — one with a master key, one with a visitor badge — to verify the doors behave correctly for each. Multiple browser contexts let you do exactly this within one test.
+
+**Why you need multi-role tests:**
+
+- Admin creates a resource; user should see it but not edit it
+- Two users send messages to each other in real time
+- Auditor can view billing; regular user gets a 403
+
+**Pattern: one test, two contexts:**
+
+\`\`\`typescript
+import { test, expect, Browser } from '@playwright/test';
+
+test('admin can delete record; user sees it disappear', async ({ browser }) => {
+  // Context 1 — Admin
+  const adminContext = await browser.newContext({
+    storageState: 'auth/admin.json',
+  });
+  const adminPage = await adminContext.newPage();
+
+  // Context 2 — Regular user
+  const userContext = await browser.newContext({
+    storageState: 'auth/user.json',
+  });
+  const userPage = await userContext.newPage();
+
+  // Admin navigates to records list
+  await adminPage.goto('/records');
+  await expect(adminPage.getByText('Record #42')).toBeVisible();
+
+  // User also sees the record
+  await userPage.goto('/records');
+  await expect(userPage.getByText('Record #42')).toBeVisible();
+
+  // Admin deletes the record
+  await adminPage.getByTestId('record-42-delete').click();
+  await adminPage.getByRole('button', { name: 'Confirm Delete' }).click();
+  await expect(adminPage.getByText('Record #42')).not.toBeVisible();
+
+  // User refreshes — record is gone
+  await userPage.reload();
+  await expect(userPage.getByText('Record #42')).not.toBeVisible();
+
+  // User has no delete button at all
+  await userPage.goto('/records');
+  await expect(userPage.getByTestId('record-42-delete')).not.toBeVisible({ timeout: 2000 });
+
+  await adminContext.close();
+  await userContext.close();
+});
+\`\`\`
+
+> **QA Tip:** Always \`close()\` contexts you created manually — Playwright does not auto-close them in \`afterEach\` the way the default \`{ context }\` fixture is managed.
+
+---
+
+### 4. OAuth / SSO Flows
+
+💡 **Analogy:** Testing OAuth is like testing a hotel that outsources key card printing to a third-party vendor. You can't walk into the vendor's factory during the test — so either you mock a fake vendor in your test environment, or you stand up a real vendor account that is safe to abuse in staging.
+
+**Strategy 1 — Mock the OAuth endpoint (fast, isolated):**
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+test('login via mocked OAuth', async ({ page, context }) => {
+  // Intercept the OAuth callback and inject a fake code
+  await page.route('**/oauth/callback**', async route => {
+    // Simulate a successful OAuth redirect back to our app
+    await route.fulfill({
+      status: 302,
+      headers: {
+        Location: 'https://app.example.com/dashboard?token=fake-jwt-token',
+      },
+    });
+  });
+
+  // Mock the token exchange endpoint
+  await page.route('**/api/auth/token', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        access_token: 'fake-jwt-token',
+        token_type: 'Bearer',
+        expires_in: 3600,
+      }),
+    });
+  });
+
+  await page.goto('/login');
+  await page.getByRole('button', { name: 'Login with Google' }).click();
+  await expect(page).toHaveURL(/dashboard/);
+});
+\`\`\`
+
+**Strategy 2 — Real OAuth flow with a test application:**
+
+\`\`\`typescript
+test('real Google OAuth login (staging test app)', async ({ page }) => {
+  await page.goto('/login');
+  const popupPromise = page.waitForEvent('popup');
+  await page.getByRole('button', { name: 'Login with Google' }).click();
+  const popup = await popupPromise;
+
+  // Interact with Google's real login page
+  await popup.getByLabel('Email or phone').fill(process.env.GOOGLE_TEST_EMAIL!);
+  await popup.getByRole('button', { name: 'Next' }).click();
+  await popup.getByLabel('Enter your password').fill(process.env.GOOGLE_TEST_PASS!);
+  await popup.getByRole('button', { name: 'Next' }).click();
+
+  // Popup closes after successful auth
+  await popup.waitForEvent('close');
+
+  // Main page should now be on the dashboard
+  await expect(page).toHaveURL(/dashboard/);
+});
+\`\`\`
+
+**Handling token refresh — mock an expired token:**
+
+\`\`\`typescript
+test('expired token triggers refresh flow', async ({ page, context }) => {
+  // Set an expired access token in localStorage
+  await context.addInitScript(() => {
+    localStorage.setItem('access_token', 'expired-token');
+    localStorage.setItem('refresh_token', 'valid-refresh-token');
+    localStorage.setItem('token_expiry', String(Date.now() - 1000)); // expired
+  });
+
+  // Mock the refresh endpoint
+  await page.route('**/api/auth/refresh', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ access_token: 'new-fresh-token', expires_in: 3600 }),
+    });
+  });
+
+  await page.goto('/dashboard');
+  // App should have silently refreshed and loaded normally
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+});
+\`\`\`
+
+---
+
+### 5. API-Seeded Authentication
+
+💡 **Analogy:** Instead of walking through the hotel lobby to get a key card, you call the concierge on the phone, get them to email you a digital key, and let yourself in via the app. API auth bypasses the UI entirely for maximum speed.
+
+**POST to /auth/login and inject the JWT:**
+
+\`\`\`typescript
+import { test, expect, request } from '@playwright/test';
+
+test('API-seeded auth — fastest possible setup', async ({ page, context }) => {
+  // Step 1: Get a JWT via API (no browser UI involved)
+  const apiContext = await request.newContext();
+  const loginResponse = await apiContext.post('https://api.example.com/auth/login', {
+    data: {
+      email: 'testuser@example.com',
+      password: 'Secret123',
+    },
+  });
+  const { token } = await loginResponse.json();
+
+  // Step 2: Inject the token before the page loads
+  await context.addInitScript((jwtToken: string) => {
+    localStorage.setItem('auth_token', jwtToken);
+    localStorage.setItem('user_email', 'testuser@example.com');
+  }, token);
+
+  // Step 3: Set the token as a default header for all API calls the page makes
+  await context.setExtraHTTPHeaders({
+    'Authorization': \`Bearer \${token}\`,
+  });
+
+  // Step 4: Navigate — app picks up the token from localStorage
+  await page.goto('/dashboard');
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+
+  await apiContext.dispose();
+});
+\`\`\`
+
+**Combining API auth with storageState for the fastest possible setup:**
+
+\`\`\`typescript
+// global-setup.ts — API-based version
+import { request } from '@playwright/test';
+import * as fs from 'fs';
+
+export default async function globalSetup() {
+  const apiContext = await request.newContext({
+    baseURL: 'https://api.example.com',
+  });
+
+  const response = await apiContext.post('/auth/login', {
+    data: { email: 'user@example.com', password: 'pass123' },
+  });
+  const { token } = await response.json();
+
+  // Build a minimal storageState manually — no browser required
+  const storageState = {
+    cookies: [],
+    origins: [
+      {
+        origin: 'https://app.example.com',
+        localStorage: [
+          { name: 'auth_token', value: token },
+          { name: 'user_role', value: 'viewer' },
+        ],
+      },
+    ],
+  };
+
+  fs.mkdirSync('auth', { recursive: true });
+  fs.writeFileSync('auth/user.json', JSON.stringify(storageState, null, 2));
+
+  await apiContext.dispose();
+}
+\`\`\`
+
+| Auth Method | Browser started? | Speed | Best for |
+|---|---|---|---|
+| UI login every test | Yes | Slowest | Legacy apps with no API |
+| storageState restore | No (load from file) | Fast | Most apps |
+| globalSetup + storageState | Once total | Fastest | Large suites |
+| API-seeded JWT | No | Fastest | Token-based SPAs |
+
+---
+
+### 6. Cookie Manipulation
+
+💡 **Analogy:** Cookies are like wristbands at a festival. The server issues them, and the browser presents them on every request. Being able to forge, read, and revoke wristbands in tests lets you simulate any access scenario instantly.
+
+**Adding cookies manually:**
+
+\`\`\`typescript
+test('cookie manipulation', async ({ context, page }) => {
+  // Add a session cookie manually — no login flow needed
+  await context.addCookies([
+    {
+      name: 'session_id',
+      value: 'abc123xyz',
+      domain: 'app.example.com',
+      path: '/',
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Lax',
+    },
+    {
+      name: 'user_role',
+      value: 'admin',
+      domain: 'app.example.com',
+      path: '/',
+    },
+  ]);
+
+  await page.goto('/admin');
+  await expect(page.getByRole('heading', { name: 'Admin Panel' })).toBeVisible();
+});
+\`\`\`
+
+**Reading cookies for assertions:**
+
+\`\`\`typescript
+test('assert cookie is set after login', async ({ page, context }) => {
+  await page.goto('/login');
+  await page.getByLabel('Email').fill('user@example.com');
+  await page.getByLabel('Password').fill('pass123');
+  await page.getByRole('button', { name: 'Sign In' }).click();
+
+  const cookies = await context.cookies();
+  const sessionCookie = cookies.find(c => c.name === 'session_id');
+
+  expect(sessionCookie).toBeDefined();
+  expect(sessionCookie!.httpOnly).toBe(true);
+  expect(sessionCookie!.secure).toBe(true);
+  expect(sessionCookie!.value).toHaveLength(32); // assert token format
+});
+\`\`\`
+
+**Testing session expiry:**
+
+\`\`\`typescript
+test('expired session redirects to login', async ({ context, page }) => {
+  // Set a cookie that expired in the past
+  await context.addCookies([
+    {
+      name: 'session_id',
+      value: 'expiredtoken',
+      domain: 'app.example.com',
+      path: '/',
+      expires: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
+    },
+  ]);
+
+  await page.goto('/dashboard');
+  // App should detect the expired session and redirect
+  await expect(page).toHaveURL(/login/);
+  await expect(page.getByText('Your session has expired')).toBeVisible();
+});
+\`\`\`
+
+**Clearing cookies to test logged-out state mid-test:**
+
+\`\`\`typescript
+test('logged-out state shows correct UI', async ({ context, page }) => {
+  // Start logged in
+  await context.addCookies([{ name: 'session_id', value: 'valid', domain: 'app.example.com', path: '/' }]);
+  await page.goto('/dashboard');
+  await expect(page.getByRole('button', { name: 'Logout' })).toBeVisible();
+
+  // Clear all cookies — simulates logout or cookie deletion
+  await context.clearCookies();
+  await page.reload();
+  await expect(page).toHaveURL(/login/);
+});
+\`\`\`
+
+---
+
+### 7. Testing Role-Based Access Control (RBAC)
+
+💡 **Analogy:** RBAC testing is like giving a skeleton key to a security consultant and asking them to try every door in the building with every badge type. Playwright's parameterised role pattern automates that audit.
+
+**Pattern: same test body, different storageState per role:**
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+const roles = [
+  { name: 'admin',   storageState: 'auth/admin.json',   canEdit: true,  canDelete: true  },
+  { name: 'editor',  storageState: 'auth/editor.json',  canEdit: true,  canDelete: false },
+  { name: 'viewer',  storageState: 'auth/viewer.json',  canEdit: false, canDelete: false },
+];
+
+for (const role of roles) {
+  test.describe(\`RBAC: \${role.name}\`, () => {
+    test.use({ storageState: role.storageState });
+
+    test('edit button visibility', async ({ page }) => {
+      await page.goto('/records/42');
+
+      if (role.canEdit) {
+        await expect(page.getByRole('button', { name: 'Edit' })).toBeVisible();
+      } else {
+        await expect(page.getByRole('button', { name: 'Edit' })).not.toBeVisible();
       }
+    });
+
+    test('delete button visibility', async ({ page }) => {
+      await page.goto('/records/42');
+
+      if (role.canDelete) {
+        await expect(page.getByRole('button', { name: 'Delete' })).toBeVisible();
+      } else {
+        await expect(page.getByRole('button', { name: 'Delete' })).not.toBeVisible();
+      }
+    });
+
+    test('API returns correct status', async ({ page, request }) => {
+      // Attempt to hit a protected API endpoint directly
+      const response = await page.request.put('/api/records/42', {
+        data: { title: 'Changed' },
+      });
+
+      if (role.canEdit) {
+        expect(response.status()).toBe(200);
+      } else {
+        expect(response.status()).toBe(403);
+      }
+    });
+  });
+}
+\`\`\`
+
+**Monitoring 403 responses via page.route():**
+
+\`\`\`typescript
+test('viewer gets 403 on admin API', async ({ page }) => {
+  test.use({ storageState: 'auth/viewer.json' });
+
+  const blockedRequests: string[] = [];
+
+  await page.route('**/api/admin/**', async route => {
+    blockedRequests.push(route.request().url());
+    await route.continue();
+  });
+
+  await page.goto('/admin');
+
+  // After page load, assert the admin API was attempted and blocked
+  const responses = await Promise.all(
+    blockedRequests.map(url => page.request.get(url))
+  );
+  responses.forEach(r => expect(r.status()).toBe(403));
+});
+\`\`\`
+
+**RBAC test matrix — what the 3-role × 4-page pattern produces:**
+
+| Role | /dashboard | /records | /admin | /billing |
+|---|---|---|---|---|
+| admin | 200 | 200 | 200 | 200 |
+| editor | 200 | 200 | 403 | 403 |
+| viewer | 200 | 200 | 403 | 403 |
+
+> **QA Tip:** Store storageState files per role and regenerate them in \`globalSetup\` on every CI run. Never commit real passwords — use environment variables (\`process.env.ADMIN_PASSWORD\`) in your setup scripts.
+        `
+      },
+
+      {
+        id: 'pw-visual-regression',
+        title: 'Visual Regression Testing',
+        analogy: "Visual regression testing is like a meticulous art restorer who photographs a painting at the start of every day. At the end of the day they overlay the new photo on the baseline. Any change — even a single brushstroke — shows up as a highlighted diff. Without this system, gradual drift goes unnoticed until the painting looks nothing like the original. With it, the moment any pixel changes unexpectedly, the alarm sounds. toHaveScreenshot() is that daily photograph — automated, pixel-perfect, relentless.",
+        lessonMarkdown: `
+## Visual Regression Testing
+
+Visual regression testing catches UI changes that functional tests miss entirely. A button can be "clickable" and still be the wrong colour, have the wrong font, or be half-hidden behind another element. This module teaches you to build a pixel-perfect visual safety net around your UI.
+
+---
+
+### 1. How toHaveScreenshot() Works
+
+💡 **Analogy:** \`toHaveScreenshot()\` is a photocopier that takes a reference print on the first run, then compares every future print against it using a light table — any deviation shows as a coloured highlight.
+
+**The lifecycle:**
+
+\`\`\`
+First run (no baseline exists)
+  → Playwright takes screenshot
+  → Saves it as the baseline PNG in __snapshots__/
+  → Test is marked "failed" (this is expected — you must review and commit the baseline)
+
+Subsequent runs (baseline exists)
+  → Playwright takes screenshot
+  → Compares pixel-by-pixel against baseline
+  → Passes if within tolerance, fails with a diff image if not
+\`\`\`
+
+**Where baselines live:**
+
+\`\`\`
+tests/
+  login.spec.ts
+  login.spec.ts-snapshots/
+    login-page-chromium-linux.png      ← baseline
+    login-page-firefox-linux.png       ← per-browser baselines
+    login-page-webkit-linux.png
+\`\`\`
+
+**The diff output on failure:**
+
+When a visual test fails, Playwright writes three files next to the spec:
+- \`login-page-actual.png\` — what the test saw
+- \`login-page-expected.png\` — the baseline
+- \`login-page-diff.png\` — pink highlights showing changed pixels
+
+| File | Purpose |
+|---|---|
+| \`-actual.png\` | What your app looks like right now |
+| \`-expected.png\` | The committed baseline |
+| \`-diff.png\` | Magenta pixels = changed areas |
+
+---
+
+### 2. Taking Your First Visual Snapshot
+
+💡 **Analogy:** The first time you scan your passport, the machine has nothing to compare — it just saves your photo. Every scan after that checks "does this face match the one we have on file?"
+
+**Full-page screenshot:**
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+test('login page visual', async ({ page }) => {
+  await page.goto('/login');
+  // Wait for any loading spinners to finish
+  await page.waitForLoadState('networkidle');
+
+  await expect(page).toHaveScreenshot('login-page.png', {
+    fullPage: true,
+  });
+});
+\`\`\`
+
+**Element-level screenshot:**
+
+\`\`\`typescript
+test('primary button visual', async ({ page }) => {
+  await page.goto('/components');
+
+  const button = page.getByRole('button', { name: 'Get Started' });
+  await expect(button).toHaveScreenshot('primary-button.png');
+});
+\`\`\`
+
+**Different page states:**
+
+\`\`\`typescript
+test('modal visual states', async ({ page }) => {
+  await page.goto('/dashboard');
+
+  // Baseline: modal closed
+  await expect(page).toHaveScreenshot('dashboard-no-modal.png');
+
+  // Baseline: modal open
+  await page.getByRole('button', { name: 'Open Settings' }).click();
+  await page.getByRole('dialog').waitFor();
+  await expect(page).toHaveScreenshot('dashboard-modal-open.png');
+});
+\`\`\`
+
+**Updating baselines when an intentional change is made:**
+
+\`\`\`bash
+npx playwright test --update-snapshots
+\`\`\`
+
+> **QA Tip:** Always run \`--update-snapshots\` on the exact OS and browser you use in CI. Baselines generated on macOS will fail on Linux CI due to font rendering differences.
+
+---
+
+### 3. Masking Dynamic Content
+
+💡 **Analogy:** A portrait photographer uses a background cloth to mask the messy studio behind the subject — the photo is of the person, not the clutter. Masking tells Playwright "ignore this region; only compare the parts that matter."
+
+**The problem — dynamic content breaks visual tests:**
+
+\`\`\`
+❌ Timestamp: "Last seen 3 minutes ago"  → changes every test run
+❌ User avatar: fetched from Gravatar    → may change
+❌ Advertisement banner: random content → always different
+❌ Chart with live data: values shift    → never stable
+\`\`\`
+
+**Masking specific locators:**
+
+\`\`\`typescript
+test('dashboard visual — masked dynamic content', async ({ page }) => {
+  await page.goto('/dashboard');
+  await page.waitForLoadState('networkidle');
+
+  await expect(page).toHaveScreenshot('dashboard.png', {
+    mask: [
+      page.getByTestId('last-seen-timestamp'),
+      page.getByRole('img', { name: 'user avatar' }),
+      page.getByTestId('ad-banner'),
+      page.locator('.live-chart'),
+    ],
+    maskColor: '#FF00FF',  // magenta fill in the masked region
+    fullPage: true,
+  });
+});
+\`\`\`
+
+**Clipping to a stable region:**
+
+\`\`\`typescript
+test('navigation bar visual only', async ({ page }) => {
+  await page.goto('/dashboard');
+
+  // Only screenshot the top navigation — ignore the dynamic content below
+  await expect(page).toHaveScreenshot('navbar.png', {
+    clip: { x: 0, y: 0, width: 1280, height: 64 },
+  });
+});
+\`\`\`
+
+**Disabling CSS animations before screenshotting:**
+
+\`\`\`typescript
+test('no animation flicker in screenshot', async ({ page }) => {
+  await page.goto('/dashboard');
+
+  // Freeze all CSS animations and transitions
+  await page.addStyleTag({
+    content: \`
+      *, *::before, *::after {
+        animation-duration: 0s !important;
+        animation-delay: 0s !important;
+        transition-duration: 0s !important;
+        transition-delay: 0s !important;
+      }
+    \`,
+  });
+
+  await expect(page).toHaveScreenshot('dashboard-no-animation.png');
+});
+\`\`\`
+
+**Or via \`evaluate\`:**
+
+\`\`\`typescript
+await page.evaluate(() => {
+  document.querySelectorAll('*').forEach(el => {
+    (el as HTMLElement).style.animationDuration = '0s';
+    (el as HTMLElement).style.transitionDuration = '0s';
+  });
+});
+\`\`\`
+
+> **QA Tip:** Create a helper function \`freezeAnimations(page)\` and call it in a \`beforeEach\` hook across all visual spec files.
+
+---
+
+### 4. Threshold & Pixel Tolerance
+
+💡 **Analogy:** A print shop's quality control doesn't reject a flyer because one pixel is 1% darker than the proof — that's within tolerance. But a 5% colour shift on the logo? That gets flagged. Thresholds let you define "close enough" for your context.
+
+**The three tolerance options:**
+
+| Option | Type | What it controls |
+|---|---|---|
+| \`maxDiffPixels\` | absolute integer | Max number of pixels that can differ |
+| \`maxDiffPixelRatio\` | float 0–1 | Max fraction of pixels that can differ |
+| \`threshold\` | float 0–1 | Per-pixel colour difference tolerance |
+
+**\`maxDiffPixels\` — good for small components:**
+
+\`\`\`typescript
+test('button allows 5 pixel tolerance', async ({ page }) => {
+  await page.goto('/components');
+  await expect(page.getByRole('button', { name: 'Submit' })).toHaveScreenshot(
+    'submit-button.png',
+    { maxDiffPixels: 5 }
+  );
+});
+\`\`\`
+
+**\`maxDiffPixelRatio\` — good for full-page screenshots:**
+
+\`\`\`typescript
+test('full page allows 0.5% pixel diff', async ({ page }) => {
+  await page.goto('/dashboard');
+  await expect(page).toHaveScreenshot('dashboard-full.png', {
+    fullPage: true,
+    maxDiffPixelRatio: 0.005,  // 0.5% of total pixels
+  });
+});
+\`\`\`
+
+**\`threshold\` — per-pixel colour sensitivity:**
+
+\`\`\`typescript
+test('colour-sensitive component', async ({ page }) => {
+  await page.goto('/brand-colours');
+  await expect(page.getByTestId('brand-logo')).toHaveScreenshot('logo.png', {
+    threshold: 0.1,  // 10% colour difference per pixel is acceptable
+  });
+});
+\`\`\`
+
+**Why you always need some tolerance — anti-aliasing:**
+
+Different operating systems and browsers render sub-pixel anti-aliasing slightly differently. A font edge that is 40% grey on Linux may be 42% grey on macOS. Without any tolerance, cross-platform tests will always fail. A threshold of \`0.1\` to \`0.2\` handles this gracefully.
+
+\`\`\`typescript
+// playwright.config.ts — set global defaults
+export default defineConfig({
+  expect: {
+    toHaveScreenshot: {
+      threshold: 0.2,           // colour tolerance per pixel
+      maxDiffPixelRatio: 0.01,  // up to 1% of pixels can differ
+    },
+  },
+});
+\`\`\`
+
+---
+
+### 5. Cross-Browser & Cross-OS Baselines
+
+💡 **Analogy:** A recipe that uses "a pinch of salt" is interpreted differently by a French chef and a Japanese chef. Font rendering is the same — each OS/browser combination has its own interpretation of "render this glyph." You need one set of baselines per platform.
+
+**Why baselines differ:**
+
+| Factor | Effect |
+|---|---|
+| macOS font smoothing | Darker, heavier sub-pixel rendering |
+| Windows ClearType | Different hinting algorithm |
+| Linux (CI) | Minimal font hinting, slightly different spacing |
+| Chromium vs Firefox | Different text rendering engines |
+| Device pixel ratio | Retina vs 1x screens |
+
+**The solution: generate baselines in CI, compare in CI:**
+
+\`\`\`typescript
+// playwright.config.ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  snapshotPathTemplate:
+    '{testDir}/__snapshots__/{testFilePath}/{arg}-{projectName}-linux{ext}',
+
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox',  use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit',   use: { ...devices['Desktop Safari'] } },
+  ],
+});
+\`\`\`
+
+**This produces separate baseline folders:**
+
+\`\`\`
+__snapshots__/
+  login.spec.ts/
+    login-page-chromium-linux.png
+    login-page-firefox-linux.png
+    login-page-webkit-linux.png
+\`\`\`
+
+**Snapshot path configuration:**
+
+\`\`\`typescript
+export default defineConfig({
+  // Keep snapshots next to spec files for easy discoverability
+  snapshotDir: './visual-baselines',
+
+  // Or use the default: {spec-file}-snapshots/ folder
+});
+\`\`\`
+
+> **QA Tip:** Add \`visual-baselines/\` to git so baselines are version-controlled. Use \`.gitattributes\` to tell git these are binary files: \`*.png binary\`. For suites with 1000+ screenshots, consider Git LFS.
+
+---
+
+### 6. CI Workflow for Visual Tests
+
+💡 **Analogy:** Visual regression in CI is like a magazine's final proof review — every page is compared against the approved layout before printing. If a designer accidentally shifted a margin, the proof-reader catches it before 100,000 copies are printed.
+
+**GitHub Actions — upload diff images as artifacts on failure:**
+
+\`\`\`yaml
+# .github/workflows/visual.yml
+name: Visual Regression Tests
+
+on: [push, pull_request]
+
+jobs:
+  visual-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run visual tests
+        run: npx playwright test tests/visual/
+        continue-on-error: true  # so we still upload artifacts even on failure
+
+      - name: Upload diff images on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-diffs-\${{ github.run_id }}
+          path: |
+            test-results/
+            **/*-diff.png
+            **/*-actual.png
+          retention-days: 30
+\`\`\`
+
+**Updating baselines via workflow_dispatch:**
+
+\`\`\`yaml
+name: Update Visual Baselines
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_filter:
+        description: 'Test file pattern to update (leave blank for all)'
+        required: false
+
+jobs:
+  update-baselines:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: \${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm' }
+
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      - name: Update snapshots
+        run: npx playwright test \${{ inputs.test_filter }} --update-snapshots
+
+      - name: Commit updated baselines
+        run: |
+          git config user.name "playwright-bot"
+          git config user.email "bot@example.com"
+          git add '**/*.png'
+          git commit -m "chore: update visual baselines [skip ci]"
+          git push
+\`\`\`
+
+> **QA Tip:** The "approve visual changes" workflow: run the update job on a branch, open a PR showing before/after screenshot diffs, have a human review and merge. This makes intentional visual changes as auditable as code changes.
+
+---
+
+### 7. toMatchSnapshot() Beyond Screenshots
+
+💡 **Analogy:** Snapshot testing for non-visual data is like a notary who takes a certified copy of a document. Any future version of the document can be compared against the notarised copy to detect unauthorised changes.
+
+**JSON API response snapshots:**
+
+\`\`\`typescript
+test('API response shape is stable', async ({ request }) => {
+  const response = await request.get('/api/users/1');
+  const body = await response.json();
+
+  // Strip volatile fields before snapshotting
+  delete body.created_at;
+  delete body.updated_at;
+  delete body.last_login;
+
+  expect(body).toMatchSnapshot('user-api-response.json');
+});
+\`\`\`
+
+**HTML structure snapshots — catch unexpected DOM changes:**
+
+\`\`\`typescript
+test('navigation DOM structure is stable', async ({ page }) => {
+  await page.goto('/');
+  const navHTML = await page.locator('nav').innerHTML();
+
+  // Normalise whitespace before snapshotting
+  const normalised = navHTML.replace(/\s+/g, ' ').trim();
+  expect(normalised).toMatchSnapshot('navigation-html.txt');
+});
+\`\`\`
+
+**Console output snapshots:**
+
+\`\`\`typescript
+test('page logs expected analytics events', async ({ page }) => {
+  const consoleLogs: string[] = [];
+  page.on('console', msg => {
+    if (msg.type() === 'log') consoleLogs.push(msg.text());
+  });
+
+  await page.goto('/checkout');
+  await page.getByRole('button', { name: 'Complete Purchase' }).click();
+
+  expect(consoleLogs.filter(l => l.startsWith('[analytics]'))).toMatchSnapshot(
+    'checkout-analytics-events.json'
+  );
+});
+\`\`\`
+
+**When snapshot testing beats \`expect().toEqual()\`:**
+
+| Situation | Best tool |
+|---|---|
+| Large nested object (100+ fields) | \`toMatchSnapshot()\` — easy to review diffs |
+| API response that rarely changes | \`toMatchSnapshot()\` — detect unintended changes |
+| Small object with known fields | \`toEqual()\` — explicit, self-documenting |
+| Object that changes every run | Neither — assert structure only (\`toHaveProperty\`) |
+| DOM structure audit | \`toMatchSnapshot()\` — HTML is too verbose for \`toEqual\` |
+
+> **QA Tip:** For JSON snapshots, pipe the output through a stable sort before snapping — object key order is not guaranteed in JavaScript and can cause spurious failures.
+        `
+      },
+
+      {
+        id: 'pw-ci-cd-sharding',
+        title: 'CI/CD Integration & Test Sharding',
+        analogy: "Running a full test suite on a single CI machine is like serving a 500-person wedding banquet with one chef. Every dish is perfect — but guests are still waiting for dessert at midnight. Sharding is hiring 10 chefs, dividing the menu equally between them, and running all 10 kitchens simultaneously. The banquet finishes on time. Playwright's --shard flag is the headwaiter who divides the menu and coordinates the kitchens — each CI agent gets its slice, they all run in parallel, and the reports are merged at the end.",
+        lessonMarkdown: `
+## CI/CD Integration & Test Sharding
+
+Playwright's speed advantage is only realised when your CI pipeline is properly configured. This module covers everything from a production-ready GitHub Actions workflow to advanced sharding strategies and flaky test management.
+
+---
+
+### 1. GitHub Actions — Complete Working Workflow
+
+💡 **Analogy:** A CI workflow is an assembly line — each station (step) has one job, passes its output to the next station, and the whole line runs automatically when a new car (commit) arrives.
+
+**Complete annotated \`.github/workflows/playwright.yml\`:**
+
+\`\`\`yaml
+name: Playwright Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  BASE_URL: https://staging.example.com
+  NODE_VERSION: '20'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      # 1. Checkout the code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Set up Node.js with npm caching
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: \${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      # 3. Install project dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Cache Playwright browsers — keyed to the Playwright version
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-\${{ hashFiles('package-lock.json') }}
+
+      # 5. Install browsers only if cache missed
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps
+
+      # 6. Run the tests
+      - name: Run Playwright tests
+        run: npx playwright test
+        env:
+          BASE_URL: \${{ env.BASE_URL }}
+          TEST_USER_EMAIL: \${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASS: \${{ secrets.TEST_USER_PASS }}
+          ADMIN_EMAIL: \${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASS: \${{ secrets.ADMIN_PASS }}
+
+      # 7. Upload HTML report, traces, and screenshots on failure
+      - name: Upload test artifacts
+        if: always()  # upload even if tests failed
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-\${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 30
+\`\`\`
+
+**playwright.config.ts — CI-aware configuration:**
+
+\`\`\`typescript
+import { defineConfig, devices } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './tests',
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,    // fail if test.only() is committed
+  retries: process.env.CI ? 2 : 0, // retry flaky tests only in CI
+  workers: process.env.CI ? 4 : undefined,
+  reporter: process.env.CI
+    ? [['github'], ['html'], ['junit', { outputFile: 'results.xml' }]]
+    : [['html', { open: 'on-failure' }]],
+
+  use: {
+    baseURL: process.env.BASE_URL ?? 'http://localhost:3000',
+    trace: 'on-first-retry',   // capture trace on first retry
+    screenshot: 'only-on-failure',
+    video: 'on-first-retry',
+  },
+
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox',  use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit',   use: { ...devices['Desktop Safari'] } },
+  ],
+});
+\`\`\`
+
+---
+
+### 2. Test Sharding — Running in Parallel Across Agents
+
+💡 **Analogy:** Sharding is like splitting a deck of cards between dealers at a casino — each dealer gets their share, runs their table independently, and the house gets all the results at the end. No dealer waits for another.
+
+**How the \`--shard\` flag works:**
+
+\`\`\`bash
+# Run shard 1 of 4 (first 25% of tests)
+npx playwright test --shard=1/4
+
+# Run shard 2 of 4
+npx playwright test --shard=2/4
+
+# Each shard is independent — they can run simultaneously on separate machines
+\`\`\`
+
+**How Playwright distributes tests across shards:**
+
+\`\`\`
+All test files sorted alphabetically:
+  account.spec.ts    → shard 1
+  auth.spec.ts       → shard 1
+  billing.spec.ts    → shard 2
+  checkout.spec.ts   → shard 2
+  dashboard.spec.ts  → shard 3
+  profile.spec.ts    → shard 3
+  settings.spec.ts   → shard 4
+  users.spec.ts      → shard 4
+\`\`\`
+
+**GitHub Actions matrix — 4 shards in parallel:**
+
+\`\`\`yaml
+name: Playwright Tests (Sharded)
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: Shard \${{ matrix.shard }}/\${{ matrix.total }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false  # run all shards even if one fails
+      matrix:
+        shard: [1, 2, 3, 4]
+        total: [4]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm' }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      - name: Run shard \${{ matrix.shard }}/\${{ matrix.total }}
+        run: npx playwright test --shard=\${{ matrix.shard }}/\${{ matrix.total }}
+        env:
+          BASE_URL: \${{ vars.BASE_URL }}
+
+      - name: Upload blob report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-report-\${{ matrix.shard }}
+          path: blob-report/
+          retention-days: 1
+\`\`\`
+
+**Calculating the right number of shards:**
+
+\`\`\`
+Formula: shards = ceil(suite_duration / target_shard_duration)
+
+Example:
+  Total suite:    40 minutes
+  Target per PR:  10 minutes
+  Shards needed:  ceil(40 / 10) = 4 shards
+
+Rule of thumb:
+  < 5 min suite:    no sharding needed
+  5–20 min suite:   2–4 shards
+  20–60 min suite:  4–8 shards
+  > 60 min suite:   8–16 shards (also consider parallelism within shards)
+\`\`\`
+
+---
+
+### 3. Merging Shard Reports
+
+💡 **Analogy:** Four sub-contractors each complete their section of a building inspection. Before the owner gets the report, an project manager collects all four sub-reports, merges them into one document, and hands over a unified finding. \`playwright merge-reports\` is that project manager.
+
+**Step 1 — Configure blob reporter on each shard:**
+
+\`\`\`typescript
+// playwright.config.ts
+export default defineConfig({
+  reporter: process.env.CI
+    ? [
+        ['blob'],              // writes to blob-report/ — merging input
+        ['github'],            // inline annotations in GitHub PR
+      ]
+    : [['html', { open: 'on-failure' }]],
+});
+\`\`\`
+
+**Step 2 — Merge job after all shards complete:**
+
+\`\`\`yaml
+  merge-reports:
+    name: Merge & Publish Report
+    runs-on: ubuntu-latest
+    needs: [test]    # wait for all shard jobs to finish
+    if: always()
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm' }
+      - run: npm ci
+
+      # Download all 4 blob reports
+      - name: Download blob reports
+        uses: actions/download-artifact@v4
+        with:
+          path: all-blob-reports/
+          pattern: blob-report-*
+          merge-multiple: true
+
+      # Merge into a single HTML report
+      - name: Merge reports
+        run: npx playwright merge-reports --reporter html ./all-blob-reports
+
+      # Publish the unified report as a GitHub Pages artifact
+      - name: Upload merged HTML report
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-full-report-\${{ github.run_id }}
+          path: playwright-report/
+          retention-days: 30
+\`\`\`
+
+**What the merged report gives you:**
+
+| Feature | Available in merged report |
+|---|---|
+| All tests from all shards | Yes |
+| Retry information | Yes |
+| Attached traces | Yes |
+| Screenshots on failure | Yes |
+| Video recordings | Yes |
+| Shard breakdown filter | Yes |
+
+---
+
+### 4. Docker — Reproducible Test Environments
+
+💡 **Analogy:** Docker is a shipping container for your test environment. The container has the same contents whether it ships from Shanghai, Rotterdam, or Houston — fonts, OS libraries, timezone settings, screen resolution are all identical everywhere it runs.
+
+**Why tests pass locally but fail in CI:**
+
+| Difference | Effect on tests |
+|---|---|
+| Font rendering | Visual snapshots differ |
+| System timezone | Date/time assertions fail |
+| Locale | Number/currency formatting |
+| Screen resolution | Viewport-dependent layout |
+| Missing system fonts | Text overflow, truncation |
+| Browser version | Rendering differences |
+
+**Using the official Playwright Docker image:**
+
+\`\`\`bash
+# Run tests in the official image (includes all browsers + deps)
+docker run --rm \
+  -v $(pwd):/work \
+  -w /work \
+  -e BASE_URL=https://staging.example.com \
+  mcr.microsoft.com/playwright:v1.44.0-jammy \
+  npx playwright test
+\`\`\`
+
+**Custom Dockerfile:**
+
+\`\`\`dockerfile
+FROM mcr.microsoft.com/playwright:v1.44.0-jammy
+
+WORKDIR /app
+
+# Install project dependencies
+COPY package*.json ./
+RUN npm ci
+
+# Copy project files
+COPY . .
+
+# Default command — can be overridden
+CMD ["npx", "playwright", "test"]
+\`\`\`
+
+**Docker Compose for testing against a local app:**
+
+\`\`\`yaml
+# docker-compose.test.yml
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=test
+      - DATABASE_URL=postgres://test:test@db:5432/testdb
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: testdb
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U test']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.44.0-jammy
+    volumes:
+      - .:/work
+    working_dir: /work
+    depends_on:
+      app:
+        condition: service_started
+    environment:
+      - BASE_URL=http://app:3000
+    command: npx playwright test
+\`\`\`
+
+\`\`\`bash
+# Run the full stack test
+docker compose -f docker-compose.test.yml up --exit-code-from playwright
+\`\`\`
+
+---
+
+### 5. Azure DevOps Pipeline
+
+💡 **Analogy:** Azure DevOps is the same assembly line as GitHub Actions, just manufactured in a different factory — the conveyor belts work slightly differently, but the production goal is identical.
+
+**Complete \`azure-pipelines.yml\`:**
+
+\`\`\`yaml
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  NODE_VERSION: '20.x'
+  BASE_URL: 'https://staging.example.com'
+
+stages:
+  - stage: Test
+    jobs:
+      - job: PlaywrightTests
+        strategy:
+          parallel: 4  # 4 parallel agents
+        timeoutInMinutes: 30
+
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: $(NODE_VERSION)
+            displayName: 'Install Node.js'
+
+          - script: npm ci
+            displayName: 'Install dependencies'
+
+          - script: npx playwright install --with-deps chromium
+            displayName: 'Install Playwright browsers'
+
+          - script: |
+              TOTAL_AGENTS=4
+              AGENT_NUMBER=$((System.JobPositionInPhase))
+              npx playwright test \
+                --shard=$AGENT_NUMBER/$TOTAL_AGENTS \
+                --reporter=junit,blob
+            displayName: 'Run Playwright tests (shard $(System.JobPositionInPhase)/4)'
+            env:
+              BASE_URL: $(BASE_URL)
+              TEST_USER_EMAIL: $(TEST_USER_EMAIL)
+              TEST_USER_PASS: $(TEST_USER_PASS)
+
+          - task: PublishTestResults@2
+            condition: always()
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: '**/results-*.xml'
+              testRunTitle: 'Playwright Tests — Shard $(System.JobPositionInPhase)'
+            displayName: 'Publish JUnit results'
+
+          - task: PublishBuildArtifacts@1
+            condition: always()
+            inputs:
+              pathToPublish: 'blob-report'
+              artifactName: 'blob-report-$(System.JobPositionInPhase)'
+            displayName: 'Upload blob report'
+
+  - stage: MergeReports
+    dependsOn: Test
+    condition: always()
+    jobs:
+      - job: MergeAndPublish
+        steps:
+          - task: DownloadBuildArtifacts@1
+            inputs:
+              artifactName: 'blob-report-*'
+              downloadPath: 'all-blob-reports'
+
+          - script: npx playwright merge-reports --reporter html ./all-blob-reports
+            displayName: 'Merge shard reports'
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              pathToPublish: 'playwright-report'
+              artifactName: 'playwright-full-report'
+\`\`\`
+
+---
+
+### 6. Flaky Test Management in CI
+
+💡 **Analogy:** A flaky test is like a smoke detector that goes off when you make toast. The alarm works — it's just too sensitive. You need to tune it, not rip it out. The quarantine pattern is a dedicated room for over-sensitive detectors while you fix them.
+
+**\`forbidOnly\` — prevent committed \`.only()\` from silently hiding tests:**
+
+\`\`\`typescript
+// playwright.config.ts
+export default defineConfig({
+  forbidOnly: !!process.env.CI,
+  // In CI, any test.only() causes the entire run to fail immediately
+  // This catches the common mistake of committing a focused test
+});
+\`\`\`
+
+**\`retries\` — retry on CI, fail fast locally:**
+
+\`\`\`typescript
+export default defineConfig({
+  retries: process.env.CI ? 2 : 0,
+  // Locally: see failures immediately without waiting for retries
+  // CI: give flaky tests two more chances before failing the build
+});
+\`\`\`
+
+**The quarantine pattern — tag and exclude known flaky tests:**
+
+\`\`\`typescript
+// Mark a flaky test for quarantine
+test('known flaky: realtime notification @flaky', async ({ page }) => {
+  // ... test body
+});
+\`\`\`
+
+\`\`\`bash
+# Main CI run — exclude @flaky tests
+npx playwright test --grep-invert "@flaky"
+
+# Separate nightly quarantine run — only @flaky tests
+npx playwright test --grep "@flaky"
+\`\`\`
+
+**Tracking flakiness rates with the JSON reporter:**
+
+\`\`\`typescript
+// playwright.config.ts
+export default defineConfig({
+  reporter: [
+    ['json', { outputFile: 'test-results/results.json' }],
+    ['html'],
+  ],
+});
+\`\`\`
+
+\`\`\`typescript
+// scripts/analyze-flakiness.ts
+import results from '../test-results/results.json';
+
+interface TestResult {
+  title: string;
+  status: string;
+  retry: number;
+}
+
+const flaky = (results.suites as any[])
+  .flatMap(s => s.specs)
+  .filter((spec: TestResult) => spec.retry > 0 && spec.status === 'passed');
+
+console.table(
+  flaky.map(f => ({ test: f.title, retries: f.retry }))
+);
+\`\`\`
+
+**Decision framework — fix vs quarantine:**
+
+| Situation | Action |
+|---|---|
+| Flaky < 5% of runs, easy to fix | Fix immediately |
+| Flaky > 20% of runs | Quarantine + assign owner |
+| Intermittently flaky across all environments | Investigate race condition |
+| Flaky only on CI, passes locally | Likely timing or environment issue |
+| Flaky for > 2 sprints with no fix | Consider deleting the test |
+
+---
+
+### 7. Artifact Management & Quality Gates
+
+💡 **Analogy:** Artifacts are the evidence locker from each CI run — traces, videos, and screenshots that let you reconstruct exactly what happened without re-running the test. Quality gates are the security guard who checks your ID before you merge — failing the merge if the pass rate drops below the standard.
+
+**Artifact upload with retention policy:**
+
+\`\`\`yaml
+- name: Upload test artifacts
+  if: always()
+  uses: actions/upload-artifact@v4
+  with:
+    name: test-results-\${{ github.run_id }}-\${{ github.run_attempt }}
+    path: |
+      playwright-report/
+      test-results/
+      **/*.png
+      **/*.webm
+      **/*.zip    # Playwright traces
+    retention-days: 30
+\`\`\`
+
+**Slack notification on pipeline failure:**
+
+\`\`\`yaml
+- name: Notify Slack on failure
+  if: failure()
+  uses: slackapi/slack-github-action@v1.26.0
+  with:
+    payload: |
+      {
+        "text": ":x: Playwright tests failed on \`\${{ github.ref_name }}\`",
+        "attachments": [
+          {
+            "color": "danger",
+            "fields": [
+              { "title": "Branch", "value": "\${{ github.ref_name }}", "short": true },
+              { "title": "Commit", "value": "\${{ github.sha }}", "short": true },
+              { "title": "Run", "value": "\${{ github.server_url }}/\${{ github.repository }}/actions/runs/\${{ github.run_id }}" }
+            ]
+          }
+        ]
+      }
+  env:
+    SLACK_WEBHOOK_URL: \${{ secrets.SLACK_WEBHOOK_URL }}
+    SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+\`\`\`
+
+**Quality gate — fail the PR if pass rate drops below threshold:**
+
+\`\`\`typescript
+// scripts/quality-gate.ts
+import * as fs from 'fs';
+
+const results = JSON.parse(fs.readFileSync('test-results/results.json', 'utf8'));
+
+const total = results.stats.expected + results.stats.unexpected;
+const passed = results.stats.expected;
+const passRate = passed / total;
+const threshold = 0.95; // 95% pass rate required
+
+console.log(\`Pass rate: \${(passRate * 100).toFixed(1)}% (\${passed}/\${total})\`);
+
+if (passRate < threshold) {
+  console.error(\`QUALITY GATE FAILED: \${(passRate * 100).toFixed(1)}% < \${threshold * 100}% required\`);
+  process.exit(1);
+}
+
+console.log('Quality gate passed.');
+\`\`\`
+
+\`\`\`yaml
+# In your workflow, run the gate after tests
+- name: Quality gate check
+  run: npx ts-node scripts/quality-gate.ts
+\`\`\`
+
+**Test result trending — track suite health over time:**
+
+| Metric to track | How to collect it | Alert threshold |
+|---|---|---|
+| Pass rate | JSON reporter | < 95% |
+| Flaky test count | Retry > 0 in JSON | > 5 tests |
+| Suite duration | \`results.stats.duration\` | > 20 min |
+| Skipped tests | \`results.stats.skipped\` | Increasing trend |
+| Test count | \`results.stats.expected\` | Unexpected drop |
+
+> **QA Tip:** Store the JSON report as a CI artifact and feed it into a dashboard tool (Grafana, DataDog, or a simple Google Sheet via API) to build a week-over-week flakiness trend. Flakiness that slowly increases over months is the hardest to spot without trending data.
+        `
+      },
+
+      {
+        id: 'pw-debugging-cdp',
+        title: 'Advanced Debugging & Chrome DevTools Protocol',
+        analogy: "The Chrome DevTools Protocol is the secret radio channel that Chrome uses to talk to its own developer tools. When you open DevTools in Chrome and see network requests, performance timelines, JavaScript profiling — all of that data flows over CDP. Playwright gives you a direct line into this same channel from your test code. It is like being given a backstage pass at a concert: you can watch the soundboard, monitor every speaker, adjust the levels, and hear things the audience never hears — all while the show is running.",
+        lessonMarkdown: `
+## Advanced Debugging & Chrome DevTools Protocol
+
+This module unlocks the professional-grade debugging and instrumentation capabilities that separate expert Playwright engineers from everyone else. CDP gives you direct programmatic access to Chrome's internals — network throttling, performance metrics, JavaScript coverage, and more.
+
+---
+
+### 1. Chrome DevTools Protocol (CDP) — What It Is and Why It Matters
+
+💡 **Analogy:** CDP is the electrical wiring behind the walls of your house. Everything you see in the rooms (DevTools UI) is just a plug socket — CDP is the actual wiring that carries the current. Playwright lets you wire directly into the mains.
+
+**What CDP is:**
+CDP is a WebSocket protocol exposed by Chromium-based browsers. Every panel in Chrome DevTools — Elements, Network, Performance, Application, Sources — retrieves its data by sending CDP commands and listening to CDP events over this WebSocket.
+
+**The CDP domain categories:**
+
+| Domain | What it controls |
+|---|---|
+| \`Network\` | Request interception, throttling, cookies, cache |
+| \`Performance\` | Timing metrics, layout counts, heap size |
+| \`Emulation\` | Device metrics, geolocation, CPU throttling, timezone |
+| \`Runtime\` | JavaScript execution, heap snapshots |
+| \`Page\` | Navigation, dialogs, screenshot, lifecycle events |
+| \`Profiler\` | CPU profiling, sampling |
+| \`CSS\` | Coverage, stylesheet inspection |
+
+**Opening a CDP session in Playwright:**
+
+\`\`\`typescript
+import { test, expect, CDPSession } from '@playwright/test';
+
+test('CDP session basics', async ({ page, context }) => {
+  // Open a CDP session to the current page
+  const client: CDPSession = await context.newCDPSession(page);
+
+  // Send a CDP command — returns a Promise with the result
+  const { frameTree } = await client.send('Page.getFrameTree');
+  console.log('Main frame URL:', frameTree.frame.url);
+
+  // Listen to a CDP event
+  client.on('Network.requestWillBeSent', event => {
+    console.log('Request sent:', event.request.url);
+  });
+
+  // Enable the Network domain to start receiving events
+  await client.send('Network.enable');
+
+  await page.goto('/dashboard');
+
+  // Detach when done
+  await client.detach();
+});
+\`\`\`
+
+**Sending commands vs listening to events:**
+
+\`\`\`typescript
+// Sending a command (request/response pattern)
+const result = await client.send('Performance.getMetrics');
+// result is typed to the CDP response shape
+
+// Listening to events (subscribe pattern)
+client.on('Page.loadEventFired', () => {
+  console.log('Load event fired at:', Date.now());
+});
+\`\`\`
+
+> **QA Tip:** CDP sessions only work with Chromium-based browsers. For cross-browser tests, wrap CDP code in \`test.skip(!browserName.includes('chrom'), 'CDP: Chromium only')\`.
+
+---
+
+### 2. Network Throttling & Offline Mode
+
+💡 **Analogy:** Network throttling is a garden hose with a clamp on it. Full speed = fully open. 3G = 80% clamped. Offline = blocked entirely. CDP lets you adjust the clamp from your test code without touching the physical hose.
+
+**Emulating network conditions via CDP:**
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+test('app loads acceptably on slow 3G', async ({ page, context }) => {
+  const client = await context.newCDPSession(page);
+
+  await client.send('Network.enable');
+  await client.send('Network.emulateNetworkConditions', {
+    offline: false,
+    downloadThroughput: 750 * 1024 / 8,  // 750 Kbps in bytes/sec
+    uploadThroughput: 250 * 1024 / 8,    // 250 Kbps in bytes/sec
+    latency: 100,                         // 100ms round-trip latency
+  });
+
+  const start = Date.now();
+  await page.goto('/dashboard');
+  await page.waitForLoadState('networkidle');
+  const loadTime = Date.now() - start;
+
+  console.log(\`Load time on Slow 3G: \${loadTime}ms\`);
+  expect(loadTime).toBeLessThan(15000); // must load within 15s on slow 3G
+
+  await client.detach();
+});
+\`\`\`
+
+**Built-in network preset values:**
+
+| Preset | Download (bytes/s) | Upload (bytes/s) | Latency (ms) |
+|---|---|---|---|
+| Slow 3G | 500 * 1024 / 8 = 64,000 | 500 * 1024 / 8 = 64,000 | 400 |
+| Regular 3G | 750 * 1024 / 8 = 96,000 | 250 * 1024 / 8 = 32,000 | 100 |
+| Fast 3G | 1.5 * 1024 * 1024 / 8 | 750 * 1024 / 8 | 40 |
+| 4G | 4 * 1024 * 1024 / 8 | 3 * 1024 * 1024 / 8 | 20 |
+| WiFi | 30 * 1024 * 1024 / 8 | 15 * 1024 * 1024 / 8 | 2 |
+
+**Emulating offline mode and testing service worker behaviour:**
+
+\`\`\`typescript
+test('offline banner appears when connection drops', async ({ page, context }) => {
+  const client = await context.newCDPSession(page);
+  await client.send('Network.enable');
+
+  // Load the page while online
+  await page.goto('/dashboard');
+  await expect(page.getByTestId('offline-banner')).not.toBeVisible();
+
+  // Simulate going offline
+  await client.send('Network.emulateNetworkConditions', {
+    offline: true,
+    downloadThroughput: -1,
+    uploadThroughput: -1,
+    latency: 0,
+  });
+
+  // Trigger a navigation or action that requires network
+  await page.getByRole('button', { name: 'Refresh Data' }).click();
+
+  // App should show the offline banner
+  await expect(page.getByTestId('offline-banner')).toBeVisible();
+  await expect(page.getByText('You are offline')).toBeVisible();
+
+  await client.detach();
+});
+\`\`\`
+
+**Simpler approach — Playwright native offline:**
+
+\`\`\`typescript
+// No CDP needed for basic offline simulation
+test('offline via context.setOffline()', async ({ page, context }) => {
+  await page.goto('/dashboard');
+
+  // Go offline
+  await context.setOffline(true);
+  await page.getByRole('button', { name: 'Load More' }).click();
+  await expect(page.getByText('Network error')).toBeVisible();
+
+  // Come back online
+  await context.setOffline(false);
+  await page.getByRole('button', { name: 'Retry' }).click();
+  await expect(page.getByText('Network error')).not.toBeVisible();
+});
+\`\`\`
+
+---
+
+### 3. Geolocation & Timezone Mocking
+
+💡 **Analogy:** Mocking geolocation is like giving your app a fake passport — it believes you are in Tokyo even though the test server is in Frankfurt. Your location-aware features respond as if you were really there.
+
+**Mocking GPS location:**
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+test('store finder shows Tokyo stores', async ({ page, context }) => {
+  // Grant the geolocation permission first
+  await context.grantPermissions(['geolocation']);
+
+  // Set location to Tokyo, Japan
+  await context.setGeolocation({
+    latitude: 35.6762,
+    longitude: 139.6503,
+    accuracy: 100,
+  });
+
+  await page.goto('/store-finder');
+  await page.getByRole('button', { name: 'Find Nearby Stores' }).click();
+
+  // App should show Japanese stores
+  await expect(page.getByText('Shinjuku Store')).toBeVisible();
+  await expect(page.getByText('Shibuya Store')).toBeVisible();
+  // No stores from other countries
+  await expect(page.getByText('London Store')).not.toBeVisible();
+});
+\`\`\`
+
+**Testing location permission denied:**
+
+\`\`\`typescript
+test('handles geolocation permission denied gracefully', async ({ page, context }) => {
+  // Explicitly deny geolocation permission
+  await context.grantPermissions([]);  // empty array = no permissions
+
+  await page.goto('/store-finder');
+  await page.getByRole('button', { name: 'Find Nearby Stores' }).click();
+
+  // App should fall back to manual search
+  await expect(page.getByText('Location access denied')).toBeVisible();
+  await expect(page.getByPlaceholder('Enter your city or postcode')).toBeVisible();
+});
+\`\`\`
+
+**Timezone mocking via CDP:**
+
+\`\`\`typescript
+test('Tokyo user sees Tokyo business hours', async ({ page, context }) => {
+  const client = await context.newCDPSession(page);
+
+  // Override the timezone for this session
+  await client.send('Emulation.setTimezoneOverride', {
+    timezoneId: 'Asia/Tokyo',
+  });
+
+  await page.goto('/support');
+
+  // App should show hours relative to Tokyo time (UTC+9)
+  const hours = await page.getByTestId('support-hours').textContent();
+  expect(hours).toContain('JST');  // or whatever the app displays
+
+  await client.detach();
+});
+\`\`\`
+
+**Full example — geo + timezone combined:**
+
+\`\`\`typescript
+test('user in Sydney sees AEST times and AU delivery options', async ({ page, context }) => {
+  const client = await context.newCDPSession(page);
+
+  await context.grantPermissions(['geolocation']);
+  await context.setGeolocation({ latitude: -33.8688, longitude: 151.2093, accuracy: 50 });
+  await client.send('Emulation.setTimezoneOverride', { timezoneId: 'Australia/Sydney' });
+
+  await page.goto('/checkout');
+
+  await expect(page.getByTestId('delivery-region')).toContainText('Australia');
+  await expect(page.getByTestId('estimated-delivery')).toContainText('AEST');
+
+  await client.detach();
+});
+\`\`\`
+
+---
+
+### 4. Console & Error Monitoring
+
+💡 **Analogy:** Monitoring the browser console from your test is like having a mic in the engine room while running the ship. The passengers (users) never hear it — but you know the moment a bearing starts grinding.
+
+**Capturing all console messages:**
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+test('no console errors during checkout flow', async ({ page }) => {
+  const consoleMessages: { type: string; text: string }[] = [];
+
+  // Subscribe BEFORE navigating — events fire immediately
+  page.on('console', msg => {
+    consoleMessages.push({ type: msg.type(), text: msg.text() });
+  });
+
+  await page.goto('/checkout');
+  await page.getByRole('button', { name: 'Add to Cart' }).click();
+  await page.getByRole('button', { name: 'Checkout' }).click();
+  await page.getByRole('button', { name: 'Place Order' }).click();
+
+  // Filter to only error-level messages
+  const errors = consoleMessages.filter(m => m.type === 'error');
+
+  if (errors.length > 0) {
+    console.log('Console errors found:');
+    errors.forEach(e => console.log(' -', e.text));
+  }
+
+  expect(errors).toHaveLength(0);
+});
+\`\`\`
+
+**Catching unhandled JavaScript exceptions:**
+
+\`\`\`typescript
+test('no unhandled exceptions on page load', async ({ page }) => {
+  const uncaughtErrors: Error[] = [];
+
+  // pageerror fires for uncaught exceptions (not caught by try/catch)
+  page.on('pageerror', err => {
+    uncaughtErrors.push(err);
+  });
+
+  await page.goto('/dashboard');
+  await page.waitForLoadState('networkidle');
+
+  if (uncaughtErrors.length > 0) {
+    console.log('Uncaught JS errors:');
+    uncaughtErrors.forEach(e => console.log(' -', e.message));
+  }
+
+  expect(uncaughtErrors).toHaveLength(0);
+});
+\`\`\`
+
+**Building a reusable console monitor fixture:**
+
+\`\`\`typescript
+// fixtures/console-monitor.ts
+import { test as base, expect } from '@playwright/test';
+
+type ConsoleMonitorFixture = {
+  consoleErrors: string[];
+};
+
+export const test = base.extend<ConsoleMonitorFixture>({
+  consoleErrors: async ({ page }, use) => {
+    const errors: string[] = [];
+
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        // Filter known third-party noise
+        const text = msg.text();
+        if (text.includes('Failed to load resource: net::ERR_AD_BLOCKED')) return;
+        if (text.includes('third-party-analytics.js')) return;
+        errors.push(text);
+      }
+    });
+
+    page.on('pageerror', err => errors.push(\`[UNCAUGHT] \${err.message}\`));
+
+    await use(errors);
+
+    // Assert no errors at the end of every test automatically
+    expect(errors, \`Console errors: \${errors.join(', ')}\`).toHaveLength(0);
+  },
+});
+\`\`\`
+
+\`\`\`typescript
+// tests/dashboard.spec.ts — use the custom fixture
+import { test } from '../fixtures/console-monitor';
+
+test('dashboard loads without errors', async ({ page, consoleErrors }) => {
+  await page.goto('/dashboard');
+  // consoleErrors is automatically asserted in afterEach via the fixture
+});
+\`\`\`
+
+---
+
+### 5. Performance Metrics via CDP
+
+💡 **Analogy:** CDP performance metrics are the diagnostic readout from a car's OBD port. Any mechanic (or your test) can plug in and read engine RPM, fuel consumption, and error codes in real time — the car doesn't even need to be stopped.
+
+**Collecting performance metrics:**
+
+\`\`\`typescript
+test('page performance metrics', async ({ page, context }) => {
+  const client = await context.newCDPSession(page);
+
+  // Enable the Performance domain
+  await client.send('Performance.enable');
+
+  await page.goto('/dashboard');
+  await page.waitForLoadState('networkidle');
+
+  // Collect metrics
+  const { metrics } = await client.send('Performance.getMetrics');
+
+  // Convert array to a readable object
+  const m = Object.fromEntries(metrics.map(item => [item.name, item.value]));
+
+  console.table({
+    'JS Heap Used':       \`\${(m.JSHeapUsedSize / 1024 / 1024).toFixed(1)} MB\`,
+    'JS Heap Total':      \`\${(m.JSHeapTotalSize / 1024 / 1024).toFixed(1)} MB\`,
+    'Layout Count':       m.LayoutCount,
+    'Style Recalcs':      m.RecalcStyleCount,
+    'Script Duration':    \`\${m.ScriptDuration.toFixed(3)}s\`,
+    'Task Duration':      \`\${m.TaskDuration.toFixed(3)}s\`,
+    'DOM Nodes':          m.Nodes,
+    'Documents':          m.Documents,
+  });
+
+  // Assert memory budget
+  const heapMB = m.JSHeapUsedSize / 1024 / 1024;
+  expect(heapMB, \`JS Heap too large: \${heapMB.toFixed(1)}MB\`).toBeLessThan(50);
+
+  await client.detach();
+});
+\`\`\`
+
+**Core Web Vitals via PerformanceObserver injection:**
+
+\`\`\`typescript
+test('Core Web Vitals within budget', async ({ page }) => {
+  // Inject observer before navigation
+  await page.addInitScript(() => {
+    window.__cwv = { lcp: 0, fid: 0, cls: 0 };
+
+    new PerformanceObserver(list => {
+      for (const entry of list.getEntries()) {
+        if (entry.entryType === 'largest-contentful-paint') {
+          (window as any).__cwv.lcp = entry.startTime;
+        }
+      }
+    }).observe({ type: 'largest-contentful-paint', buffered: true });
+
+    new PerformanceObserver(list => {
+      for (const entry of list.getEntries()) {
+        (window as any).__cwv.cls += (entry as any).value;
+      }
+    }).observe({ type: 'layout-shift', buffered: true });
+  });
+
+  await page.goto('/dashboard');
+  await page.waitForLoadState('networkidle');
+
+  // Small wait for observers to flush
+  await page.waitForTimeout(500);
+
+  const cwv = await page.evaluate(() => (window as any).__cwv);
+
+  console.log(\`LCP: \${cwv.lcp.toFixed(0)}ms, CLS: \${cwv.cls.toFixed(4)}\`);
+
+  // Assert against Web Vitals budgets
+  expect(cwv.lcp, \`LCP \${cwv.lcp.toFixed(0)}ms exceeds 2500ms budget\`).toBeLessThan(2500);
+  expect(cwv.cls, \`CLS \${cwv.cls.toFixed(4)} exceeds 0.1 budget\`).toBeLessThan(0.1);
+});
+\`\`\`
+
+**Core Web Vitals thresholds for reference:**
+
+| Metric | Good | Needs Improvement | Poor |
+|---|---|---|---|
+| LCP (Largest Contentful Paint) | < 2,500ms | 2,500–4,000ms | > 4,000ms |
+| FID (First Input Delay) | < 100ms | 100–300ms | > 300ms |
+| CLS (Cumulative Layout Shift) | < 0.1 | 0.1–0.25 | > 0.25 |
+| INP (Interaction to Next Paint) | < 200ms | 200–500ms | > 500ms |
+
+---
+
+### 6. JavaScript Coverage Collection
+
+💡 **Analogy:** JS coverage is an X-ray that shows which bones (lines of code) you actually exercised during a test. Lines that show up dark on the X-ray were never touched — they are either dead code or untested paths.
+
+**Starting and stopping coverage collection:**
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+import * as fs from 'fs';
+
+test('collect JS coverage for checkout flow', async ({ page }) => {
+  // Start coverage BEFORE navigating
+  await page.coverage.startJSCoverage();
+
+  await page.goto('/checkout');
+  await page.getByRole('button', { name: 'Add Item' }).click();
+  await page.getByRole('button', { name: 'Checkout' }).click();
+
+  // Stop and retrieve coverage data
+  const coverage = await page.coverage.stopJSCoverage();
+
+  let totalBytes = 0;
+  let usedBytes = 0;
+
+  for (const entry of coverage) {
+    totalBytes += entry.text.length;
+    for (const range of entry.ranges) {
+      usedBytes += range.end - range.start;
+    }
+  }
+
+  const coveragePercent = (usedBytes / totalBytes * 100).toFixed(1);
+  console.log(\`JS Coverage: \${coveragePercent}% (\${usedBytes.toLocaleString()} / \${totalBytes.toLocaleString()} bytes)\`);
+
+  // Optional: fail if coverage drops below 60%
+  expect(Number(coveragePercent)).toBeGreaterThan(60);
+});
+\`\`\`
+
+**CSS coverage — find unused stylesheets:**
+
+\`\`\`typescript
+test('find unused CSS rules', async ({ page }) => {
+  await page.coverage.startCSSCoverage();
+
+  await page.goto('/dashboard');
+  await page.waitForLoadState('networkidle');
+
+  const cssCoverage = await page.coverage.stopCSSCoverage();
+
+  // Report unused CSS per stylesheet
+  for (const entry of cssCoverage) {
+    const totalLength = entry.text.length;
+    const usedLength = entry.ranges.reduce((sum, r) => sum + r.end - r.start, 0);
+    const unusedPercent = ((1 - usedLength / totalLength) * 100).toFixed(0);
+
+    if (Number(unusedPercent) > 50) {
+      console.warn(\`High unused CSS (\${unusedPercent}%): \${entry.url}\`);
+    }
+  }
+});
+\`\`\`
+
+**Combining coverage across all tests for a full suite report:**
+
+\`\`\`typescript
+// Use a global results array — combine in globalTeardown
+// Each worker writes a JSON file; teardown merges them
+
+// In your test file:
+test.afterEach(async ({ page }, testInfo) => {
+  const coverage = await page.coverage.stopJSCoverage();
+  const coverageFile = \`coverage-\${testInfo.workerIndex}-\${testInfo.testId}.json\`;
+  fs.writeFileSync(\`coverage-data/\${coverageFile}\`, JSON.stringify(coverage));
+});
+\`\`\`
+
+> **QA Tip:** Use Istanbul/NYC to process the raw coverage data into an HTML report: \`nyc report --reporter=html\`. Playwright's coverage output is compatible with the V8 coverage format that Istanbul understands.
+
+---
+
+### 7. CPU Throttling & Device Emulation Deep Dive
+
+💡 **Analogy:** CPU throttling is like making your racing driver wear oven mitts — they are in the same car, on the same track, but their reactions are slower. The test can now verify the app is still driveable when the hardware is impaired.
+
+**CPU throttling via CDP:**
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+test('app is usable on 4x CPU slowdown', async ({ page, context }) => {
+  const client = await context.newCDPSession(page);
+
+  // 4x slowdown simulates a mid-range Android device
+  await client.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+
+  const start = Date.now();
+  await page.goto('/dashboard');
+  await page.waitForSelector('[data-testid="main-content"]');
+  const tti = Date.now() - start;  // Time to Interactive approximation
+
+  console.log(\`TTI on 4x CPU throttle: \${tti}ms\`);
+  expect(tti).toBeLessThan(8000); // 8 second budget on slow CPU
+
+  await client.detach();
+});
+\`\`\`
+
+**Combining CPU + network throttling for low-end mobile simulation:**
+
+\`\`\`typescript
+test('low-end mobile: 6x CPU + Slow 3G', async ({ page, context }) => {
+  const client = await context.newCDPSession(page);
+
+  // Simulate cheap Android phone on poor mobile signal
+  await client.send('Network.enable');
+  await client.send('Network.emulateNetworkConditions', {
+    offline: false,
+    downloadThroughput: 500 * 1024 / 8,  // 500 Kbps
+    uploadThroughput: 200 * 1024 / 8,
+    latency: 400,
+  });
+  await client.send('Emulation.setCPUThrottlingRate', { rate: 6 });
+
+  const start = Date.now();
+  await page.goto('/');
+  await page.waitForLoadState('domcontentloaded');
+  const fcp = Date.now() - start;
+
+  console.log(\`FCP on low-end mobile: \${fcp}ms\`);
+  expect(fcp).toBeLessThan(12000); // 12s budget for worst-case conditions
+
+  await client.detach();
+});
+\`\`\`
+
+**Built-in device emulation — what \`devices['iPhone 14 Pro']\` sets:**
+
+\`\`\`typescript
+import { devices } from '@playwright/test';
+
+// What the devices registry actually configures:
+console.log(devices['iPhone 14 Pro']);
+// {
+//   userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)...',
+//   viewport: { width: 393, height: 852 },
+//   deviceScaleFactor: 3,
+//   isMobile: true,
+//   hasTouch: true,
+//   defaultBrowserType: 'webkit',
+// }
+\`\`\`
+
+| Property | What it controls in the test |
+|---|---|
+| \`viewport\` | CSS viewport width/height |
+| \`deviceScaleFactor\` | \`window.devicePixelRatio\` — affects retina rendering |
+| \`isMobile\` | \`navigator.userAgentData.mobile\` |
+| \`hasTouch\` | Touch event APIs enabled vs pointer events |
+| \`userAgent\` | \`navigator.userAgent\` string sent to server |
+
+**Custom device profile for your internal device:**
+
+\`\`\`typescript
+// playwright.config.ts
+import { defineConfig, devices } from '@playwright/test';
+
+const customDevices = {
+  'Company Internal Tablet': {
+    userAgent: 'Mozilla/5.0 (Linux; Android 11; InternalTablet Build/RI1A) ...',
+    viewport: { width: 1024, height: 768 },
+    deviceScaleFactor: 2,
+    isMobile: true,
+    hasTouch: true,
+    defaultBrowserType: 'chromium' as const,
+  },
+};
+
+export default defineConfig({
+  projects: [
+    { name: 'Internal Tablet', use: { ...customDevices['Company Internal Tablet'] } },
+    { name: 'iPhone 14 Pro',   use: { ...devices['iPhone 14 Pro'] } },
+    { name: 'Pixel 7',         use: { ...devices['Pixel 7'] } },
+  ],
+});
+\`\`\`
+
+**Testing touch events vs mouse events:**
+
+\`\`\`typescript
+test('swipe gesture works on touch device', async ({ page }) => {
+  // This test project must have hasTouch: true
+  await page.goto('/carousel');
+
+  const carousel = page.getByTestId('image-carousel');
+
+  // Touch swipe — only works when hasTouch is true
+  await carousel.dispatchEvent('touchstart', {
+    touches: [{ clientX: 300, clientY: 200 }],
+  });
+  await carousel.dispatchEvent('touchmove', {
+    touches: [{ clientX: 100, clientY: 200 }],  // swipe left
+  });
+  await carousel.dispatchEvent('touchend', {
+    changedTouches: [{ clientX: 100, clientY: 200 }],
+  });
+
+  // Carousel should have advanced to slide 2
+  await expect(page.getByTestId('slide-indicator-2')).toHaveAttribute('aria-current', 'true');
+});
+\`\`\`
+
+**The \`hasTouch\` flag and its effect:**
+
+\`\`\`
+hasTouch: false (desktop)
+  → Touch events are not dispatched
+  → Click = mouse event (mousedown, mouseup, click)
+  → Hover states work normally
+  → CSS :hover pseudo-class is active
+
+hasTouch: true (mobile)
+  → Touch events are dispatched (touchstart, touchend)
+  → Click = synthesised from touch events
+  → CSS @media (hover: none) is active
+  → CSS :hover pseudo-class is inactive on many browsers
+\`\`\`
+
+> **QA Tip:** Always test your touch-only UI (swipe, pinch-zoom, long-press) in a project with \`hasTouch: true\`. These interactions behave completely differently from mouse events and are invisible in a standard desktop project.
+        `
+      },
+
+      {
+        id: 'pw-test-data-management',
+        title: 'Test Data Management',
+        analogy: "Test data is the fuel that powers your test suite. A car running on unpredictable fuel — sometimes petrol, sometimes diesel, sometimes water — will behave erratically and break down. Tests running on unpredictable data do the same. The Factory pattern is a petrol station that always dispenses exactly the right grade of fuel on demand: clean, fresh, predictable data every single time. No leftover data from last week's run. No conflicts between parallel tests. No 'it works on my machine' because the database had a lucky pre-existing record.",
+        lessonMarkdown: `
+## Test Data Management
+
+Mastering test data is one of the highest-leverage skills in QA engineering. Flaky tests are usually data problems in disguise. This module covers every technique from simple factory functions to database-direct seeding, parallel conflict elimination, and snapshot-based data contract testing.
+
+---
+
+### 1. The Test Data Problem
+
+💡 **Analogy:** A chemistry experiment where someone keeps adding unknown chemicals to your beaker between runs will never produce reproducible results. Shared, mutable test data is exactly that unknown chemist — and the solution is giving every experiment its own sealed beaker.
+
+**The three sins of test data:**
+
+| Sin | Example | Symptom |
+|---|---|---|
+| Shared mutable state | All tests read/write the same user record | Tests pass in isolation, fail in parallel |
+| Hardcoded references | \`userId: 42\` | Passes in dev, fails in CI where ID 42 doesn't exist |
+| No cleanup | Each run leaves records behind | Suite passes on first run, fails on second |
+
+**Shared mutable state — the most dangerous sin:**
+
+\`\`\`typescript
+// ❌ BROKEN: both tests reference the same email
+test('user can log in', async ({ page }) => {
+  await page.getByLabel('Email').fill('test@example.com'); // shared!
+});
+
+test('user can reset password', async ({ page }) => {
+  await page.getByLabel('Email').fill('test@example.com'); // same record!
+  // If parallel worker already changed this account's password, this test fails
+});
+\`\`\`
+
+**The test-order dependency trap:**
+
+\`\`\`typescript
+// ❌ BROKEN: test B depends on test A having run first
+test('A: create product', async ({ page }) => {
+  await page.goto('/products/new');
+  await page.getByLabel('Name').fill('Widget');
+  await page.getByRole('button', { name: 'Save' }).click();
+  // Product ID 99 now exists in the database
+});
+
+test('B: edit product', async ({ page }) => {
+  await page.goto('/products/99/edit'); // hardcoded! Fails if A didn't run first
+});
+
+// ✅ CORRECT: B creates its own data
+test('B: edit product', async ({ page, apiContext }) => {
+  const product = await apiContext.post('/api/products', {
+    data: { name: 'Widget' },
+  });
+  const { id } = await product.json();
+  await page.goto(\`/products/\${id}/edit\`);
+});
+\`\`\`
+
+**Why "just use the dev database" fails at scale:**
+
+\`\`\`
+Dev database problems at 10+ test workers:
+├── Worker 1 creates user "alice@test.com"
+├── Worker 2 also tries to create "alice@test.com" → UNIQUE CONSTRAINT ERROR
+├── Worker 3 deletes product ID 5 — which Worker 4 is currently editing
+├── Worker 5 reads a record Worker 6 is in the middle of updating → stale data
+└── Monday morning: dev database has 3,000 orphaned test records
+\`\`\`
+
+> **QA Tip:** The rule is simple — every test must own all the data it needs and must clean up after itself. No exceptions.
+
+---
+
+### 2. The Factory Pattern
+
+💡 **Analogy:** A factory is a machine that stamps out identical, perfectly-formed parts on demand. You specify only what needs to vary — everything else comes from the mould. \`createUser({ role: 'admin' })\` stamps out a complete, valid user with sensible defaults, with only the role customised.
+
+**Simple factory function:**
+
+\`\`\`typescript
+// factories/user.factory.ts
+import { faker } from '@faker-js/faker';
+
+interface UserData {
+  name?: string;
+  email?: string;
+  role?: 'admin' | 'editor' | 'viewer';
+  verified?: boolean;
+  plan?: 'free' | 'pro' | 'enterprise';
+}
+
+export function createUserData(overrides: UserData = {}): Required<UserData> {
+  return {
+    name:     overrides.name     ?? faker.person.fullName(),
+    email:    overrides.email    ?? faker.internet.email(),
+    role:     overrides.role     ?? 'viewer',
+    verified: overrides.verified ?? true,
+    plan:     overrides.plan     ?? 'free',
+  };
+}
+\`\`\`
+
+**Usage — only specify what the test cares about:**
+
+\`\`\`typescript
+test('admin can access billing page', async ({ page, apiContext }) => {
+  // Only the role matters — everything else is randomised
+  const adminData = createUserData({ role: 'admin', plan: 'enterprise' });
+
+  const response = await apiContext.post('/api/users', { data: adminData });
+  const { id } = await response.json();
+
+  await page.goto(\`/users/\${id}\`);
+  await expect(page.getByTestId('billing-tab')).toBeVisible();
+});
+\`\`\`
+
+**Factory for complex nested objects:**
+
+\`\`\`typescript
+// factories/order.factory.ts
+import { faker } from '@faker-js/faker';
+import { createUserData } from './user.factory';
+import { createProductData } from './product.factory';
+
+interface OrderData {
+  customer?: ReturnType<typeof createUserData>;
+  items?:    ReturnType<typeof createProductData>[];
+  status?:   'pending' | 'paid' | 'shipped' | 'cancelled';
+  total?:    number;
+}
+
+export function createOrderData(overrides: OrderData = {}): Required<OrderData> {
+  const items = overrides.items ?? [
+    createProductData({ price: 29.99 }),
+    createProductData({ price: 9.99 }),
+  ];
+  return {
+    customer: overrides.customer ?? createUserData(),
+    items,
+    status:   overrides.status ?? 'pending',
+    total:    overrides.total  ?? items.reduce((sum, p) => sum + p.price, 0),
+  };
+}
+\`\`\`
+
+**Using faker.js for realistic, varied data:**
+
+\`\`\`typescript
+import { faker } from '@faker-js/faker';
+
+// Realistic data that exercises real validation paths
+const realisticUser = {
+  name:     faker.person.fullName(),          // "Jonathan Fairweather"
+  email:    faker.internet.email(),            // "j.fairweather@gmail.com"
+  phone:    faker.phone.number(),              // "+44 7700 900123"
+  address: {
+    street: faker.location.streetAddress(),   // "14 Acacia Avenue"
+    city:   faker.location.city(),             // "Manchester"
+    zip:    faker.location.zipCode(),          // "M1 1AE"
+  },
+  dob:      faker.date.birthdate({ min: 18, max: 65, mode: 'age' }),
+  avatar:   faker.image.avatar(),
+};
+\`\`\`
+
+> **QA Tip:** Set \`faker.seed(42)\` at the top of your test file to make randomised data fully reproducible. The same seed always produces the same sequence of values.
+
+---
+
+### 3. API-Seeded Test Data
+
+💡 **Analogy:** Seeding data via API is like placing a real order through the front door of a restaurant rather than sneaking into the kitchen and putting food directly on the plate. The API exercises real business logic, validation, and side effects — exactly what a real user would trigger.
+
+**Create in beforeEach, clean up in afterEach:**
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+let createdUserId: string;
+
+test.beforeEach(async ({ request }) => {
+  const response = await request.post('/api/users', {
+    data: {
+      name:  'Test User',
+      email: \`test-\${Date.now()}@example.com\`,  // unique per test
+      role:  'editor',
+    },
+  });
+  expect(response.status()).toBe(201);
+  const body = await response.json();
+  createdUserId = body.id;
+});
+
+test.afterEach(async ({ request }) => {
+  if (createdUserId) {
+    await request.delete(\`/api/users/\${createdUserId}\`);
+    createdUserId = '';
+  }
+});
+
+test('editor can create a post', async ({ page }) => {
+  await page.goto(\`/users/\${createdUserId}/posts/new\`);
+  await page.getByLabel('Title').fill('My First Post');
+  await page.getByRole('button', { name: 'Publish' }).click();
+  await expect(page.getByText('Post published')).toBeVisible();
+});
+\`\`\`
+
+**The cleanup problem — afterEach doesn't run if beforeEach throws:**
+
+\`\`\`typescript
+// ❌ PROBLEM: if beforeEach setup throws after creating the user,
+// afterEach still runs but createdUserId may be set — OR setup may partially complete
+// and leave orphaned data. Solution: try/finally in the fixture.
+
+// ✅ CORRECT: use a fixture for guaranteed cleanup
+// fixtures/seeded-user.ts
+import { test as base } from '@playwright/test';
+
+type SeededUserFixture = { seededUser: { id: string; email: string } };
+
+export const test = base.extend<SeededUserFixture>({
+  seededUser: async ({ request }, use) => {
+    const email = \`test-\${Date.now()}@example.com\`;
+    const response = await request.post('/api/users', {
+      data: { name: 'Seeded User', email, role: 'editor' },
+    });
+    const { id } = await response.json();
+
+    await use({ id, email }); // test runs here
+
+    // Teardown — guaranteed to run even if test throws
+    await request.delete(\`/api/users/\${id}\`);
+  },
+});
+\`\`\`
+
+**Worker-scoped data — create once per worker:**
+
+\`\`\`typescript
+// fixtures/worker-user.ts
+import { test as base } from '@playwright/test';
+
+type WorkerUserFixture = { workerUser: { id: string; storageState: string } };
+
+export const test = base.extend<{}, WorkerUserFixture>({
+  workerUser: [async ({ request }, use, workerInfo) => {
+    const email = \`worker-\${workerInfo.workerIndex}@example.com\`;
+
+    // Create user once for this worker
+    const createResp = await request.post('/api/users', {
+      data: { name: \`Worker \${workerInfo.workerIndex}\`, email, role: 'admin' },
+    });
+    const { id } = await createResp.json();
+
+    await use({ id, storageState: \`auth/worker-\${workerInfo.workerIndex}.json\` });
+
+    // Clean up when the worker is done with all its tests
+    await request.delete(\`/api/users/\${id}\`);
+  }, { scope: 'worker' }],
+});
+\`\`\`
+
+**Idempotent setup — check-or-create for global reference data:**
+
+\`\`\`typescript
+// global-setup.ts
+export default async function globalSetup() {
+  const apiContext = await request.newContext({ baseURL: 'https://api.example.com' });
+
+  // Check if the reference country list exists, create only if missing
+  const existing = await apiContext.get('/api/countries');
+  if ((await existing.json()).length === 0) {
+    await apiContext.post('/api/countries/seed');
+    console.log('Reference countries seeded');
+  } else {
+    console.log('Reference countries already present — skipping seed');
+  }
+
+  await apiContext.dispose();
+}
+\`\`\`
+
+> **QA Tip:** Never rely on \`afterEach\` alone for critical cleanup. Always use the fixture \`await use()\` pattern — the teardown after \`use()\` is guaranteed to run whether the test passes, fails, or times out.
+
+---
+
+### 4. Unique Test Data — Eliminating Conflicts
+
+💡 **Analogy:** If four builders all try to register the same street address at the Land Registry at the same time, all four applications will be rejected. Test workers are those builders — and unique data is giving each one a genuinely different address so they can all register simultaneously without blocking each other.
+
+**The parallel test problem:**
+
+\`\`\`typescript
+// ❌ BROKEN: 4 workers all try to create the same email
+test('register new account', async ({ page }) => {
+  await page.getByLabel('Email').fill('test@example.com'); // CONFLICT!
+});
+// Worker 1: creates test@example.com → 201 Created ✓
+// Worker 2: creates test@example.com → 409 Conflict ✗
+// Worker 3: creates test@example.com → 409 Conflict ✗
+// Worker 4: creates test@example.com → 409 Conflict ✗
+\`\`\`
+
+**Solution 1 — Date.now() suffix:**
+
+\`\`\`typescript
+// ✅ Simple and effective for low parallelism
+const email = \`test-\${Date.now()}@example.com\`;
+// "test-1714735200123@example.com"
+\`\`\`
+
+**Solution 2 — crypto.randomUUID() (best for high parallelism):**
+
+\`\`\`typescript
+import crypto from 'crypto';
+
+// ✅ Guaranteed unique across all workers, all runs
+const email = \`test-\${crypto.randomUUID()}@example.com\`;
+// "test-a3f7c2d1-88b4-4e6a-b5d3-1c2e9f0a7b6e@example.com"
+\`\`\`
+
+**Solution 3 — workerIndex prefix (stable and readable):**
+
+\`\`\`typescript
+import { test } from '@playwright/test';
+
+test('create account', async ({ page }, testInfo) => {
+  const email = \`worker\${testInfo.workerIndex}-\${testInfo.testId}@example.com\`;
+  // "worker2-abc123@example.com"
+  // Each worker gets a namespace — no cross-worker conflicts
+});
+\`\`\`
+
+**Naming convention for easy cleanup:**
+
+\`\`\`typescript
+// All test-generated data is tagged with a prefix
+const TEST_PREFIX = 'autotest';
+
+const email    = \`\${TEST_PREFIX}-\${crypto.randomUUID()}@example.com\`;
+const username = \`\${TEST_PREFIX}-\${faker.internet.userName()}\`;
+const orgName  = \`\${TEST_PREFIX}-org-\${Date.now()}\`;
+
+// Cleanup script: DELETE FROM users WHERE email LIKE 'autotest-%'
+// Can be run safely in any environment without touching real data
+\`\`\`
+
+**Environment-isolated test accounts:**
+
+\`\`\`typescript
+// playwright.config.ts
+const testAccounts = {
+  staging: {
+    admin:  process.env.STAGING_ADMIN_EMAIL!,
+    viewer: process.env.STAGING_VIEWER_EMAIL!,
+  },
+  production: {
+    // Production tests use read-only accounts — no destructive operations
+    readonly: process.env.PROD_READONLY_EMAIL!,
+  },
+};
+
+export const TEST_ACCOUNT = testAccounts[process.env.TEST_ENV as keyof typeof testAccounts];
+\`\`\`
+
+> **QA Tip:** Build a nightly cleanup job that deletes all records where name or email starts with your test prefix and is older than 24 hours. This keeps your database clean even when tests crash mid-cleanup.
+
+---
+
+### 5. Database Direct Seeding
+
+💡 **Analogy:** API seeding goes through the restaurant's ordering system — correct, but each dish takes time to prepare. Database direct seeding is the chef walking into the cold store and placing pre-prepared portions directly on the shelf. Faster to set up a table for 200 guests, but you bypass the kitchen's quality checks.
+
+**When to use database direct seeding:**
+
+| Scenario | Use API seeding | Use DB seeding |
+|---|---|---|
+| Creating 1–10 records per test | ✅ | |
+| Creating 1,000+ records for a performance test | | ✅ |
+| Need to test business logic side effects | ✅ | |
+| Need raw speed: smoke test bootstrap | | ✅ |
+| Testing a data migration | | ✅ |
+
+**Direct seeding with Prisma in globalSetup:**
+
+\`\`\`typescript
+// global-setup.ts
+import { PrismaClient } from '@prisma/client';
+
+export default async function globalSetup() {
+  const prisma = new PrismaClient();
+
+  try {
+    // Seed reference data once before all tests
+    await prisma.category.createMany({
+      data: [
+        { id: 1, name: 'Electronics', slug: 'electronics' },
+        { id: 2, name: 'Clothing',    slug: 'clothing'    },
+        { id: 3, name: 'Books',       slug: 'books'       },
+      ],
+      skipDuplicates: true,
+    });
+    console.log('Reference categories seeded');
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+\`\`\`
+
+**Transaction-wrapped tests — rollback everything:**
+
+\`\`\`typescript
+// fixtures/db-transaction.ts
+import { test as base } from '@playwright/test';
+import { PrismaClient } from '@prisma/client';
+
+type DbFixture = { db: PrismaClient };
+
+export const test = base.extend<DbFixture>({
+  db: async ({}, use) => {
+    const prisma = new PrismaClient();
+
+    // Start a transaction — everything inside can be rolled back
+    await prisma.$executeRaw\`BEGIN\`;
+
+    await use(prisma);
+
+    // Rollback unconditionally — leaves the DB in its original state
+    await prisma.$executeRaw\`ROLLBACK\`;
+    await prisma.$disconnect();
+  },
+});
+\`\`\`
+
+\`\`\`typescript
+// tests/product.spec.ts
+import { test } from '../fixtures/db-transaction';
+import { expect } from '@playwright/test';
+
+test('product creation inserts correct DB record', async ({ db, page }) => {
+  // Seed a product directly via transaction
+  const product = await db.product.create({
+    data: { name: 'Test Widget', price: 49.99, stock: 100 },
+  });
+
+  await page.goto(\`/products/\${product.id}\`);
+  await expect(page.getByRole('heading', { name: 'Test Widget' })).toBeVisible();
+
+  // Transaction rolled back in teardown — product never persists
+});
+\`\`\`
+
+**Using raw SQL for maximum speed in performance test setup:**
+
+\`\`\`typescript
+// global-setup.ts — seed 10,000 products in one batch insert
+import { Pool } from 'pg';
+
+export default async function globalSetup() {
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+  const values = Array.from({ length: 10_000 }, (_, i) =>
+    \`('Product \${i}', \${(Math.random() * 100).toFixed(2)}, \${Math.floor(Math.random() * 1000)})\`
+  ).join(',\n  ');
+
+  await pool.query(\`
+    INSERT INTO products (name, price, stock)
+    VALUES
+      \${values}
+    ON CONFLICT DO NOTHING
+  \`);
+
+  console.log('10,000 products seeded for performance tests');
+  await pool.end();
+}
+\`\`\`
+
+> **QA Tip:** Never run database direct seeding against a shared staging environment unless you are inside a transaction. Raw DB writes bypass application validation — a mistyped field can corrupt data that other teams depend on.
+
+---
+
+### 6. Environment Isolation
+
+💡 **Analogy:** A demolition company uses different machinery in a controlled demolition site than on a live city block. The environment determines what actions are safe. Running destructive test data operations in production is like parking the wrecking ball next to an occupied building.
+
+**Environment guard — never run destructive tests in production:**
+
+\`\`\`typescript
+// playwright.config.ts
+const TEST_ENV = process.env.TEST_ENV ?? 'staging';
+
+if (TEST_ENV === 'production') {
+  // Allow only read-only tests in production
+  const allowedProjects = ['smoke-readonly'];
+  console.warn('WARNING: Running in PRODUCTION — only smoke tests permitted');
+}
+
+export default defineConfig({
+  use: {
+    baseURL: {
+      staging:    'https://staging.example.com',
+      production: 'https://example.com',
+      local:      'http://localhost:3000',
+    }[TEST_ENV],
+  },
+});
+\`\`\`
+
+**Hard guard that throws before any test runs:**
+
+\`\`\`typescript
+// fixtures/env-guard.ts
+export function assertNotProduction(operation: string): void {
+  if (process.env.TEST_ENV === 'production') {
+    throw new Error(
+      \`SAFETY: Refusing to run "\${operation}" in production. \\n\` +
+      \`Set TEST_ENV=staging or TEST_ENV=local to run this test.\`
+    );
+  }
+}
+\`\`\`
+
+\`\`\`typescript
+test.beforeAll(() => {
+  assertNotProduction('user creation with cleanup');
+});
+\`\`\`
+
+**Per-environment storageState — different credentials per environment:**
+
+\`\`\`typescript
+// global-setup.ts
+const ENV = process.env.TEST_ENV ?? 'staging';
+
+const credentials = {
+  staging: {
+    admin:  { email: process.env.STAGING_ADMIN_EMAIL!,  password: process.env.STAGING_ADMIN_PASS!  },
+    viewer: { email: process.env.STAGING_VIEWER_EMAIL!, password: process.env.STAGING_VIEWER_PASS! },
+  },
+  local: {
+    admin:  { email: 'admin@localhost.com',  password: 'localpass' },
+    viewer: { email: 'viewer@localhost.com', password: 'localpass' },
+  },
+}[ENV];
+
+// Auth files are namespaced by environment
+await loginAndSave(credentials.admin,  \`auth/\${ENV}-admin.json\`);
+await loginAndSave(credentials.viewer, \`auth/\${ENV}-viewer.json\`);
+\`\`\`
+
+**Feature flags in test data:**
+
+\`\`\`typescript
+// Create a user with a specific feature flag enabled
+const userWithBetaFlag = await apiContext.post('/api/users', {
+  data: {
+    ...createUserData(),
+    featureFlags: {
+      newCheckoutFlow: true,   // exercises the new checkout path
+      darkMode:        false,
+    },
+  },
+});
+\`\`\`
+
+> **QA Tip:** Store your \`auth/*.json\` files in a directory that is gitignored. In CI, generate them fresh in \`globalSetup\` using environment variables for credentials — never commit real session tokens or passwords.
+
+---
+
+### 7. Snapshot Testing for Data Contracts
+
+💡 **Analogy:** A snapshot test for an API response is like photographing the contents of a shipping container before it leaves port. If someone adds, removes, or swaps cargo, the photograph at the destination won't match — and you know immediately what changed. Without the photograph, you only find out when the customer unpacks.
+
+**The problem — silent schema changes:**
+
+\`\`\`typescript
+// ❌ This test passes even if the API drops the 'price' field from the response
+test('product API returns correct data', async ({ request }) => {
+  const response = await request.get('/api/products/1');
+  const body = await response.json();
+  expect(response.status()).toBe(200);
+  // We only checked the status — not the shape!
+});
+\`\`\`
+
+**toMatchSnapshot() on API responses:**
+
+\`\`\`typescript
+// ✅ First run: creates the snapshot file
+// Subsequent runs: compares against it — any field change fails the test
+test('product API response shape is stable', async ({ request }) => {
+  const response = await request.get('/api/products/1');
+  const body = await response.json();
+
+  // Remove dynamic fields before snapshotting
+  const stableBody = {
+    ...body,
+    id:        '[ID]',
+    createdAt: '[DATE]',
+    updatedAt: '[DATE]',
+  };
+
+  expect(stableBody).toMatchSnapshot('product-api-response.json');
+});
+\`\`\`
+
+**Snapshot content (first run generates this file):**
+
+\`\`\`json
+{
+  "id": "[ID]",
+  "name": "Widget Pro",
+  "price": 49.99,
+  "currency": "GBP",
+  "stock": 100,
+  "category": { "id": 1, "name": "Electronics" },
+  "createdAt": "[DATE]",
+  "updatedAt": "[DATE]"
+}
+\`\`\`
+
+**Deliberate vs accidental snapshot update:**
+
+\`\`\`typescript
+// Updating snapshots intentionally:
+// npx playwright test --update-snapshots
+
+// Snapshot update workflow:
+// 1. API team deploys new response shape
+// 2. Test fails with diff showing exactly which fields changed
+// 3. QA engineer reviews diff: "price is now priceInPence — intentional change"
+// 4. Run --update-snapshots to accept the new shape
+// 5. Commit the updated snapshot file alongside the API change
+\`\`\`
+
+**Combining TypeScript types with snapshots:**
+
+\`\`\`typescript
+// types/product.ts — TypeScript guards the structure at compile time
+interface ProductResponse {
+  id:       string;
+  name:     string;
+  price:    number;     // ← If API renames this, TypeScript catches it
+  currency: string;
+  stock:    number;
+  category: { id: number; name: string };
+}
+
+test('product API matches TypeScript type and snapshot', async ({ request }) => {
+  const response = await request.get('/api/products/1');
+  const body = await response.json() as ProductResponse;
+
+  // TypeScript compile-time check + runtime snapshot check
+  expect(typeof body.price).toBe('number');
+  expect(body).toMatchSnapshot('product-api-response.json');
+});
+\`\`\`
+
+**Snapshot diff output — what you see on failure:**
+
+\`\`\`
+  Snapshot name: product-api-response.json
+  Expected:
+  - "price": 49.99,
+  + "priceInPence": 4999,
+  - "currency": "GBP",
+
+  Received:
+  + "priceInPence": 4999,
+
+  1 snapshot(s) failed.
+\`\`\`
+
+> **QA Tip:** Always strip dynamic fields (IDs, timestamps, tokens) from API responses before snapshotting. A snapshot that contains a timestamp will fail on every run. Normalise these to placeholder strings like \`"[DATE]"\` or \`"[UUID]"\` before calling \`toMatchSnapshot()\`.
+        `
+      },
+
+      {
+        id: 'pw-component-testing',
+        title: 'Playwright Component Testing',
+        analogy: "End-to-end tests are like testing a car by driving it on a full road trip. You get maximum confidence — but it takes 4 hours, costs fuel, and if the headlights fail you have to search through 400 miles of road to find where the problem started. Component testing is testing each car part on a workbench in the garage: headlight assembly, braking system, gearbox — each in isolation. Ten seconds per component, instant feedback, exact failure location. Expert QA engineers run both: workbench tests to catch regressions fast, road trips to confirm everything works together.",
+        lessonMarkdown: `
+## Playwright Component Testing
+
+Playwright's experimental component testing brings the same browser-powered reliability of E2E testing down to the individual component level. This module covers everything from setup to advanced mocking, helping you decide when CT beats E2E and how to run both in CI.
+
+---
+
+### 1. What Playwright Component Testing Is
+
+💡 **Analogy:** A full E2E test boots your entire application — server, database, routing, auth — just to verify one button changes colour on hover. CT mounts only that button in a minimal browser shell. Same real Chromium. Fraction of the setup cost.
+
+**What \`@playwright/experimental-ct-react\` gives you:**
+
+| Feature | CT | Jest + RTL | Cypress CT |
+|---|---|---|---|
+| Real browser engine | ✅ Chromium/Firefox/WebKit | ❌ jsdom | ✅ Chromium only |
+| Visual snapshots | ✅ | ❌ | ✅ |
+| Network interception | ✅ \`page.route()\` | ❌ | Limited |
+| Playwright locator API | ✅ | ❌ | ❌ |
+| No server required | ✅ | ✅ | ✅ |
+
+**How CT differs from E2E:**
+
+\`\`\`
+E2E test:
+  Browser → full app (React + Router + Auth + API server + DB)
+  Setup time: 5–30 seconds per test
+  Failure scope: anywhere in the stack
+
+Component test:
+  Browser → single component (React component only, minimal HTML shell)
+  Setup time: 0.1–0.5 seconds per test
+  Failure scope: this component and its direct dependencies
+\`\`\`
+
+**Installation:**
+
+\`\`\`bash
+# Install the CT package for your framework
+npm init playwright@latest -- --ct
+
+# Or manually:
+npm install -D @playwright/experimental-ct-react
+npx playwright install
+\`\`\`
+
+> **QA Tip:** CT currently supports React, Vue 3, Svelte, and Solid. The \`experimental\` label means the API may change between minor versions — pin to a specific version in \`package.json\` and test upgrades in a branch.
+
+---
+
+### 2. Setting Up Component Testing Alongside E2E
+
+💡 **Analogy:** CT and E2E are two different workbenches in the same workshop. They share the same toolbox (Playwright) but work at different scales. The trick is giving each workbench its own configuration file so they don't get in each other's way.
+
+**\`playwright-ct.config.ts\` — the separate CT config:**
+
+\`\`\`typescript
+// playwright-ct.config.ts
+import { defineConfig, devices } from '@playwright/experimental-ct-react';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  testDir: './src',
+  testMatch: '**/*.ct.spec.tsx',
+  snapshotDir: './__snapshots__',
+  timeout: 10_000,   // CT tests are fast — keep timeout tight
+
+  use: {
+    ctPort: 3100,    // port for the component test server
+    ctViteConfig: {
+      plugins: [react()],
+    },
+  },
+
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox',  use: { ...devices['Desktop Firefox'] } },
+  ],
+});
+\`\`\`
+
+**\`playwright.config.ts\` — keep E2E separate:**
+
+\`\`\`typescript
+// playwright.config.ts — unchanged, points to e2e tests
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './e2e',
+  testMatch: '**/*.spec.ts',
+  // ... your E2E config
+});
+\`\`\`
+
+**The index.html template for component mounting:**
+
+\`\`\`html
+<!-- playwright/index.html — the shell that CT injects components into -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Playwright CT</title>
+    <link rel="stylesheet" href="../src/index.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
+  </body>
+</html>
+\`\`\`
+
+**File naming convention — component beside its test:**
+
+\`\`\`
+src/
+  components/
+    Button/
+      Button.tsx         ← the component
+      Button.ct.spec.tsx ← its component test
+      Button.stories.tsx ← optional Storybook story
+    Modal/
+      Modal.tsx
+      Modal.ct.spec.tsx
+\`\`\`
+
+**Running CT tests:**
+
+\`\`\`bash
+# Run component tests only
+npx playwright test --config playwright-ct.config.ts
+
+# Run E2E tests only
+npx playwright test --config playwright.config.ts
+
+# Run both (add to package.json scripts)
+# "test:ct":  "playwright test --config playwright-ct.config.ts"
+# "test:e2e": "playwright test --config playwright.config.ts"
+# "test":     "npm run test:ct && npm run test:e2e"
+\`\`\`
+
+> **QA Tip:** The CT config's \`ctViteConfig\` must match your application's Vite config precisely — same plugins, aliases, and environment variables. A mismatch means CT tests pass but the real app fails.
+
+---
+
+### 3. The mount() API — Rendering Components
+
+💡 **Analogy:** \`mount()\` is a lab technician placing a specimen under a microscope slide. The specimen (component) is isolated, illuminated, and ready to be examined with the full power of Playwright's lens (locator API, assertions, network tools) — without needing the rest of the organism attached.
+
+**Basic mount and assertion:**
+
+\`\`\`typescript
+// Button.ct.spec.tsx
+import { test, expect } from '@playwright/experimental-ct-react';
+import { Button } from './Button';
+
+test('renders with correct label', async ({ mount }) => {
+  const component = await mount(<Button label="Save Changes" />);
+
+  // Full Playwright locator API is available on the mounted component
+  await expect(component).toContainText('Save Changes');
+  await expect(component).toBeVisible();
+});
+\`\`\`
+
+**Querying inside a mounted component:**
+
+\`\`\`typescript
+test('button has correct accessible role', async ({ mount, page }) => {
+  await mount(<Button label="Submit" variant="primary" />);
+
+  // Use page.getByRole — works exactly as in E2E tests
+  const btn = page.getByRole('button', { name: 'Submit' });
+  await expect(btn).toBeVisible();
+  await expect(btn).toHaveAttribute('type', 'submit');
+});
+\`\`\`
+
+**Mounting a form component and asserting labels:**
+
+\`\`\`typescript
+// LoginForm.ct.spec.tsx
+import { test, expect } from '@playwright/experimental-ct-react';
+import { LoginForm } from './LoginForm';
+
+test('login form renders all required fields', async ({ mount, page }) => {
+  await mount(<LoginForm onSubmit={() => {}} />);
+
+  await expect(page.getByLabel('Email address')).toBeVisible();
+  await expect(page.getByLabel('Password')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Sign In' })).toBeEnabled();
+  await expect(page.getByText('Forgot password?')).toBeVisible();
+});
+
+test('login form shows validation errors on empty submit', async ({ mount, page }) => {
+  await mount(<LoginForm onSubmit={() => {}} />);
+
+  await page.getByRole('button', { name: 'Sign In' }).click();
+
+  await expect(page.getByText('Email is required')).toBeVisible();
+  await expect(page.getByText('Password is required')).toBeVisible();
+});
+\`\`\`
+
+**Unmounting and remounting:**
+
+\`\`\`typescript
+test('component cleans up on unmount', async ({ mount }) => {
+  const component = await mount(<WebSocketComponent url="ws://localhost" />);
+
+  await expect(component).toContainText('Connected');
+
+  // Unmount triggers useEffect cleanup — WebSocket should close
+  await component.unmount();
+
+  // No assertion possible after unmount — DOM is gone
+  // Use console monitoring to assert cleanup side effects
+});
+\`\`\`
+
+> **QA Tip:** The \`mount()\` function returns a \`Locator\` pointing to the root element of your component. You can use all standard Playwright assertions on it directly, or call \`page.getBy*()\` to find children.
+
+---
+
+### 4. Testing Props, Events & Callbacks
+
+💡 **Analogy:** Testing props is checking that the control panel inputs produce the right outputs on the instrument display. Testing callbacks is checking that pressing the ejector seat button actually fires the signal — even if you have swapped the seat for a dummy during the test.
+
+**Testing prop variations — a full state matrix:**
+
+\`\`\`typescript
+// StatusBadge.ct.spec.tsx
+import { test, expect } from '@playwright/experimental-ct-react';
+import { StatusBadge } from './StatusBadge';
+
+const states = [
+  { status: 'active',   expectedColor: 'green',  expectedText: 'Active'   },
+  { status: 'inactive', expectedColor: 'grey',   expectedText: 'Inactive' },
+  { status: 'pending',  expectedColor: 'orange', expectedText: 'Pending'  },
+  { status: 'error',    expectedColor: 'red',    expectedText: 'Error'    },
+] as const;
+
+for (const { status, expectedText } of states) {
+  test(\`renders \${status} state correctly\`, async ({ mount, page }) => {
+    await mount(<StatusBadge status={status} />);
+
+    const badge = page.getByTestId('status-badge');
+    await expect(badge).toContainText(expectedText);
+    await expect(badge).toHaveAttribute('data-status', status);
+  });
+}
+
+test('disabled button cannot be clicked', async ({ mount, page }) => {
+  await mount(<Button label="Submit" disabled={true} />);
+
+  const btn = page.getByRole('button', { name: 'Submit' });
+  await expect(btn).toBeDisabled();
+});
+\`\`\`
+
+**Testing event callbacks with a Promise spy:**
+
+\`\`\`typescript
+// SearchInput.ct.spec.tsx
+import { test, expect } from '@playwright/experimental-ct-react';
+import { SearchInput } from './SearchInput';
+
+test('calls onSearch with typed value after debounce', async ({ mount, page }) => {
+  let capturedSearchTerm = '';
+
+  const component = await mount(
+    <SearchInput
+      onSearch={(term: string) => { capturedSearchTerm = term; }}
+      debounceMs={0}  // disable debounce in tests for determinism
+    />
+  );
+
+  await page.getByRole('searchbox').fill('playwright');
+  await page.getByRole('searchbox').press('Enter');
+
+  expect(capturedSearchTerm).toBe('playwright');
+});
+
+test('calls onClose when modal close button is clicked', async ({ mount, page }) => {
+  // Use a Promise that resolves when the callback fires
+  const onCloseFired = new Promise<void>(resolve => {
+    mount(
+      <Modal
+        isOpen={true}
+        title="Confirm Delete"
+        onClose={resolve}   // resolves the promise
+      />
+    );
+  });
+
+  await page.getByRole('button', { name: 'Close' }).click();
+
+  // If onClose wasn't called within 5s, this will time out and fail
+  await onCloseFired;
+});
+\`\`\`
+
+**Testing a controlled form submission:**
+
+\`\`\`typescript
+test('form calls onSubmit with form data', async ({ mount, page }) => {
+  let submittedData: Record<string, string> = {};
+
+  await mount(
+    <ContactForm
+      onSubmit={(data: Record<string, string>) => { submittedData = data; }}
+    />
+  );
+
+  await page.getByLabel('Name').fill('Alice Brown');
+  await page.getByLabel('Email').fill('alice@example.com');
+  await page.getByLabel('Message').fill('Hello from CT tests');
+  await page.getByRole('button', { name: 'Send' }).click();
+
+  expect(submittedData).toEqual({
+    name:    'Alice Brown',
+    email:   'alice@example.com',
+    message: 'Hello from CT tests',
+  });
+});
+\`\`\`
+
+> **QA Tip:** For debounced callbacks, either set \`debounceMs={0}\` in test mode, or use \`page.waitForFunction(() => capturedValue !== '')\` to wait for the debounce to fire rather than using a fixed \`waitForTimeout\`.
+
+---
+
+### 5. Mocking Context Providers & Dependencies
+
+💡 **Analogy:** A component that reads from a React Context is like a device that needs to be plugged into a power socket to function. In CT, you bring your own power socket — a mock provider — rather than wiring up the entire electrical grid of the application.
+
+**Wrapping a component in its required providers:**
+
+\`\`\`typescript
+// UserProfile.ct.spec.tsx
+import { test, expect } from '@playwright/experimental-ct-react';
+import { UserProfile } from './UserProfile';
+import { ThemeProvider } from '../providers/ThemeProvider';
+import { AuthContext } from '../contexts/AuthContext';
+
+test('shows admin badge for admin user', async ({ mount, page }) => {
+  const mockAuth = {
+    user: { name: 'Admin User', role: 'admin', email: 'admin@example.com' },
+    isAuthenticated: true,
+    logout: () => {},
+  };
+
+  await mount(
+    <ThemeProvider theme="light">
+      <AuthContext.Provider value={mockAuth}>
+        <UserProfile />
+      </AuthContext.Provider>
+    </ThemeProvider>
+  );
+
+  await expect(page.getByTestId('admin-badge')).toBeVisible();
+  await expect(page.getByText('Admin User')).toBeVisible();
+});
+
+test('shows viewer UI for viewer role', async ({ mount, page }) => {
+  const mockAuth = {
+    user: { name: 'Jane Viewer', role: 'viewer', email: 'jane@example.com' },
+    isAuthenticated: true,
+    logout: () => {},
+  };
+
+  await mount(
+    <AuthContext.Provider value={mockAuth}>
+      <UserProfile />
+    </AuthContext.Provider>
+  );
+
+  await expect(page.getByTestId('admin-badge')).not.toBeVisible();
+  await expect(page.getByText('Jane Viewer')).toBeVisible();
+});
+\`\`\`
+
+**Mocking an API call the component makes internally via page.route():**
+
+\`\`\`typescript
+// ProductCard.ct.spec.tsx — component fetches its own data
+test('shows product details after fetch', async ({ mount, page }) => {
+  // Intercept the fetch the component will make
+  await page.route('**/api/products/42', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ id: 42, name: 'Widget Pro', price: 49.99, inStock: true }),
+    })
+  );
+
+  await mount(<ProductCard productId={42} />);
+
+  await expect(page.getByRole('heading', { name: 'Widget Pro' })).toBeVisible();
+  await expect(page.getByText('£49.99')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add to Cart' })).toBeEnabled();
+});
+
+test('shows error state when fetch fails', async ({ mount, page }) => {
+  await page.route('**/api/products/42', route =>
+    route.fulfill({ status: 500, body: 'Internal Server Error' })
+  );
+
+  await mount(<ProductCard productId={42} />);
+
+  await expect(page.getByText('Failed to load product')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible();
+});
+\`\`\`
+
+> **QA Tip:** \`page.route()\` works inside CT tests exactly as in E2E tests. This is one of CT's biggest advantages over Jest/RTL — you can test real \`fetch()\` calls in a real browser with real network interception, without any module mocking.
+
+---
+
+### 6. When Component Testing Wins vs E2E
+
+💡 **Analogy:** You wouldn't road-test a car to check the headlight bulb wattage — that's a workbench job. But you wouldn't certify the car safe to drive by testing each part in isolation either — that requires a real road. Expert QA engineers know which bench each test belongs on.
+
+**Decision table:**
+
+| Test scenario | Use CT | Use E2E |
+|---|---|---|
+| UI states hard to reach (empty, error, skeleton, loading) | ✅ | ❌ Setup cost too high |
+| Component renders correctly for each prop variant | ✅ | ❌ Overkill |
+| Callback fires with correct arguments | ✅ | ❌ Hard to inspect |
+| Visual regression per component state | ✅ | Sometimes |
+| Multi-page flow (login → checkout → confirmation) | ❌ | ✅ |
+| Real authentication and session handling | ❌ | ✅ |
+| Third-party integrations (Stripe, Auth0) | ❌ | ✅ |
+| Real routing and URL changes | ❌ | ✅ |
+| Database state verified end-to-end | ❌ | ✅ |
+
+**The testing trophy for frontend-heavy apps (Kent C. Dodds):**
+
+\`\`\`
+         /\
+        /  \   ← E2E (10%): critical user journeys only
+       /────\
+      / Intg \  ← Integration / CT (60%): components + API integration
+     /────────\
+    /  Static  \ ← Static analysis: TypeScript + ESLint (always on)
+   /────────────\
+\`\`\`
+
+**Migrating existing E2E tests to CT — good candidates:**
+
+\`\`\`typescript
+// ❌ This E2E test is a CT candidate — it only tests one component's states
+test('E2E: dropdown shows correct options for admin', async ({ page }) => {
+  await page.goto('/login');
+  await page.fill('#email', 'admin@example.com');
+  await page.fill('#password', 'pass');
+  await page.click('[data-testid=login-btn]');
+  await page.waitForURL('/dashboard');
+  await page.click('[data-testid=user-menu]');
+  // All of this setup just to test the dropdown component!
+  await expect(page.getByText('Admin Panel')).toBeVisible();
+});
+
+// ✅ CT version — 10x faster, tests the same thing
+test('CT: dropdown shows admin options when role=admin', async ({ mount, page }) => {
+  await mount(<UserMenuDropdown isOpen={true} role="admin" />);
+  await expect(page.getByText('Admin Panel')).toBeVisible();
+});
+\`\`\`
+
+> **QA Tip:** The golden ratio for a mature codebase is roughly 70% unit/CT, 20% integration, 10% E2E. If your E2E suite takes more than 10 minutes to run, look for tests that are really unit/CT tests wearing an E2E costume and move them down the stack.
+
+---
+
+### 7. Running CT in CI
+
+💡 **Analogy:** CT tests in CI are like a quality control checkpoint at a factory: fast, automated, runs every shift. E2E tests are the full product inspection: thorough, slower, runs on release candidates. Both are essential. Neither replaces the other.
+
+**GitHub Actions — separate CT and E2E jobs:**
+
+\`\`\`yaml
+# .github/workflows/test.yml
+jobs:
+  component-tests:
+    name: Component Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --config playwright-ct.config.ts
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ct-report
+          path: playwright-report/
+
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: component-tests   # only run E2E if CT passes
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+      - run: npx playwright install --with-deps
+      - run: npx playwright test --config playwright.config.ts
+\`\`\`
+
+**Visual snapshots in CT — identical API to E2E:**
+
+\`\`\`typescript
+test('Button visual snapshot — primary variant', async ({ mount, page }) => {
+  await mount(<Button label="Save" variant="primary" size="large" />);
+
+  // toHaveScreenshot() works identically in CT and E2E
+  await expect(page).toHaveScreenshot('button-primary-large.png', {
+    threshold: 0.02,
+  });
+});
+
+test('Button visual snapshot — all variants', async ({ mount, page }) => {
+  await mount(
+    <div style={{ display: 'flex', gap: '8px', padding: '16px' }}>
+      <Button label="Primary"   variant="primary" />
+      <Button label="Secondary" variant="secondary" />
+      <Button label="Danger"    variant="danger" />
+      <Button label="Disabled"  variant="primary" disabled />
+    </div>
+  );
+
+  await expect(page).toHaveScreenshot('button-all-variants.png');
+});
+\`\`\`
+
+**Merging CT and E2E HTML reports:**
+
+\`\`\`bash
+# After both test runs, merge reports into one dashboard
+npx playwright merge-reports --reporter html \\
+  ct-blob-report e2e-blob-report \\
+  --output merged-report
+
+# Open the unified report
+npx playwright show-report merged-report
+\`\`\`
+
+\`\`\`yaml
+# In CI: upload blob reports from both jobs, merge in a third job
+- run: npx playwright test --config playwright-ct.config.ts --reporter=blob --output=ct-blob-report
+- run: npx playwright test --config playwright.config.ts    --reporter=blob --output=e2e-blob-report
+\`\`\`
+
+> **QA Tip:** CT tests are fast enough that sharding is rarely needed. A typical suite of 200 CT tests finishes in under 30 seconds on a single CI worker. Reserve sharding for your E2E suite where it makes a real impact on total pipeline time.
+        `
+      },
+
+      {
+        id: 'pw-custom-reporters',
+        title: 'Custom Reporters & Integrations',
+        analogy: "Test results that only live in a terminal are like a ship's navigation log that only the captain can read. The ship's owner, the port authority, the cargo clients — everyone with a stake in the voyage — gets nothing. A custom reporter is the translation layer: it takes the raw navigation data and publishes it in the right format for every stakeholder. The HTML report for QA engineers. The JUnit XML for the CI system. The Slack message for the dev team. The JIRA ticket for the project manager. One voyage, many audiences, each report tailored.",
+        lessonMarkdown: `
+## Custom Reporters & Integrations
+
+Getting test results out of Playwright and into the hands of every stakeholder — developers, managers, CI systems, issue trackers — is what separates a test suite from a testing programme. This module covers the full reporter ecosystem from scratch implementations to Allure, Slack, and JIRA integrations.
+
+---
+
+### 1. Anatomy of a Playwright Reporter
+
+💡 **Analogy:** A Playwright reporter is like a court stenographer who is handed a transcript of the proceedings (Suite, TestCase, TestResult) and asked to produce different outputs — official court record, press summary, lawyer's brief — each from the same raw material.
+
+**The Reporter interface — every hook explained:**
+
+\`\`\`typescript
+import type {
+  Reporter,
+  FullConfig,
+  Suite,
+  TestCase,
+  TestResult,
+  TestStep,
+  FullResult,
+} from '@playwright/test/reporter';
+
+class MyReporter implements Reporter {
+  // Called once before any test runs — receives the root Suite
+  onBegin(config: FullConfig, suite: Suite): void {}
+
+  // Called when each test starts
+  onTestBegin(test: TestCase, result: TestResult): void {}
+
+  // Called when each step inside a test starts (e.g., page.goto, expect)
+  onStepBegin(test: TestCase, result: TestResult, step: TestStep): void {}
+
+  // Called when a step completes
+  onStepEnd(test: TestCase, result: TestResult, step: TestStep): void {}
+
+  // Called when a test completes — result.status is 'passed', 'failed', 'timedOut', 'skipped'
+  onTestEnd(test: TestCase, result: TestResult): void {}
+
+  // Called once after all tests — receives the final summary
+  onEnd(result: FullResult): Promise<void> | void {}
+
+  // Called when a stdout/stderr message is emitted
+  onStdOut(chunk: string, test?: TestCase, result?: TestResult): void {}
+  onStdErr(chunk: string, test?: TestCase, result?: TestResult): void {}
+}
+\`\`\`
+
+**Registering your reporter in \`playwright.config.ts\`:**
+
+\`\`\`typescript
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  reporter: [
+    ['html'],                                         // built-in HTML report
+    ['json', { outputFile: 'results/results.json' }], // built-in JSON
+    ['./reporters/my-reporter.ts'],                   // custom reporter
+    ['./reporters/slack-reporter.ts', {               // custom with options
+      webhookUrl: process.env.SLACK_WEBHOOK_URL,
+    }],
+  ],
+});
+\`\`\`
+
+**Minimal reporter — prints one line per test:**
+
+\`\`\`typescript
+// reporters/minimal-reporter.ts
+import type { Reporter, TestCase, TestResult } from '@playwright/test/reporter';
+
+class MinimalReporter implements Reporter {
+  onTestEnd(test: TestCase, result: TestResult): void {
+    const icon = result.status === 'passed' ? '✓' : result.status === 'skipped' ? '○' : '✗';
+    const ms   = result.duration;
+    console.log(\`\${icon} \${test.title} (\${ms}ms)\`);
+  }
+}
+
+export default MinimalReporter;
+\`\`\`
+
+> **QA Tip:** Multiple reporters run simultaneously from the same test run — you don't have to choose between HTML and JSON. Stack them in the \`reporter\` array and each one receives the same event stream.
+
+---
+
+### 2. Writing a Custom Reporter From Scratch
+
+💡 **Analogy:** Writing a custom reporter is like programming a scoreboard. You receive every event as it happens — goal scored, foul called, time elapsed — and you decide what to display, what to store, and what to broadcast. The game doesn't change; only your scoreboard does.
+
+**A practical JSON summary reporter:**
+
+\`\`\`typescript
+// reporters/json-summary.ts
+import type {
+  Reporter, FullConfig, Suite, TestCase, TestResult, FullResult,
+} from '@playwright/test/reporter';
+import * as fs from 'fs';
+import * as path from 'path';
+
+interface TestSummaryEntry {
+  title:    string;
+  file:     string;
+  status:   string;
+  duration: number;
+  error?:   string;
+}
+
+class JsonSummaryReporter implements Reporter {
+  private results: TestSummaryEntry[] = [];
+  private startTime = Date.now();
+
+  onBegin(config: FullConfig, suite: Suite): void {
+    this.startTime = Date.now();
+    console.log(\`Running \${suite.allTests().length} tests...\`);
+  }
+
+  onTestEnd(test: TestCase, result: TestResult): void {
+    this.results.push({
+      title:    test.title,
+      file:     test.location.file.replace(process.cwd(), ''),
+      status:   result.status,
+      duration: result.duration,
+      error:    result.error?.message?.split('\\n')[0], // first line only
+    });
+  }
+
+  onEnd(result: FullResult): void {
+    const passed  = this.results.filter(r => r.status === 'passed').length;
+    const failed  = this.results.filter(r => r.status === 'failed').length;
+    const skipped = this.results.filter(r => r.status === 'skipped').length;
+    const slow    = this.results
+      .filter(r => r.duration > 10_000)
+      .sort((a, b) => b.duration - a.duration)
+      .slice(0, 5);
+
+    const summary = {
+      runAt:        new Date().toISOString(),
+      totalMs:      Date.now() - this.startTime,
+      status:       result.status,
+      counts:       { passed, failed, skipped, total: this.results.length },
+      slowestTests: slow,
+      failures:     this.results.filter(r => r.status === 'failed'),
+    };
+
+    fs.mkdirSync('results', { recursive: true });
+    fs.writeFileSync('results/summary.json', JSON.stringify(summary, null, 2));
+    console.log(\`\\nSummary: \${passed} passed, \${failed} failed, \${skipped} skipped\`);
+  }
+}
+
+export default JsonSummaryReporter;
+\`\`\`
+
+**Accessing attachments — screenshots, traces, videos:**
+
+\`\`\`typescript
+onTestEnd(test: TestCase, result: TestResult): void {
+  if (result.status === 'failed') {
+    const screenshot = result.attachments.find(a => a.name === 'screenshot');
+    const trace      = result.attachments.find(a => a.name === 'trace');
+    const video      = result.attachments.find(a => a.name === 'video');
+
+    if (screenshot?.path) {
+      console.log(\`  Screenshot: \${screenshot.path}\`);
+    }
+    if (trace?.path) {
+      console.log(\`  Trace:      \${trace.path}\`);
+      console.log(\`  View trace: npx playwright show-trace \${trace.path}\`);
+    }
+  }
+}
+\`\`\`
+
+> **QA Tip:** The \`result.attachments\` array contains every file Playwright attached during the test run — screenshots on failure, HAR files, custom \`testInfo.attach()\` calls. Your reporter can copy these files to S3, embed them in reports, or post them to Slack.
+
+---
+
+### 3. Allure Reporter — Rich Interactive Reports
+
+💡 **Analogy:** The built-in HTML report is a single newspaper edition. Allure is a subscription news service — interactive, searchable, with historical archives, trend analysis, and ownership tracking. Same stories, but you can filter by author, search by keyword, and see how the crime rate changed over 30 days.
+
+**Installation:**
+
+\`\`\`bash
+npm install -D allure-playwright allure-commandline
+\`\`\`
+
+**Configuration:**
+
+\`\`\`typescript
+// playwright.config.ts
+export default defineConfig({
+  reporter: [
+    ['allure-playwright', {
+      detail: true,               // include step details in the report
+      outputFolder: 'allure-results',
+      suiteTitle: false,
+    }],
+  ],
+});
+\`\`\`
+
+**Allure annotations inside tests:**
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+import { allure } from 'allure-playwright';
+
+test('user can complete checkout', async ({ page }) => {
+  // Metadata annotations
+  allure.label('severity', 'critical');
+  allure.label('owner', 'team-checkout');
+  allure.feature('Checkout');
+  allure.story('Happy Path');
+  allure.description('Verifies that a logged-in user can complete a full purchase.');
+
+  // Link to requirements
+  allure.link('https://jira.example.com/PROJ-456', 'JIRA Ticket', 'jira');
+
+  await allure.step('Navigate to product page', async () => {
+    await page.goto('/products/widget-pro');
+  });
+
+  await allure.step('Add product to cart', async () => {
+    await page.getByRole('button', { name: 'Add to Cart' }).click();
+    await expect(page.getByTestId('cart-count')).toHaveText('1');
+  });
+
+  await allure.step('Complete checkout', async () => {
+    await page.goto('/checkout');
+    await page.getByRole('button', { name: 'Place Order' }).click();
+    await expect(page).toHaveURL(/order-confirmation/);
+  });
+});
+\`\`\`
+
+**Generating and serving the report:**
+
+\`\`\`bash
+# After running tests:
+npx allure generate allure-results --clean -o allure-report
+npx allure open allure-report
+\`\`\`
+
+**GitHub Actions — upload results, generate in pipeline:**
+
+\`\`\`yaml
+- name: Run Playwright Tests
+  run: npx playwright test
+
+- name: Generate Allure Report
+  if: always()
+  run: npx allure generate allure-results --clean -o allure-report
+
+- name: Upload Allure Report
+  if: always()
+  uses: actions/upload-artifact@v4
+  with:
+    name: allure-report
+    path: allure-report/
+    retention-days: 30
+\`\`\`
+
+> **QA Tip:** Allure's history feature requires the \`allure-results\` directory to contain a \`history/\` folder from the previous run. In CI, download the previous \`allure-report/history\` artifact and copy it into \`allure-results/history\` before each run to maintain trend graphs.
+
+---
+
+### 4. Slack Integration — Failure Notifications
+
+💡 **Analogy:** A Slack failure notification is the fire alarm panel in the lobby — it tells everyone in the building that something is wrong, exactly which room it is in, and the severity level. Without it, only the person standing in the smoke-filled room knows there is a fire.
+
+**Slack webhook reporter:**
+
+\`\`\`typescript
+// reporters/slack-reporter.ts
+import type { Reporter, TestCase, TestResult, FullResult } from '@playwright/test/reporter';
+
+interface SlackReporterOptions {
+  webhookUrl: string;
+  channel?:   string;
+  onlyOnFailure?: boolean;
+}
+
+class SlackReporter implements Reporter {
+  private failures: { title: string; error: string; file: string }[] = [];
+  private passed = 0;
+  private options: SlackReporterOptions;
+
+  constructor(options: SlackReporterOptions) {
+    this.options = options;
+  }
+
+  onTestEnd(test: TestCase, result: TestResult): void {
+    if (result.status === 'passed') {
+      this.passed++;
+    } else if (result.status === 'failed' || result.status === 'timedOut') {
+      this.failures.push({
+        title: test.title,
+        error: result.error?.message?.split('\\n')[0] ?? 'Unknown error',
+        file:  test.location.file.replace(process.cwd(), ''),
+      });
+    }
+  }
+
+  async onEnd(result: FullResult): Promise<void> {
+    // Only notify in CI
+    if (!process.env.CI) return;
+
+    // Only notify on failure if configured
+    if (this.options.onlyOnFailure && result.status === 'passed') return;
+
+    const total  = this.passed + this.failures.length;
+    const colour = this.failures.length > 0 ? '#FF0000' : '#36A64F';
+    const icon   = this.failures.length > 0 ? ':red_circle:' : ':white_check_mark:';
+
+    const failureBlocks = this.failures.slice(0, 5).map(f => ({
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: \`*\${f.title}*\\n\\\`\${f.file}\\\`\\n> \${f.error}\`,
+      },
+    }));
+
+    const payload = {
+      channel: this.options.channel,
+      attachments: [{
+        color: colour,
+        blocks: [
+          {
+            type: 'header',
+            text: { type: 'plain_text', text: \`\${icon} Test Run: \${result.status.toUpperCase()}\` },
+          },
+          {
+            type: 'section',
+            fields: [
+              { type: 'mrkdwn', text: \`*Passed:* \${this.passed}\` },
+              { type: 'mrkdwn', text: \`*Failed:* \${this.failures.length}\` },
+              { type: 'mrkdwn', text: \`*Total:*  \${total}\` },
+              { type: 'mrkdwn', text: \`*CI Run:* <\${process.env.CI_RUN_URL ?? '#'}|View Artifacts>\` },
+            ],
+          },
+          ...failureBlocks,
+        ],
+      }],
+    };
+
+    await fetch(this.options.webhookUrl, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload),
+    });
+  }
+}
+
+export default SlackReporter;
+\`\`\`
+
+**Registering with options:**
+
+\`\`\`typescript
+// playwright.config.ts
+reporter: [
+  ['./reporters/slack-reporter.ts', {
+    webhookUrl:    process.env.SLACK_WEBHOOK_URL!,
+    channel:       '#qa-alerts',
+    onlyOnFailure: true,
+  }],
+],
+\`\`\`
+
+> **QA Tip:** Always guard Slack (and all external notification) reporters behind \`if (!process.env.CI) return\`. Local test runs should never spam team channels, and developers should never have to worry that running tests locally will send notifications.
+
+---
+
+### 5. JIRA / Xray Integration
+
+💡 **Analogy:** Auto-creating JIRA tickets is like a quality control line that prints a defect report every time a faulty item falls off the conveyor belt — automatically, consistently, with the right metadata. No manual logging, no forgotten defects, no duplicate tickets for the same fault.
+
+**Annotating tests with JIRA ticket references:**
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+test('checkout flow completes successfully', async ({ page }) => {
+  // Link this test to a JIRA ticket
+  test.info().annotations.push({
+    type:        'jira',
+    description: 'PROJ-456',
+  });
+
+  // Link to multiple tickets if needed
+  test.info().annotations.push({
+    type:        'jira',
+    description: 'PROJ-789',
+  });
+
+  await page.goto('/checkout');
+  // ... test body
+});
+\`\`\`
+
+**Auto-creating JIRA tickets for newly-failing tests:**
+
+\`\`\`typescript
+// reporters/jira-reporter.ts
+class JiraReporter implements Reporter {
+  async onTestEnd(test: TestCase, result: TestResult): Promise<void> {
+    if (result.status !== 'failed') return;
+    if (!process.env.CI) return;
+
+    // Check if this test already has a JIRA annotation
+    const existingTicket = test.annotations.find(a => a.type === 'jira');
+    if (existingTicket) {
+      // Update the existing ticket status instead of creating a new one
+      await this.updateTicketStatus(existingTicket.description!, 'Reopened');
+      return;
+    }
+
+    // Create a new JIRA ticket for this failure
+    await this.createJiraTicket({
+      summary:     \`[AUTO] Test failure: \${test.title}\`,
+      description: [
+        \`*Test file:* \${test.location.file}\`,
+        \`*Error:* {noformat}\${result.error?.message ?? 'No error message'}{noformat}\`,
+        \`*CI Run:* \${process.env.CI_RUN_URL ?? 'unknown'}\`,
+      ].join('\\n'),
+      priority:  'High',
+      labels:    ['automated-test', 'regression'],
+    });
+  }
+
+  private async createJiraTicket(fields: Record<string, unknown>): Promise<void> {
+    await fetch(\`\${process.env.JIRA_BASE_URL}/rest/api/2/issue\`, {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': \`Basic \${Buffer.from(\`\${process.env.JIRA_EMAIL}:\${process.env.JIRA_TOKEN}\`).toString('base64')}\`,
+      },
+      body: JSON.stringify({
+        fields: {
+          project:     { key: process.env.JIRA_PROJECT_KEY },
+          issuetype:   { name: 'Bug' },
+          ...fields,
+        },
+      }),
+    });
+  }
+
+  private async updateTicketStatus(ticketId: string, status: string): Promise<void> {
+    // Transition the ticket to the target status using JIRA transitions API
+    console.log(\`Updating \${ticketId} to \${status}\`);
+  }
+}
+\`\`\`
+
+> **QA Tip:** De-duplication is critical for JIRA auto-creation. Without it, a test that fails on every run will create a new ticket on every run, flooding your board. Always check for an existing open ticket with the test's title before creating a new one.
+
+---
+
+### 6. Test Metadata & Custom Annotations
+
+💡 **Analogy:** \`test.info()\` is the test's passport — it holds all the identifying information that any reporter, integration, or observer might need. You can stamp extra visas into it at any point during the test run, and any reporter can read every stamp.
+
+**\`test.info().annotations\` — arbitrary key-value metadata:**
+
+\`\`\`typescript
+test('payment processing', async ({ page }) => {
+  const info = test.info();
+
+  // Add ownership
+  info.annotations.push({ type: 'owner', description: 'team-payments' });
+
+  // Add severity
+  info.annotations.push({ type: 'severity', description: 'critical' });
+
+  // Link to documentation
+  info.annotations.push({
+    type:        'docs',
+    description: 'https://docs.example.com/payment-flow',
+  });
+
+  // Tag the environment
+  info.annotations.push({ type: 'environment', description: process.env.TEST_ENV! });
+});
+\`\`\`
+
+**\`test.info().attachments\` — attaching files programmatically:**
+
+\`\`\`typescript
+test('API response audit', async ({ request, page }) => {
+  const response = await request.get('/api/users');
+  const body = await response.text();
+
+  // Attach the raw API response to the test result
+  await test.info().attach('api-response.json', {
+    body:        Buffer.from(body),
+    contentType: 'application/json',
+  });
+
+  // Attach a custom log file
+  await test.info().attach('test-run.log', {
+    path:        '/tmp/test-run.log',
+    contentType: 'text/plain',
+  });
+});
+\`\`\`
+
+**Building a team ownership routing system:**
+
+\`\`\`typescript
+// fixtures/ownership.ts — auto-annotate every test with team ownership
+import { test as base } from '@playwright/test';
+
+// Convention: test file path contains the team name
+// e.g., tests/checkout/cart.spec.ts → team-checkout
+export const test = base.extend({
+  page: async ({ page }, use, testInfo) => {
+    const fileSegments = testInfo.file.split('/');
+    const teamFolder   = fileSegments[fileSegments.indexOf('tests') + 1] ?? 'unknown';
+    testInfo.annotations.push({ type: 'team', description: \`team-\${teamFolder}\` });
+    await use(page);
+  },
+});
+\`\`\`
+
+**\`test.info().setTimeout()\` — dynamic timeout extension:**
+
+\`\`\`typescript
+test('slow data migration test', async ({ page }) => {
+  // This test is known to be slow — extend timeout dynamically
+  test.info().setTimeout(120_000);  // 2 minutes for this test only
+
+  await page.goto('/admin/migrate');
+  await page.getByRole('button', { name: 'Run Migration' }).click();
+  await expect(page.getByText('Migration complete')).toBeVisible({ timeout: 90_000 });
+});
+\`\`\`
+
+> **QA Tip:** Annotations are available in the \`onTestEnd\` hook of every reporter via \`test.annotations\`. Use them to route Slack alerts by team, populate Allure metadata, filter results in your dashboard, or feed your JIRA integration with ticket IDs.
+
+---
+
+### 7. Building a Results Dashboard
+
+💡 **Analogy:** The JSON results file is raw ore. A dashboard is the smelting process — it refines the ore into actionable intelligence: pass rates, trend lines, slowest tests, most-flaky tests. The ore is useless until processed; the dashboard makes it valuable.
+
+**The JSON reporter output structure:**
+
+\`\`\`typescript
+// playwright.config.ts
+reporter: [['json', { outputFile: 'results/results.json' }]],
+
+// results.json shape (simplified):
+// {
+//   "config": { "rootDir": "...", "workers": 4 },
+//   "suites": [{
+//     "title": "auth.spec.ts",
+//     "specs": [{
+//       "title": "user can log in",
+//       "tests": [{
+//         "status": "passed",
+//         "results": [{
+//           "workerIndex": 0,
+//           "duration": 1234,
+//           "status": "passed",
+//           "attachments": [],
+//           "errors": []
+//         }]
+//       }]
+//     }]
+//   }]
+// }
+\`\`\`
+
+**Reading results.json to extract metrics:**
+
+\`\`\`typescript
+// scripts/parse-results.ts
+import * as fs from 'fs';
+
+const raw = JSON.parse(fs.readFileSync('results/results.json', 'utf-8'));
+
+const allTests = raw.suites.flatMap((suite: any) =>
+  suite.specs.flatMap((spec: any) =>
+    spec.tests.flatMap((test: any) =>
+      test.results.map((result: any) => ({
+        title:    spec.title,
+        file:     suite.title,
+        status:   result.status,
+        duration: result.duration,
+      }))
+    )
+  )
+);
+
+const passed  = allTests.filter((t: any) => t.status === 'passed').length;
+const failed  = allTests.filter((t: any) => t.status === 'failed').length;
+const slowest = allTests
+  .sort((a: any, b: any) => b.duration - a.duration)
+  .slice(0, 10);
+
+console.log(\`Pass rate: \${((passed / allTests.length) * 100).toFixed(1)}%\`);
+console.table(slowest);
+\`\`\`
+
+**Storing historical results for trend analysis:**
+
+\`\`\`typescript
+// scripts/archive-results.ts — append each run to a history file
+import * as fs from 'fs';
+
+const history  = JSON.parse(fs.readFileSync('results/history.json', 'utf-8').catch(() => '[]'));
+const current  = JSON.parse(fs.readFileSync('results/results.json', 'utf-8'));
+
+const runEntry = {
+  runAt:     new Date().toISOString(),
+  gitSha:    process.env.GITHUB_SHA ?? 'local',
+  branch:    process.env.GITHUB_REF_NAME ?? 'local',
+  passed:    current.stats?.expected  ?? 0,
+  failed:    current.stats?.unexpected ?? 0,
+  durationMs: current.stats?.duration  ?? 0,
+};
+
+history.push(runEntry);
+
+// Keep last 90 runs
+const trimmed = history.slice(-90);
+fs.writeFileSync('results/history.json', JSON.stringify(trimmed, null, 2));
+\`\`\`
+
+**Flakiness detection — tests that fail then pass on retry:**
+
+\`\`\`typescript
+// A test is flaky if it has multiple results and not all have the same status
+const flaky = allTests.filter((t: any) => {
+  const statuses = t.results?.map((r: any) => r.status) ?? [];
+  return statuses.includes('passed') && statuses.includes('failed');
+});
+
+console.log(\`Flaky tests: \${flaky.length}\`);
+flaky.forEach((t: any) => console.log(\`  - \${t.title}\`));
+\`\`\`
+
+> **QA Tip:** Commit your \`results/history.json\` file (or store it in a CI artifact cache) so trend graphs survive across CI runs. A pass rate graph over 30 days is one of the most compelling artefacts you can show to engineering leadership to justify investing in test quality.
+        `
+      },
+
+      {
+        id: 'pw-advanced-architecture',
+        title: 'Advanced Test Architecture',
+        analogy: "A small town needs no urban planning — a few houses, a shop, a road. But a city of a million people needs deliberate architecture: zoning laws, transport networks, utility infrastructure, building codes. A 50-test suite needs no architecture — just organised files. A 1,000-test suite without architecture becomes a city that grew without planning: traffic jams (slow suite), buildings blocking each other (test coupling), no-one knows where anything is (no naming conventions), the whole thing at risk of collapse when one thing changes. Expert QA engineers are the urban planners — they design the infrastructure before the population arrives.",
+        lessonMarkdown: `
+## Advanced Test Architecture
+
+This module covers the structural decisions that determine whether a large test suite remains maintainable at 1,000+ tests. From the Screenplay Pattern to fixture dependency graphs, monorepo strategies, and ROI measurement — this is the engineering discipline of QA at scale.
+
+---
+
+### 1. Beyond POM — The Screenplay Pattern
+
+💡 **Analogy:** The Page Object Model casts each page as a character and gives that character all the actions. The Screenplay Pattern casts each user as an Actor and describes what they attempt to do in the application — regardless of which pages are involved. When a checkout flow touches five pages, Screenplay describes it as one Task, not five POM method calls.
+
+**The Screenplay building blocks:**
+
+| Concept | Role | Example |
+|---|---|---|
+| Actor | Represents a user persona | \`adminActor\`, \`customerActor\` |
+| Ability | What the actor can do | \`BrowseTheWeb\`, \`CallAnAPI\` |
+| Task | A high-level business action | \`PlaceOrder\`, \`CancelSubscription\` |
+| Action | A low-level browser step | \`Click\`, \`Fill\`, \`Navigate\` |
+| Question | A query about system state | \`TheOrderStatus\`, \`TheCartTotal\` |
+
+**Implementing an Actor:**
+
+\`\`\`typescript
+// screenplay/actor.ts
+import { Page } from '@playwright/test';
+
+export class Actor {
+  constructor(
+    private readonly name: string,
+    private readonly page: Page,
+  ) {}
+
+  async attemptsTo(...tasks: Task[]): Promise<void> {
+    for (const task of tasks) {
+      await task.performAs(this, this.page);
+    }
+  }
+
+  async asks<T>(question: Question<T>): Promise<T> {
+    return question.answeredBy(this, this.page);
+  }
+
+  toString(): string { return this.name; }
+}
+\`\`\`
+
+**Implementing a Task:**
+
+\`\`\`typescript
+// screenplay/tasks/place-order.ts
+import { Page } from '@playwright/test';
+import type { Actor } from '../actor';
+
+export class PlaceOrder {
+  constructor(private readonly productName: string) {}
+
+  static forProduct(name: string): PlaceOrder {
+    return new PlaceOrder(name);
+  }
+
+  async performAs(actor: Actor, page: Page): Promise<void> {
+    // A Task composes multiple Actions — none of which reference specific pages
+    await page.goto('/products');
+    await page.getByRole('link', { name: this.productName }).click();
+    await page.getByRole('button', { name: 'Add to Cart' }).click();
+    await page.goto('/checkout');
+    await page.getByRole('button', { name: 'Place Order' }).click();
+    await page.waitForURL(/order-confirmation/);
+  }
+}
+\`\`\`
+
+**Implementing a Question:**
+
+\`\`\`typescript
+// screenplay/questions/the-order-status.ts
+import { Page } from '@playwright/test';
+import type { Actor } from '../actor';
+
+export class TheOrderStatus {
+  async answeredBy(actor: Actor, page: Page): Promise<string> {
+    return page.getByTestId('order-status').innerText();
+  }
+}
+\`\`\`
+
+**A Screenplay test — readable, role-focused:**
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+import { Actor } from '../screenplay/actor';
+import { PlaceOrder } from '../screenplay/tasks/place-order';
+import { TheOrderStatus } from '../screenplay/questions/the-order-status';
+
+test('customer can place an order for Widget Pro', async ({ page }) => {
+  const customer = new Actor('Sam Customer', page);
+
+  await customer.attemptsTo(
+    PlaceOrder.forProduct('Widget Pro'),
+  );
+
+  const status = await customer.asks(new TheOrderStatus());
+  expect(status).toBe('Order Confirmed');
+});
+\`\`\`
+
+> **QA Tip:** Screenplay is powerful but has overhead. Introduce it when your POM classes exceed 300 lines or when the same multi-page action is duplicated across more than 10 tests. For smaller suites, a well-factored POM is simpler and equally effective.
+
+---
+
+### 2. The Builder Pattern for Test Data
+
+💡 **Analogy:** A factory stamp produces one fixed shape. A builder is an adjustable mould — you configure it step by step, then press the button. Each configuration step is self-documenting, and the result is only produced when every required part is assembled.
+
+**Fluent builder with TypeScript:**
+
+\`\`\`typescript
+// builders/user.builder.ts
+import { faker } from '@faker-js/faker';
+
+interface User {
+  id:         string;
+  name:       string;
+  email:      string;
+  role:       'admin' | 'editor' | 'viewer';
+  verified:   boolean;
+  plan:       'free' | 'pro' | 'enterprise';
+  twoFactor:  boolean;
+}
+
+export class UserBuilder {
+  private data: User = {
+    id:        faker.string.uuid(),
+    name:      faker.person.fullName(),
+    email:     faker.internet.email(),
+    role:      'viewer',
+    verified:  true,
+    plan:      'free',
+    twoFactor: false,
+  };
+
+  withRole(role: User['role']): this {
+    this.data.role = role;
+    return this;
+  }
+
+  withVerifiedEmail(verified = true): this {
+    this.data.verified = verified;
+    return this;
+  }
+
+  withSubscription(plan: User['plan']): this {
+    this.data.plan = plan;
+    return this;
+  }
+
+  withTwoFactor(enabled = true): this {
+    this.data.twoFactor = enabled;
+    return this;
+  }
+
+  withEmail(email: string): this {
+    this.data.email = email;
+    return this;
+  }
+
+  build(): User {
+    // Validate required relationships before returning
+    if (this.data.twoFactor && this.data.plan === 'free') {
+      throw new Error('Two-factor authentication requires a paid plan');
+    }
+    return { ...this.data }; // return a copy — builder is reusable
+  }
+}
+\`\`\`
+
+**Using the builder — test reads like a specification:**
+
+\`\`\`typescript
+test('enterprise admin with 2FA sees security dashboard', async ({ request, page }) => {
+  const user = new UserBuilder()
+    .withRole('admin')
+    .withVerifiedEmail()
+    .withSubscription('enterprise')
+    .withTwoFactor()
+    .build();
+
+  // Seed via API using the built data
+  const created = await request.post('/api/users', { data: user });
+  const { id }  = await created.json();
+
+  await page.goto(\`/users/\${id}/security\`);
+  await expect(page.getByTestId('2fa-enabled-badge')).toBeVisible();
+});
+\`\`\`
+
+**Nested builders — OrderBuilder composing UserBuilder and ProductBuilder:**
+
+\`\`\`typescript
+// builders/order.builder.ts
+export class OrderBuilder {
+  private customer = new UserBuilder().build();
+  private items:    ReturnType<ProductBuilder['build']>[] = [];
+  private status:   'pending' | 'paid' | 'shipped' = 'pending';
+
+  withCustomer(user: ReturnType<UserBuilder['build']>): this {
+    this.customer = user;
+    return this;
+  }
+
+  withItem(product: ReturnType<ProductBuilder['build']>): this {
+    this.items.push(product);
+    return this;
+  }
+
+  withStatus(status: 'pending' | 'paid' | 'shipped'): this {
+    this.status = status;
+    return this;
+  }
+
+  build() {
+    if (this.items.length === 0) throw new Error('Order must have at least one item');
+    return {
+      customer: this.customer,
+      items:    this.items,
+      status:   this.status,
+      total:    this.items.reduce((sum, p) => sum + p.price, 0),
+    };
+  }
+}
+\`\`\`
+
+> **QA Tip:** Builder instances should be stateless — always return \`{ ...this.data }\` (a copy) from \`build()\`. This allows the same builder to produce multiple different objects without re-instantiation, which is useful in parameterised tests.
+
+---
+
+### 3. Fixture Dependency Graphs
+
+💡 **Analogy:** Playwright resolves fixture dependencies like a project manager resolves task dependencies — topological sort, deepest dependencies set up first. You just declare what each fixture needs, and Playwright figures out the construction order automatically.
+
+**How Playwright resolves the dependency graph:**
+
+\`\`\`typescript
+// fixtures/index.ts
+import { test as base } from '@playwright/test';
+
+type Fixtures = {
+  authToken:    string;
+  loggedInPage: Page;
+  adminPage:    Page;
+};
+
+export const test = base.extend<Fixtures>({
+  // authToken depends on nothing
+  authToken: async ({ request }, use) => {
+    const resp  = await request.post('/api/auth/login', {
+      data: { email: 'user@example.com', password: 'pass' },
+    });
+    const { token } = await resp.json();
+    await use(token);
+  },
+
+  // loggedInPage depends on authToken
+  loggedInPage: async ({ page, authToken }, use) => {
+    await page.addInitScript((t: string) => {
+      localStorage.setItem('auth_token', t);
+    }, authToken);
+    await page.goto('/dashboard');
+    await use(page);
+  },
+
+  // adminPage depends on loggedInPage
+  adminPage: async ({ loggedInPage }, use) => {
+    await loggedInPage.goto('/admin');
+    await use(loggedInPage);
+  },
+});
+\`\`\`
+
+**Resolution order for a test that uses \`adminPage\`:**
+
+\`\`\`
+1. browser        (built-in, worker scope)
+2. context        (built-in, test scope)
+3. page           (built-in, test scope)
+4. request        (built-in, test scope)
+5. authToken      (custom, test scope — depends on: request)
+6. loggedInPage   (custom, test scope — depends on: page, authToken)
+7. adminPage      (custom, test scope — depends on: loggedInPage)
+
+Teardown runs in reverse: adminPage → loggedInPage → authToken → page → context → browser
+\`\`\`
+
+**Avoiding circular dependencies:**
+
+\`\`\`typescript
+// ❌ CIRCULAR: A depends on B, B depends on A
+const test = base.extend({
+  fixtureA: async ({ fixtureB }, use) => { await use('a'); }, // needs B
+  fixtureB: async ({ fixtureA }, use) => { await use('b'); }, // needs A — CIRCULAR
+});
+
+// ✅ CORRECT: extract the shared concern into a third fixture
+const test = base.extend({
+  sharedSetup: async ({ request }, use) => { await use('shared data'); },
+  fixtureA:    async ({ sharedSetup }, use) => { await use('a'); },
+  fixtureB:    async ({ sharedSetup }, use) => { await use('b'); },
+});
+\`\`\`
+
+**Worker-scoped and test-scoped fixtures in the same chain:**
+
+\`\`\`typescript
+const test = base.extend<
+  { loggedInPage: Page },         // test-scoped
+  { workerAuthToken: string }     // worker-scoped (second generic)
+>({
+  workerAuthToken: [async ({ request }, use, workerInfo) => {
+    // Created once per worker — expensive operation done once
+    const resp = await request.post('/api/auth/login', {
+      data: { email: \`worker\${workerInfo.workerIndex}@example.com\`, password: 'pass' },
+    });
+    const { token } = await resp.json();
+    await use(token);
+    // cleanup...
+  }, { scope: 'worker' }],
+
+  loggedInPage: async ({ page, workerAuthToken }, use) => {
+    // Created per test — uses the worker-scoped token
+    await page.addInitScript((t: string) => localStorage.setItem('auth_token', t), workerAuthToken);
+    await use(page);
+  },
+});
+\`\`\`
+
+> **QA Tip:** Debugging fixture failures: run with \`DEBUG=pw:fixture\` to see exactly which fixture in the chain threw and at what point in its setup/teardown lifecycle. This is invaluable when a fixture is failing silently.
+
+---
+
+### 4. Monorepo Test Strategies
+
+💡 **Analogy:** A monorepo without shared test infrastructure is like every restaurant in a chain writing its own food safety manual from scratch. A shared \`@company/pw-fixtures\` package is the head office publishing one manual that all branches follow — with local variations allowed per branch.
+
+**Shared fixtures as an internal TypeScript package:**
+
+\`\`\`
+packages/
+  pw-fixtures/        ← @company/pw-fixtures
+    src/
+      auth.ts
+      api.ts
+      database.ts
+    index.ts
+    package.json
+
+  pw-pages/           ← @company/pw-pages
+    src/
+      LoginPage.ts
+      DashboardPage.ts
+    index.ts
+    package.json
+
+apps/
+  web/                ← uses @company/pw-fixtures + @company/pw-pages
+    e2e/
+      checkout.spec.ts
+  mobile-web/
+    e2e/
+      checkout.spec.ts
+\`\`\`
+
+**Shared playwright.config.ts base:**
+
+\`\`\`typescript
+// packages/pw-config/base.config.ts
+import { defineConfig, PlaywrightTestConfig } from '@playwright/test';
+
+export function createBaseConfig(overrides: Partial<PlaywrightTestConfig> = {}) {
+  return defineConfig({
+    timeout: 30_000,
+    retries: process.env.CI ? 2 : 0,
+    workers: process.env.CI ? 4 : 2,
+    reporter: [
+      ['html'],
+      ['./reporters/shared-slack-reporter.ts'],
+    ],
+    use: {
+      screenshot: 'only-on-failure',
+      video:      'retain-on-failure',
+      trace:      'on-first-retry',
+    },
+    ...overrides,
+  });
+}
+\`\`\`
+
+\`\`\`typescript
+// apps/web/playwright.config.ts
+import { createBaseConfig } from '@company/pw-config';
+
+export default createBaseConfig({
+  testDir: './e2e',
+  use: {
+    baseURL: process.env.WEB_BASE_URL ?? 'http://localhost:3000',
+  },
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+  ],
+});
+\`\`\`
+
+**Running tests for affected packages only (Turborepo):**
+
+\`\`\`json
+// turbo.json
+{
+  "pipeline": {
+    "test:e2e": {
+      "dependsOn": ["^build"],
+      "outputs": ["playwright-report/**"]
+    }
+  }
+}
+\`\`\`
+
+\`\`\`bash
+# Run E2E tests only for packages affected by changes on this branch
+npx turbo run test:e2e --filter=[origin/main]
+\`\`\`
+
+> **QA Tip:** Version your shared fixture packages with semver and write a CHANGELOG. A breaking change to \`@company/pw-fixtures\` that affects 20 apps is a major version bump. Communicate it in advance — unexplained fixture failures across multiple apps are deeply disorienting.
+
+---
+
+### 5. Tagging Taxonomy for Large Suites
+
+💡 **Analogy:** Tags are the Dewey Decimal System of your test suite. Without them, finding the 5 tests that constitute a deployment smoke check in a 1,000-test library requires searching every shelf. With them, you type \`@smoke\` and the right shelf appears instantly.
+
+**The tag hierarchy:**
+
+\`\`\`typescript
+// The standard tag tiers — each is a superset of the one above it
+// @smoke    → 5 min — critical path only, runs on every deploy
+// @sanity   → 15 min — key user journeys, runs every hour
+// @regression → 30 min — full feature coverage, runs nightly
+// @full     → 2+ hours — every edge case, runs weekly
+
+test('@smoke: user can log in and see dashboard', async ({ page }) => {
+  test.info().annotations.push({ type: 'tag', description: '@smoke' });
+  // ...
+});
+
+// Or use Playwright's native test.tag() (v1.42+):
+test('user can log in', { tag: ['@smoke', '@auth'] }, async ({ page }) => {
+  // ...
+});
+\`\`\`
+
+**Running by tag:**
+
+\`\`\`bash
+# Only smoke tests
+npx playwright test --grep "@smoke"
+
+# Regression but NOT flaky tests
+npx playwright test --grep "@regression" --grep-invert "@flaky"
+
+# Team checkout's stable regression tests
+npx playwright test --grep "@regression" --grep "@team-checkout" --grep-invert "@flaky"
+\`\`\`
+
+**Full tagging taxonomy for a mature suite:**
+
+\`\`\`typescript
+// tier tags: @smoke, @sanity, @regression, @full
+// team tags: @team-checkout, @team-auth, @team-payments, @team-search
+// stability: @stable, @flaky, @wip (work in progress — skipped in CI)
+// environment: @staging-only, @prod-safe, @local-only
+// type: @visual, @api, @accessibility, @performance
+
+test('checkout with 3DS card', {
+  tag: ['@regression', '@team-checkout', '@staging-only'],
+}, async ({ page }) => {
+  // 3DS cannot be tested in production — tagged staging-only
+});
+\`\`\`
+
+**Enforcing team tags with a custom reporter:**
+
+\`\`\`typescript
+// reporters/tag-enforcer.ts
+class TagEnforcerReporter implements Reporter {
+  onTestEnd(test: TestCase, result: TestResult): void {
+    const tags = test.annotations.filter(a => a.type === 'tag').map(a => a.description);
+    const hasTeamTag = tags?.some(t => t?.startsWith('@team-'));
+
+    if (!hasTeamTag) {
+      console.error(\`MISSING TEAM TAG: \${test.title} in \${test.location.file}\`);
+      // In strict mode, fail the test
+    }
+  }
+}
+\`\`\`
+
+> **QA Tip:** Introduce a linting rule (enforced via a custom reporter) that every test must have at least one tier tag and one team tag. Untagged tests in a 1,000-test suite are like unlabelled files in a filing cabinet — they get lost and are never cleaned up.
+
+---
+
+### 6. Measuring QA Automation ROI
+
+💡 **Analogy:** A QA automation programme with no metrics is like a factory with no output measurement. The machines are running, the engineers are working, but leadership has no way to know if the line is profitable. ROI metrics are the production figures that justify the investment.
+
+**Suite runtime trend — track average run time per commit:**
+
+\`\`\`typescript
+// scripts/record-metrics.ts
+import * as fs from 'fs';
+
+const results = JSON.parse(fs.readFileSync('results/results.json', 'utf-8'));
+
+const metricsEntry = {
+  date:          new Date().toISOString().split('T')[0],
+  commit:        process.env.GITHUB_SHA?.slice(0, 7) ?? 'local',
+  branch:        process.env.GITHUB_REF_NAME ?? 'local',
+  durationMs:    results.stats.duration,
+  passed:        results.stats.expected,
+  failed:        results.stats.unexpected,
+  flaky:         results.stats.flaky ?? 0,
+  totalTests:    results.stats.total,
+  passRate:      (results.stats.expected / results.stats.total * 100).toFixed(1),
+};
+
+const history = JSON.parse(
+  fs.existsSync('metrics/history.json')
+    ? fs.readFileSync('metrics/history.json', 'utf-8')
+    : '[]'
+);
+
+history.push(metricsEntry);
+fs.mkdirSync('metrics', { recursive: true });
+fs.writeFileSync('metrics/history.json', JSON.stringify(history.slice(-180), null, 2));
+\`\`\`
+
+**Flakiness rate calculation:**
+
+\`\`\`typescript
+// A test is flaky if result.status is 'flaky' — meaning it failed then passed on retry
+const flakiness = (results.stats.flaky / results.stats.total * 100).toFixed(2);
+console.log(\`Flakiness rate: \${flakiness}%\`);
+
+// Industry benchmark: < 1% is good, > 5% needs urgent attention
+// > 10% means your suite is unreliable — developers stop trusting it
+\`\`\`
+
+**The ROI calculation:**
+
+\`\`\`
+ROI = (bugs_caught_in_CI × avg_cost_of_prod_bug) - annual_automation_cost
+
+Example:
+  Bugs caught in CI per year:      240
+  Average cost of prod bug:        $2,500 (engineering time + incident)
+  Automation value:                $600,000/year
+
+  Engineer cost (1 FTE):           $120,000/year
+  CI infrastructure:               $12,000/year
+  Total automation cost:           $132,000/year
+
+  ROI = $600,000 - $132,000 = $468,000/year
+  ROI percentage = 355%
+\`\`\`
+
+**The one-page leadership dashboard metrics:**
+
+\`\`\`
+Key QA Metrics — Q2 2025
+─────────────────────────────────────────────────────
+Suite Size:          1,247 tests  (+87 this quarter)
+Avg Run Time:        8m 42s       (-1m 12s vs Q1)
+Pass Rate (CI):      97.3%        (+0.8% vs Q1)
+Flakiness Rate:      0.9%         (-0.4% vs Q1)
+Bugs Caught Pre-Prod: 187          (+23 vs Q1)
+Est. Value Delivered: $467,500     (based on $2,500/bug)
+─────────────────────────────────────────────────────
+\`\`\`
+
+> **QA Tip:** Track the "time-to-first-failure" metric — how long into the CI run the first failing test appears. If it is always near the end, consider reordering your suite to run the highest-risk tests first (smoke tests, recently changed test files) for faster developer feedback.
+
+---
+
+### 7. The Test Pyramid Revisited at Scale
+
+💡 **Analogy:** The original pyramid was designed for server-rendered applications where the UI was thin. Modern frontend-heavy SPAs are 80% UI — the pyramid needs to reflect where the complexity actually lives. The testing trophy is the updated architectural blueprint for the modern web.
+
+**The original pyramid vs the modern trophy:**
+
+\`\`\`
+Original Pyramid (2009):       Modern Trophy (2021+):
+        /\                            /\
+       /E2E\     few              /      \
+      /──────\                   / E2E    \   ← 10%
+     / Intgr  \  some           /──────────\
+    /──────────\               / Integration \  ← 50%
+   /   Unit     \  many       /──────────────\
+  /______________\           /    Static       \  ← always on
+                            /__________________\
+\`\`\`
+
+**Where Playwright fits in the trophy:**
+
+\`\`\`
+Integration layer (50%):
+  → Playwright Component Tests (CT)
+  → API integration tests (page.request)
+  → Feature-level tests with mocked backends
+
+E2E layer (10%):
+  → Full user journeys: login → purchase → confirmation
+  → Cross-service flows: your app + third-party OAuth
+  → Production smoke tests: critical paths on real data
+\`\`\`
+
+**The 10-minute rule for E2E suites:**
+
+\`\`\`typescript
+// If your E2E suite takes > 10 minutes, developers start ignoring failures.
+// The fix is not more sharding — it is moving tests down the stack.
+
+// Candidates for CT migration from E2E:
+const migrationCandidates = [
+  'Tests that only verify one component\'s rendering',
+  'Tests that mock all network calls anyway',
+  'Tests that never navigate between pages',
+  'Tests that test error states that are hard to reproduce via full flow',
+  'Tests of loading/skeleton states',
+];
+
+// Tests that MUST stay in E2E:
+const mustBeE2E = [
+  'Authentication flows (real session handling)',
+  'Payment flows (real or sandbox third-party)',
+  'Cross-browser rendering issues',
+  'Service worker / offline behaviour',
+  'Real-time features (WebSockets, SSE)',
+];
+\`\`\`
+
+**Designing for speed — the shard/serial/CT decision:**
+
+\`\`\`typescript
+// playwright.config.ts — tiered execution strategy
+export default defineConfig({
+  projects: [
+    // Tier 1: Fast CT tests — always run first, no sharding needed
+    {
+      name: 'component-tests',
+      testMatch: '**/*.ct.spec.tsx',
+    },
+
+    // Tier 2: API integration tests — fast, can run in parallel
+    {
+      name: 'api-tests',
+      testMatch: '**/api/**/*.spec.ts',
+    },
+
+    // Tier 3: E2E — sharded across 4 CI workers
+    {
+      name: 'e2e-chrome',
+      testMatch: '**/e2e/**/*.spec.ts',
+      use: { ...devices['Desktop Chrome'] },
+    },
+
+    // Tier 4: Cross-browser — only on main branch, not on every PR
+    ...(process.env.FULL_SUITE ? [
+      { name: 'e2e-firefox',  testMatch: '**/e2e/**/*.spec.ts', use: { ...devices['Desktop Firefox'] } },
+      { name: 'e2e-safari',   testMatch: '**/e2e/**/*.spec.ts', use: { ...devices['Desktop Safari'] } },
+    ] : []),
+  ],
+});
+\`\`\`
+
+> **QA Tip:** The right metric for test pyramid health is not test count — it is cost per defect caught. If your E2E suite costs \$5 per defect caught and your CT suite costs \$0.10, invest in more CT and fewer E2E. Measure both suites on their cost-effectiveness, not their size.
+        `
+      },
+
     ]
   },
   'ai-qa': {
