@@ -45,7 +45,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
         // Firestore unavailable — fall back to localStorage data already in store
         useQuestStore.getState().setPlayerName(firebaseUser.displayName ?? 'Adventurer');
       }
-      set({ user: firebaseUser, authLoading: false });
+      // Also clear actionLoading here so the login spinner stays visible until
+      // this point — the moment the user is fully loaded and navigation fires.
+      set({ user: firebaseUser, authLoading: false, actionLoading: false });
     } else {
       // Logged out — clear progress UNLESS the user is in guest mode
       // (onAuthStateChanged fires on every page load when no Firebase user exists,
@@ -53,7 +55,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       if (!useQuestStore.getState().isGuest) {
         useQuestStore.getState().resetProgress();
       }
-      set({ user: null, authLoading: false });
+      set({ user: null, authLoading: false, actionLoading: false });
     }
   });
 
@@ -67,13 +69,12 @@ export const useAuthStore = create<AuthState>((set, get) => {
       set({ actionLoading: true, error: null });
       try {
         await signInWithEmail(email, password);
-        // onAuthStateChanged above handles the rest
+        // Keep actionLoading: true — onAuthStateChanged clears it once the
+        // user is fully loaded, so the spinner stays visible the whole time.
       } catch (err: unknown) {
         const code = (err as { code?: string })?.code ?? 'unknown';
         console.error('[loginWithEmail] Firebase error code:', code, err);
         set({ error: friendlyError(err), actionLoading: false });
-      } finally {
-        set({ actionLoading: false });
       }
     },
 
@@ -81,10 +82,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
       set({ actionLoading: true, error: null });
       try {
         await signUpWithEmail(name, email, password);
+        // Keep actionLoading: true — onAuthStateChanged clears it once loaded.
       } catch (err: unknown) {
         set({ error: friendlyError(err), actionLoading: false });
-      } finally {
-        set({ actionLoading: false });
       }
     },
 
@@ -92,10 +92,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
       set({ actionLoading: true, error: null });
       try {
         await signInWithGoogle();
+        // Keep actionLoading: true — onAuthStateChanged clears it once loaded.
       } catch (err: unknown) {
         set({ error: friendlyError(err), actionLoading: false });
-      } finally {
-        set({ actionLoading: false });
       }
     },
 
