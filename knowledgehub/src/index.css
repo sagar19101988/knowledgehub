@@ -11,8 +11,8 @@
 
 /* Light mode defaults */
 body {
-  background-color: #faf8ff;
-  color: #1e1330;
+  background-color: #fef7e4;
+  color: #1c0f00;
   margin: 0;
   font-family: 'Inter', -apple-system, sans-serif;
 }
@@ -89,9 +89,9 @@ button:not(:disabled) {
   border-bottom: 2px solid rgba(56, 189, 248, 0.2);
 }
 
-/* Light mode: darker sky headings for contrast */
+/* Parchment mode: warm amber headings */
 .prose h3 {
-  color: #0284c7 !important; /* sky-600 — readable on white */
+  color: #92400e !important; /* amber-800 — warm on parchment */
   font-size: 1.75rem !important;
   font-weight: 900 !important;
   border-bottom: 2px solid rgba(2, 132, 199, 0.2);
@@ -103,9 +103,9 @@ button:not(:disabled) {
   gap: 0.5rem;
 }
 
-/* Prose body text in light mode */
+/* Prose body text in parchment mode */
 .prose p, .prose li, .prose ul, .prose ol {
-  color: #374151; /* gray-700 — good contrast on white */
+  color: #292524; /* stone-800 — warm dark on parchment */
 }
 
 .dark .prose p, .dark .prose li, .dark .prose ul, .dark .prose ol {

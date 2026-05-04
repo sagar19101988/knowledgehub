@@ -73,9 +73,9 @@ export default function ZoneView() {
   const progressIncrement = Math.floor(100 / (availableLevels.length || 1));
 
   return (
-    <div className="min-h-screen bg-[#faf8ff] dark:bg-[#07050f] text-slate-700 dark:text-slate-200 font-sans flex flex-col">
+    <div className="min-h-screen bg-[#fef7e4] dark:bg-[#07050f] text-stone-800 dark:text-slate-200 font-sans flex flex-col">
       {/* Top Navbar — HUD Layout: Left | Center | Right */}
-      <nav className="h-16 border-b border-violet-300/50 dark:border-violet-900/30 bg-[#ede8ff]/80 dark:bg-[#0a0715]/80 backdrop-blur px-6 flex items-center sticky top-0 z-50">
+      <nav className="h-16 border-b border-violet-300/50 dark:border-violet-900/30 bg-[#fef3d0]/95 dark:bg-[#0a0715]/80 backdrop-blur px-6 flex items-center sticky top-0 z-50">
 
         {/* ── LEFT: Back + Breadcrumb ── */}
         <div className="flex items-center gap-3 flex-1">
@@ -220,10 +220,12 @@ export default function ZoneView() {
                   beginner: {
                     emoji: '🌱',
                     label: tier.color,
-                    headerBg: 'bg-emerald-500/8 dark:bg-emerald-500/6',
-                    headerBorder: 'border-emerald-500/25',
+                    headerBg: 'bg-emerald-50 dark:bg-emerald-500/6',
+                    headerBorder: 'border-emerald-400/60 dark:border-emerald-500/25',
+                    accentBorder: 'border-l-emerald-500 dark:border-l-emerald-500/40',
+                    shadow: 'shadow-[0_4px_16px_rgba(16,185,129,0.15)] dark:shadow-none',
                     bar: 'bg-emerald-500',
-                    badge: 'bg-emerald-500/15 text-emerald-400',
+                    badge: 'bg-emerald-500/20 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400',
                     activeBg: 'bg-emerald-500/12 dark:bg-emerald-500/10 border-emerald-500/30',
                     activeGlow: 'shadow-[inset_0_0_0_1px_rgba(16,185,129,0.3)]',
                     numActive: 'bg-emerald-500/20 text-emerald-400',
@@ -233,10 +235,12 @@ export default function ZoneView() {
                   intermediate: {
                     emoji: '⚡',
                     label: tier.color,
-                    headerBg: 'bg-sky-500/8 dark:bg-sky-500/6',
-                    headerBorder: 'border-sky-500/25',
+                    headerBg: 'bg-sky-50 dark:bg-sky-500/6',
+                    headerBorder: 'border-sky-400/60 dark:border-sky-500/25',
+                    accentBorder: 'border-l-sky-500 dark:border-l-sky-500/40',
+                    shadow: 'shadow-[0_4px_16px_rgba(14,165,233,0.15)] dark:shadow-none',
                     bar: 'bg-sky-500',
-                    badge: 'bg-sky-500/15 text-sky-400',
+                    badge: 'bg-sky-500/20 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400',
                     activeBg: 'bg-sky-500/12 dark:bg-sky-500/10 border-sky-500/30',
                     activeGlow: 'shadow-[inset_0_0_0_1px_rgba(14,165,233,0.3)]',
                     numActive: 'bg-sky-500/20 text-sky-400',
@@ -246,10 +250,12 @@ export default function ZoneView() {
                   expert: {
                     emoji: '🔥',
                     label: tier.color,
-                    headerBg: 'bg-amber-500/8 dark:bg-amber-500/6',
-                    headerBorder: 'border-amber-500/25',
+                    headerBg: 'bg-amber-50 dark:bg-amber-500/6',
+                    headerBorder: 'border-amber-400/60 dark:border-amber-500/25',
+                    accentBorder: 'border-l-amber-500 dark:border-l-amber-500/40',
+                    shadow: 'shadow-[0_4px_16px_rgba(245,158,11,0.15)] dark:shadow-none',
                     bar: 'bg-amber-500',
-                    badge: 'bg-amber-500/15 text-amber-400',
+                    badge: 'bg-amber-500/20 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
                     activeBg: 'bg-amber-500/12 dark:bg-amber-500/10 border-amber-500/30',
                     activeGlow: 'shadow-[inset_0_0_0_1px_rgba(245,158,11,0.3)]',
                     numActive: 'bg-amber-500/20 text-amber-400',
@@ -259,7 +265,7 @@ export default function ZoneView() {
                 }[tier.id] || {};
 
                 return (
-                  <div key={tier.id} className={`rounded-2xl border overflow-hidden transition-all duration-200 ${TC.headerBg} ${TC.headerBorder}`}>
+                  <div key={tier.id} className={`rounded-2xl border border-l-4 overflow-hidden transition-all duration-200 ${TC.headerBg} ${TC.headerBorder} ${TC.accentBorder} ${TC.shadow}`}>
 
                     {/* ── Tier Header ── */}
                     <button

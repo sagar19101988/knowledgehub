@@ -273,10 +273,10 @@ function HubMap() {
   const earnedCount = unlockedBadges.length;
 
   return (
-    <div className="min-h-screen bg-[#faf8ff] dark:bg-[#07050f] text-slate-700 dark:text-slate-200 font-sans flex flex-col">
+    <div className="min-h-screen bg-[#fef7e4] dark:bg-[#07050f] text-stone-800 dark:text-slate-200 font-sans flex flex-col">
 
       {/* Top navbar — HUD Layout: Left | Center | Right */}
-      <header className="h-16 border-b border-violet-300/50 dark:border-violet-900/30 bg-[#ede8ff]/80 dark:bg-[#0a0715]/80 backdrop-blur px-6 flex items-center sticky top-0 z-50">
+      <header className="h-16 border-b border-violet-300/50 dark:border-violet-900/30 bg-[#fef3d0]/95 dark:bg-[#0a0715]/80 backdrop-blur px-6 flex items-center sticky top-0 z-50">
 
         {/* ── LEFT: Logo + title ── */}
         <div className="flex items-center gap-3 flex-1">
@@ -370,7 +370,7 @@ function HubMap() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* ── Left sidebar ── */}
-        <aside className="w-72 flex-shrink-0 border-r border-violet-200/50 dark:border-violet-900/25 bg-[#ede8ff]/60 dark:bg-[#0a0715]/60 flex flex-col gap-5 p-5 overflow-y-auto sidebar-scroll">
+        <aside className="w-72 flex-shrink-0 border-r border-violet-200/50 dark:border-violet-900/25 bg-[#fef3d0]/80 dark:bg-[#0a0715]/60 flex flex-col gap-5 p-5 overflow-y-auto sidebar-scroll">
 
           {/* Player card */}
           <div className="bg-white/60 dark:bg-slate-900/60 border border-violet-300/50 dark:border-violet-900/40 rounded-2xl p-4 shadow-lg">
@@ -532,12 +532,12 @@ function HubMap() {
                   transition={{ delay: i * 0.07 }}
                   key={zone.id}
                   onClick={() => navigate(`/zone/${zone.id}`)}
-                  className={`group relative overflow-hidden rounded-2xl border cursor-pointer transition-all hover:scale-[1.02] ${zone.bgColor} ${
+                  className={`group relative overflow-hidden rounded-2xl border border-l-4 cursor-pointer transition-all hover:scale-[1.02] ${zone.bgColor} ${zone.accentBorder} ${zone.cardShadow} ${
                     isMastered
                       ? 'border-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.15)]'
                       : isStarted
-                      ? zone.borderColor + ' shadow-[inset_3px_0_0_0] ' + zone.colorText.replace('text-', 'shadow-')
-                      : zone.borderColor + ' hover:border-slate-500'
+                      ? zone.borderColor
+                      : zone.borderColor + ' hover:border-opacity-80'
                   }`}
                 >
                   {isMastered && (
@@ -546,7 +546,7 @@ function HubMap() {
                     </div>
                   )}
                   {progress === 0 && (
-                    <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[1px] z-0 transition-opacity group-hover:opacity-0" />
+                    <div className="absolute inset-0 dark:bg-slate-950/40 dark:backdrop-blur-[1px] z-0 transition-opacity group-hover:opacity-0" />
                   )}
 
                   {/* ── Holographic shimmer sweep ── */}

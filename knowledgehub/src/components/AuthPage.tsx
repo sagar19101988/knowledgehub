@@ -142,7 +142,7 @@ export function AuthPage() {
 
   return (
     <div className={theme === 'dark' ? 'dark' : ''}>
-      <div className="min-h-screen bg-[#faf8ff] dark:bg-[#07050f] font-sans flex overflow-hidden">
+      <div className="min-h-screen bg-[#fef7e4] dark:bg-[#07050f] font-sans flex overflow-hidden">
 
         {/* ══════════════════════════════════════════
             LEFT HERO PANEL — narrator + live preview
@@ -309,7 +309,7 @@ export function AuthPage() {
         {/* ══════════════════════════════════════════
             RIGHT AUTH PANEL — login / signup form
         ══════════════════════════════════════════ */}
-        <div className="w-full md:w-[42%] flex flex-col justify-center px-8 md:px-12 py-12 border-l border-violet-200/50 dark:border-violet-900/25 bg-[#ede8ff]/70 dark:bg-[#0a0715]/70 backdrop-blur-sm relative">
+        <div className="w-full md:w-[42%] flex flex-col justify-center px-8 md:px-12 py-12 border-l border-violet-200/50 dark:border-violet-900/25 bg-[#fef3d0]/90 dark:bg-[#0a0715]/70 backdrop-blur-sm relative">
 
           {/* Theme toggle */}
           <button onClick={toggleTheme}
