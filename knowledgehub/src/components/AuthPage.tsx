@@ -40,6 +40,7 @@ export function AuthPage() {
   const [emailError, setEmailError] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw]     = useState(false);
+  const [showGuestWarning, setShowGuestWarning] = useState(false);
 
   const validateEmail = (val: string) => {
     if (!val) { setEmailError(''); return true; }
@@ -577,7 +578,7 @@ export function AuthPage() {
             <div className="mt-5 pt-4 border-t border-violet-200/40 dark:border-slate-800">
               <motion.button
                 type="button"
-                onClick={() => { enterGuestMode(); navigate('/', { replace: true }); }}
+                onClick={() => setShowGuestWarning(true)}
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
                 className="w-full py-3 rounded-xl font-bold text-sm transition-all
@@ -594,6 +595,59 @@ export function AuthPage() {
                 Progress saved on this device only
               </p>
             </div>
+
+            {/* Guest warning modal */}
+            <AnimatePresence>
+              {showGuestWarning && (
+                <motion.div
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+                  onClick={() => setShowGuestWarning(false)}
+                >
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.92, y: 16 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.92, y: 16 }}
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="bg-white dark:bg-slate-900 border border-violet-200/50 dark:border-violet-900/40 rounded-2xl p-6 w-full max-w-sm shadow-2xl"
+                  >
+                    <div className="text-3xl mb-3 text-center">⚠️</div>
+                    <h3 className="text-lg font-black text-slate-900 dark:text-white text-center mb-2">
+                      Guest mode limitations
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 text-center leading-relaxed mb-5">
+                      Your progress is saved <span className="font-semibold text-slate-700 dark:text-slate-300">on this device only</span>. If you clear your browser, switch devices, or use a different browser — <span className="font-semibold text-red-500">all progress will be lost permanently</span>.
+                    </p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 text-center mb-5">
+                      Create a free account to save your XP, badges, and progress to the cloud.
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      <motion.button
+                        whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
+                        onClick={() => { setShowGuestWarning(false); switchMode('signup'); }}
+                        className="w-full py-3 rounded-xl font-bold text-sm text-white
+                          bg-gradient-to-r from-fuchsia-500 to-violet-600
+                          shadow-[0_0_24px_rgba(192,38,211,0.35)]
+                          hover:shadow-[0_0_40px_rgba(192,38,211,0.5)]"
+                      >
+                        Create a free account →
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
+                        onClick={() => { setShowGuestWarning(false); enterGuestMode(); navigate('/', { replace: true }); }}
+                        className="w-full py-3 rounded-xl font-bold text-sm transition-all
+                          border border-slate-200 dark:border-slate-700
+                          text-slate-500 dark:text-slate-400
+                          hover:text-slate-700 dark:hover:text-slate-300"
+                      >
+                        I understand, continue as guest
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
           )}
           </AnimatePresence>
