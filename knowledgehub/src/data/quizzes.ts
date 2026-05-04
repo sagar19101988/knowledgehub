@@ -5899,6 +5899,62 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ]
     },
     {
+      level: 'pw-ui-interactions',
+      questions: [
+        {
+          question: 'You are testing a GDPR cookie-consent banner. A "Marketing cookies" checkbox must be unchecked by default, and your test should ensure it stays unchecked. Which Playwright method is most appropriate, and why?',
+          options: [
+            { id: 'a', text: 'click() — it toggles the checkbox and is the most direct interaction.', isCorrect: false },
+            { id: 'b', text: 'uncheck() — it is idempotent and guarantees the checkbox is unchecked regardless of its current state, making the test safe to run repeatedly.', isCorrect: true },
+            { id: 'c', text: 'fill(\'false\') — fill() sets any input element\'s value, including checkboxes.', isCorrect: false },
+            { id: 'd', text: 'setChecked(true) — passing true explicitly sets the desired state.', isCorrect: false },
+          ],
+          explanation: 'uncheck() is idempotent — calling it on an already-unchecked checkbox is a no-op and will not cause an error. click() would toggle the checkbox, turning it ON if it was already OFF and potentially breaking subsequent assertions. fill() does not work on checkboxes. setChecked(false) would also be correct, but uncheck() is the most semantically clear choice when the desired state is always "unchecked".',
+        },
+        {
+          question: 'A checkout page has three radio buttons: Standard, Express, and Overnight. Your test selects Express using check(). A colleague rewrites the same step using click() instead. What risk does click() introduce that check() avoids?',
+          options: [
+            { id: 'a', text: 'click() cannot interact with radio buttons — only check() can.', isCorrect: false },
+            { id: 'b', text: 'click() fires additional mouse events that may trigger unwanted animations.', isCorrect: false },
+            { id: 'c', text: 'click() toggles the radio button — if Express is already selected when the test runs (e.g. from a previous step or pre-filled form), click() can deselect it, leaving no radio selected and causing a false failure.', isCorrect: true },
+            { id: 'd', text: 'click() is slower than check() and will cause timeouts in CI.', isCorrect: false },
+          ],
+          explanation: 'check() is idempotent for radio buttons — if the radio is already selected, check() does nothing. click() physically toggles the element, which in some browser implementations deselects a currently-selected radio, leaving the entire group with no selection. Always use check() on radio buttons to express intent clearly and avoid state-dependent flakiness.',
+        },
+        {
+          question: 'You need to test a "Permissions" multi-select native <select> element. The test must select "read", "write", and "admin" simultaneously, replacing any previously selected values. Which Playwright call achieves this correctly?',
+          options: [
+            { id: 'a', text: 'await page.getByLabel(\'Permissions\').selectOption(\'read\'); (called three times separately)', isCorrect: false },
+            { id: 'b', text: 'await page.getByLabel(\'Permissions\').fill(\'read,write,admin\');', isCorrect: false },
+            { id: 'c', text: 'await page.getByLabel(\'Permissions\').selectOption([\'read\', \'write\', \'admin\']);', isCorrect: true },
+            { id: 'd', text: 'await page.getByLabel(\'Permissions\').check([\'read\', \'write\', \'admin\']);', isCorrect: false },
+          ],
+          explanation: 'selectOption() accepts an array of values, labels, or indices for multi-select elements and replaces the entire selection atomically. Calling selectOption() three times separately would also replace the selection each time, resulting in only the last value being selected. fill() does not interact with <select> elements. check() is for checkboxes and radio buttons only.',
+        },
+        {
+          question: 'A data table shows 50 user rows. You need to assert that the user "Bob Martinez" in the "Status" column (3rd column, 0-indexed as column 2) has the value "Suspended". Which approach correctly scopes the locator to avoid matching other cells in the table?',
+          options: [
+            { id: 'a', text: 'await expect(page.getByText(\'Suspended\')).toBeVisible(); — getByText finds the exact cell content.', isCorrect: false },
+            { id: 'b', text: 'const row = page.getByRole(\'row\', { name: /Bob Martinez/ }); await expect(row.getByRole(\'cell\').nth(2)).toHaveText(\'Suspended\');', isCorrect: true },
+            { id: 'c', text: 'await expect(page.getByRole(\'cell\').nth(2)).toHaveText(\'Suspended\'); — nth(2) targets the 3rd cell globally.', isCorrect: false },
+            { id: 'd', text: 'await expect(page.locator(\'td:has-text("Bob Martinez") + td + td\')).toHaveText(\'Suspended\');', isCorrect: false },
+          ],
+          explanation: 'The correct pattern is to first locate the specific row using getByRole(\'row\', { name: /Bob Martinez/ }), then scope the cell lookup within that row using .nth(2). This is the "scoped locator" approach — it eliminates ambiguity when multiple rows have similar content. Option A is dangerously broad (any "Suspended" on the page). Option C applies nth() globally across all cells in the table. Option D uses CSS sibling selectors which are fragile and do not scale to dynamic tables.',
+        },
+        {
+          question: 'Your team tests a Kanban board built with react-beautiful-dnd. The test uses dragTo() to move a card from the "To Do" column to "In Progress", but the card never moves and no error is thrown. What is the most likely cause and correct fix?',
+          options: [
+            { id: 'a', text: 'dragTo() is not supported in Playwright — use page.mouse.move() and page.mouse.down() instead for all drag scenarios.', isCorrect: false },
+            { id: 'b', text: 'The test needs a longer timeout — add { timeout: 10000 } to the dragTo() call.', isCorrect: false },
+            { id: 'c', text: 'react-beautiful-dnd listens to HTML5 DataTransfer drag events, not mouse events. dragTo() dispatches mouse events, which the library ignores. Fix: dispatch dragstart, dragover, and drop events manually using dispatchEvent() with a DataTransfer object.', isCorrect: true },
+            { id: 'd', text: 'dragTo() requires both elements to be in the same parent container. Move the column and card to share a parent.', isCorrect: false },
+          ],
+          explanation: 'dragTo() works by simulating mouse button down, mouse move, and mouse button up events. Libraries like react-beautiful-dnd and dnd-kit listen specifically to the HTML5 drag-and-drop event sequence (dragstart → dragover → drop → dragend) and ignore raw mouse events. The correct workaround is to dispatch these events directly using el.dispatchEvent() with a DataTransfer payload. This is a very common source of "drag-and-drop test does nothing" bugs in automation suites targeting modern React DnD libraries.',
+        },
+      ]
+    },
+
+    {
       level: 'pw-dialogs-popups-iframes',
       questions: [
         {

@@ -18074,6 +18074,733 @@ for (let i = 0; i < count; i++) {
       },
 
       {
+        id: 'pw-ui-interactions',
+        title: 'Real-World UI Interactions',
+        analogy: "Testing real-world UI elements is like being a driving examiner. A learner who only practises in an empty car park can go forward and backward — but put them in a city with roundabouts, traffic lights, pedestrian crossings, parallel parking and a manual gearbox and they freeze. Most QA engineers learn to click and type. This module is city driving: every control on the dashboard, every road sign, every real-world scenario you will encounter testing enterprise apps.",
+        lessonMarkdown: `
+## Real-World UI Interactions
+
+Playwright gives you a toolkit that mirrors how a real user interacts with a browser. But enterprise apps are full of controls that go far beyond simple clicks and fills — custom dropdowns, drag-and-drop kanban boards, rich text editors, range sliders. This module covers every major UI control you will encounter and the exact Playwright API to tame each one.
+
+---
+
+### 1. Checkboxes — Check, Uncheck & Verify State
+
+*💡 Analogy: A checkbox is like a light switch — but some switches are wired to dimmers that have a third "partially on" state. Knowing which type of switch you're dealing with determines how you flip it.*
+
+#### The three methods
+
+\`\`\`typescript
+// check() — ensures it is checked (idempotent: safe to call even if already checked)
+await page.getByLabel('Accept terms and conditions').check();
+
+// uncheck() — ensures it is unchecked (idempotent)
+await page.getByLabel('Receive marketing emails').uncheck();
+
+// setChecked(bool) — explicit intent: the cleanest option when state varies
+await page.getByLabel('Enable 2FA').setChecked(true);
+await page.getByLabel('Remember this device').setChecked(false);
+\`\`\`
+
+**Use \`check()\` / \`uncheck()\` when you know the desired final state.**
+**Use \`click()\` only when you explicitly need to toggle — e.g., verifying that clicking twice restores original state.**
+
+#### Asserting checked state
+
+\`\`\`typescript
+await expect(page.getByLabel('Accept terms and conditions')).toBeChecked();
+await expect(page.getByLabel('Receive marketing emails')).not.toBeChecked();
+\`\`\`
+
+#### Indeterminate state (select-all with partial children)
+
+The "Select All" checkbox in a table that shows a dash (−) when only some rows are selected is in an **indeterminate** state. Playwright has no built-in assertion for this, so use \`evaluate()\`:
+
+\`\`\`typescript
+const isIndeterminate = await page.getByLabel('Select all rows').evaluate(
+  (el: HTMLInputElement) => el.indeterminate
+);
+expect(isIndeterminate).toBe(true);
+\`\`\`
+
+#### Custom styled checkboxes
+
+Many design systems hide the native \`<input type="checkbox">\` and style a \`<div>\` instead. Playwright's \`check()\` works through the accessibility tree, so it will still find and trigger the hidden native input — as long as the custom element has the correct \`role="checkbox"\` and \`aria-checked\` attribute.
+
+If the custom checkbox has no ARIA attributes, \`check()\` will fail with "element is not a checkbox." Use \`{ force: true }\` to click the visible element directly:
+
+\`\`\`typescript
+// Last resort — only when no ARIA attributes and locator is the visible styled element
+await page.locator('.custom-checkbox[data-id="gdpr"]').click({ force: true });
+\`\`\`
+
+#### Full example: cookie consent banner
+
+\`\`\`typescript
+test('cookie consent — accept analytics, reject marketing', async ({ page }) => {
+  await page.goto('https://example.com');
+
+  // Wait for consent banner to appear
+  const banner = page.getByRole('dialog', { name: 'Cookie preferences' });
+  await expect(banner).toBeVisible();
+
+  // Verify defaults
+  await expect(banner.getByLabel('Strictly necessary')).toBeChecked();
+  await expect(banner.getByLabel('Analytics cookies')).not.toBeChecked();
+  await expect(banner.getByLabel('Marketing cookies')).not.toBeChecked();
+
+  // Set preferences
+  await banner.getByLabel('Analytics cookies').check();
+  await banner.getByLabel('Marketing cookies').uncheck(); // already unchecked — safe
+
+  // Save preferences
+  await banner.getByRole('button', { name: 'Save preferences' }).click();
+
+  // Verify banner is gone
+  await expect(banner).toBeHidden();
+});
+\`\`\`
+
+> **QA Tip:** Always verify the default state of checkboxes before interacting. A regression where a consent checkbox is pre-ticked is a GDPR violation — catch it in your test.
+
+---
+
+### 2. Radio Buttons — Selecting and Verifying
+
+*💡 Analogy: Radio buttons are like a hotel key card machine — you can only have one room activated at a time. Insert a new card, the old one is deactivated automatically. You never "toggle" a hotel key; you issue a new one.*
+
+#### Selecting a radio
+
+\`\`\`typescript
+// Preferred: getByRole with name matches the label
+await page.getByRole('radio', { name: 'Express (2-3 days)' }).check();
+\`\`\`
+
+#### Why check() not click()
+
+\`click()\` toggles — for a radio button that is already selected, \`click()\` technically deselects it in some browser implementations. \`check()\` is **idempotent** — it checks the element if unchecked and does nothing if already checked. Always use \`check()\` on radio buttons.
+
+#### Asserting the selected radio
+
+\`\`\`typescript
+await expect(page.getByRole('radio', { name: 'Express (2-3 days)' })).toBeChecked();
+await expect(page.getByRole('radio', { name: 'Standard (5-7 days)' })).not.toBeChecked();
+\`\`\`
+
+#### Full example: shipping method selector
+
+\`\`\`typescript
+test('shipping method — selecting Express updates order summary', async ({ page }) => {
+  await page.goto('/checkout/shipping');
+
+  const shippingGroup = page.getByRole('group', { name: 'Shipping method' });
+
+  // Verify Standard is selected by default
+  await expect(shippingGroup.getByRole('radio', { name: /Standard/ })).toBeChecked();
+
+  // Select Express
+  await shippingGroup.getByRole('radio', { name: /Express/ }).check();
+
+  // Verify only Express is now checked
+  await expect(shippingGroup.getByRole('radio', { name: /Standard/ })).not.toBeChecked();
+  await expect(shippingGroup.getByRole('radio', { name: /Express/ })).toBeChecked();
+  await expect(shippingGroup.getByRole('radio', { name: /Overnight/ })).not.toBeChecked();
+
+  // Verify price summary updated
+  await expect(page.getByTestId('shipping-cost')).toHaveText('£9.99');
+});
+\`\`\`
+
+#### Verifying only one radio is checked at a time
+
+\`\`\`typescript
+// Get all radios in the group and assert exactly one is checked
+const radios = await page.getByRole('group', { name: 'Shipping method' })
+  .getByRole('radio').all();
+
+const checkedCount = (
+  await Promise.all(radios.map(r => r.isChecked()))
+).filter(Boolean).length;
+
+expect(checkedCount).toBe(1);
+\`\`\`
+
+---
+
+### 3. Native \`<select>\` Dropdowns
+
+*💡 Analogy: A native select is like a vending machine. You press a button (option value/label/index) and it dispenses exactly what you asked for. Custom dropdowns are like a human barista — you still need to ask, but the interaction is more conversational.*
+
+#### selectOption() — all three forms
+
+\`\`\`typescript
+// By value (the HTML value="" attribute)
+await page.getByLabel('Country').selectOption('GB');
+
+// By label (the visible text)
+await page.getByLabel('Country').selectOption({ label: 'United Kingdom' });
+
+// By index (0-based)
+await page.getByLabel('Country').selectOption({ index: 0 });
+\`\`\`
+
+#### Multi-select
+
+\`\`\`typescript
+// Select multiple at once (replaces entire selection)
+await page.getByLabel('Permissions').selectOption(['read', 'write', 'admin']);
+
+// Clear all selections
+await page.getByLabel('Permissions').selectOption([]);
+\`\`\`
+
+#### Asserting the value
+
+\`\`\`typescript
+// Single select
+await expect(page.getByLabel('Country')).toHaveValue('GB');
+
+// Multi-select
+await expect(page.getByLabel('Permissions')).toHaveValues(['read', 'write']);
+\`\`\`
+
+#### Full example: country + timezone chained selects
+
+\`\`\`typescript
+test('user profile — country and timezone update correctly', async ({ page }) => {
+  await page.goto('/settings/profile');
+
+  // Set country first
+  await page.getByLabel('Country').selectOption({ label: 'Japan' });
+  await expect(page.getByLabel('Country')).toHaveValue('JP');
+
+  // Timezone options should now be filtered for Japan — wait for DOM update
+  await expect(page.getByLabel('Timezone').getByRole('option', { name: /Tokyo/ })).toBeVisible();
+
+  await page.getByLabel('Timezone').selectOption({ label: 'Asia/Tokyo (UTC+9)' });
+  await expect(page.getByLabel('Timezone')).toHaveValue('Asia/Tokyo');
+
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByText('Profile updated')).toBeVisible();
+});
+\`\`\`
+
+> **QA Tip:** When two selects are chained (country → timezone), always wait for the second select's options to update after changing the first. Use \`await expect(select.getByRole('option', { name: /.../ })).toBeVisible()\` before selecting.
+
+---
+
+### 4. Custom Dropdowns & Multi-Select
+
+*💡 Analogy: A custom dropdown is like a fancy restaurant with no printed menu. You have to ask the waiter to open the menu, read it, make your selection, then wait for the waiter to close it. The food is the same — the ceremony is different.*
+
+#### The open → select → close pattern
+
+\`\`\`typescript
+// Step 1: Open the dropdown
+await page.getByRole('combobox', { name: 'Assign to' }).click();
+
+// Step 2: Wait for the listbox to appear, then select
+await page.getByRole('option', { name: 'Alice Johnson' }).click();
+
+// Step 3: Custom dropdowns usually close on selection — verify
+await expect(page.getByRole('combobox', { name: 'Assign to' })).toHaveText('Alice Johnson');
+\`\`\`
+
+#### Searchable dropdown: type to filter, then click
+
+\`\`\`typescript
+const dropdown = page.getByRole('combobox', { name: 'Framework' });
+await dropdown.click();
+await dropdown.type('Play'); // filter the list
+
+// Wait for filtered option to appear, then click
+await page.getByRole('option', { name: 'Playwright' }).click();
+await expect(dropdown).toContainText('Playwright');
+\`\`\`
+
+#### React Select isMulti — chip-based multi-select
+
+React Select renders a \`<div>\` with \`role="combobox"\` and selected values as chip elements. The pattern:
+
+\`\`\`typescript
+const multiSelect = page.locator('.react-select__control');
+
+// Click to open
+await multiSelect.click();
+
+// Select options from the menu
+await page.getByRole('option', { name: 'JavaScript' }).click();
+await page.getByRole('option', { name: 'TypeScript' }).click();
+await page.getByRole('option', { name: 'Python' }).click();
+
+// Close by pressing Escape
+await page.keyboard.press('Escape');
+
+// Verify chips are shown (React Select renders chips as .react-select__multi-value__label)
+await expect(page.locator('.react-select__multi-value__label')).toHaveCount(3);
+\`\`\`
+
+#### Removing a chip
+
+\`\`\`typescript
+// Find the chip for "Python" and click its × button
+const pythonChip = page.locator('.react-select__multi-value', { hasText: 'Python' });
+await pythonChip.getByRole('button', { name: 'Remove Python' }).click();
+
+await expect(page.locator('.react-select__multi-value__label')).toHaveCount(2);
+\`\`\`
+
+#### Verifying selected count badge
+
+\`\`\`typescript
+// Some multi-selects show "3 selected" as a badge
+await expect(page.getByTestId('multiselect-badge')).toHaveText('3 selected');
+\`\`\`
+
+---
+
+### 5. Tables — Finding Cells, Sorting & Pagination
+
+*💡 Analogy: A data table is like a spreadsheet inside a browser. To find a specific cell, you first look down column A to find the right row, then move across to your target column. Playwright's scoped locators let you do exactly that programmatically.*
+
+#### Finding a specific cell by row text + column position
+
+\`\`\`typescript
+// Locate the row that contains "Alice Johnson", then get its 3rd cell (Status column)
+const aliceRow = page.getByRole('row', { name: /Alice Johnson/ });
+const statusCell = aliceRow.getByRole('cell').nth(2);
+await expect(statusCell).toHaveText('Active');
+\`\`\`
+
+#### Sorting by column header
+
+\`\`\`typescript
+// Click the "Date" column header to sort ascending
+await page.getByRole('columnheader', { name: 'Date' }).click();
+
+// Click again to sort descending
+await page.getByRole('columnheader', { name: 'Date' }).click();
+
+// Assert first row has the latest date (descending sort)
+const firstCell = page.getByRole('row').nth(1).getByRole('cell').nth(0);
+await expect(firstCell).toHaveText('2024-12-31');
+\`\`\`
+
+#### Row selection via checkbox
+
+\`\`\`typescript
+// Select the row for order #1042
+const targetRow = page.getByRole('row', { name: /1042/ });
+await targetRow.getByRole('checkbox').check();
+
+// Verify the row has the selected highlight class
+await expect(targetRow).toHaveClass(/row-selected/);
+
+// Verify bulk action button is now enabled
+await expect(page.getByRole('button', { name: 'Delete selected' })).toBeEnabled();
+\`\`\`
+
+#### Pagination
+
+\`\`\`typescript
+// Assert current page indicator
+await expect(page.getByLabel('Current page')).toHaveText('1');
+await expect(page.getByRole('button', { name: 'Previous page' })).toBeDisabled();
+
+// Go to next page
+await page.getByRole('button', { name: 'Next page' }).click();
+await expect(page.getByLabel('Current page')).toHaveText('2');
+
+// Jump to last page
+await page.getByRole('button', { name: 'Last page' }).click();
+await expect(page.getByRole('button', { name: 'Next page' })).toBeDisabled();
+\`\`\`
+
+#### Asserting total row count vs displayed rows
+
+\`\`\`typescript
+// "Showing 10 of 243 results"
+await expect(page.getByTestId('pagination-summary'))
+  .toHaveText('Showing 10 of 243 results');
+
+// Count rendered rows (excluding header)
+const rows = page.getByRole('row').filter({ hasNot: page.getByRole('columnheader') });
+await expect(rows).toHaveCount(10);
+\`\`\`
+
+---
+
+### 6. Drag and Drop
+
+*💡 Analogy: Drag and drop in a browser is like moving sticky notes on a whiteboard — you grab one, drag it to a new column, and let go. The challenge is that some whiteboards use magnets (native HTML5 drag events) and others use velcro (JavaScript mouse event listeners). The grabbing technique is the same; what happens underneath differs.*
+
+#### dragTo() — simple element-to-element
+
+\`\`\`typescript
+// Move a kanban card from "To Do" to "In Progress"
+const card = page.getByTestId('task-card-42');
+const inProgressColumn = page.getByTestId('column-in-progress');
+
+await card.dragTo(inProgressColumn);
+
+// Verify card is now in the target column
+await expect(inProgressColumn.getByTestId('task-card-42')).toBeVisible();
+\`\`\`
+
+#### dragTo() with source and target positions
+
+\`\`\`typescript
+// Use positions when the drop target needs a specific location within the element
+await card.dragTo(inProgressColumn, {
+  sourcePosition: { x: 10, y: 10 },  // grab from near top-left of card
+  targetPosition: { x: 50, y: 100 }, // drop near top of the column
+});
+\`\`\`
+
+#### Sortable list — reordering items
+
+\`\`\`typescript
+// Reorder priority list: drag item 3 above item 1
+const item3 = page.getByTestId('priority-item-3');
+const item1 = page.getByTestId('priority-item-1');
+
+await item3.dragTo(item1);
+
+// Assert new order
+const items = page.getByTestId(/priority-item-/);
+await expect(items.nth(0)).toHaveText('Item 3');
+await expect(items.nth(1)).toHaveText('Item 1');
+await expect(items.nth(2)).toHaveText('Item 2');
+\`\`\`
+
+#### HTML5 DataTransfer drag — when dragTo() doesn't work
+
+Some React libraries (react-beautiful-dnd, dnd-kit) listen to HTML5 drag events (\`dragstart\`, \`dragover\`, \`drop\`). Playwright's \`dragTo()\` dispatches mouse events, which these libraries may not respond to. The workaround is to dispatch DataTransfer events directly:
+
+\`\`\`typescript
+const source = page.getByTestId('task-card-42');
+const target = page.getByTestId('column-in-progress');
+
+// Simulate HTML5 drag-and-drop with DataTransfer
+await source.dispatchEvent('dragstart', { dataTransfer: new DataTransfer() });
+await target.dispatchEvent('dragover',  { dataTransfer: new DataTransfer() });
+await target.dispatchEvent('drop',      { dataTransfer: new DataTransfer() });
+await source.dispatchEvent('dragend',   { dataTransfer: new DataTransfer() });
+
+await expect(target.getByTestId('task-card-42')).toBeVisible();
+\`\`\`
+
+> **QA Tip:** Always verify the drop happened functionally, not just visually. Check the underlying data: assert the card appears in the new column AND that the backend recorded the move (via API call assertion or page reload).
+
+---
+
+### 7. Keyboard Navigation
+
+*💡 Analogy: Keyboard navigation is like navigating a city entirely using the underground map — you move between stops (focusable elements) in a defined order, press Enter to "exit the station" (activate the control), and Escape to go back to the surface (dismiss overlays). Screen reader users live on this map.*
+
+#### Tab and Shift+Tab
+
+\`\`\`typescript
+// Move forward through focusable elements
+await page.keyboard.press('Tab');
+await page.keyboard.press('Tab');
+
+// Move backward
+await page.keyboard.press('Shift+Tab');
+\`\`\`
+
+#### Arrow keys in a listbox or custom dropdown
+
+\`\`\`typescript
+await page.getByRole('combobox', { name: 'Priority' }).click();
+await page.keyboard.press('ArrowDown'); // highlight first option
+await page.keyboard.press('ArrowDown'); // highlight second option
+await page.keyboard.press('Enter');     // select highlighted option
+\`\`\`
+
+#### Enter to submit, Escape to close
+
+\`\`\`typescript
+// Submit a form with Enter (without clicking the button)
+await page.getByLabel('Search').fill('playwright');
+await page.keyboard.press('Enter');
+await expect(page).toHaveURL(/search\?q=playwright/);
+
+// Close a modal with Escape
+await page.getByRole('button', { name: 'Open settings' }).click();
+await expect(page.getByRole('dialog')).toBeVisible();
+await page.keyboard.press('Escape');
+await expect(page.getByRole('dialog')).toBeHidden();
+\`\`\`
+
+#### Keyboard shortcuts
+
+\`\`\`typescript
+// Select all text in a field
+await page.getByRole('textbox', { name: 'Notes' }).click();
+await page.keyboard.press('Control+a'); // Windows/Linux
+// await page.keyboard.press('Meta+a'); // Mac
+
+// Command palette (VS Code / Linear / Notion style)
+await page.keyboard.press('Meta+k');
+await expect(page.getByRole('dialog', { name: 'Command palette' })).toBeVisible();
+await page.keyboard.type('Create task');
+await page.keyboard.press('Enter');
+\`\`\`
+
+#### Asserting focus
+
+\`\`\`typescript
+// Assert an element has focus via toHaveClass (if the app adds a CSS class on focus)
+await expect(page.getByRole('button', { name: 'Save' })).toHaveClass(/focused/);
+
+// Assert focus via evaluate() — the authoritative approach
+const isFocused = await page.getByRole('button', { name: 'Save' }).evaluate(
+  el => el === document.activeElement
+);
+expect(isFocused).toBe(true);
+\`\`\`
+
+> **QA Tip:** Keyboard navigability is an accessibility requirement (WCAG 2.1 SC 2.1.1). Always test that critical flows (login, checkout, form submission) are fully operable by keyboard alone.
+
+---
+
+### 8. Range Sliders
+
+*💡 Analogy: A range slider is like a physical dial on an amplifier. You can turn it to a precise position (fill with a value), nudge it one step at a time (arrow keys), or grip and drag it to a new position (coordinate-based dragTo). The display showing the current volume level should update in sync — if it doesn't, that's a bug.*
+
+#### fill() on a native \`<input type="range">\`
+
+\`\`\`typescript
+// Set slider to value 75 (must be a string for fill())
+await page.getByLabel('Volume').fill('75');
+await expect(page.getByLabel('Volume')).toHaveValue('75');
+\`\`\`
+
+#### Arrow key increment/decrement
+
+\`\`\`typescript
+// Click first to focus, then use arrow keys
+await page.getByLabel('Volume').click();
+await page.keyboard.press('ArrowRight'); // +1 step
+await page.keyboard.press('ArrowRight'); // +1 step
+await page.keyboard.press('ArrowLeft');  // -1 step
+\`\`\`
+
+#### Asserting the displayed value label updates
+
+\`\`\`typescript
+await page.getByLabel('Volume').fill('80');
+// The label next to the slider should reflect the new value
+await expect(page.getByTestId('volume-display')).toHaveText('80%');
+\`\`\`
+
+#### Custom JavaScript sliders — dragTo() with coordinates
+
+When the slider is not a native \`<input type="range">\` (common in charting libraries), calculate the pixel position and drag:
+
+\`\`\`typescript
+const sliderTrack = page.getByTestId('custom-slider-track');
+const handle      = page.getByTestId('custom-slider-handle');
+
+const trackBox = await sliderTrack.boundingBox();
+if (!trackBox) throw new Error('Track not found');
+
+// Drag handle to 60% along the track
+const targetX = trackBox.x + (trackBox.width * 0.6);
+const targetY = trackBox.y + (trackBox.height / 2);
+
+await handle.dragTo(sliderTrack, {
+  targetPosition: { x: targetX - trackBox.x, y: trackBox.height / 2 },
+});
+\`\`\`
+
+#### Price range double-handle slider
+
+\`\`\`typescript
+const minHandle = page.getByTestId('price-min-handle');
+const maxHandle = page.getByTestId('price-max-handle');
+const track     = page.getByTestId('price-range-track');
+const box       = await track.boundingBox();
+if (!box) throw new Error('Track not found');
+
+// Move min handle to 20% (£200 on a £0–£1000 range)
+await minHandle.dragTo(track, {
+  targetPosition: { x: box.width * 0.2, y: box.height / 2 },
+});
+
+// Move max handle to 70% (£700)
+await maxHandle.dragTo(track, {
+  targetPosition: { x: box.width * 0.7, y: box.height / 2 },
+});
+
+await expect(page.getByTestId('price-min-label')).toHaveText('£200');
+await expect(page.getByTestId('price-max-label')).toHaveText('£700');
+\`\`\`
+
+---
+
+### 9. Rich Text Editors (TinyMCE, Quill, ProseMirror)
+
+*💡 Analogy: A rich text editor is like a document inside a locked room inside a building. \`fill()\` can only enter the building. To type in the document, you need to unlock the room (find the iframe or contenteditable), walk inside, and then type. Each editor brand uses a different key.*
+
+#### Why fill() silently fails
+
+Rich text editors replace the native \`<textarea>\` with a \`contenteditable\` element or an \`<iframe>\`. Playwright's \`fill()\` targets \`<input>\` and \`<textarea>\` elements — it silently does nothing on a \`contenteditable\` \`<div>\`.
+
+#### TinyMCE — iframe-based editor
+
+\`\`\`typescript
+// TinyMCE renders inside an <iframe id="tinymce_ifr">
+// Step 1: Get a frame locator for the iframe
+const editorFrame = page.frameLocator('#tinymce_ifr');
+
+// Step 2: Target the body inside the iframe
+const editorBody = editorFrame.locator('body[contenteditable="true"]');
+
+// Step 3: Click to focus, then type
+await editorBody.click();
+await editorBody.fill('This is my rich text content.');
+
+// Or clear first then type:
+await editorBody.click();
+await page.keyboard.press('Control+a');
+await page.keyboard.type('Replaced content.');
+\`\`\`
+
+#### Quill / ProseMirror — contenteditable div
+
+\`\`\`typescript
+// Quill uses a div with contenteditable="true" and class "ql-editor"
+const quillEditor = page.locator('.ql-editor[contenteditable="true"]');
+await quillEditor.click();
+await quillEditor.fill('Hello from Playwright!');
+
+// ProseMirror uses div.ProseMirror[contenteditable="true"]
+const proseMirrorEditor = page.locator('.ProseMirror[contenteditable="true"]');
+await proseMirrorEditor.click();
+await proseMirrorEditor.fill('Hello from Playwright!');
+\`\`\`
+
+#### Clearing and replacing content
+
+\`\`\`typescript
+// Select all existing content, then type the replacement
+await quillEditor.click();
+await page.keyboard.press('Control+a');
+await page.keyboard.type('Brand new content replacing everything.');
+\`\`\`
+
+#### Asserting editor content
+
+\`\`\`typescript
+// Read innerHTML for rich content (preserves bold, italic tags)
+const html = await quillEditor.evaluate(el => el.innerHTML);
+expect(html).toContain('<strong>important</strong>');
+
+// Read innerText for plain text assertions
+const text = await quillEditor.evaluate(el => el.innerText);
+expect(text).toContain('Brand new content');
+\`\`\`
+
+> **QA Tip:** After typing in a rich text editor, always wait for any auto-save indicators or character counts to update before asserting. Many editors debounce their state updates by 300–500ms.
+
+---
+
+### 10. Tab Panels, Accordions & Modals
+
+*💡 Analogy: Tab panels are like a filing cabinet — only one drawer (panel) is open at a time, the others are physically pushed in. Accordions are like a vertical blind — you pull one slat down, it expands; you push it back, it collapses. Modals are like a pop-up shop that temporarily blocks the rest of the street — you need to close it before you can walk past.*
+
+#### Tab panel — click, assert visible, assert others hidden
+
+\`\`\`typescript
+// Click the "Reviews" tab
+await page.getByRole('tab', { name: 'Reviews' }).click();
+
+// Assert the Reviews panel is now shown
+await expect(page.getByRole('tabpanel', { name: 'Reviews' })).toBeVisible();
+
+// Assert other panels are hidden
+await expect(page.getByRole('tabpanel', { name: 'Details' })).toBeHidden();
+await expect(page.getByRole('tabpanel', { name: 'Shipping' })).toBeHidden();
+\`\`\`
+
+#### Accordion — expand, assert visible, collapse, assert hidden
+
+\`\`\`typescript
+// Click the "Billing address" accordion header to expand it
+const billingHeader = page.getByRole('button', { name: 'Billing address' });
+await billingHeader.click();
+
+// Assert the content is now visible
+const billingContent = page.getByTestId('accordion-billing-content');
+await expect(billingContent).toBeVisible();
+
+// Collapse it
+await billingHeader.click();
+await expect(billingContent).toBeHidden();
+\`\`\`
+
+#### Modal — open, interact, close via button
+
+\`\`\`typescript
+// Open the modal
+await page.getByRole('button', { name: 'Edit profile' }).click();
+
+const modal = page.getByRole('dialog', { name: 'Edit profile' });
+await expect(modal).toBeVisible();
+
+// Interact with form inside the modal
+await modal.getByLabel('Display name').fill('Alice Johnson');
+await modal.getByLabel('Bio').fill('QA Engineer at Acme Corp');
+
+// Save and close
+await modal.getByRole('button', { name: 'Save changes' }).click();
+await expect(modal).toBeHidden();
+
+// Verify the update was reflected
+await expect(page.getByTestId('profile-display-name')).toHaveText('Alice Johnson');
+\`\`\`
+
+#### Close modal with Escape key
+
+\`\`\`typescript
+await page.getByRole('button', { name: 'View details' }).click();
+await expect(page.getByRole('dialog')).toBeVisible();
+
+await page.keyboard.press('Escape');
+await expect(page.getByRole('dialog')).toBeHidden();
+\`\`\`
+
+#### Stacked modals — confirmation dialog inside a modal
+
+\`\`\`typescript
+// Open the main modal
+await page.getByRole('button', { name: 'Edit user' }).click();
+const editModal = page.getByRole('dialog', { name: 'Edit user' });
+await expect(editModal).toBeVisible();
+
+// Trigger a destructive action that opens a confirmation dialog
+await editModal.getByRole('button', { name: 'Delete account' }).click();
+
+// A second (stacked) dialog appears
+const confirmDialog = page.getByRole('dialog', { name: 'Confirm deletion' });
+await expect(confirmDialog).toBeVisible();
+await expect(editModal).toBeVisible(); // first modal still open behind
+
+// Confirm deletion
+await confirmDialog.getByRole('button', { name: 'Yes, delete' }).click();
+
+// Both dialogs should now be gone
+await expect(confirmDialog).toBeHidden();
+await expect(editModal).toBeHidden();
+\`\`\`
+
+> **QA Tip:** For stacked modals, always scope your locators to the specific dialog. Using \`page.getByRole('button', { name: 'Cancel' })\` when both modals have a Cancel button will cause Playwright to throw a "strict mode violation" — multiple elements matched. Use \`confirmDialog.getByRole('button', { name: 'Cancel' })\` to scope correctly.
+        `
+      },
+
+      {
         id: 'pw-dialogs-popups-iframes',
         title: 'Dialogs, Popups, iFrames & File Handling',
         analogy: "Handling dialogs, popups, and iframes in automation is like being an air traffic controller managing multiple runways simultaneously. Each new browser window is a new aircraft approaching. Each dialog is a priority alert that needs immediate acknowledgment. Each iframe is a plane from a different airline (different origin) that uses different radio frequencies. If you try to communicate on the wrong frequency, you get silence. The controller (your test) must switch channels deliberately for each.",
