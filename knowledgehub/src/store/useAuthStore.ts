@@ -100,12 +100,17 @@ export const useAuthStore = create<AuthState>((set, get) => {
     },
 
     logout: async () => {
-      set({ actionLoading: true, error: null });
+      // Capture uid before clearing user so the Firestore save still works
+      const uid = get().user?.uid;
+
+      // Clear user immediately — ProtectedRoute redirects to /login right away,
+      // eliminating the Welcome page flash that occurred while awaiting Firestore.
+      set({ user: null, actionLoading: true, error: null });
+
       try {
         // ── Flush latest progress to Firestore BEFORE signing out ──
         // This guarantees the cloud has the latest state even if the
         // 2-second debounce hasn't fired yet.
-        const uid = get().user?.uid;
         if (uid) {
           const s = useQuestStore.getState();
           await saveUserProgress(uid, {
