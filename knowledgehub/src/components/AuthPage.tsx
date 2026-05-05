@@ -493,7 +493,7 @@ export function AuthPage() {
                     exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }}
                   >
                     <AuthInput icon={<User size={15} />} type="text" placeholder="Your name"
-                      value={name} onChange={setName} autoFocus={mode === 'signup'} />
+                      value={name} onChange={setName} autoFocus={mode === 'signup'} disabled={actionLoading} />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -502,7 +502,7 @@ export function AuthPage() {
                 <AuthInput icon={<Mail size={15} />} type="email" placeholder="Email address"
                   value={email} onChange={(v) => { setEmail(v); if (emailError) validateEmail(v); }}
                   onBlur={() => validateEmail(email)}
-                  autoFocus={mode === 'login'} />
+                  autoFocus={mode === 'login'} disabled={actionLoading} />
                 {/* Inline format error */}
                 <AnimatePresence>
                   {emailError && (
@@ -523,7 +523,7 @@ export function AuthPage() {
 
               <div className="relative">
                 <AuthInput icon={<Lock size={15} />} type={showPw ? 'text' : 'password'}
-                  placeholder="Password" value={password} onChange={setPassword} paddingRight />
+                  placeholder="Password" value={password} onChange={setPassword} paddingRight disabled={actionLoading} />
                 <button type="button" onClick={() => setShowPw(p => !p)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
                   {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -659,20 +659,22 @@ export function AuthPage() {
 }
 
 // ─── Reusable styled input ────────────────────────────────────
-function AuthInput({ icon, type, placeholder, value, onChange, onBlur, autoFocus, paddingRight }: {
+function AuthInput({ icon, type, placeholder, value, onChange, onBlur, autoFocus, paddingRight, disabled }: {
   icon: React.ReactNode; type: string; placeholder: string;
   value: string; onChange: (v: string) => void; onBlur?: () => void;
-  autoFocus?: boolean; paddingRight?: boolean;
+  autoFocus?: boolean; paddingRight?: boolean; disabled?: boolean;
 }) {
   return (
     <div className="relative">
       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500">{icon}</span>
       <input type={type} placeholder={placeholder} value={value}
         onChange={(e) => onChange(e.target.value)} onBlur={onBlur} autoFocus={autoFocus} required
+        disabled={disabled}
         className={`w-full bg-white/80 dark:bg-slate-800/60 border border-violet-300/60 dark:border-slate-700/60 rounded-xl
           pl-9 ${paddingRight ? 'pr-10' : 'pr-4'} py-3 text-sm
           text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600
-          focus:outline-none focus:border-fuchsia-500/60 focus:ring-2 focus:ring-fuchsia-500/20 transition-all`}
+          focus:outline-none focus:border-fuchsia-500/60 focus:ring-2 focus:ring-fuchsia-500/20 transition-all
+          disabled:opacity-50 disabled:cursor-not-allowed`}
       />
     </div>
   );
