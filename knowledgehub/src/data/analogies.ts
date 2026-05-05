@@ -26311,25 +26311,1913 @@ Paste this once at the start → AI stays in the right context for the entire se
         `,
       },
       {
-        id: 'intermediate',
-        title: 'Intermediate: Better Prompts',
-        analogy: "Zero-shot prompting is asking the AI to bake a wedding cake with no recipe. Few-shot prompting is showing the AI three beautiful pictures of wedding cakes and saying, 'Make it exactly like this.'",
+        id: 'ai-prompt-engineering',
+        title: 'Module 1: Advanced Prompt Engineering — The QA Superpower',
+        analogy: "Basic prompting is like using Google with one keyword. Advanced prompt engineering is like knowing about quotes, minus signs, site: filters, and date ranges — same tool, ten times the power. The tool didn't change. Your skill did.",
         lessonMarkdown: `
-### 1. Zero-Shot Prompting
-*💡 Analogy: Throwing a dart at a dartboard while blindfolded.*
+### Why Basic Prompts Hit a Ceiling
 
-"Zero-shot" refers to the technique of asking an AI model to perform a task without giving it any prior examples of what a successful output looks like. For simple tasks (like "translate this sentence to French"), zero-shot works fine. For complex QA tasks (like "write a Playwright test script for this complex e-commerce flow"), zero-shot will almost certainly result in messy, unusable code that doesn't follow your company's internal standards.
+*💡 Analogy: Basic prompting is like using Google with one keyword. Advanced prompt engineering is knowing about quotes, minus signs, and site: filters — same tool, dramatically better results.*
 
-### 2. Personas
-*💡 Analogy: Hiring an actor. If you tell them 'Act like a doctor', they will instantly change their vocabulary, posture, and tone to match.*
+At the beginner level you learned Role + Task + Context + Format. That gets you 70% of the way. The next 30% — the stuff that separates average AI users from power users — is what this module covers.
 
-One of the most powerful ways to manipulate an AI's output is to assign it a persona at the very beginning of the prompt. By starting your prompt with, "Act as a Senior QA Automation Architect with 15 years of experience in JavaScript," you force the AI to filter its massive knowledge base. It drops the generic, conversational tone and immediately adopts strict, highly-technical industry standards, resulting in significantly higher quality code and test strategies.
+---
 
-### 3. Generating Test Data
-*💡 Analogy: Having a magical printing press that can instantly print thousands of completely unique, valid driver's licenses for your testing needs.*
+### Technique 1 — Few-Shot Prompting
 
-One of the most tedious parts of testing is coming up with mock data. If you need 50 fake user profiles with varied edge-case names, weird email formats, and randomized ages to test a database migration, you could spend an hour typing them out. Or, you can prompt an AI: "Generate a JSON array of 50 mock user objects containing edge-case names (hyphens, apostrophes) and invalid emails." The AI will instantly generate pristine, syntactically perfect mock data, saving you massive amounts of time.
-        `
+**Zero-shot:** Ask AI to do something with no examples.
+**Few-shot:** Show AI 1–3 examples of exactly what you want, then ask it to do the same.
+
+Few-shot is the single biggest jump in output quality for QA work.
+
+\`\`\`
+Here are two examples of the bug report format our team uses:
+
+EXAMPLE 1:
+Title: Cart total incorrect when coupon applied twice
+Severity: High
+Steps: 1. Add item to cart 2. Apply coupon SAVE10 3. Apply coupon SAVE10 again
+Expected: Second application rejected with error message
+Actual: Discount applied twice, total shows negative value
+
+EXAMPLE 2:
+Title: Profile image upload fails on Safari iOS
+Severity: Medium
+Steps: 1. Log in on iPhone Safari 2. Go to Profile 3. Tap Change Photo 4. Select image
+Expected: Image uploads and displays
+Actual: Spinner shows indefinitely, no error message
+
+Now write a bug report in exactly this format for:
+[paste your bug description]
+\`\`\`
+
+AI will match your format, tone, field names, and level of detail exactly.
+
+---
+
+### Technique 2 — Chain of Thought
+
+Add **"Think step by step"** to any complex request. This forces AI to reason through the problem before answering, dramatically reducing hallucinations.
+
+\`\`\`
+❌ Direct: "Is this Playwright test complete?"
+
+✅ Chain of Thought:
+"Review this Playwright test. Think step by step:
+1. Does it cover the happy path?
+2. Does it handle async operations correctly?
+3. Are assertions specific and meaningful?
+4. Are there any selectors that could be brittle?
+5. What edge cases are missing?
+Then give your final verdict."
+\`\`\`
+
+---
+
+### Technique 3 — Negative Constraints
+
+Tell AI what NOT to do. This is massively underused.
+
+\`\`\`
+Write test cases for the checkout flow.
+DO NOT include:
+- Happy path tests (we already have those)
+- UI/visual tests
+- Tests that require admin access
+ONLY focus on: payment failure scenarios, session handling, and concurrent user conflicts.
+\`\`\`
+
+---
+
+### Technique 4 — Personas with Depth
+
+Don't just say "act as a QA engineer." Add specificity:
+
+\`\`\`
+You are a senior QA engineer with 12 years of experience in fintech applications.
+You are obsessed with security edge cases and have seen every type of payment bug imaginable.
+You are cynical about happy-path-only test suites.
+Review this test plan and tell me what a developer hoping to sneak a bug past QA would exploit.
+\`\`\`
+
+The more specific the persona, the more targeted the output.
+
+---
+
+### Technique 5 — Output Constraints
+
+Control the shape of the answer before AI writes a word:
+
+\`\`\`
+Write exactly 10 test cases. No more, no less.
+Format: numbered list. Each item: one sentence maximum.
+No explanations. No headers. Just the 10 test cases.
+\`\`\`
+
+---
+
+### When to Use Which Technique
+
+| Situation | Best Technique |
+|-----------|---------------|
+| Need output in exact team format | Few-shot |
+| Complex risk analysis | Chain of Thought |
+| Too much irrelevant output | Negative Constraints |
+| Need domain-expert depth | Deep Persona |
+| Output keeps being too long/short | Output Constraints |
+        `,
+      },
+      {
+        id: 'ai-api-testing',
+        title: 'Module 2: AI for API Testing — Generate, Validate, Find Gaps',
+        analogy: "Testing an API manually is like being a customs officer checking every single suitcase by hand. AI is the X-ray scanner — it checks everything simultaneously, flags the suspicious ones, and lets you focus your hands-on inspection where it actually matters.",
+        lessonMarkdown: `
+### Why AI is a Perfect Fit for API Testing
+
+*💡 Analogy: Manual API testing is like a customs officer checking every suitcase by hand. AI is the X-ray scanner — checks everything at once, flags what's suspicious, lets you focus where it matters.*
+
+APIs are structured, documented, and rule-based — exactly the kind of thing AI excels at. If you have a Swagger spec, an API contract, or even just a description of endpoints, AI can generate an entire test suite in minutes.
+
+---
+
+### From Swagger/OpenAPI Spec → Full Test Collection
+
+This is the highest-ROI API testing prompt you will ever use:
+
+\`\`\`
+You are a senior API test engineer. I am going to paste an OpenAPI/Swagger spec.
+For each endpoint, generate test cases covering:
+
+1. Happy path (valid request, expected 200/201 response)
+2. Missing required fields (expect 400)
+3. Invalid field formats (wrong type, too long, negative numbers)
+4. Unauthorised access (no token, expired token, wrong role)
+5. Boundary values (max length strings, zero quantities, future/past dates)
+6. Duplicate resource creation (expect 409 where applicable)
+
+Format each test as:
+Method | Endpoint | Scenario | Request Body | Expected Status | Expected Response
+
+[paste your OpenAPI spec here]
+\`\`\`
+
+---
+
+### Generating Request Payloads
+
+Manually writing JSON payloads is tedious. AI does it in seconds:
+
+\`\`\`
+Here is the POST /api/orders endpoint schema:
+{
+  "customerId": "string (required, UUID)",
+  "items": "array of { productId: string, quantity: integer min 1 }",
+  "deliveryDate": "string (ISO 8601, must be future date)",
+  "promoCode": "string (optional, max 10 chars)"
+}
+
+Generate 8 test payloads:
+- 1 fully valid order
+- 1 missing customerId
+- 1 with quantity: 0
+- 1 with quantity: -1
+- 1 with a past deliveryDate
+- 1 with promoCode exactly 10 characters
+- 1 with promoCode 11 characters (over limit)
+- 1 with an invalid UUID format for customerId
+
+Output as JSON array.
+\`\`\`
+
+---
+
+### Writing Postman Tests with AI
+
+AI can write Postman test scripts (JavaScript) for your collection:
+
+\`\`\`
+Write Postman test scripts for a POST /api/login endpoint.
+The response returns: { "token": "string", "userId": "string", "expiresAt": "ISO timestamp" }
+
+Write pm.test() assertions for:
+1. Status code is 200
+2. Response body contains token field
+3. Token is not empty string
+4. userId is present and a non-empty string
+5. expiresAt is a valid ISO date in the future
+6. Response time is under 500ms
+\`\`\`
+
+---
+
+### Finding Coverage Gaps
+
+Once you have a test collection, use AI to audit it:
+
+\`\`\`
+Here is my current list of API tests for the /users endpoint:
+[paste test list]
+
+Act as a security-focused QA engineer. What scenarios am I missing?
+Focus specifically on:
+- Authentication and authorisation edge cases
+- Rate limiting
+- SQL injection and XSS in string fields
+- IDOR (Insecure Direct Object References) — can user A access user B's data?
+- Mass assignment vulnerabilities
+\`\`\`
+
+---
+
+### Interpreting API Error Responses
+
+When an API returns an unexpected error:
+
+\`\`\`
+This API returned an unexpected response during testing:
+
+Request: POST /api/payment
+Status: 422 Unprocessable Entity
+Body: { "error": "constraint_violation", "field": "amount", "message": "value exceeds maximum" }
+
+Explain: what does this error mean, what likely caused it,
+what should the expected behaviour be, and what test cases should I add to cover this?
+\`\`\`
+
+---
+
+### AI for Schema Validation
+
+\`\`\`
+Here is the expected API response schema for GET /api/products/{id}:
+[paste schema]
+
+Here is the actual response I received:
+[paste response]
+
+Compare them. List every field that:
+- Is missing from the actual response
+- Has a different data type than expected
+- Is present in the response but not in the schema
+- Has a null value where the schema says it should be required
+\`\`\`
+        `,
+      },
+      {
+        id: 'ai-playwright-scripts',
+        title: 'Module 3: Writing Playwright Scripts with AI',
+        analogy: "Writing Playwright scripts with AI is like having a pair-programming partner who has read every Playwright tutorial, every Stack Overflow answer, and every GitHub issue ever written — and never gets tired, never judges your question, and never goes for coffee at the wrong moment.",
+        lessonMarkdown: `
+### The Right Way to Use AI for Playwright
+
+*💡 Analogy: AI for Playwright is like a pair-programming partner who has read every tutorial, every Stack Overflow answer, and every GitHub issue — never tired, never judgmental, always available.*
+
+AI is not going to replace your understanding of Playwright. But it will write the boilerplate 10x faster, suggest better selectors, and help you structure tests properly — if you know how to ask.
+
+---
+
+### Generating a Complete Test from a User Flow
+
+Give AI the full context of a user journey:
+
+\`\`\`
+Write a Playwright TypeScript test for the following user journey:
+
+Application: E-commerce checkout
+Base URL: https://shop.example.com
+
+Journey:
+1. Navigate to /products
+2. Click on the product card with text "Wireless Headphones"
+3. Click "Add to Cart" button
+4. Navigate to /cart
+5. Verify the product name "Wireless Headphones" is visible
+6. Verify the quantity input shows "1"
+7. Click "Proceed to Checkout"
+8. Fill in: name="John Smith", email="john@example.com", address="123 High Street"
+9. Click "Place Order"
+10. Verify the URL changes to /order-confirmation
+11. Verify the page contains the text "Order placed successfully"
+
+Requirements:
+- Use Page Object Model — create a CartPage and CheckoutPage class
+- Use role-based locators where possible (getByRole, getByLabel)
+- Add explicit assertions after each major step
+- Handle the case where the product might be out of stock
+\`\`\`
+
+---
+
+### Generating Page Object Model Classes
+
+\`\`\`
+Generate a TypeScript Page Object Model class for a Login page with:
+
+URL: /login
+Fields:
+- Email input (label: "Email address")
+- Password input (label: "Password")
+- "Remember me" checkbox
+- Submit button (text: "Sign In")
+- Error message div (appears when login fails, class: "error-banner")
+- "Forgot password" link
+
+Methods needed:
+- login(email, password) — fills and submits the form
+- loginWithRememberMe(email, password) — checks the checkbox first
+- getErrorMessage() — returns the error text
+- clickForgotPassword() — clicks the link
+
+Use Playwright's recommended locator strategies.
+Include JSDoc comments on each method.
+\`\`\`
+
+---
+
+### Fixing Failing Tests
+
+When a test breaks, paste the error into AI:
+
+\`\`\`
+This Playwright test is failing with the following error:
+
+Error: locator.click: Error: strict mode violation:
+getByText('Submit') resolved to 2 elements
+
+Here is the test:
+[paste failing test]
+
+Here is the relevant HTML:
+[paste HTML snippet]
+
+Diagnose the problem and rewrite the locator to be specific and reliable.
+Explain why the original locator was failing.
+\`\`\`
+
+---
+
+### Improving Selector Quality
+
+AI can audit selectors in an existing test:
+
+\`\`\`
+Review the selectors in this Playwright test.
+For each selector, tell me:
+1. Whether it is brittle (likely to break when the UI changes)
+2. Why it is brittle
+3. A better alternative using Playwright best practices
+   (prefer: getByRole, getByLabel, getByTestId over CSS/XPath)
+
+[paste test file]
+\`\`\`
+
+---
+
+### Adding Proper Assertions
+
+A common weakness in AI-generated tests — and human-written ones — is weak assertions. Use this prompt after generating a test:
+
+\`\`\`
+Review this Playwright test. The assertions are too weak.
+For every page.click() or page.fill() action, suggest a meaningful assertion
+that verifies the UI actually responded correctly.
+Replace vague assertions like expect(page).toHaveURL('/success')
+with assertions that also verify visible content, not just the URL.
+
+[paste test]
+\`\`\`
+
+---
+
+### Generating Test Data Fixtures
+
+\`\`\`
+Generate a TypeScript fixture file for Playwright tests on a user registration form.
+Include:
+- 5 valid user objects with realistic UK data
+- 3 invalid users (missing required fields, invalid email, underage)
+- 2 edge case users (very long name, special characters in name)
+
+Export as a typed array: const testUsers: TestUser[] = [...]
+Include the TypeScript interface definition for TestUser.
+\`\`\`
+        `,
+      },
+      {
+        id: 'ai-code-review',
+        title: 'Module 4: AI as Your Code Reviewer — Find Bugs Before They Ship',
+        analogy: "Code review is like proofreading someone else's essay. You are too close to your own writing to spot all the errors. AI is the fresh pair of eyes that has never seen your code before, has no emotional attachment to it, and will point out every awkward sentence without worrying about your feelings.",
+        lessonMarkdown: `
+### Why QA Engineers Should Review Code
+
+*💡 Analogy: Code review is like proofreading someone else's essay. You are too close to your own work to see all the errors. AI is the fresh pair of eyes with zero emotional attachment — it will flag everything.*
+
+Most QA engineers think code review is a developer job. But QA reviewing code before it ships is one of the highest-ROI activities in the entire SDLC. AI makes it fast enough to do on every PR.
+
+---
+
+### Reviewing a PR Diff for Testability
+
+\`\`\`
+You are a senior QA engineer reviewing a pull request before it goes to testing.
+Here is the git diff:
+
+[paste diff]
+
+Please provide:
+1. A plain-English summary of what changed (2-3 sentences)
+2. The 5 highest-risk areas from a testing perspective
+3. New test cases I should write or update based on these changes
+4. Any code patterns you can see that are likely to cause bugs
+   (null checks missing, hardcoded values, race conditions, error paths not handled)
+5. Any existing tests that might now be broken by these changes
+\`\`\`
+
+---
+
+### Spotting Missing Error Handling
+
+\`\`\`
+Review this function for missing error handling.
+For every external call (API, database, file system) — check:
+1. Is there a try/catch?
+2. Is the error logged with enough detail to debug?
+3. Is there a meaningful user-facing error message?
+4. Does the function fail gracefully or crash the whole flow?
+
+List every gap with the line number and a suggested fix.
+
+[paste function]
+\`\`\`
+
+---
+
+### Finding Security Issues in Code
+
+\`\`\`
+You are a security-focused QA engineer. Review this code for:
+
+1. SQL injection vulnerabilities (user input directly in queries)
+2. XSS risks (unsanitised user input rendered in HTML)
+3. Exposed sensitive data (API keys, passwords in logs or responses)
+4. Missing authentication/authorisation checks
+5. IDOR risks (can user A access user B's resources?)
+6. Insecure direct object references
+
+For each issue found: show the line, explain the risk, and suggest the fix.
+
+[paste code]
+\`\`\`
+
+---
+
+### Reviewing Test Code Quality
+
+AI can review your own test scripts:
+
+\`\`\`
+You are a senior automation engineer doing a code review on this Playwright test suite.
+Review for:
+
+1. Flaky test patterns (hardcoded waits, time-dependent assertions)
+2. Poor selector choices (CSS classes, XPath that will break on UI changes)
+3. Missing assertions (actions with no verification)
+4. Test interdependence (tests that rely on each other's state)
+5. Missing cleanup (tests that leave dirty state)
+6. Magic numbers or hardcoded strings that should be constants
+7. Missing error messages on assertions (hard to debug when they fail)
+
+For each issue: line number, problem, suggested fix.
+
+[paste test file]
+\`\`\`
+
+---
+
+### Coverage Gap Analysis
+
+\`\`\`
+Here is the feature we are shipping (description or user story):
+[paste feature description]
+
+Here are all the test cases we currently have:
+[paste test list]
+
+Act as a QA lead doing a coverage review.
+What important scenarios are NOT covered?
+Group your findings by: functional gaps, edge cases, security, performance, accessibility.
+\`\`\`
+
+---
+
+### Pre-Release Risk Summary
+
+Five minutes before a release, run this:
+
+\`\`\`
+Here are the changes going into tonight's release:
+[paste list of changes / PR descriptions]
+
+Act as a QA risk analyst. In 2 minutes of reading:
+1. What is the highest-risk change and why?
+2. What is the most likely thing to break in production?
+3. What single test should I run if I only have 5 minutes?
+4. Any dependencies between these changes that could cause unexpected interactions?
+\`\`\`
+        `,
+      },
+      {
+        id: 'ai-test-documentation',
+        title: 'Module 5: AI for Test Documentation — Plans, Reports & Release Notes',
+        analogy: "Writing test documentation is like filing expense reports — everyone knows it needs to be done, nobody enjoys doing it, and it always ends up rushed at the end of the sprint. AI is the accountant who takes your receipts and produces the finished report while you go get coffee.",
+        lessonMarkdown: `
+### The Documentation Problem in QA
+
+*💡 Analogy: Test documentation is like filing expense reports — necessary, nobody enjoys it, always rushed. AI is the accountant who takes your receipts and produces the finished report while you get coffee.*
+
+QA teams produce a lot of documentation: test strategies, test plans, test reports, release notes, defect summaries. These take hours to write well. AI can draft all of them in minutes from your notes and data.
+
+---
+
+### Writing a Test Strategy Document
+
+\`\`\`
+You are a QA lead at a fintech startup. Write a test strategy document for our new product.
+
+Context:
+- Product: mobile banking app (iOS and Android)
+- Team: 2 QA engineers, 6 developers, 1 QA lead
+- Tech stack: React Native, Node.js API, PostgreSQL
+- Release cadence: bi-weekly sprints
+- Compliance: PCI-DSS requirements for payment flows
+
+The strategy should cover:
+1. Testing objectives and scope
+2. Test levels (unit, integration, E2E, exploratory)
+3. Test types (functional, security, performance, accessibility, regression)
+4. Tools and frameworks for each test type
+5. Entry and exit criteria
+6. Defect management process
+7. Risks and mitigations
+8. Responsibilities (who does what)
+
+Write it as a professional document, not a list of bullet points.
+\`\`\`
+
+---
+
+### Writing a Test Execution Report
+
+After a testing cycle, turn your raw data into a polished report:
+
+\`\`\`
+Write a test execution report for our sprint 23 release.
+
+Raw data:
+- Total test cases: 147
+- Passed: 132
+- Failed: 11
+- Blocked: 4
+- Not executed: 0
+- Critical bugs found: 2 (payment timeout on 3G, logout doesn't clear session)
+- High bugs found: 5 (listed below)
+- Test duration: 3 days
+- Environment: staging
+
+Failed test areas: [list them]
+Blocker bugs: [describe them]
+
+Include: executive summary, pass rate, risk assessment, go/no-go recommendation.
+\`\`\`
+
+---
+
+### Writing QA Release Notes
+
+\`\`\`
+Write QA release notes for version 2.4.1 based on what was tested.
+
+What was tested:
+- New feature: multi-currency support for payments
+- Bug fix: incorrect rounding on invoice totals
+- Performance improvement: dashboard load time reduced
+- Security patch: session token rotation
+
+Format: suitable for a technical audience (developers + product team).
+Include: what was tested, coverage summary, known issues, not-tested items, sign-off status.
+\`\`\`
+
+---
+
+### Summarising a Defect Backlog
+
+\`\`\`
+Here is our current defect backlog. Analyse it and produce:
+
+1. A summary by severity (Critical/High/Medium/Low counts)
+2. The top 5 most impactful open bugs and why they matter
+3. Any patterns — are bugs clustering around a specific module or feature area?
+4. Recommendations for triage — which bugs should be fixed before the next release?
+
+Defect list: [paste list with ID, title, severity, component]
+\`\`\`
+
+---
+
+### Writing Acceptance Criteria from Vague Requirements
+
+\`\`\`
+Here is a vague user story:
+"As a user, I want to be able to manage my notifications."
+
+This is too vague to test. Expand this into:
+1. 5–8 specific acceptance criteria in Gherkin format
+2. At least 2 criteria covering edge cases or failure scenarios
+3. A list of questions I should ask the product owner to clarify ambiguities
+
+Make sure the acceptance criteria are testable — each one has a clear pass/fail condition.
+\`\`\`
+        `,
+      },
+      {
+        id: 'ai-accessibility-testing',
+        title: 'Module 6: AI for Accessibility Testing — Test for Everyone',
+        analogy: "Accessibility testing without AI is like checking whether a building is wheelchair accessible by only asking people who can walk. AI helps you think from the perspective of users you never encounter in your day-to-day testing — people using screen readers, keyboard navigation, or high-contrast displays.",
+        lessonMarkdown: `
+### Why Accessibility Testing Matters
+
+*💡 Analogy: Checking accessibility without AI is like checking a building is wheelchair accessible by only asking people who can walk. AI helps you think from perspectives you'd otherwise miss entirely.*
+
+**1 in 6 people** worldwide has some form of disability. A blind user navigates your app entirely using a keyboard and a screen reader that reads every element out loud. A user with tremors can't use a mouse precisely. A colour-blind user can't tell red from green.
+
+**WCAG** (Web Content Accessibility Guidelines) is the international standard that defines what "accessible" means. Most countries (UK, EU, USA) require websites to meet it legally. Companies have been sued for failing it — including Domino's, Netflix, and Target.
+
+The good news: **most accessibility bugs are easy to fix** once you find them. The bad news: most QA teams never look for them. AI makes it fast enough to include in every sprint.
+
+---
+
+### The 5 Accessibility Areas Every QA Engineer Should Know
+
+Think of these as the 5 questions you ask about every feature:
+
+| Question | What you're checking | Real example |
+|----------|---------------------|--------------|
+| **Can you use it without a mouse?** | Keyboard navigation | Tab through the login form — does it work? |
+| **Does it make sense without seeing it?** | Screen reader labels | Icon button with no text — what does a screen reader announce? |
+| **Can you see it clearly?** | Colour contrast | Light grey text on white background — is it readable? |
+| **Do you know where you are?** | Focus visibility | Which element is active? Is there a visible blue ring? |
+| **Are errors explained clearly?** | Error identification | "Invalid input" in red — or "Email must include @"? |
+
+---
+
+### Prompt: Generate Accessibility Test Cases for Any Feature
+
+\`\`\`
+You are a QA engineer testing accessibility for a login page.
+The page has: email input, password input with show/hide toggle,
+"Remember me" checkbox, Sign In button, Forgot Password link, error banner.
+
+Generate practical accessibility test cases for each of these 5 areas:
+1. Keyboard navigation — can every element be reached and used without a mouse?
+2. Screen reader labels — does every element have a meaningful name when read aloud?
+3. Colour contrast — do error and warning states use more than just colour to communicate?
+4. Focus visibility — is the currently focused element always visually highlighted?
+5. Error messages — are validation errors announced clearly, not just shown visually?
+
+For each test case: what to do, what to check, what "pass" looks like.
+\`\`\`
+
+---
+
+### Prompt: Review HTML for Accessibility Problems
+
+You don't need to know WCAG numbers. Ask AI in plain English:
+
+\`\`\`
+Review this HTML for accessibility problems.
+For each issue you find:
+1. Describe the problem in plain English (no jargon)
+2. Explain which type of user it affects and how
+3. Show the corrected HTML
+
+[paste your HTML]
+\`\`\`
+
+**The most common issues AI catches:**
+
+| Problem | Why it matters | Simple fix |
+|---------|---------------|-----------|
+| Image with no alt text | Screen reader says "image" with no context | Add \`alt="descriptive text"\` |
+| Icon button with no label | Screen reader says "button" — user has no idea what it does | Add \`aria-label="Search"\` |
+| Input field with no label | Screen reader can't tell user what to type | Add \`<label for="email">Email</label>\` |
+| Error shown only in red | Colour-blind users can't see it | Add error text, not just colour |
+| Headings skip levels (h1 → h3) | Screen reader users use headings to navigate — gaps break the structure | Use h1, h2, h3 in order |
+| Links that say "click here" | Screen reader lists all links — "click here" × 5 is useless | "Download invoice PDF" instead |
+
+---
+
+### Prompt: Write a Keyboard Navigation Test
+
+\`\`\`
+Write a Playwright test that verifies keyboard navigation on our checkout form.
+The form has: First Name, Last Name, Email, Address, City, Postcode, Pay button.
+
+Test:
+1. Tab moves focus through all fields in the correct visual order
+2. Each focused element has a visible highlight (focus ring)
+3. The Pay button activates when Enter is pressed
+4. Shift+Tab moves backwards through the form
+5. No "focus traps" — Tab can always leave every element
+
+Use page.keyboard.press('Tab') and check focus with page.evaluate.
+\`\`\`
+
+---
+
+### Prompt: Fix a Component to Work with Screen Readers
+
+\`\`\`
+Here is a custom dropdown menu built in React.
+It currently has no accessibility support — screen reader users can't use it.
+
+Add the following in plain English terms:
+- When the button is closed, a screen reader should say "Select country, collapsed"
+- When open, it should say "Select country, expanded, list of options"
+- Each option should be readable and selectable by keyboard
+- Pressing Escape should close it and return focus to the button
+- When an option is selected, announce it
+
+Show the updated component with explanatory comments.
+
+[paste component]
+\`\`\`
+
+---
+
+### The 5-Minute Accessibility Smoke Check
+
+Do this on every new feature before releasing — no tools needed:
+
+1. **Unplug your mouse.** Can you use every button, link, and input with Tab + Enter alone?
+2. **Check one form.** Does every input field have a visible label next to it?
+3. **Trigger one error.** Is the error message text, not just a red border?
+4. **Look for icon-only buttons.** Hover over them — is there a tooltip explaining what they do?
+5. **Check heading order.** Is there an H1? Do subheadings go H2, H3 in order?
+
+If you pass all five in 5 minutes, you've caught the most common accessibility failures.
+        `,
+      },
+      {
+        id: 'ai-performance-analysis',
+        title: 'Module 7: AI for Performance Analysis — Reading Metrics Like a Pro',
+        analogy: "Reading a performance test report without help is like being handed a Formula 1 car's telemetry data with no training. There are hundreds of metrics, and most of them look alarming unless you know which ones actually matter. AI is your race engineer — it reads the data and tells you what the car is actually doing.",
+        lessonMarkdown: `
+### The Performance Testing Challenge for QA
+
+*💡 Analogy: Reading performance data without help is like being handed F1 telemetry data untrained — hundreds of metrics, all of them alarming. AI is your race engineer who reads the data and tells you what the car is actually doing.*
+
+Performance testing produces a lot of data: response times, throughput, error rates, percentiles, memory usage. Most QA engineers can run a k6 or JMeter script but struggle to interpret the results. AI bridges that gap.
+
+---
+
+### Interpreting k6 / JMeter Output
+
+Paste your raw results into AI and ask for a plain-English analysis:
+
+\`\`\`
+You are a performance testing expert. Analyse these k6 test results and explain:
+
+1. Is the application performing acceptably? (Yes/No and why)
+2. What are the 3 biggest performance problems visible in this data?
+3. At what point (virtual users / requests per second) does performance degrade significantly?
+4. What is the likely bottleneck — application code, database, or network?
+5. What should the development team investigate first?
+
+k6 Results:
+[paste your k6 output here]
+
+Our SLAs: API responses must be under 500ms at the 95th percentile. Error rate must be below 1%.
+\`\`\`
+
+---
+
+### Writing k6 Load Test Scripts
+
+\`\`\`
+Write a k6 TypeScript load test script for our API.
+
+Scenario:
+- Endpoint: POST /api/orders
+- Expected load: ramp up from 10 to 200 virtual users over 2 minutes,
+  hold 200 VUs for 5 minutes, ramp down over 1 minute
+- Request body: { customerId: "test-user-1", items: [{productId: "P001", quantity: 1}] }
+- Authentication: Bearer token in Authorization header (token: "test-token-123")
+
+SLA thresholds to assert:
+- 95th percentile response time < 500ms
+- 99th percentile response time < 1000ms
+- Error rate < 0.5%
+- Minimum throughput: 100 requests/second
+
+Include: proper stages, thresholds, and a check() for the response status.
+\`\`\`
+
+---
+
+### Understanding Percentiles
+
+One of the most confusing concepts in performance testing:
+
+\`\`\`
+Explain p50, p90, p95, and p99 response times to me as a QA engineer.
+Use a simple real-world analogy.
+Then look at these results and tell me what they mean for real users:
+
+p50: 120ms
+p90: 340ms
+p95: 890ms
+p99: 3200ms
+
+We have 10,000 daily active users. How many are experiencing slow responses?
+\`\`\`
+
+---
+
+### Identifying Database Performance Issues
+
+\`\`\`
+Our API response times are slow only when filtering by date range.
+Here is the slow SQL query identified in our APM tool:
+
+[paste query]
+
+Analyse this query for performance problems:
+1. Is there likely a missing index?
+2. Are there unnecessary full table scans?
+3. Are there N+1 query patterns?
+4. What would you recommend to optimise it?
+5. What performance test should I write to prove the fix worked?
+\`\`\`
+
+---
+
+### Writing Performance Test Scenarios from a User Story
+
+\`\`\`
+Here is a user story for a new search feature:
+"As a user, I want to search products by keyword and see results within 2 seconds."
+
+Write a performance test plan covering:
+1. The load profile (how many concurrent users is realistic for our product?)
+2. The specific API calls to test
+3. The assertions/SLAs to validate
+4. The spike test scenario (sudden burst of traffic)
+5. The soak test scenario (sustained load over 30 minutes)
+\`\`\`
+
+---
+
+### Key Performance Metrics at a Glance
+
+| Metric | What It Means | Healthy Range |
+|--------|--------------|---------------|
+| p95 response time | 95% of requests finish in this time | < 1000ms for most APIs |
+| Error rate | % of requests that failed | < 1% |
+| Throughput (RPS) | Requests handled per second | Depends on expected load |
+| Apdex score | User satisfaction index (0–1) | > 0.85 |
+| Time to First Byte | Time until server starts responding | < 200ms |
+        `,
+      },
+      {
+        id: 'ai-exploratory-testing',
+        title: 'Module 8: AI-Assisted Exploratory Testing — Test Smarter, Not Just Harder',
+        analogy: "Exploratory testing without a plan is like exploring a cave with a torch but no map — you might find amazing things, but you might also walk in circles and miss the most interesting chambers. AI is the cave mapper who has explored thousands of similar caves and can tell you where other explorers found the most interesting (and dangerous) things.",
+        lessonMarkdown: `
+### What is Exploratory Testing?
+
+*💡 Analogy: Exploring a cave with a torch but no map — you might find great things, but also walk in circles. AI is the mapper who has explored thousands of similar caves and knows where others found the interesting (and dangerous) things.*
+
+**Exploratory testing** is simultaneous test design and execution — you explore the application, learn about it, and test it at the same time, guided by your intuition and experience.
+
+It finds bugs that scripted tests miss. But without structure, it can become unfocused. AI gives you that structure without removing the creativity.
+
+---
+
+### Generating a Test Charter
+
+A **test charter** is a short, focused mission for an exploratory session:
+
+\`\`\`
+Generate 5 exploratory test charters for a user profile management feature.
+
+Feature includes: update name/email/phone, change password, upload profile photo,
+manage notification preferences, delete account.
+
+Format each charter as:
+EXPLORE: [area to explore]
+WITH: [tools or data to use]
+TO DISCOVER: [what you are looking for]
+
+Make the charters varied — cover happy path, edge cases, security, and usability.
+\`\`\`
+
+**Example output:**
+\`\`\`
+Charter 1:
+EXPLORE: Profile photo upload
+WITH: Images of various sizes (1KB to 50MB), formats (JPG, PNG, GIF, PDF, EXE)
+TO DISCOVER: File type validation, size limits, error messages, and what happens with non-image files
+
+Charter 2:
+EXPLORE: Account deletion flow
+WITH: An account with active orders, saved payment methods, and team memberships
+TO DISCOVER: What happens to related data, whether deletion is reversible, GDPR compliance
+\`\`\`
+
+---
+
+### Generating a Mind Map of Test Ideas
+
+\`\`\`
+Generate a mind map (as a structured text outline) of test ideas for a shopping cart feature.
+
+Cart features: add/remove items, change quantity, apply coupon codes, save for later,
+proceed to checkout, cart persists after logout.
+
+Organise by branches:
+- Functionality
+- Edge Cases
+- Security
+- Performance
+- Usability
+- Data
+- Integration (with inventory, pricing, promotions)
+
+For each branch, give 3–5 specific test ideas.
+\`\`\`
+
+---
+
+### Using Heuristics to Guide Exploration
+
+A **heuristic** is simply a thinking prompt — a reminder of dimensions to consider that you might otherwise miss.
+
+The most useful one for QA is **SFDIPOT** (also called the Product Elements heuristic). Instead of just asking "does it work?", SFDIPOT asks 7 completely different questions about the same feature.
+
+**The 7 lenses of SFDIPOT:**
+
+| Letter | Question | What you're exploring |
+|--------|----------|----------------------|
+| **S** — Structure | How is it built? | Code, architecture, dependencies |
+| **F** — Function | What does it do? | Features, behaviours, outputs |
+| **D** — Data | What data does it use? | Inputs, storage, formats, edge values |
+| **I** — Interface | What does it connect to? | APIs, integrations, other systems |
+| **P** — Platform | Where does it run? | Browsers, OS, devices, screen sizes |
+| **O** — Operations | How is it used in real life? | User habits, misuse, accessibility |
+| **T** — Time | What changes over time? | Expiry, caching, long sessions, upgrades |
+
+---
+
+### SFDIPOT in Action — Real Worked Example
+
+Let's apply all 7 lenses to a **"User Password Reset"** feature:
+
+**S — Structure:** The reset flow involves a token generator, email service, and token validator. *Test ideas:* What if the token generator produces duplicates? What if the email service is down?
+
+**F — Function:** The function is: request link → receive email → click link → set new password. *Test ideas:* What if the link is clicked twice? What if the new password is the same as the old one?
+
+**D — Data:** The data involved is: email address, reset token, new password, expiry timestamp. *Test ideas:* What if the email has special characters (plus signs, dots)? What if the new password is 1 character? 1000 characters?
+
+**I — Interface:** It integrates with: the email delivery service (SendGrid/Mailgun), the auth database, and possibly a rate-limiter. *Test ideas:* What if SendGrid is slow — is there a timeout? What if the same user requests 10 reset links in a row?
+
+**P — Platform:** The link opens in a browser. *Test ideas:* Does it work on mobile Safari? What if the link is opened in a different browser than where it was requested?
+
+**O — Operations:** In real life, users reset passwords when they've forgotten them — often in a hurry, on a mobile device. *Test ideas:* Is the reset page usable on a small screen? What happens if a user bookmarks the link and uses it days later?
+
+**T — Time:** The reset token expires after 1 hour (typically). *Test ideas:* What happens exactly at expiry? What about 1 second before? What if the user resets their password, then uses the old link again?
+
+---
+
+### SFDIPOT Prompt Template
+
+\`\`\`
+Apply the SFDIPOT heuristic to the [feature name] feature.
+For each lens, give me 3 specific exploratory test ideas.
+
+Feature description: [describe it briefly]
+
+S - Structure: How is it built / what could go wrong architecturally?
+F - Function: What does it do / what behaviours should I test?
+D - Data: What data does it process / what edge values should I try?
+I - Interface: What does it connect to / what integration failures could happen?
+P - Platform: What environments / devices / browsers should I test on?
+O - Operations: How do real users use it / how might they misuse it?
+T - Time: What changes over time / what time-related failures could happen?
+\`\`\`
+
+---
+
+### AI as a "Thinking Partner" During Exploration
+
+While exploring, use AI in real time:
+
+\`\`\`
+I am exploring the checkout flow and just discovered this:
+When I apply a 100% discount coupon, the order total shows £0.00 but the
+"Place Order" button is still active. I placed the order and it went through.
+
+What other tests should I explore from here?
+What similar vulnerabilities could exist elsewhere in the pricing/coupon system?
+What security implications does this have?
+\`\`\`
+
+---
+
+### Generating Risk-Based Exploration Areas
+
+\`\`\`
+We are releasing a new payment method: Buy Now Pay Later (BNPL).
+It integrates with a third-party BNPL provider via API.
+
+Using risk-based thinking, generate a list of the 10 most important areas
+to explore in a 2-hour exploratory testing session.
+Order them by risk (most risky first).
+For each area, explain why it is high risk.
+\`\`\`
+
+---
+
+### Documenting Exploratory Sessions
+
+After an exploratory session, use AI to write it up:
+
+\`\`\`
+I just finished a 90-minute exploratory testing session on the checkout flow.
+Here are my raw notes:
+[paste messy notes]
+
+Convert these into a structured exploratory testing session report with:
+- Charter (what I was testing)
+- Duration and tester
+- Areas covered
+- Bugs found (formatted as proper bug titles with severity)
+- Observations (not bugs, but interesting behaviours)
+- Areas not covered / recommended follow-up sessions
+\`\`\`
+        `,
+      },
+      {
+        id: 'ai-prompt-templates',
+        title: 'Module 9: The QA Prompt Template Library — Your Daily Toolkit',
+        analogy: "Building prompt templates is like creating a set of professional cooking sauces. A great chef doesn't make their signature sauce from scratch every night — they prepare it in batches, store it perfectly, and reach for it whenever needed. Your prompt templates are your signature sauces.",
+        lessonMarkdown: `
+### Why Templates Beat One-Off Prompts
+
+*💡 Analogy: A great chef doesn't make their signature sauce from scratch every night — they prepare it in batches and reach for it when needed. Prompt templates are your signature QA sauces.*
+
+Every QA engineer ends up writing the same types of prompts repeatedly. Spending 2 minutes crafting a good template once saves 10 minutes every time you use it.
+
+This module is a ready-to-use library. Copy, customise, save.
+
+---
+
+### Template 1 — Test Case Generator
+
+\`\`\`
+CONTEXT: I am a QA engineer testing [describe the feature/page].
+The application is [describe your app/domain briefly].
+
+TASK: Write [number] test cases covering:
+- Happy path
+- Negative scenarios
+- Edge cases
+- [Any specific areas: security / performance / accessibility]
+
+FORMAT: Table with columns: ID | Title | Precondition | Steps | Expected Result | Priority (High/Med/Low)
+
+USER STORY / REQUIREMENTS:
+[paste here]
+\`\`\`
+
+---
+
+### Template 2 — Bug Report Writer
+
+\`\`\`
+Convert my raw notes into a professional bug report.
+
+FORMAT REQUIRED:
+Title: [concise, specific]
+Environment: [browser, OS, app version, URL]
+Severity: Critical / High / Medium / Low
+Steps to Reproduce: [numbered]
+Expected Result:
+Actual Result:
+Possible Root Cause:
+Attachments needed: [list what screenshots/logs would help]
+
+MY RAW NOTES:
+[paste your notes]
+\`\`\`
+
+---
+
+### Template 3 — PR / Code Diff Review
+
+\`\`\`
+You are a senior QA engineer reviewing a pull request.
+
+Review this diff and provide:
+1. Plain-English summary of what changed (max 3 sentences)
+2. Top 5 risk areas for testing
+3. New test cases to write (or existing ones to update)
+4. Any code patterns that could cause bugs (null handling, race conditions, etc.)
+5. Go / No-Go recommendation before testing begins
+
+GIT DIFF:
+[paste diff]
+\`\`\`
+
+---
+
+### Template 4 — Exploratory Charter Generator
+
+\`\`\`
+Generate [number] exploratory test charters for: [feature name]
+
+Feature description: [describe what it does]
+
+Format each charter as:
+EXPLORE: [specific area]
+WITH: [data, tools, or conditions]
+TO DISCOVER: [what you are looking for]
+
+Include charters covering: functionality, edge cases, security, usability, data integrity.
+\`\`\`
+
+---
+
+### Template 5 — Accessibility Audit
+
+\`\`\`
+You are a WCAG 2.1 AA accessibility expert.
+Review this [HTML / component / page description] for accessibility issues.
+
+For each issue:
+1. WCAG criterion violated (number and name)
+2. Impact on users with disabilities
+3. Corrected code or implementation
+
+[paste HTML or component]
+\`\`\`
+
+---
+
+### Template 6 — Regression Impact Analysis
+
+\`\`\`
+Here are the code changes in this release:
+[list of changed files / features / PRs]
+
+Identify which existing test cases need to be re-run.
+Flag any areas where changes could cause unexpected regressions in other features.
+Suggest which tests can be safely skipped to save time.
+\`\`\`
+
+---
+
+### Template 7 — Test Data Generator
+
+\`\`\`
+Generate [number] test data entries for [describe the form/API/feature].
+
+Fields: [list all fields with their types and constraints]
+
+Include:
+- [number] valid entries (realistic data)
+- [number] invalid entries: [specify what type — missing fields, wrong types, boundary values]
+- [number] edge case entries: [special characters, very long values, unicode, etc.]
+
+Output format: [JSON / SQL INSERT / CSV / plain list]
+\`\`\`
+
+---
+
+### Template 8 — Regression Test Prioritisation
+
+\`\`\`
+We have [number] regression test cases and [time available] before release.
+
+Here is what changed in this release:
+[list of changes]
+
+Using risk-based testing principles:
+1. Which test cases are highest priority given these changes?
+2. Which can be safely deferred?
+3. What is the minimum test set to run in [X minutes/hours]?
+
+Test list: [paste test titles and IDs]
+\`\`\`
+
+---
+
+### Template 9 — Meeting / Sprint Documentation
+
+\`\`\`
+Write a QA sign-off email for the following release.
+
+Release: [version/date]
+What was tested: [summary]
+Results: [passed/failed/blocked counts]
+Open bugs: [list critical/high ones]
+Recommendation: GO / NO-GO
+Conditions (if any): [what must be fixed before release]
+
+Tone: professional, concise, suitable for a technical + non-technical audience.
+\`\`\`
+
+---
+
+### Why Each Template Is Structured the Way It Is
+
+Understanding the *why* behind each template helps you adapt them — and build your own.
+
+**Bug Report Template:** Specifies every field explicitly because AI will skip fields it considers optional unless told otherwise. The "Possible Root Cause" field is deliberately included — even though it's a guess — because it gives developers a starting investigation point and saves back-and-forth.
+
+**Test Case Template:** Starts with CONTEXT before the task because AI generates much better test cases when it understands the domain. "E-commerce checkout" gets different (better) output than just "a form." The Priority column is added to force AI to think about relative importance, not just generate a flat list.
+
+**PR Review Template:** The 5 explicit sections prevent AI from writing a general "looks good" review. Each numbered point forces AI to think from a different angle — summary, risk, new tests, code smells, and a verdict. Without structure, AI writes a paragraph that isn't actionable.
+
+**Coverage Gap Template:** Deliberately asks AI to organise findings by category (functional, security, performance) rather than a flat list — because this structure directly maps to how teams assign work and prioritise sprints.
+
+---
+
+### Common Mistakes When Using Templates
+
+**Mistake 1 — Forgetting to fill in the placeholders**
+Sending a template with [PASTE YOUR BUG DESCRIPTION HERE] still in it gets you a generic answer about a hypothetical bug. Always replace every bracket before sending.
+
+**Mistake 2 — Using the same template for every project**
+A template written for an e-commerce site will produce mediocre output for a mobile banking app. Add your domain context: "Our app is a regulated fintech product — prioritise security and compliance issues."
+
+**Mistake 3 — Treating the template output as final**
+Templates produce excellent first drafts. They don't produce final documents. Every template output needs a 60-second human review — especially for bug reports (are the steps actually reproducible?) and test cases (do the expected results match your system?).
+
+**Mistake 4 — Never iterating on the template itself**
+If a template consistently produces one section that's weak, fix the template. Add a negative constraint ("do NOT generate generic placeholder steps") or a few-shot example. Your templates should get better over time.
+
+**Mistake 5 — Keeping templates only for yourself**
+A prompt template is institutional knowledge. The best-performing templates should live in a shared team space (Notion, Confluence, a GitHub repo) so every team member gets the same quality output — not just the person who spent time crafting the prompt.
+
+---
+
+### How to Store and Reuse Templates
+
+1. **Create a Notion / Confluence page** — "QA AI Prompt Library"
+2. **Use [PLACEHOLDER]** notation so it's obvious what to replace
+3. **Share with your team** — everyone benefits from the same templates
+4. **Iterate** — when a template gives great output, save that version; when it gives weak output, improve it
+5. **Set as Custom Instructions** in ChatGPT / Claude Projects for your most-used ones
+        `,
+      },
+      {
+        id: 'ai-mobile-testing',
+        title: 'Module 10: AI for Mobile Testing — Platform-Specific Challenges',
+        analogy: "Mobile testing is like testing a car that transforms into a boat, a plane, or a bicycle depending on who is driving it. The same app on iOS 17, Android 14, a tablet, and a budget phone are four completely different testing challenges. AI helps you think through all the transformations without needing to own every device.",
+        lessonMarkdown: `
+### Why Mobile Testing is Uniquely Challenging
+
+*💡 Analogy: Mobile testing is like testing a car that transforms into a boat, a plane, or a bicycle depending on who is driving. The same app on iOS 17, Android 14, a tablet, and a budget phone are four completely different challenges. AI helps you think through all the transformations.*
+
+Mobile testing has layers desktop testing doesn't:
+- **OS fragmentation** — hundreds of Android versions/manufacturers
+- **Network conditions** — 5G, 4G, 3G, WiFi switching mid-session
+- **Gestures** — swipe, pinch, long press, shake
+- **Interruptions** — calls, notifications, battery low, app backgrounding
+- **Device capabilities** — camera, GPS, biometrics, NFC
+
+AI can't test on a real device for you. But it makes your test design dramatically more thorough.
+
+---
+
+### Generating Platform-Specific Test Cases
+
+\`\`\`
+You are a mobile QA engineer. Generate test cases for a ride-sharing app's booking flow.
+
+Cover platform-specific scenarios for BOTH iOS and Android:
+1. Permission handling (location access — first time, denied, restricted)
+2. Background/foreground transitions (app minimised mid-booking)
+3. Incoming phone call during active booking
+4. GPS accuracy variations (indoor, tunnel, poor signal)
+5. Network switching (WiFi → 4G mid-journey)
+6. Push notification interaction (tap notification to return to app)
+7. App killed and relaunched (is booking state preserved?)
+8. Low battery mode behaviour
+
+Note which test cases are iOS-only, Android-only, or both.
+\`\`\`
+
+---
+
+### Testing OS Version Differences
+
+\`\`\`
+Our app needs to support iOS 15, 16, and 17, and Android 11, 12, 13, and 14.
+
+For our payments feature, what behaviour differences or breaking changes should I test
+between these OS versions? Focus on:
+- Permission model changes
+- Biometric authentication API changes
+- Keyboard / autofill behaviour changes
+- Notification permission changes
+- Any security policy changes that could affect our payment flow
+\`\`\`
+
+---
+
+### Gesture Testing Scenarios
+
+\`\`\`
+Generate test cases for gesture interactions in our e-reader app.
+
+Gestures to test:
+- Swipe left/right (page turn)
+- Pinch to zoom (text size)
+- Long press (highlight text, open context menu)
+- Double tap (zoom in/out)
+- Pull to refresh (sync library)
+- Swipe from edge (navigation gesture conflict with iOS system gesture)
+
+For each gesture: happy path, edge cases (slow gesture, partial gesture, multi-finger conflicts).
+\`\`\`
+
+---
+
+### Network Condition Testing
+
+\`\`\`
+Generate test cases for our food delivery app under various network conditions.
+Focus on: order placement, real-time tracking, payment.
+
+Network scenarios:
+- 2G / EDGE (very slow, high latency)
+- 3G (moderate speed)
+- Switching from WiFi to mobile data mid-order
+- Complete network loss mid-order (airplane mode)
+- Network restored after loss (does the app recover gracefully?)
+- VPN enabled
+
+For each scenario: what should the app do? What are the likely failure modes?
+\`\`\`
+
+---
+
+### Writing Appium / Maestro Test Scenarios
+
+\`\`\`
+Write Maestro test flow YAML for the following mobile test scenario:
+
+App: Android banking app
+Flow:
+1. Launch the app
+2. Tap "Log In"
+3. Enter email "user@example.com" in the email field (id: email_input)
+4. Enter password "SecurePass123!" in the password field (id: password_input)
+5. Tap the "Sign In" button
+6. Assert that the text "Account Balance" is visible on screen
+7. Tap "Transfer Money"
+8. Assert that the transfer screen title is "Send Money"
+\`\`\`
+
+---
+
+### Accessibility on Mobile
+
+\`\`\`
+Generate accessibility test cases for our mobile app that specifically apply to:
+1. VoiceOver (iOS) — screen reader navigation
+2. TalkBack (Android) — screen reader navigation
+3. Dynamic text size (large/extra-large font in system settings)
+4. Colour inversion / high contrast mode
+5. Switch access (for users who cannot use touch)
+6. Reduce motion (animations disabled in accessibility settings)
+
+For each scenario: what to check and how to test it manually on a device.
+\`\`\`
+        `,
+      },
+      {
+        id: 'ai-regression-planning',
+        title: 'Module 11: AI for Regression Planning — Test the Right Things, Every Time',
+        analogy: "Regression planning without AI is like re-reading an entire 1,000-page textbook before every exam, just in case something changed. Smart regression planning with AI is like having a professor who highlights exactly which pages were updated since the last edition — and tells you which chapters to skip.",
+        lessonMarkdown: `
+### The Regression Problem
+
+*💡 Analogy: Regression planning without AI is like re-reading a 1,000-page textbook before every exam just in case. With AI, you have a professor who highlights exactly what changed and tells you which chapters to skip.*
+
+Every release brings the same question: **"What do we need to retest?"**
+
+Without a system, teams either:
+- **Retest everything** (safe, but impossibly slow at scale)
+- **Retest nothing new** (fast, but misses regressions)
+- **Guess** (risky)
+
+AI helps you do it properly — **risk-based, change-driven, time-bounded**.
+
+---
+
+### Change-Driven Regression Planning
+
+Start with what changed:
+
+\`\`\`
+Here are the changes going into our next release (Sprint 34):
+
+1. Refactored the checkout payment processing module (replaced Stripe v2 with v3 SDK)
+2. Fixed a bug in the coupon calculation (edge case: stacked coupons)
+3. Updated the product image upload to support WebP format
+4. Added a new "save for later" feature to the shopping cart
+5. Changed the database index on the orders table for performance
+
+For each change:
+1. What existing features could be affected by this change (regression risk)?
+2. Which test cases from our regression suite must be re-run?
+3. What new test cases need to be written?
+4. What can be safely skipped?
+
+Prioritise by risk — flag anything that touches payment flows as critical.
+\`\`\`
+
+---
+
+### Time-Boxed Regression Planning
+
+When you have a fixed testing window:
+
+\`\`\`
+We have exactly 4 hours for regression testing before tonight's release.
+
+These are the changes in this release:
+[list changes]
+
+These are all the regression test cases in our suite:
+[paste test list with IDs and descriptions]
+
+Given the changes and the 4-hour limit:
+1. Which 20 test cases MUST run? (Ranked by risk)
+2. Which 10 are second priority if time allows?
+3. Which can be deferred to post-release monitoring?
+4. Is there anything in these changes that I should test that has NO existing test case?
+\`\`\`
+
+---
+
+### Mapping Features to Test Cases
+
+\`\`\`
+I have a list of changed files from a git diff and a list of test cases.
+Map which test cases are most relevant to each changed file.
+
+Changed files:
+- src/checkout/PaymentProcessor.ts
+- src/cart/CouponService.ts
+- src/products/ImageUploadHandler.ts
+
+Test cases (ID + description):
+[paste your test list]
+
+For each changed file: which test IDs are most relevant to run?
+Flag test cases that could be affected even if they don't directly test the changed file.
+\`\`\`
+
+---
+
+### Building a Smoke Test Suite
+
+\`\`\`
+We need a smoke test suite that runs in under 10 minutes after every deployment.
+It should catch the most critical regressions — the kind that would immediately
+be noticed by users.
+
+Our application is: [describe your app]
+Core user journeys: [list them]
+
+Generate a list of 15 smoke test cases that:
+1. Cover the most critical user paths end-to-end
+2. Can be automated in Playwright
+3. Run fast (no heavy data setup)
+4. Would immediately catch a broken deployment
+
+For each test: title, the user journey it protects, estimated run time.
+\`\`\`
+
+---
+
+### Post-Release Regression Monitoring
+
+\`\`\`
+We just released version 3.1.0. These are the error logs from the first hour in production:
+[paste error logs or monitoring alerts]
+
+Analyse these logs:
+1. Which errors look like regressions (were not present before the release)?
+2. Which are likely related to the changes we shipped?
+3. What tests should we have had that would have caught these?
+4. What should we add to our regression suite to prevent this happening again?
+\`\`\`
+
+---
+
+### The Regression Testing Pyramid
+
+| Level | What to include | When to run |
+|-------|----------------|-------------|
+| **Smoke (15–20 tests)** | Core journeys only — login, checkout, key APIs | Every deployment |
+| **Sanity (50–80 tests)** | Changed features + their dependencies | Every release candidate |
+| **Full Regression (200+)** | Entire test suite | Weekly / pre-major release |
+| **Exploratory** | Human-driven, risk-based sessions | Before every release |
+
+Use AI to help you decide which tier each test belongs in — and update it as the product evolves.
+        `,
+      },
+      {
+        id: 'ai-cicd-failures',
+        title: 'Module 12: AI for CI/CD Failure Analysis — Never Stare at Logs Alone Again',
+        analogy: "Reading a failed CI pipeline log without help is like being handed a car's black box data after a crash — thousands of lines of raw data, and the actual cause is buried somewhere in the middle. AI is the crash investigator who reads it in seconds and tells you exactly what happened and where.",
+        lessonMarkdown: `
+### The Daily Pain of CI/CD Failures
+
+*💡 Analogy: Reading a failed CI pipeline log is like being handed a car's black box after a crash — thousands of lines of raw data, cause buried in the middle. AI is the crash investigator who reads it in seconds.*
+
+Every QA engineer has stared at a wall of red CI output wondering: *Is this a real test failure? A flaky test? An environment issue? Did the build even compile?*
+
+AI turns this from a 15-minute investigation into a 30-second one.
+
+---
+
+### Prompt: Diagnose a Failed Pipeline
+
+Copy the failed pipeline output and paste it straight in:
+
+\`\`\`
+Our CI pipeline failed. Here is the full output log.
+
+Tell me:
+1. What is the root cause of the failure? (In plain English, not technical jargon)
+2. Is this a test failure, a build error, an environment issue, or a flaky test?
+3. Which specific test(s) or step(s) failed?
+4. What is the most likely fix?
+5. Is this likely to affect other developers — or is it isolated to this branch?
+
+CI Log:
+[paste your pipeline log here]
+\`\`\`
+
+---
+
+### Prompt: Interpret a Failing Test Error Message
+
+When one test fails with a cryptic error:
+
+\`\`\`
+This Playwright test is failing in CI but passing locally. Here is the error:
+
+[paste error message and stack trace]
+
+Explain:
+1. What does this error message mean in plain English?
+2. Why would it pass locally but fail in CI? (environment differences, timing, data)
+3. What are the 3 most likely root causes?
+4. What should I check first to diagnose it?
+5. Is this a flaky test pattern I should address permanently?
+\`\`\`
+
+---
+
+### Common CI Failure Patterns AI Recognises
+
+| Pattern | What it looks like | What's actually happening |
+|---------|-------------------|--------------------------|
+| **Timeout** | "Test exceeded 30000ms" | Page didn't load in time — environment is slow or selector is wrong |
+| **Element not found** | "locator.click: Target closed" | Page navigated away before action completed |
+| **Port conflict** | "EADDRINUSE: address already in use" | Previous test run didn't clean up properly |
+| **Auth failure** | "401 Unauthorized" in API tests | Test token expired or environment variables not set |
+| **Race condition** | Fails every 3rd run | Async code not properly awaited |
+| **Environment mismatch** | Passes locally, fails CI | Different Node version, missing env var, different timezone |
+
+---
+
+### Prompt: Identify Flaky Tests
+
+\`\`\`
+Here are our test results from the last 10 CI runs.
+Some tests fail intermittently — they pass sometimes and fail other times with no code changes.
+
+For each test that failed more than once:
+1. Is this likely a flaky test? Why?
+2. What is the most common cause of this type of flakiness?
+3. What is the recommended fix?
+
+Test result history:
+[paste test result table or list of pass/fail per run]
+\`\`\`
+
+---
+
+### Prompt: Write a GitHub Actions Workflow for Playwright
+
+\`\`\`
+Write a GitHub Actions workflow file (.github/workflows/playwright.yml) that:
+
+1. Triggers on every push to main and every pull request
+2. Uses Node.js 20
+3. Installs dependencies with npm ci
+4. Installs Playwright browsers
+5. Runs Playwright tests
+6. Uploads the HTML test report as an artifact (even if tests fail)
+7. Posts a comment on the PR with a link to the test report
+
+Keep it clean and well-commented.
+\`\`\`
+
+---
+
+### Reading Pipeline Output Like a QA Engineer
+
+When a CI run fails, scan in this order — don't read top to bottom:
+
+1. **Go to the bottom of the log first** — the final error is usually the root cause summary
+2. **Look for red/ERROR lines** — these are the failures, not the noise
+3. **Find "FAILED" test names** — note the exact test and file
+4. **Look for "Expected" vs "Received"** — this is Playwright/Jest telling you what went wrong
+5. **Check environment steps** — did the build step succeed? Did dependency install complete?
+
+Then paste the relevant section (not the whole log) into AI for diagnosis.
+        `,
+      },
+      {
+        id: 'ai-sql-data-validation',
+        title: 'Module 13: AI for SQL & Data Validation Testing',
+        analogy: "Testing the front-end without checking the database is like checking that a cashier gave you the right receipt without looking at your bank statement. The receipt might say £10, but the database is where the money actually moved. AI helps you write the database checks that confirm the data matches what the UI showed.",
+        lessonMarkdown: `
+### Why QA Engineers Need SQL Skills
+
+*💡 Analogy: Testing the front-end without checking the database is like trusting a receipt without checking your bank statement. The UI might say one thing — the database is where the truth lives. AI helps you write the queries to check.*
+
+Many QA engineers avoid SQL because it feels like a developer skill. But data validation testing — verifying that the right data ended up in the database after a user action — is a core QA responsibility.
+
+With AI, you don't need to memorise SQL syntax. You describe what you want to check, AI writes the query.
+
+---
+
+### Prompt: Write a Validation Query from Plain English
+
+\`\`\`
+Write a SQL query to verify the following after a user places an order on our e-commerce app.
+
+Database tables:
+- orders (id, customer_id, status, total_amount, created_at)
+- order_items (id, order_id, product_id, quantity, unit_price)
+- customers (id, email, name)
+
+What I want to check:
+1. The order was created with status = 'pending'
+2. The total_amount matches the sum of (quantity × unit_price) for all items
+3. The customer's email matches who was logged in
+4. The created_at timestamp is within the last 5 minutes
+
+Customer email: test@example.com
+\`\`\`
+
+---
+
+### Prompt: Explain a Query You Don't Understand
+
+When a developer gives you a data setup script and you have no idea what it does:
+
+\`\`\`
+Explain this SQL query in plain English. Tell me:
+1. What tables does it read from?
+2. What data does it return?
+3. What conditions does it filter by?
+4. Are there any parts that look unusual or potentially problematic?
+
+[paste the query]
+\`\`\`
+
+---
+
+### Prompt: Generate Test Data Setup Scripts
+
+\`\`\`
+Write SQL INSERT statements to set up test data for testing our order management system.
+
+Tables:
+- customers (id INT, name VARCHAR, email VARCHAR, created_at TIMESTAMP)
+- products (id INT, name VARCHAR, price DECIMAL, stock_quantity INT)
+- orders (id INT, customer_id INT, status VARCHAR, created_at TIMESTAMP)
+
+Create:
+- 3 customers (1 active, 1 with no orders, 1 with a suspended account)
+- 5 products (2 in stock, 1 out of stock, 1 low stock with quantity 1, 1 premium item)
+- 2 completed orders, 1 pending order, 1 cancelled order
+
+Make the data realistic — use real-looking names, prices, and timestamps.
+\`\`\`
+
+---
+
+### Prompt: Data Integrity Check After a Feature Release
+
+After deploying a feature that migrates or transforms data:
+
+\`\`\`
+We just deployed a feature that calculates tax on all existing orders.
+A new column "tax_amount" was added to the orders table.
+
+Write SQL queries to validate the migration was successful:
+1. Check that tax_amount is populated for all orders (no NULLs)
+2. Check that tax_amount = total_amount * 0.20 for UK orders (where country = 'GB')
+3. Check that tax_amount = 0 for orders marked as exempt
+4. Find any orders where the tax calculation looks wrong (more than 1p difference)
+5. Count how many orders were updated vs not updated
+
+Table: orders (id, total_amount, tax_amount, country, is_tax_exempt)
+\`\`\`
+
+---
+
+### Prompt: Find Data Anomalies
+
+Use AI to write anomaly detection queries:
+
+\`\`\`
+Write SQL queries to find suspicious data in our users table that might indicate a data bug or test data that leaked to production:
+
+Table: users (id, email, name, created_at, last_login, account_status)
+
+Find:
+1. Duplicate email addresses
+2. Accounts created but never logged in (older than 30 days)
+3. Emails that look like test data (contain "test", "fake", "example.com")
+4. Accounts with last_login before their created_at date (impossible scenario)
+5. More than 100 accounts created in the same minute (possible bulk import or attack)
+\`\`\`
+
+---
+
+### The 5 Data Validation Checks Every QA Should Run After Any Release
+
+| Check | SQL pattern | What it catches |
+|-------|-------------|----------------|
+| **No nulls in required fields** | WHERE column IS NULL | Missing data from failed writes |
+| **Count before vs after** | SELECT COUNT(*) before and after | Data loss or unexpected creation |
+| **Referential integrity** | LEFT JOIN + WHERE id IS NULL | Orphaned records with no parent |
+| **Calculated fields correct** | WHERE total != subtotal + tax | Wrong calculation logic |
+| **Timestamps make sense** | WHERE updated_at < created_at | Clock issues or migration bugs |
+        `,
+      },
+      {
+        id: 'ai-cross-browser-testing',
+        title: 'Module 14: AI for Cross-Browser Testing — One Feature, Many Battlegrounds',
+        analogy: "Cross-browser testing is like writing a speech that has to land perfectly in English, French, Spanish, and Mandarin simultaneously. The message is the same, but each language has quirks that can completely change the meaning. AI helps you anticipate where the translation breaks down before your users find it.",
+        lessonMarkdown: `
+### Why Cross-Browser Testing Still Matters
+
+*💡 Analogy: Cross-browser testing is like writing a speech that has to land perfectly in four different languages. Same message, but each language has quirks that can break the meaning. AI helps you anticipate where the translation breaks down.*
+
+"It works in Chrome" is the most dangerous sentence in QA. Different browsers implement web standards differently. Safari on iOS is the most common source of bugs that only affect a segment of users — silently, with no error message.
+
+---
+
+### The Browser Landscape in 2024
+
+| Browser | Engine | Key quirks to test |
+|---------|--------|-------------------|
+| **Chrome** | Blink | Usually the safest baseline — most teams test here first |
+| **Safari (Desktop)** | WebKit | Strictest security policies, different CSS rendering, no PWA support |
+| **Safari (iOS)** | WebKit (forced) | Every iPhone browser uses WebKit — the biggest blind spot for teams |
+| **Firefox** | Gecko | Best standards compliance, different scroll behaviour |
+| **Edge** | Blink (same as Chrome) | Usually same as Chrome, but corporate environments use it |
+| **Samsung Internet** | Blink | Large user base in Asia — relevant for global apps |
+
+---
+
+### Prompt: Generate a Cross-Browser Test Matrix
+
+\`\`\`
+Our application is a React web app used by customers on desktop and mobile.
+Analytics show: 45% Chrome, 30% Safari iOS, 15% Safari Desktop, 8% Firefox, 2% other.
+
+Generate a cross-browser test matrix for our checkout feature.
+Include:
+1. Which browsers and OS combinations to prioritise (based on our usage data above)
+2. Which specific checkout behaviours are most likely to differ between browsers
+3. Test cases that are Chrome-specific (unlikely to need cross-browser testing)
+4. Test cases that MUST be run on Safari iOS (highest risk of differences)
+5. Any known browser-specific bugs to watch for in payment flows
+\`\`\`
+
+---
+
+### Prompt: Diagnose a Browser-Specific Bug
+
+When a bug only reproduces on one browser:
+
+\`\`\`
+This bug only happens on Safari iOS 17, not on Chrome or Firefox.
+
+Bug: The date picker input field doesn't open when tapped on iPhone Safari.
+The field uses type="date" HTML input.
+
+Explain:
+1. Why does this specific combination (Safari iOS + date input) commonly cause issues?
+2. What are the known limitations of type="date" on Safari iOS?
+3. What is the recommended fix?
+4. What cross-browser test cases should I add to prevent regressions?
+\`\`\`
+
+---
+
+### Prompt: Write Cross-Browser Playwright Tests
+
+\`\`\`
+Write a Playwright test for our login form that runs on three browsers:
+Chromium, Firefox, and WebKit (Safari).
+
+The test should:
+1. Navigate to /login
+2. Fill in email and password
+3. Click Sign In
+4. Assert the user reaches /dashboard
+
+Configure it to run on all three engines using Playwright's projects config.
+Flag any assertions that might behave differently between browsers and explain why.
+\`\`\`
+
+---
+
+### Common Cross-Browser Issues AI Helps You Find
+
+\`\`\`
+We are building a new feature: [describe it].
+Before I start testing, tell me the most common cross-browser issues I should
+specifically test for, based on this feature type.
+
+Focus on:
+- CSS / layout differences between Chrome and Safari
+- JavaScript API support differences (especially on Safari iOS)
+- Form input behaviour differences
+- File upload / media handling differences
+- Any features that require a polyfill for older browsers
+\`\`\`
+
+**The classic Safari-specific issues to always check:**
+
+| Feature | Chrome | Safari iOS |
+|---------|--------|-----------|
+| \`type="date"\` input | Full date picker | No picker — plain text field |
+| \`position: sticky\` | Works | Needs \`-webkit-sticky\` |
+| Video autoplay | Works (muted) | Blocked by default |
+| Push notifications | Works | Blocked until iOS 16.4 |
+| Third-party cookies | Deprecated | Blocked for years already |
+| CSS \`gap\` on flexbox | Works | Only recent Safari versions |
+
+---
+
+### Prompt: Interpret BrowserStack / Sauce Labs Results
+
+\`\`\`
+Here are the results from our BrowserStack automated test run.
+Tests passed on Chrome and Firefox but failed on Safari iOS 16 and 17.
+
+Failing test: "User can complete checkout on mobile"
+Error: "Element not interactable" on the credit card input field
+
+Analyse:
+1. What is likely causing this failure specifically on Safari iOS?
+2. Is this a known Safari iOS issue pattern?
+3. What should I investigate first?
+4. What is the recommended code fix?
+
+[paste BrowserStack error details]
+\`\`\`
+
+---
+
+### The Cross-Browser Testing Checklist
+
+Run this after every feature that has a UI component:
+
+- [ ] Tested on Chrome (desktop) — your baseline
+- [ ] Tested on Safari iOS (iPhone) — highest risk, most different
+- [ ] Tested on Safari desktop (Mac) — security restrictions differ from Chrome
+- [ ] Forms work with keyboard only (not just mouse)
+- [ ] Date/time inputs work on mobile
+- [ ] No layout breaks at 375px wide (iPhone SE) or 768px (tablet)
+- [ ] Font sizes readable without zooming on mobile
+        `,
       },
       {
         id: 'expert',

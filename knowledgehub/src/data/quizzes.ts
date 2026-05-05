@@ -7277,36 +7277,774 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ],
     },
     {
-      level: 'intermediate',
+      level: 'ai-prompt-engineering',
       questions: [
         {
-          question: 'What is Zero-Shot Prompting?',
+          question: 'What is few-shot prompting and why does it produce better QA output than zero-shot?',
           options: [
-            { id: 'a', text: 'Asking the AI a question without giving it any examples of the expected output.', isCorrect: true },
-            { id: 'b', text: 'Giving the AI 10 examples before asking the question.', isCorrect: false },
-            { id: 'c', text: 'Asking the AI to do nothing.', isCorrect: false }
+            { id: 'a', text: 'Few-shot uses less data, making AI faster', isCorrect: false },
+            { id: 'b', text: 'Few-shot provides 1–3 examples of the desired output before asking, so AI matches your exact format, tone, and depth', isCorrect: true },
+            { id: 'c', text: 'Few-shot limits AI to short answers only', isCorrect: false },
+            { id: 'd', text: 'Few-shot is only useful for code generation, not test cases', isCorrect: false },
           ],
-          explanation: 'Zero-shot means you just ask "Write a test case." Few-shot means you give an example: "Here is a test case. Write another one like it."'
+          explanation: 'Few-shot prompting is the single biggest quality jump available. Showing AI exactly what a good bug report or test case looks like in your format means it replicates that structure precisely — rather than guessing from scratch.',
         },
         {
-          question: 'Why give AI a "Persona"?',
+          question: 'A QA engineer adds "Think step by step" to their review prompt. What does this achieve?',
           options: [
-            { id: 'a', text: 'Telling it "Act as an Expert QA Engineer" shapes the tone and depth of its answers.', isCorrect: true },
-            { id: 'b', text: 'To make it feel happy.', isCorrect: false },
-            { id: 'c', text: 'It does not change anything.', isCorrect: false }
+            { id: 'a', text: 'It makes AI respond more slowly to save tokens', isCorrect: false },
+            { id: 'b', text: 'It triggers Chain of Thought reasoning — forcing AI to reason sequentially before answering, reducing hallucinations on complex tasks', isCorrect: true },
+            { id: 'c', text: 'It tells AI to number its bullet points', isCorrect: false },
+            { id: 'd', text: 'It instructs AI to check its own spelling', isCorrect: false },
           ],
-          explanation: 'Personas act as filters, forcing the AI to draw from its knowledge base related to that specific profession.'
+          explanation: 'Chain of Thought is especially powerful for complex tasks like risk analysis, test coverage reviews, and security audits. Forcing sequential reasoning before the final answer dramatically improves accuracy.',
         },
         {
-          question: 'What is the best way to use AI to generate test data?',
+          question: 'Which prompt best uses negative constraints to get focused output?',
           options: [
-            { id: 'a', text: 'Ask it to write a Python script or JSON block with 50 fake user profiles.', isCorrect: true },
-            { id: 'b', text: 'Ask it to steal real user data.', isCorrect: false },
-            { id: 'c', text: 'Ask it to read your database.', isCorrect: false }
+            { id: 'a', text: '"Write all test cases for checkout"', isCorrect: false },
+            { id: 'b', text: '"Write test cases for checkout. DO NOT include happy path or UI tests. Focus ONLY on payment failure scenarios and session handling."', isCorrect: true },
+            { id: 'c', text: '"Write fewer test cases for checkout"', isCorrect: false },
+            { id: 'd', text: '"Write test cases but keep them short"', isCorrect: false },
           ],
-          explanation: 'AI is amazing at quickly generating vast amounts of syntactically correct mock data (JSON, CSV).'
-        }
-      ]
+          explanation: 'Negative constraints cut out the noise AI would otherwise fill your output with. If you already have happy path coverage, saying "DO NOT include happy path" forces AI to focus exclusively on the gap you need to fill.',
+        },
+        {
+          question: 'A tester writes: "Act as a senior QA engineer." Another writes: "Act as a senior QA engineer with 12 years in fintech, obsessed with security edge cases, who is cynical about happy-path-only test suites." Which persona produces better output?',
+          options: [
+            { id: 'a', text: 'The first — simpler personas are clearer for AI', isCorrect: false },
+            { id: 'b', text: 'They are identical in effect', isCorrect: false },
+            { id: 'c', text: 'The second — specificity of domain, experience, and attitude shapes AI to pull from a much more targeted knowledge base', isCorrect: true },
+            { id: 'd', text: 'The first — longer prompts cause AI to hallucinate more', isCorrect: false },
+          ],
+          explanation: 'Persona specificity is a multiplier. Domain (fintech), attitude (cynical about happy path), and experience level all filter how AI frames its analysis. A shallow persona gets a generic QA answer; a deep persona gets expert-level domain focus.',
+        },
+        {
+          question: 'You need exactly 10 test cases — no more, no less — as a plain numbered list with no explanations. Which technique achieves this?',
+          options: [
+            { id: 'a', text: 'Few-shot prompting', isCorrect: false },
+            { id: 'b', text: 'Chain of Thought', isCorrect: false },
+            { id: 'c', text: 'Output Constraints — specifying exact count, format, and what to exclude in the prompt', isCorrect: true },
+            { id: 'd', text: 'Negative constraints', isCorrect: false },
+          ],
+          explanation: 'Output constraints control the shape of the answer before AI writes it. "Write exactly 10 test cases. Numbered list. One sentence each. No headers. No explanations." gives you precisely what you asked for — AI stops padding and editing itself.',
+        },
+      ],
+    },
+    {
+      level: 'ai-api-testing',
+      questions: [
+        {
+          question: 'What is the highest-ROI use of AI for API testing when you have a Swagger/OpenAPI spec?',
+          options: [
+            { id: 'a', text: 'Asking AI to write the API documentation for you', isCorrect: false },
+            { id: 'b', text: 'Pasting the spec into AI and asking it to generate test cases for every endpoint covering happy path, missing fields, invalid formats, and auth scenarios', isCorrect: true },
+            { id: 'c', text: 'Asking AI which programming language to use', isCorrect: false },
+            { id: 'd', text: 'Using AI to fix existing API bugs', isCorrect: false },
+          ],
+          explanation: 'An OpenAPI spec gives AI the full contract — endpoint paths, required fields, data types, status codes. From this, AI can generate a comprehensive test suite in seconds that would take hours to write manually.',
+        },
+        {
+          question: 'A tester asks AI to generate test payloads for POST /api/orders. What types of payloads should they explicitly request?',
+          options: [
+            { id: 'a', text: 'Only valid payloads — invalid ones are handled by the developer', isCorrect: false },
+            { id: 'b', text: 'Valid payloads, missing required fields, wrong data types, boundary values, and constraint violations', isCorrect: true },
+            { id: 'c', text: 'Only invalid payloads — valid ones are tested by unit tests', isCorrect: false },
+            { id: 'd', text: 'Payloads in every programming language', isCorrect: false },
+          ],
+          explanation: 'API test payloads should cover the full spectrum: happy path (valid), boundary values (min/max), missing required fields (400 errors), wrong types (strings where integers expected), and constraint violations. Specifying each category forces AI to cover all of them.',
+        },
+        {
+          question: 'What is an IDOR vulnerability in API testing and why should QA look for it?',
+          options: [
+            { id: 'a', text: 'An API timeout issue caused by inefficient database queries', isCorrect: false },
+            { id: 'b', text: 'Insecure Direct Object Reference — when user A can access user B\'s data by changing an ID in the request', isCorrect: true },
+            { id: 'c', text: 'An API that returns incorrect data types in the response', isCorrect: false },
+            { id: 'd', text: 'An outdated API version that is still in use', isCorrect: false },
+          ],
+          explanation: 'IDOR is one of the most common and dangerous API vulnerabilities — and one AI specifically flags when asked to audit API test coverage. Test it by: creating two user accounts, getting user A\'s resource ID, and attempting to access it while authenticated as user B.',
+        },
+        {
+          question: 'What Postman test assertion should you write to verify an API response time SLA of under 500ms?',
+          options: [
+            { id: 'a', text: 'pm.test("Status 200", () => pm.response.to.have.status(200))', isCorrect: false },
+            { id: 'b', text: 'pm.test("Response time under 500ms", () => pm.expect(pm.response.responseTime).to.be.below(500))', isCorrect: true },
+            { id: 'c', text: 'pm.test("Fast response", () => pm.response.to.be.ok)', isCorrect: false },
+            { id: 'd', text: 'pm.test("SLA", () => pm.response.json().time < 500)', isCorrect: false },
+          ],
+          explanation: 'pm.response.responseTime is Postman\'s built-in property for measuring response time in milliseconds. This assertion checks the actual network response time against your SLA threshold, failing the test if the API is too slow.',
+        },
+        {
+          question: 'AI generates API test cases from a spec but misses tests for rate limiting. Why, and how do you fix it?',
+          options: [
+            { id: 'a', text: 'Rate limiting tests cannot be generated by AI', isCorrect: false },
+            { id: 'b', text: 'AI focuses on the spec contract — rate limiting is often undocumented, so you must explicitly ask for it with a negative constraints prompt', isCorrect: true },
+            { id: 'c', text: 'Rate limiting is a front-end concern, not an API concern', isCorrect: false },
+            { id: 'd', text: 'AI always includes rate limiting — the tester must have missed it', isCorrect: false },
+          ],
+          explanation: 'Rate limiting, IDOR, and security tests are often absent from OpenAPI specs. AI generates what\'s in the spec. To get security coverage, explicitly add: "Also generate test cases for: rate limiting, IDOR, authentication bypass, and mass assignment vulnerabilities."',
+        },
+      ],
+    },
+    {
+      level: 'ai-playwright-scripts',
+      questions: [
+        {
+          question: 'What is the most important information to give AI when asking it to generate a Playwright test?',
+          options: [
+            { id: 'a', text: 'The name of the developer who wrote the feature', isCorrect: false },
+            { id: 'b', text: 'The full user journey step by step, field identifiers (labels or IDs), the URL, and the expected outcome after each action', isCorrect: true },
+            { id: 'c', text: 'The programming language you prefer', isCorrect: false },
+            { id: 'd', text: 'The date the test should be run', isCorrect: false },
+          ],
+          explanation: 'Playwright tests need precise locators and assertions. AI cannot guess your field names, URLs, or expected outcomes — you must provide them. The more specific your step-by-step description, the closer the generated test is to production-ready.',
+        },
+        {
+          question: 'Playwright\'s documentation recommends which locator strategies above CSS selectors and XPath?',
+          options: [
+            { id: 'a', text: 'document.getElementById() and document.querySelector()', isCorrect: false },
+            { id: 'b', text: 'getByRole(), getByLabel(), getByText(), getByTestId() — user-facing and accessible attributes', isCorrect: true },
+            { id: 'c', text: '.class-name and #id selectors only', isCorrect: false },
+            { id: 'd', text: 'XPath expressions with absolute paths', isCorrect: false },
+          ],
+          explanation: 'Playwright\'s official guidance prioritises user-facing locators: getByRole (button, textbox, heading), getByLabel (form inputs), getByText (visible text), getByTestId (data-testid attribute). These are resilient to UI changes and reflect how real users interact with the page.',
+        },
+        {
+          question: 'An AI-generated Playwright test clicks a button and then immediately asserts the URL changed. What common problem does this have?',
+          options: [
+            { id: 'a', text: 'The assertion syntax is wrong', isCorrect: false },
+            { id: 'b', text: 'No async handling — the navigation may not have completed before the assertion runs, causing intermittent failures', isCorrect: true },
+            { id: 'c', text: 'You should never assert on URLs', isCorrect: false },
+            { id: 'd', text: 'Playwright does not support URL assertions', isCorrect: false },
+          ],
+          explanation: 'Playwright is async. After a click that triggers navigation, you need to await the navigation or use expect(page).toHaveURL() which has built-in retry logic. Ask AI: "After every click that triggers navigation, add proper await and use Playwright\'s auto-waiting assertions."',
+        },
+        {
+          question: 'What prompt should you use to improve selector quality in an existing AI-generated test?',
+          options: [
+            { id: 'a', text: '"Make this test faster"', isCorrect: false },
+            { id: 'b', text: '"Review all selectors in this test. For each brittle one (CSS class, XPath), explain why it will break and replace it with a Playwright best-practice alternative."', isCorrect: true },
+            { id: 'c', text: '"Add more test cases"', isCorrect: false },
+            { id: 'd', text: '"Convert this test to JavaScript"', isCorrect: false },
+          ],
+          explanation: 'A targeted selector audit prompt forces AI to examine each locator individually, assess its brittleness, and suggest a more resilient replacement. This is one of the most valuable post-generation refinement steps — brittle selectors are the #1 cause of flaky Playwright tests.',
+        },
+        {
+          question: 'A Playwright test fails with "strict mode violation: getByText(\'Submit\') resolved to 2 elements." What does this mean and how do you fix it?',
+          options: [
+            { id: 'a', text: 'The Submit button does not exist on the page', isCorrect: false },
+            { id: 'b', text: 'Two elements on the page match the locator — Playwright\'s strict mode requires a unique match, so the locator must be narrowed (e.g. scoped to a specific section)', isCorrect: true },
+            { id: 'c', text: 'The test ran twice accidentally', isCorrect: false },
+            { id: 'd', text: 'The page loaded too slowly', isCorrect: false },
+          ],
+          explanation: 'Playwright strict mode requires locators to resolve to exactly one element. Fix: scope the locator to its parent container — page.getByRole(\'form\').getByText(\'Submit\') — or use a more specific locator like getByRole(\'button\', { name: \'Submit Order\' }).',
+        },
+      ],
+    },
+    {
+      level: 'ai-code-review',
+      questions: [
+        {
+          question: 'Why should QA engineers review code before testing begins, not just after?',
+          options: [
+            { id: 'a', text: 'QA should not review code — that is the developer\'s job', isCorrect: false },
+            { id: 'b', text: 'Catching bugs in code review is faster and cheaper than finding them during testing or in production', isCorrect: true },
+            { id: 'c', text: 'Code review replaces the need for test execution', isCorrect: false },
+            { id: 'd', text: 'QA reviewing code creates conflict with developers', isCorrect: false },
+          ],
+          explanation: 'The cost of finding a bug multiplies as it moves through the SDLC. A bug found in code review takes minutes to fix. The same bug found in production can take days and affect real users. AI-assisted code review makes this fast enough to do on every PR.',
+        },
+        {
+          question: 'What is the most important QA-specific thing to look for when reviewing a PR diff with AI?',
+          options: [
+            { id: 'a', text: 'Code formatting and indentation style', isCorrect: false },
+            { id: 'b', text: 'Missing error handling, unvalidated inputs, race conditions, and existing tests that the change could break', isCorrect: true },
+            { id: 'c', text: 'Whether the commit message follows the right convention', isCorrect: false },
+            { id: 'd', text: 'Whether the developer used the right variable naming convention', isCorrect: false },
+          ],
+          explanation: 'QA\'s code review lens is risk-focused: what could go wrong at runtime? Missing try/catch, unvalidated user inputs, async timing issues, and broken existing behaviour are the things QA should surface — leaving style to linters.',
+        },
+        {
+          question: 'What is an IDOR vulnerability and how would you detect it through code review?',
+          options: [
+            { id: 'a', text: 'A slow database query — detected by checking for missing indexes', isCorrect: false },
+            { id: 'b', text: 'Insecure Direct Object Reference — detected by finding API endpoints that use user-supplied IDs without verifying the requesting user owns that resource', isCorrect: true },
+            { id: 'c', text: 'An invalid data type in an API response', isCorrect: false },
+            { id: 'd', text: 'An injection attack via a form field', isCorrect: false },
+          ],
+          explanation: 'IDOR appears in code like: GET /api/orders/{orderId} where orderId comes from the request URL but the code never checks if the logged-in user owns that order. Ask AI: "Check all endpoints using request parameters for missing ownership/authorisation checks."',
+        },
+        {
+          question: 'AI reviews a test suite and flags "hardcoded wait: await page.waitForTimeout(3000)". Why is this a problem?',
+          options: [
+            { id: 'a', text: 'Playwright does not support waitForTimeout', isCorrect: false },
+            { id: 'b', text: 'Hardcoded waits make tests slow and flaky — too short fails on slow environments, too long wastes CI time unnecessarily', isCorrect: true },
+            { id: 'c', text: 'The number 3000 is too large for Playwright', isCorrect: false },
+            { id: 'd', text: 'Hardcoded waits only work on Windows', isCorrect: false },
+          ],
+          explanation: 'Hardcoded waits are a test quality smell. The fix is always an explicit condition: await expect(locator).toBeVisible() or page.waitForResponse(). These wait for exactly as long as needed — fast on fast machines, resilient on slow ones.',
+        },
+        {
+          question: 'You run an AI coverage gap analysis on a checkout feature and AI flags "no tests for concurrent sessions." What does this mean to test?',
+          options: [
+            { id: 'a', text: 'Testing the checkout page in two different browsers simultaneously', isCorrect: false },
+            { id: 'b', text: 'Testing what happens when the same user (or two users) are modifying the same resource simultaneously — e.g. both trying to buy the last item in stock', isCorrect: true },
+            { id: 'c', text: 'Running the same test case twice in a row', isCorrect: false },
+            { id: 'd', text: 'Testing checkout with two payment methods at the same time', isCorrect: false },
+          ],
+          explanation: 'Concurrent session testing checks for race conditions — two users placing the last item in stock simultaneously, a user editing their cart while a price update runs, or a session timing out mid-checkout. These are common production bugs that only surface under real-world concurrency.',
+        },
+      ],
+    },
+    {
+      level: 'ai-test-documentation',
+      questions: [
+        {
+          question: 'What is the most efficient way to write a sprint test execution report using AI?',
+          options: [
+            { id: 'a', text: 'Ask AI to generate test results without any data', isCorrect: false },
+            { id: 'b', text: 'Provide raw metrics (pass/fail counts, bug list, blockers) and ask AI to format them into an executive summary with go/no-go recommendation', isCorrect: true },
+            { id: 'c', text: 'Ask AI to run the tests and report the results', isCorrect: false },
+            { id: 'd', text: 'Copy last sprint\'s report and change the dates', isCorrect: false },
+          ],
+          explanation: 'AI excels at turning raw data into structured, professional documents. Provide your numbers and bug descriptions — AI handles the formatting, language, and structure. The go/no-go recommendation still requires your professional judgement based on the data.',
+        },
+        {
+          question: 'What are "entry criteria" and "exit criteria" in a test plan, and why do they matter?',
+          options: [
+            { id: 'a', text: 'The first and last test cases in the suite', isCorrect: false },
+            { id: 'b', text: 'Entry criteria define when testing can start; exit criteria define when testing is complete — both prevent testing too early or releasing too early', isCorrect: true },
+            { id: 'c', text: 'The login and logout steps in a test scenario', isCorrect: false },
+            { id: 'd', text: 'Criteria that only apply to performance testing', isCorrect: false },
+          ],
+          explanation: 'Without entry criteria, QA ends up testing incomplete builds. Without exit criteria, there\'s no agreed definition of "done." Common entry criteria: build deployed to staging, test data seeded. Common exit criteria: pass rate above 95%, no Critical/High open bugs.',
+        },
+        {
+          question: 'A product owner gives you a vague user story: "As a user I want to manage my notifications." How does AI help you make it testable?',
+          options: [
+            { id: 'a', text: 'AI can implement the feature so you can test it', isCorrect: false },
+            { id: 'b', text: 'Ask AI to expand it into 6–8 specific Gherkin acceptance criteria with clear pass/fail conditions, plus a list of ambiguity questions for the PO', isCorrect: true },
+            { id: 'c', text: 'Ask AI to approve the story as-is', isCorrect: false },
+            { id: 'd', text: 'Stories this vague cannot be tested', isCorrect: false },
+          ],
+          explanation: 'Vague stories are a QA problem — you can\'t test something without a clear definition of success. AI is excellent at decomposing vague requirements into specific, testable acceptance criteria. The ambiguity questions it surfaces are equally valuable for the next PO conversation.',
+        },
+        {
+          question: 'What should a QA defect backlog analysis prompt ask AI to identify, beyond just counting bugs by severity?',
+          options: [
+            { id: 'a', text: 'The developer who filed each bug', isCorrect: false },
+            { id: 'b', text: 'Clustering patterns — are bugs concentrated in a specific module, feature, or code area — and what this suggests about root cause', isCorrect: true },
+            { id: 'c', text: 'Whether the bugs are real or false positives', isCorrect: false },
+            { id: 'd', text: 'The exact time each bug was filed', isCorrect: false },
+          ],
+          explanation: 'Bug clustering is a powerful quality signal. If 80% of bugs are in the payments module, that module needs architectural attention — not just more testing. AI can identify these patterns from a list of bug titles and components, helping QA make a stronger case for technical debt work.',
+        },
+        {
+          question: 'When writing a test strategy for a new mobile banking app, which section is most likely to be weak if AI writes it without your input?',
+          options: [
+            { id: 'a', text: 'Test types (functional, regression, performance)', isCorrect: false },
+            { id: 'b', text: 'Compliance requirements (PCI-DSS, GDPR) and team-specific risks AI cannot know about', isCorrect: true },
+            { id: 'c', text: 'Recommended testing tools', isCorrect: false },
+            { id: 'd', text: 'Entry and exit criteria templates', isCorrect: false },
+          ],
+          explanation: 'AI produces excellent generic test strategy structures. What it can\'t know is your company\'s specific compliance obligations, known legacy risks, team capacity, or regulatory constraints. These must be added by a human who knows the context.',
+        },
+      ],
+    },
+    {
+      level: 'ai-accessibility-testing',
+      questions: [
+        {
+          question: 'What does WCAG stand for and what standard does WCAG 2.1 AA represent for most web applications?',
+          options: [
+            { id: 'a', text: 'Web Content Accessibility Guidelines — the international standard for making web content accessible to people with disabilities', isCorrect: true },
+            { id: 'b', text: 'Web Code Audit Guidelines — a standard for code quality in frontend development', isCorrect: false },
+            { id: 'c', text: 'Web Compatibility and Graceful degradation — a cross-browser testing standard', isCorrect: false },
+            { id: 'd', text: 'Website Compliance and Governance — a legal framework for data protection', isCorrect: false },
+          ],
+          explanation: 'WCAG 2.1 AA is the legal accessibility standard in most countries (EU, UK, USA via ADA). Failing it exposes companies to lawsuits. QA engineers are responsible for ensuring features meet at minimum Level AA before release.',
+        },
+        {
+          question: 'A button has only an icon (a magnifying glass) with no text. What WCAG violation does this create?',
+          options: [
+            { id: 'a', text: 'A colour contrast violation (1.4.3)', isCorrect: false },
+            { id: 'b', text: 'A Name/Role/Value violation (4.1.2) — the button has no accessible name that a screen reader can announce', isCorrect: true },
+            { id: 'c', text: 'A keyboard navigation violation (2.1.1)', isCorrect: false },
+            { id: 'd', text: 'A focus visibility violation (2.4.7)', isCorrect: false },
+          ],
+          explanation: 'WCAG 4.1.2 requires all interactive elements to have an accessible name. For icon-only buttons: add aria-label="Search" or a visually-hidden span. Screen readers announce the name when the element receives focus — without it, users hear "button" with no context.',
+        },
+        {
+          question: 'What is the minimum colour contrast ratio required by WCAG 2.1 AA for normal body text?',
+          options: [
+            { id: 'a', text: '2:1', isCorrect: false },
+            { id: 'b', text: '3:1', isCorrect: false },
+            { id: 'c', text: '4.5:1', isCorrect: true },
+            { id: 'd', text: '7:1', isCorrect: false },
+          ],
+          explanation: 'WCAG 2.1 AA requires a contrast ratio of at least 4.5:1 for normal text and 3:1 for large text (18pt or 14pt bold). 7:1 is the AAA standard. AI can identify elements likely to fail contrast but you need a tool like the browser\'s colour contrast checker to confirm exact ratios.',
+        },
+        {
+          question: 'A tester wants to test keyboard navigation on a form. What should they verify beyond just "Tab moves between fields"?',
+          options: [
+            { id: 'a', text: 'That clicking with a mouse also works', isCorrect: false },
+            { id: 'b', text: 'That Tab order is logical, focus is always visible, all actions are keyboard-activatable, and there are no focus traps', isCorrect: true },
+            { id: 'c', text: 'That the form validates on Enter', isCorrect: false },
+            { id: 'd', text: 'That autocomplete works on all fields', isCorrect: false },
+          ],
+          explanation: 'Full keyboard navigation testing includes: Tab/Shift+Tab for forward/backward traversal, Enter/Space to activate buttons, visible focus rings on every element, logical Tab order that matches visual reading order, no elements that trap keyboard focus preventing users from leaving.',
+        },
+        {
+          question: 'AI generates accessibility test cases for a login form and includes "test that error messages are announced by screen readers." How should this actually be tested?',
+          options: [
+            { id: 'a', text: 'By looking at the error message visually on screen', isCorrect: false },
+            { id: 'b', text: 'By using a screen reader (VoiceOver on Mac/iOS, NVDA on Windows) and triggering the error to verify the screen reader announces the message automatically', isCorrect: true },
+            { id: 'c', text: 'By checking if the error text is red', isCorrect: false },
+            { id: 'd', text: 'By running an automated Lighthouse scan', isCorrect: false },
+          ],
+          explanation: 'For errors to be announced by screen readers, they need role="alert" or aria-live="polite" in the HTML. The only reliable way to test this is with an actual screen reader. Automated tools like Lighthouse cannot verify dynamic announcements — they only check static HTML.',
+        },
+      ],
+    },
+    {
+      level: 'ai-performance-analysis',
+      questions: [
+        {
+          question: 'What does the p95 response time metric mean in a performance test result?',
+          options: [
+            { id: 'a', text: '95% of the test passed', isCorrect: false },
+            { id: 'b', text: '95% of requests completed within this response time — 5% of users experienced slower responses', isCorrect: true },
+            { id: 'c', text: 'The server was at 95% CPU capacity during the test', isCorrect: false },
+            { id: 'd', text: 'The 95th test case in the suite', isCorrect: false },
+          ],
+          explanation: 'Percentiles tell you about user experience distribution. p95 = 200ms means 95% of users got a response in under 200ms, but 5% waited longer. SLAs are typically defined at p95 or p99 because averages hide the worst user experiences.',
+        },
+        {
+          question: 'A k6 load test shows p95 = 400ms at 50 VUs, but p95 = 2800ms at 200 VUs. What does this tell a QA engineer?',
+          options: [
+            { id: 'a', text: 'The test results are unreliable', isCorrect: false },
+            { id: 'b', text: 'Performance degrades significantly between 50 and 200 concurrent users — there is a scalability bottleneck that needs investigation', isCorrect: true },
+            { id: 'c', text: 'The SLA should be increased to 3000ms', isCorrect: false },
+            { id: 'd', text: 'The test was not run correctly', isCorrect: false },
+          ],
+          explanation: 'A 7x response time increase from 50→200 VUs indicates a scalability cliff — a point where the system stops handling load gracefully. Common causes: database connection pool exhaustion, thread pool saturation, or missing caching. AI can suggest likely causes when shown this data pattern.',
+        },
+        {
+          question: 'What does "error rate < 1%" mean as a performance test threshold, and what is the right Playwright k6 assertion?',
+          options: [
+            { id: 'a', text: 'Less than 1 total error across the entire test run', isCorrect: false },
+            { id: 'b', text: 'Less than 1% of all requests returned an error (4xx or 5xx) — asserted as: thresholds: { http_req_failed: ["rate<0.01"] }', isCorrect: true },
+            { id: 'c', text: 'The test must complete within 1 second', isCorrect: false },
+            { id: 'd', text: 'Error rate thresholds are only for unit tests', isCorrect: false },
+          ],
+          explanation: 'http_req_failed in k6 tracks the percentage of requests that received a non-2xx response. A threshold of rate<0.01 means the test fails if more than 1% of requests fail. SLAs typically require this to stay below 0.1–1% under normal load.',
+        },
+        {
+          question: 'What is a "soak test" and why is it different from a load test?',
+          options: [
+            { id: 'a', text: 'A soak test uses more virtual users than a load test', isCorrect: false },
+            { id: 'b', text: 'A soak test runs at moderate load for an extended period (hours) to find issues like memory leaks, connection pool exhaustion, and disk fill that only appear over time', isCorrect: true },
+            { id: 'c', text: 'A soak test only tests the database', isCorrect: false },
+            { id: 'd', text: 'A soak test runs with zero concurrent users', isCorrect: false },
+          ],
+          explanation: 'Load tests find what breaks under peak load. Soak tests find what degrades over time under normal load. Memory leaks, database connection leaks, log file growth, and cache invalidation issues often only appear after hours of sustained use — invisible to a 5-minute load test.',
+        },
+        {
+          question: 'A QA engineer pastes a k6 results summary into AI and asks for analysis. What should they include in the prompt to get the most useful response?',
+          options: [
+            { id: 'a', text: 'Their company name and testing budget', isCorrect: false },
+            { id: 'b', text: 'Their SLA requirements (e.g. p95 < 500ms, error rate < 1%) so AI can assess the results against actual acceptance criteria', isCorrect: true },
+            { id: 'c', text: 'The names of the developers who wrote the API', isCorrect: false },
+            { id: 'd', text: 'The programming language the API is written in', isCorrect: false },
+          ],
+          explanation: 'Without SLA context, AI can only describe the data. With SLAs, AI can give a pass/fail verdict, identify exactly which thresholds were breached, and prioritise which issues matter most. Always include your performance acceptance criteria in the analysis prompt.',
+        },
+      ],
+    },
+    {
+      level: 'ai-exploratory-testing',
+      questions: [
+        {
+          question: 'What is an exploratory test charter and what is its purpose?',
+          options: [
+            { id: 'a', text: 'A legal document authorising the QA team to test the application', isCorrect: false },
+            { id: 'b', text: 'A short focused mission for an exploratory session: what to explore, what to use, and what to discover — providing direction without scripting every step', isCorrect: true },
+            { id: 'c', text: 'A detailed script with every step written out in advance', isCorrect: false },
+            { id: 'd', text: 'A list of bugs found during a previous testing session', isCorrect: false },
+          ],
+          explanation: 'A charter gives exploratory testing direction without removing the creative freedom that makes it effective. Format: EXPLORE [area] / WITH [tools/data] / TO DISCOVER [what you\'re looking for]. AI can generate a set of diverse charters covering functionality, security, usability, and edge cases.',
+        },
+        {
+          question: 'What is the SFDIPOT heuristic used for in exploratory testing?',
+          options: [
+            { id: 'a', text: 'A checklist for SQL database testing', isCorrect: false },
+            { id: 'b', text: 'A structured way to think about a feature from multiple perspectives: Structure, Function, Data, Interfaces, Platform, Operations, and Time', isCorrect: true },
+            { id: 'c', text: 'A severity classification system for defects', isCorrect: false },
+            { id: 'd', text: 'A framework for writing test automation in Playwright', isCorrect: false },
+          ],
+          explanation: 'SFDIPOT (also called the Product Elements heuristic) helps testers think beyond "does the feature work" to consider: how is it built, what data does it process, what does it integrate with, what platforms run it, how is it used in practice, and what happens over time. AI can apply this heuristic to generate test ideas across all seven dimensions.',
+        },
+        {
+          question: 'During exploratory testing you discover that a 100% discount coupon results in a £0 total but the "Place Order" button remains active. What should your next move be?',
+          options: [
+            { id: 'a', text: 'Report the bug immediately and stop exploring', isCorrect: false },
+            { id: 'b', text: 'Continue exploring: place the order, check if it processes, then look for similar vulnerabilities in other pricing/coupon scenarios', isCorrect: true },
+            { id: 'c', text: 'Mark it as a UI bug only — £0 orders are impossible in production', isCorrect: false },
+            { id: 'd', text: 'Ask the developer if it is intentional before investigating further', isCorrect: false },
+          ],
+          explanation: 'When you find something interesting in exploratory testing, follow the thread. A £0 order processing is a business logic vulnerability with potential financial impact. Explore its full extent before reporting: can you stack multiple coupons? Can the total go negative? Does this affect all product categories?',
+        },
+        {
+          question: 'What makes AI-assisted exploratory testing different from using AI to generate scripted tests?',
+          options: [
+            { id: 'a', text: 'AI-assisted exploratory testing is fully automated', isCorrect: false },
+            { id: 'b', text: 'AI provides structured starting points (charters, mind maps, risk areas) while the human tester retains creative freedom and adapts in real time based on what they discover', isCorrect: true },
+            { id: 'c', text: 'AI replaces the human in exploratory testing', isCorrect: false },
+            { id: 'd', text: 'There is no difference — exploratory and scripted testing are the same', isCorrect: false },
+          ],
+          explanation: 'AI generates the map; you explore the territory. AI can suggest charters, heuristics, risk areas, and follow-up ideas — but the actual exploration, observation, and judgement calls are irreducibly human. AI cannot experience surprise or notice that something "feels wrong."',
+        },
+        {
+          question: 'How should you document an exploratory testing session for maximum usefulness to your team?',
+          options: [
+            { id: 'a', text: 'A bullet list of every click you made', isCorrect: false },
+            { id: 'b', text: 'A structured report covering: charter, duration, areas covered, bugs found with severity, interesting observations, and recommended follow-up sessions', isCorrect: true },
+            { id: 'c', text: 'A video recording of the entire session', isCorrect: false },
+            { id: 'd', text: 'Exploratory sessions do not need documentation', isCorrect: false },
+          ],
+          explanation: 'Structured exploratory session notes serve multiple purposes: they justify the testing time, give developers enough context to reproduce bugs, and identify areas for follow-up sessions. AI can turn your raw notes into this structured format in under a minute.',
+        },
+      ],
+    },
+    {
+      level: 'ai-prompt-templates',
+      questions: [
+        {
+          question: 'What is the main advantage of using prompt templates over writing prompts from scratch each time?',
+          options: [
+            { id: 'a', text: 'Templates make AI respond faster', isCorrect: false },
+            { id: 'b', text: 'Templates encode your best prompting knowledge once, ensure consistent output quality across the team, and eliminate repetitive prompt-crafting time', isCorrect: true },
+            { id: 'c', text: 'Templates prevent AI from hallucinating', isCorrect: false },
+            { id: 'd', text: 'Templates work only with paid AI tools', isCorrect: false },
+          ],
+          explanation: 'A well-crafted template is reusable institutional knowledge. The 10 minutes spent perfecting a bug report template saves 5 minutes every time it\'s used — and ensures every team member gets the same quality output from day one.',
+        },
+        {
+          question: 'In a prompt template, what is the purpose of [PLACEHOLDER] notation?',
+          options: [
+            { id: 'a', text: 'It is a variable that AI fills in automatically', isCorrect: false },
+            { id: 'b', text: 'It clearly marks where the user must insert their specific information before sending — preventing the template from being used without customisation', isCorrect: true },
+            { id: 'c', text: 'It is a comment that AI ignores', isCorrect: false },
+            { id: 'd', text: 'It tells AI to generate a random value for that field', isCorrect: false },
+          ],
+          explanation: 'PLACEHOLDER notation makes templates self-documenting — anyone who opens the template immediately sees exactly what to replace. Without it, users often paste templates without customising them, getting generic AI output and wondering why it\'s not specific to their case.',
+        },
+        {
+          question: 'A team of 5 QA engineers each craft their own prompts for writing bug reports. What problem does sharing a standardised template solve?',
+          options: [
+            { id: 'a', text: 'It limits what each engineer can test', isCorrect: false },
+            { id: 'b', text: 'It ensures all bug reports have the same fields, format, and level of detail — making them easier for developers to act on and easier to track in Jira', isCorrect: true },
+            { id: 'c', text: 'It forces all engineers to use the same AI tool', isCorrect: false },
+            { id: 'd', text: 'It prevents duplicated bug reports', isCorrect: false },
+          ],
+          explanation: 'Without standardised templates, QA output quality depends on individual prompt skill. Some engineers will produce polished reports; others will get half-finished ones. A shared template levels the playing field and removes format debates — the team focuses on testing, not writing.',
+        },
+        {
+          question: 'Which is the best place to store a QA prompt template that should be active for every ChatGPT conversation?',
+          options: [
+            { id: 'a', text: 'In a text file on your desktop', isCorrect: false },
+            { id: 'b', text: 'In ChatGPT\'s Custom Instructions — it becomes part of every conversation\'s system prompt automatically', isCorrect: true },
+            { id: 'c', text: 'In a Jira ticket', isCorrect: false },
+            { id: 'd', text: 'Memorised and typed manually each session', isCorrect: false },
+          ],
+          explanation: 'ChatGPT\'s Custom Instructions (Settings → Personalisation) inject a persistent system prompt into every conversation. QA engineers use this to set "I am a QA engineer, always format test cases as Gherkin, always flag security issues in code" — without repeating it every session.',
+        },
+        {
+          question: 'A QA lead wants to introduce AI prompt templates to a team of 6 engineers who have never used AI for QA. What is the best starting point?',
+          options: [
+            { id: 'a', text: 'Give everyone 20 templates on day one', isCorrect: false },
+            { id: 'b', text: 'Start with 2–3 templates for the highest-volume daily tasks (bug reports, test cases, PR review) — let the team build the rest from real usage', isCorrect: true },
+            { id: 'c', text: 'Ask each engineer to create their own templates independently', isCorrect: false },
+            { id: 'd', text: 'Wait until AI tools are more mature before introducing templates', isCorrect: false },
+          ],
+          explanation: 'Template adoption follows usage. Start with the templates that reduce daily pain the most — bug reports and test cases are universally repetitive. Teams that start with 2–3 highly useful templates naturally expand the library as they experience the time savings firsthand.',
+        },
+      ],
+    },
+    {
+      level: 'ai-mobile-testing',
+      questions: [
+        {
+          question: 'Why is OS fragmentation a bigger challenge for Android testing than iOS testing?',
+          options: [
+            { id: 'a', text: 'Android apps are harder to write', isCorrect: false },
+            { id: 'b', text: 'Android runs on hundreds of manufacturers\' devices with different OS versions, screen sizes, and hardware capabilities — iOS runs on a controlled set of Apple devices with fast OS adoption', isCorrect: true },
+            { id: 'c', text: 'Android does not support automated testing', isCorrect: false },
+            { id: 'd', text: 'iOS has more users than Android globally', isCorrect: false },
+          ],
+          explanation: 'Android fragmentation means a feature that works on a Samsung Galaxy S24 running Android 14 may behave differently on a budget Xiaomi running Android 11. iOS devices update faster and Apple controls the hardware, creating a much smaller test matrix. AI helps generate test cases for each OS version\'s known differences.',
+        },
+        {
+          question: 'A user is placing a food delivery order on a mobile app and receives a phone call midway. What test scenario does this represent?',
+          options: [
+            { id: 'a', text: 'A network condition test', isCorrect: false },
+            { id: 'b', text: 'An interruption test — verifying the app handles backgrounding gracefully and restores state correctly when the user returns', isCorrect: true },
+            { id: 'c', text: 'A performance test', isCorrect: false },
+            { id: 'd', text: 'A gesture test', isCorrect: false },
+          ],
+          explanation: 'Interruption testing is a mobile-specific challenge. When a call comes in, the app is backgrounded (or killed on low-memory devices). The test questions are: is the order saved? Does the user return to the same screen? Is any payment data lost or corrupted? Desktop web testing has no equivalent.',
+        },
+        {
+          question: 'What mobile-specific risk should be tested when a banking app uses biometric authentication?',
+          options: [
+            { id: 'a', text: 'Whether the biometric button is the right colour', isCorrect: false },
+            { id: 'b', text: 'Fallback behaviour when biometrics fail (too many attempts, unregistered fingerprint), OS version API differences, and whether biometrics can be bypassed', isCorrect: true },
+            { id: 'c', text: 'Whether the biometric icon displays correctly on all screen sizes', isCorrect: false },
+            { id: 'd', text: 'Whether the biometric feature is optional', isCorrect: false },
+          ],
+          explanation: 'Biometric auth has multiple failure modes unique to mobile: unregistered fingerprint, too many failed attempts, device not enrolled, accessibility mode bypassing biometrics, and iOS vs Android API differences in how biometric results are returned. Each is a separate test scenario.',
+        },
+        {
+          question: 'What happens to a mobile app\'s ongoing network requests when a user switches from WiFi to 4G mid-session? What should QA test?',
+          options: [
+            { id: 'a', text: 'Nothing — mobile apps automatically reconnect all requests', isCorrect: false },
+            { id: 'b', text: 'In-flight requests may fail, timeout, or complete successfully — QA should test: does the app surface a clear error, retry automatically, or silently lose data?', isCorrect: true },
+            { id: 'c', text: 'The app always restarts when the network changes', isCorrect: false },
+            { id: 'd', text: 'Network switching only affects loading screens, not active requests', isCorrect: false },
+          ],
+          explanation: 'Network transition testing is critical for mobile apps. TCP connections drop when switching networks. In-flight API calls — like a payment request — can fail silently or get stuck. The test: did the payment process? Was the user told? Can they retry safely without paying twice?',
+        },
+        {
+          question: 'What does "reduce motion" accessibility mode mean for mobile testing?',
+          options: [
+            { id: 'a', text: 'A power-saving mode that reduces CPU usage', isCorrect: false },
+            { id: 'b', text: 'A system accessibility setting that disables or reduces animations — apps must respect this for users with vestibular disorders who experience motion sickness from animations', isCorrect: true },
+            { id: 'c', text: 'A setting that slows down touch gestures', isCorrect: false },
+            { id: 'd', text: 'A developer mode for testing animations frame by frame', isCorrect: false },
+          ],
+          explanation: 'Vestibular disorders affect millions of users — large animations, parallax effects, and screen transitions can cause nausea and dizziness. Both iOS and Android have "Reduce Motion" settings. WCAG 2.3.3 requires that non-essential animations can be disabled. QA should test that your app respects this system preference.',
+        },
+      ],
+    },
+    {
+      level: 'ai-regression-planning',
+      questions: [
+        {
+          question: 'What is "change-driven regression planning" and why is it more efficient than running the full regression suite every time?',
+          options: [
+            { id: 'a', text: 'Running only the tests that failed last time', isCorrect: false },
+            { id: 'b', text: 'Analysing what changed in the release and running only the test cases that cover those changes and their dependencies — reducing test time while maintaining coverage where it matters', isCorrect: true },
+            { id: 'c', text: 'Changing the order of regression tests each sprint', isCorrect: false },
+            { id: 'd', text: 'Skipping regression testing for small releases', isCorrect: false },
+          ],
+          explanation: 'A full regression suite of 500 tests might take 8 hours. Change-driven planning asks: which of those 500 tests actually exercise the changed code? Running 80 targeted tests for a small release is faster AND safer — because it focuses attention on the real risk areas.',
+        },
+        {
+          question: 'What does a smoke test suite do and how many tests should it typically contain?',
+          options: [
+            { id: 'a', text: 'Tests all edge cases — typically 200–300 tests', isCorrect: false },
+            { id: 'b', text: 'Verifies the core user journeys work after every deployment — typically 15–25 fast tests that run in under 10 minutes', isCorrect: true },
+            { id: 'c', text: 'Tests only the UI visual appearance — typically 50 screenshots', isCorrect: false },
+            { id: 'd', text: 'Runs performance tests — typically 5 tests with 1000 VUs', isCorrect: false },
+          ],
+          explanation: 'A smoke suite catches "did the deployment break the core product?" It should run on every deployment — which means it must be fast. 15–25 tests covering login, core journeys, and key APIs, completing in under 10 minutes, is the standard target. AI can help identify which journeys deserve a slot in the smoke suite.',
+        },
+        {
+          question: 'A release changes the Stripe payment SDK from v2 to v3. Which areas should the regression plan flag as highest priority?',
+          options: [
+            { id: 'a', text: 'Only the checkout page — that\'s where Stripe is used visually', isCorrect: false },
+            { id: 'b', text: 'All payment flows plus subscription billing, refunds, failed payment handling, webhooks, and any feature that reads payment history — the SDK change can affect all of these', isCorrect: true },
+            { id: 'c', text: 'Only the unit tests for the payment module', isCorrect: false },
+            { id: 'd', text: 'The Stripe integration does not need regression testing if the vendor guarantees backward compatibility', isCorrect: false },
+          ],
+          explanation: 'A third-party SDK change has a wide blast radius. Stripe v3 may have different event names, webhook payloads, error codes, and response structures — all of which downstream features depend on. Change-driven regression planning must trace every touchpoint of the changed dependency, not just the obvious UI.',
+        },
+        {
+          question: 'After a release, production error logs show a NullPointerException in the order confirmation email service. This was not caught in testing. What should the regression plan improvement be?',
+          options: [
+            { id: 'a', text: 'Run more tests faster next time', isCorrect: false },
+            { id: 'b', text: 'Add a test case for order confirmation email triggering to the regression suite, and add a post-release monitoring check for email service errors', isCorrect: true },
+            { id: 'c', text: 'Ask the developer not to change the email service again', isCorrect: false },
+            { id: 'd', text: 'Regression testing cannot catch every bug', isCorrect: false },
+          ],
+          explanation: 'Every production bug that wasn\'t caught by testing is a gap in the regression suite. The correct response is: write the test that would have caught it, add it to the appropriate tier (smoke if it\'s critical, sanity if it\'s important, full regression otherwise), and add a monitoring alert for this error type.',
+        },
+        {
+          question: 'What is the regression testing pyramid and how does it guide test suite organisation?',
+          options: [
+            { id: 'a', text: 'A chart showing test execution time over multiple sprints', isCorrect: false },
+            { id: 'b', text: 'A tiered structure: Smoke (run every deploy) → Sanity (run every release candidate) → Full Regression (run weekly/pre-major release) — each tier larger and slower than the one above', isCorrect: true },
+            { id: 'c', text: 'A model showing how many QA engineers are needed at each project phase', isCorrect: false },
+            { id: 'd', text: 'A framework for prioritising bugs by severity', isCorrect: false },
+          ],
+          explanation: 'The regression pyramid prevents the two failure modes: running too little (missing regressions) and running too much (slow CI, ignored failures). Smoke catches broken deployments in minutes. Sanity validates changed areas in an hour. Full regression finds everything — but only when the time investment is justified.',
+        },
+      ],
+    },
+    {
+      level: 'ai-cicd-failures',
+      questions: [
+        {
+          question: 'A CI pipeline fails with "Test exceeded 30000ms timeout." What should you investigate first?',
+          options: [
+            { id: 'a', text: 'Increase the timeout to 60000ms and re-run', isCorrect: false },
+            { id: 'b', text: 'Whether the page element the test is waiting for actually appeared — the timeout means the test gave up waiting, not that the test logic is wrong', isCorrect: true },
+            { id: 'c', text: 'Switch to a faster CI provider', isCorrect: false },
+            { id: 'd', text: 'Delete the test — it is clearly flaky', isCorrect: false },
+          ],
+          explanation: 'A timeout error means Playwright waited the maximum time for a condition that never became true. Root causes: the element never appeared (broken feature), the selector is wrong, the page navigated away, or CI environment is slower than local. Increasing the timeout hides the problem — investigate why the condition isn\'t being met.',
+        },
+        {
+          question: 'A test passes on your local machine every time but fails in CI about 30% of the time with "Element not found." What is the most likely cause?',
+          options: [
+            { id: 'a', text: 'The CI server has a virus', isCorrect: false },
+            { id: 'b', text: 'A race condition — CI machines are often slower, causing async operations to not complete before the test assertion runs', isCorrect: true },
+            { id: 'c', text: 'The test is written incorrectly', isCorrect: false },
+            { id: 'd', text: 'The element was removed from the page', isCorrect: false },
+          ],
+          explanation: 'Local-to-CI flakiness is almost always a timing issue. Your local machine is fast — the element appears quickly. CI machines have variable load — the element sometimes takes longer. Fix: replace hardcoded waits with Playwright\'s auto-waiting assertions (expect(locator).toBeVisible()) which retry automatically.',
+        },
+        {
+          question: 'When pasting a failed CI log into AI for diagnosis, what is the most efficient approach?',
+          options: [
+            { id: 'a', text: 'Paste the entire 5000-line log', isCorrect: false },
+            { id: 'b', text: 'Paste only the bottom of the log where the error summary appears, plus the specific failing test\'s error message and stack trace', isCorrect: true },
+            { id: 'c', text: 'Describe the error in your own words without pasting the log', isCorrect: false },
+            { id: 'd', text: 'Paste only the first 50 lines', isCorrect: false },
+          ],
+          explanation: 'CI logs are mostly noise — setup steps, dependency installs, passed tests. The signal is at the bottom (error summary) and in the failing test\'s stack trace. Pasting targeted sections gets faster, more accurate AI diagnosis than dumping 5000 lines of irrelevant output.',
+        },
+        {
+          question: 'What does "EADDRINUSE: address already in use" in a CI log indicate?',
+          options: [
+            { id: 'a', text: 'The test tried to access an external URL that is blocked', isCorrect: false },
+            { id: 'b', text: 'A previous test run or process is still running and using the same network port — the new run cannot start its server', isCorrect: true },
+            { id: 'c', text: 'The database connection string is wrong', isCorrect: false },
+            { id: 'd', text: 'The test file has a syntax error', isCorrect: false },
+          ],
+          explanation: 'EADDRINUSE means "port already occupied." Common cause: a previous CI job didn\'t clean up its dev server or test database. Fix: add a teardown step that kills the process on that port, or configure each CI run to use a random available port.',
+        },
+        {
+          question: 'What should a good GitHub Actions workflow do when Playwright tests fail?',
+          options: [
+            { id: 'a', text: 'Stop immediately and send no artifacts', isCorrect: false },
+            { id: 'b', text: 'Upload the Playwright HTML report as a pipeline artifact even when the job fails, so the team can download and inspect the failure details', isCorrect: true },
+            { id: 'c', text: 'Automatically retry the failed tests 10 times', isCorrect: false },
+            { id: 'd', text: 'Mark the pipeline as passed to avoid blocking the PR', isCorrect: false },
+          ],
+          explanation: 'Playwright generates an HTML report with screenshots, videos, and traces of failed tests. Uploading it as an artifact (even on failure) is essential — otherwise diagnosing CI failures requires guessing from log output alone. Use: upload-artifact with if: always() to ensure it uploads regardless of job result.',
+        },
+      ],
+    },
+    {
+      level: 'ai-sql-data-validation',
+      questions: [
+        {
+          question: 'Why is database validation testing important even when the UI shows the correct result?',
+          options: [
+            { id: 'a', text: 'It is not important — if the UI shows correct data, the database must be correct', isCorrect: false },
+            { id: 'b', text: 'The UI might display cached or formatted data while the database contains wrong, missing, or corrupt data — only a direct database query confirms the truth', isCorrect: true },
+            { id: 'c', text: 'Database testing is only relevant for performance testing', isCorrect: false },
+            { id: 'd', text: 'The database is always correct — only the UI can have bugs', isCorrect: false },
+          ],
+          explanation: 'The UI can show £100 from a cached value while the database stored £10. The UI can display "Order Confirmed" while the database has status = \'failed\'. Data validation queries go directly to the source of truth — the database — bypassing any UI layer that could mask the real state.',
+        },
+        {
+          question: 'A QA engineer wants to verify that after placing an order, the order total in the database matches the sum of all item prices. Which SQL concept does this use?',
+          options: [
+            { id: 'a', text: 'A simple SELECT with a WHERE clause', isCorrect: false },
+            { id: 'b', text: 'A JOIN between orders and order_items tables, with a SUM() aggregate to calculate the expected total', isCorrect: true },
+            { id: 'c', text: 'A DELETE statement to clean up test data', isCorrect: false },
+            { id: 'd', text: 'An INDEX for faster querying', isCorrect: false },
+          ],
+          explanation: 'Validating calculated totals requires joining the orders table (which stores the total) with order_items (which stores individual prices), then comparing the stored total against SUM(quantity * unit_price). This is a data integrity check — the most common type of post-release database validation.',
+        },
+        {
+          question: 'After a data migration that added a "tax_amount" column to all existing orders, what SQL query should QA run first?',
+          options: [
+            { id: 'a', text: 'SELECT * FROM orders LIMIT 10', isCorrect: false },
+            { id: 'b', text: 'SELECT COUNT(*) FROM orders WHERE tax_amount IS NULL — to find any orders the migration missed', isCorrect: true },
+            { id: 'c', text: 'DROP TABLE orders', isCorrect: false },
+            { id: 'd', text: 'SELECT MAX(tax_amount) FROM orders', isCorrect: false },
+          ],
+          explanation: 'The first check after any data migration is completeness — did every row get updated? A NULL check on the new column immediately reveals any rows the migration skipped, which is the most common migration failure. If COUNT returns 0, all rows were updated. Any non-zero count is a bug.',
+        },
+        {
+          question: 'What does a "referential integrity" check in SQL validate?',
+          options: [
+            { id: 'a', text: 'That all timestamps are in the correct timezone', isCorrect: false },
+            { id: 'b', text: 'That every child record (e.g. order_item) has a valid parent record (e.g. order) — orphaned records indicate a data relationship bug', isCorrect: true },
+            { id: 'c', text: 'That the database is running the latest version', isCorrect: false },
+            { id: 'd', text: 'That column names follow the correct naming convention', isCorrect: false },
+          ],
+          explanation: 'Referential integrity means: if order_items.order_id = 999, then an order with id = 999 must exist. Orphaned records (order_items with no matching order) indicate bugs in delete operations, failed transactions, or broken cascade rules. SQL pattern: LEFT JOIN orders ON order_items.order_id = orders.id WHERE orders.id IS NULL.',
+        },
+        {
+          question: 'What is the safest way to use AI to write SQL validation queries for your specific database schema?',
+          options: [
+            { id: 'a', text: 'Ask AI generic SQL questions without mentioning your schema', isCorrect: false },
+            { id: 'b', text: 'Paste your CREATE TABLE definitions (no real data) into AI with a plain-English description of what you want to check', isCorrect: true },
+            { id: 'c', text: 'Paste live production data into AI so it can see real examples', isCorrect: false },
+            { id: 'd', text: 'Ask AI to connect directly to your database', isCorrect: false },
+          ],
+          explanation: 'Pasting CREATE TABLE statements (column names and types, no real data) gives AI exactly the schema information it needs to write accurate queries. This avoids the privacy risk of sharing real data while still giving AI the context needed to write specific, correct SQL for your tables.',
+        },
+      ],
+    },
+    {
+      level: 'ai-cross-browser-testing',
+      questions: [
+        {
+          question: 'A bug is reported: "Date picker doesn\'t work on iPhones." What is the most likely root cause?',
+          options: [
+            { id: 'a', text: 'iPhones have a slow processor that can\'t render date pickers', isCorrect: false },
+            { id: 'b', text: 'Safari iOS has different native behaviour for type="date" inputs — it may not show the same date picker as Chrome, or the JavaScript date library may not support WebKit', isCorrect: true },
+            { id: 'c', text: 'The developer used the wrong font', isCorrect: false },
+            { id: 'd', text: 'The iPhone screen is too small for date pickers', isCorrect: false },
+          ],
+          explanation: 'Safari iOS is the single most common source of cross-browser bugs. type="date" behaves differently across browsers — Chrome shows a rich date picker, Safari iOS has historically shown a plain text field or a different-looking picker. Every browser uses a different engine; every engine implements web standards slightly differently.',
+        },
+        {
+          question: 'Your analytics show 45% Chrome, 30% Safari iOS, 15% Safari Desktop, 8% Firefox users. Which browser should get the most cross-browser test coverage after Chrome?',
+          options: [
+            { id: 'a', text: 'Firefox — it has the best standards compliance', isCorrect: false },
+            { id: 'b', text: 'Safari iOS — it has the second largest user share and uses a completely different browser engine (WebKit) with known compatibility differences', isCorrect: true },
+            { id: 'c', text: 'Edge — it is used in corporate environments', isCorrect: false },
+            { id: 'd', text: 'All browsers deserve equal coverage regardless of usage share', isCorrect: false },
+          ],
+          explanation: 'Risk-based cross-browser testing prioritises by user impact. Safari iOS at 30% user share means bugs there affect almost a third of users — and it uses WebKit (not Blink like Chrome), making it the most different engine to test on. High share + different engine = highest priority after Chrome.',
+        },
+        {
+          question: 'What does it mean that "every browser on iOS uses WebKit"?',
+          options: [
+            { id: 'a', text: 'Only Safari works on iOS — Chrome is not available', isCorrect: false },
+            { id: 'b', text: 'Chrome, Firefox, and every other browser on iPhone/iPad is forced by Apple to use the WebKit engine underneath — so they all share the same compatibility limitations as Safari iOS', isCorrect: true },
+            { id: 'c', text: 'WebKit is the name of the iOS operating system', isCorrect: false },
+            { id: 'd', text: 'iOS browsers automatically convert all pages to Safari format', isCorrect: false },
+          ],
+          explanation: 'Apple\'s App Store rules require all iOS browsers to use WebKit. This means Chrome on iPhone is not the same as Chrome on Android or desktop — it\'s Safari\'s engine with Chrome\'s UI. A bug in Safari iOS will affect Chrome iOS too. Testing on iPhone Chrome does NOT replace testing on Safari iOS.',
+        },
+        {
+          question: 'How do you run Playwright tests across multiple browsers in one command?',
+          options: [
+            { id: 'a', text: 'Write three separate test files, one per browser', isCorrect: false },
+            { id: 'b', text: 'Configure projects in playwright.config.ts with Chromium, Firefox, and WebKit — Playwright runs all tests in all three engines automatically', isCorrect: true },
+            { id: 'c', text: 'Use the --browser flag three times in the same command', isCorrect: false },
+            { id: 'd', text: 'Playwright only supports Chrome — use Cypress for cross-browser', isCorrect: false },
+          ],
+          explanation: 'Playwright\'s projects feature lets you define multiple browser configurations in playwright.config.ts. Running npx playwright test will execute your entire test suite against Chromium, Firefox, and WebKit simultaneously. The HTML report shows results per browser, making cross-browser failures immediately visible.',
+        },
+        {
+          question: 'A test passes on Chrome and Firefox but fails on WebKit (Safari) with "Element not interactable." What is the recommended first debugging step?',
+          options: [
+            { id: 'a', text: 'Mark the test as skipped for WebKit and move on', isCorrect: false },
+            { id: 'b', text: 'Run the test with Playwright\'s --debug flag on WebKit and use the inspector to see exactly what state the element is in when the interaction fails', isCorrect: true },
+            { id: 'c', text: 'Rewrite the entire test for Safari only', isCorrect: false },
+            { id: 'd', text: 'Report it to the Playwright team as a bug', isCorrect: false },
+          ],
+          explanation: 'Browser-specific failures in Playwright are best debugged with --debug on the failing browser. The Playwright inspector shows the element\'s state, visibility, and what the DOM looks like at the point of failure. Common cause: WebKit handles CSS transitions and overlapping elements differently — an element may be visually present but covered by another element.',
+        },
+      ],
     },
     {
       level: 'expert',
