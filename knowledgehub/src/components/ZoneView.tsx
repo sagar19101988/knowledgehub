@@ -15,6 +15,7 @@ import { ZONES, ZONE_TIERS } from '../data/zones';
 import { QuizEngine } from './QuizEngine';
 import { useQuestStore } from '../store/useQuestStore';
 import { useAuthStore } from '../store/useAuthStore';
+import { isModuleUnlocked, isTierUnlocked, getFirstUnlockedModule, getPrerequisiteHint } from '../utils/unlockRules';
 
 export default function ZoneView() {
   const navigate = useNavigate();
@@ -55,9 +56,18 @@ export default function ZoneView() {
 
   React.useEffect(() => {
     if (contentData && contentData.levels.length > 0 && !contentData.levels.find(l => l.id === level)) {
-      setLevel(contentData.levels[0].id);
+      const firstUnlocked = getFirstUnlockedModule(id || '', completedLevels) || contentData.levels[0].id;
+      setLevel(firstUnlocked);
     }
-  }, [contentData, level]);
+  }, [contentData, level, id, completedLevels]);
+
+  React.useEffect(() => {
+    if (!level || !id) return;
+    if (!isModuleUnlocked(id, level, completedLevels)) {
+      const fallback = getFirstUnlockedModule(id, completedLevels);
+      if (fallback && fallback !== level) setLevel(fallback);
+    }
+  }, [level, id, completedLevels]);
 
   React.useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -215,6 +225,7 @@ export default function ZoneView() {
                 const completedInTier = tier.moduleIds.filter(lvl => completedLevels.includes(`${id}::${lvl}`)).length;
                 const tierPct = tier.moduleIds.length > 0 ? Math.round((completedInTier / tier.moduleIds.length) * 100) : 0;
                 const allTierDone = tier.moduleIds.length > 0 && completedInTier === tier.moduleIds.length;
+                const tierLocked = !isTierUnlocked(id || '', tier.id, completedLevels);
 
                 const TC = {
                   beginner: {
@@ -265,12 +276,13 @@ export default function ZoneView() {
                 }[tier.id] || {};
 
                 return (
-                  <div key={tier.id} className={`rounded-2xl border border-l-4 overflow-hidden transition-all duration-200 ${TC.headerBg} ${TC.headerBorder} ${TC.accentBorder} ${TC.shadow}`}>
+                  <div key={tier.id} className={`rounded-2xl border border-l-4 overflow-hidden transition-all duration-200 ${TC.headerBg} ${TC.headerBorder} ${TC.accentBorder} ${TC.shadow} ${tierLocked ? 'opacity-50 grayscale' : ''}`}>
 
                     {/* ── Tier Header ── */}
                     <button
                       onClick={() => toggleTier(tier.id)}
                       className="w-full px-4 pt-3.5 pb-3 text-left group"
+                      title={tierLocked ? 'Complete the previous tier to unlock' : undefined}
                     >
                       <div className="flex items-center gap-2.5 mb-2.5">
                         {/* Icon */}
@@ -324,13 +336,26 @@ export default function ZoneView() {
                             const shortTitle = levelMeta?.title.split(':')[1]?.trim() || levelMeta?.title || lvl;
                             const isCompleted = completedLevels.includes(`${id}::${lvl}`);
                             const isActive = level === lvl;
+                            const moduleLocked = tierLocked || !isModuleUnlocked(id || '', lvl, completedLevels);
+                            const prereqId = moduleLocked && !tierLocked ? getPrerequisiteHint(id || '', lvl) : '';
+                            const prereqMeta = prereqId ? contentData?.levels.find(l => l.id === prereqId) : null;
+                            const prereqShort = prereqMeta?.title.split(':')[1]?.trim() || prereqMeta?.title || prereqId;
+                            const lockTitle = tierLocked
+                              ? 'Complete the previous tier to unlock'
+                              : moduleLocked
+                              ? `Complete "${prereqShort}" first`
+                              : undefined;
 
                             return (
                               <button
                                 key={lvl}
-                                onClick={() => setLevel(lvl)}
+                                onClick={() => !moduleLocked && setLevel(lvl)}
+                                disabled={moduleLocked}
+                                title={lockTitle}
                                 className={`w-full text-left px-2.5 py-2 rounded-xl border transition-all duration-200 group/item ${
-                                  isActive
+                                  moduleLocked
+                                    ? 'border-dashed border-slate-300/60 dark:border-slate-700/50 opacity-50 grayscale cursor-not-allowed'
+                                    : isActive
                                     ? `${TC.activeBg} ${TC.activeGlow}`
                                     : isCompleted
                                     ? 'border-transparent hover:bg-emerald-500/5 hover:border-emerald-500/10'
@@ -340,26 +365,32 @@ export default function ZoneView() {
                                 <div className="flex items-center gap-2">
                                   {/* Status badge */}
                                   <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0 transition-all ${
-                                    isActive
+                                    moduleLocked
+                                      ? 'bg-slate-200/60 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600'
+                                      : isActive
                                       ? `${TC.numActive}`
                                       : isCompleted
                                       ? 'bg-emerald-500/15 text-emerald-400'
                                       : 'bg-slate-200/80 dark:bg-slate-700/60 text-slate-400 dark:text-slate-500'
                                   }`}>
-                                    {isCompleted
+                                    {moduleLocked
+                                      ? <Lock size={11} />
+                                      : isCompleted
                                       ? <CheckCircle2 size={13} />
                                       : <span style={{ fontSize: '10px' }}>{String(idx + 1).padStart(2, '0')}</span>}
                                   </div>
                                   {/* Title */}
                                   <span className={`text-sm font-semibold leading-snug flex-1 transition-colors ${
-                                    isActive
+                                    moduleLocked
+                                      ? 'text-slate-400 dark:text-slate-600'
+                                      : isActive
                                       ? 'text-slate-900 dark:text-white'
                                       : isCompleted
                                       ? 'text-slate-500 dark:text-slate-400'
                                       : 'text-slate-600 dark:text-slate-400 group-hover/item:text-slate-800 dark:group-hover/item:text-slate-200'
                                   }`}>{shortTitle}</span>
                                   {/* Active pulse dot */}
-                                  {isActive && (
+                                  {isActive && !moduleLocked && (
                                     <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 animate-pulse ${TC.dot}`} />
                                   )}
                                 </div>

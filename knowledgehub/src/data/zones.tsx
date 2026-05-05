@@ -22,10 +22,12 @@ export const ZONES = [
     colorText: 'text-orange-600 dark:text-orange-400',
     glowColor: 'rgba(249,115,22,0.28)',
     shimmerColor: 'rgba(251,146,60,0.18)',
+    progressiveUnlock: true,
   },
   {
     id: 'sql',
     title: 'SQL Sorcery',
+    progressiveUnlock: true,
     icon: <Database size={32} className="text-blue-500 dark:text-blue-400" />,
     description: 'Master the art of demanding data from the kitchen without crashing the server.',
     bgColor: 'bg-blue-50 dark:bg-blue-500/10',
@@ -39,6 +41,7 @@ export const ZONES = [
   },
   {
     id: 'api',
+    progressiveUnlock: true,
     title: 'API Testing',
     icon: <Cpu size={32} className="text-purple-500 dark:text-purple-400" />,
     description: 'The invisible glue. Order unicorns from waiters and handle 404s with grace.',
@@ -53,6 +56,7 @@ export const ZONES = [
   },
   {
     id: 'typescript',
+    progressiveUnlock: true,
     title: 'TypeScript',
     icon: <Code size={32} className="text-sky-500 dark:text-sky-400" />,
     description: 'JavaScript with an overly protective mother. Learn to build Tupperware for your code.',
@@ -67,6 +71,7 @@ export const ZONES = [
   },
   {
     id: 'playwright',
+    progressiveUnlock: true,
     title: 'Playwright',
     icon: <Play size={32} className="text-emerald-500 dark:text-emerald-400" />,
     description: 'Give the hitman a precise description, not just "the guy in the shirt".',
@@ -81,6 +86,7 @@ export const ZONES = [
   },
   {
     id: 'ai-qa',
+    progressiveUnlock: true,
     title: 'AI for QA',
     icon: <ShieldCheck size={32} className="text-rose-500 dark:text-rose-400" />,
     description: 'Talk to literal-minded genies and build self-healing zombie scripts.',
