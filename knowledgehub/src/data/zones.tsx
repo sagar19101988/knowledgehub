@@ -166,7 +166,10 @@ export const ZONE_TIERS: Record<string, { id: string; label: string; color: stri
       id: 'intermediate', label: 'Intermediate', color: 'text-sky-400',
       moduleIds: ['ai-prompt-engineering','ai-api-testing','ai-playwright-scripts','ai-code-review','ai-test-documentation','ai-accessibility-testing','ai-performance-analysis','ai-exploratory-testing','ai-prompt-templates','ai-mobile-testing','ai-regression-planning','ai-cicd-failures','ai-sql-data-validation','ai-cross-browser-testing'],
     },
-    { id: 'expert',       label: 'Expert',       color: 'text-amber-400',   moduleIds: ['expert']       },
+    {
+      id: 'expert', label: 'Expert', color: 'text-amber-400',
+      moduleIds: ['ai-self-healing-tests','ai-visual-testing','ai-testing-ai-systems','ai-autonomous-agents','ai-custom-ai-tools','ai-test-generation-scale','ai-security-testing','ai-observability','ai-ethics-bias','ai-future-qa','ai-prompt-injection-security','ai-test-data-scale','ai-contract-testing'],
+    },
   ],
 };
 
