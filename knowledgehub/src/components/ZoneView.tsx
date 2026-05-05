@@ -193,17 +193,17 @@ export default function ZoneView() {
         </div>
       </nav>
 
-      <div className="flex-1 max-w-6xl w-full mx-auto p-6 flex gap-8">
+      <div className="flex-1 w-full flex gap-6 pl-6 pr-8 py-6">
 
         {/* ── Left Sidebar: Module Navigator ── */}
-        <aside className="hidden lg:block w-60 flex-shrink-0">
+        <aside className="hidden lg:block w-72 flex-shrink-0">
           <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pr-1 sidebar-scroll space-y-3">
 
             {/* Header */}
             <div className="flex items-center justify-between px-1 mb-1">
-              <h3 className="text-slate-500 dark:text-slate-400 font-black text-xs uppercase tracking-widest">Modules</h3>
+              <h3 className="text-slate-500 dark:text-slate-400 font-black text-sm uppercase tracking-widest">Modules</h3>
               {contentData && (
-                <span className="text-xs font-bold text-slate-400 dark:text-slate-500">
+                <span className="text-sm font-bold text-slate-400 dark:text-slate-500">
                   {completedLevels.filter(k => k.startsWith(`${id}::`)).length}/{contentData.levels.length}
                 </span>
               )}
@@ -274,19 +274,19 @@ export default function ZoneView() {
                     >
                       <div className="flex items-center gap-2.5 mb-2.5">
                         {/* Icon */}
-                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0 border ${TC.headerBg} ${TC.headerBorder}`}>
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 border ${TC.headerBg} ${TC.headerBorder}`}>
                           {TC.emoji}
                         </div>
                         {/* Label + count */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-1">
-                            <span className={`text-sm font-black ${tier.color}`}>{tier.label}</span>
+                            <span className={`text-base font-black ${tier.color}`}>{tier.label}</span>
                             {allTierDone ? (
-                              <span className="flex items-center gap-1 text-xs font-bold text-emerald-400">
-                                <CheckCircle2 size={11} /> All done
+                              <span className="flex items-center gap-1 text-sm font-bold text-emerald-400">
+                                <CheckCircle2 size={12} /> All done
                               </span>
                             ) : (
-                              <span className={`text-xs font-bold px-1.5 py-0.5 rounded-md ${TC.badge}`}>
+                              <span className={`text-sm font-bold px-1.5 py-0.5 rounded-md ${TC.badge}`}>
                                 {tier.moduleIds.length > 0 ? `${completedInTier}/${tier.moduleIds.length}` : '—'}
                               </span>
                             )}
@@ -299,7 +299,7 @@ export default function ZoneView() {
                       </div>
                       {/* Progress bar */}
                       {tier.moduleIds.length > 0 && (
-                        <div className="h-1 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div className="h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                           <div
                             className={`h-full ${allTierDone ? 'bg-emerald-500' : TC.bar} rounded-full transition-all duration-700`}
                             style={{ width: `${tierPct}%` }}
@@ -339,7 +339,7 @@ export default function ZoneView() {
                               >
                                 <div className="flex items-center gap-2">
                                   {/* Status badge */}
-                                  <div className={`w-5 h-5 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0 transition-all ${
+                                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0 transition-all ${
                                     isActive
                                       ? `${TC.numActive}`
                                       : isCompleted
@@ -347,11 +347,11 @@ export default function ZoneView() {
                                       : 'bg-slate-200/80 dark:bg-slate-700/60 text-slate-400 dark:text-slate-500'
                                   }`}>
                                     {isCompleted
-                                      ? <CheckCircle2 size={12} />
-                                      : <span style={{ fontSize: '9px' }}>{String(idx + 1).padStart(2, '0')}</span>}
+                                      ? <CheckCircle2 size={13} />
+                                      : <span style={{ fontSize: '10px' }}>{String(idx + 1).padStart(2, '0')}</span>}
                                   </div>
                                   {/* Title */}
-                                  <span className={`text-xs font-semibold leading-snug flex-1 transition-colors ${
+                                  <span className={`text-sm font-semibold leading-snug flex-1 transition-colors ${
                                     isActive
                                       ? 'text-slate-900 dark:text-white'
                                       : isCompleted
@@ -391,14 +391,14 @@ export default function ZoneView() {
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
-                        <div className={`w-5 h-5 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0 ${
+                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0 ${
                           isActive ? `bg-slate-200 dark:bg-slate-700 ${zoneMeta.colorText}` :
                           isCompleted ? 'bg-emerald-500/15 text-emerald-400' :
                           'bg-slate-200 dark:bg-slate-700/60 text-slate-400'
                         }`}>
-                          {isCompleted ? <CheckCircle2 size={12} /> : <span style={{ fontSize: '9px' }}>{String(idx + 1).padStart(2, '0')}</span>}
+                          {isCompleted ? <CheckCircle2 size={13} /> : <span style={{ fontSize: '10px' }}>{String(idx + 1).padStart(2, '0')}</span>}
                         </div>
-                        <span className="font-semibold text-xs leading-snug flex-1">{shortTitle}</span>
+                        <span className="font-semibold text-sm leading-snug flex-1">{shortTitle}</span>
                       </div>
                     </button>
                   );
