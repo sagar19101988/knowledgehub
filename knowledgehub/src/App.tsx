@@ -34,7 +34,11 @@ const MAP_PATHS: [string, string][] = [
 ];
 
 function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
-  const zoneProgress = useQuestStore(s => s.zoneProgress);
+  const completedLevels = useQuestStore(s => s.completedLevels);
+  const getZoneProg = (zoneId: string) => {
+    const total = (ZONE_TIERS[zoneId] ?? []).reduce((s, t) => s + t.moduleIds.length, 0);
+    return total ? Math.round(completedLevels.filter(k => k.startsWith(zoneId + '::')).length / total * 100) : 0;
+  };
 
   // stable pseudo-random stars (no Math.random on render)
   const stars = React.useMemo(() =>
@@ -58,7 +62,7 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
         {/* per-zone region halos */}
         {ZONES.map(zone => {
           const node = MAP_NODES.find(n => n.id === zone.id)!;
-          const prog = zoneProgress[zone.id] || 0;
+          const prog = getZoneProg(zone.id);
           return (
             <div key={zone.id} className="absolute pointer-events-none transition-opacity duration-1000"
               style={{ left: `${node.x}%`, top: `${node.y}%`, width: 260, height: 260, transform: 'translate(-50%,-50%)', background: `radial-gradient(circle, ${zone.glowColor.replace('0.28', prog > 0 ? '0.11' : '0.035')} 0%, transparent 70%)`, borderRadius: '50%', filter: 'blur(36px)' }}
@@ -92,8 +96,8 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
             const f = MAP_NODES.find(n => n.id === fId)!;
             const t = MAP_NODES.find(n => n.id === tId)!;
             const fZone = ZONES.find(z => z.id === fId)!;
-            const fProg = zoneProgress[fId] || 0;
-            const tProg = zoneProgress[tId] || 0;
+            const fProg = getZoneProg(fId);
+            const tProg = getZoneProg(tId);
             // perpendicular bezier curve for organic feel
             const mx = (f.x + t.x) / 2, my = (f.y + t.y) / 2;
             const dx = t.x - f.x, dy = t.y - f.y;
@@ -128,7 +132,7 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
       {/* ── Zone nodes (outside overflow-hidden so labels aren't clipped) ── */}
       {MAP_NODES.map((node, i) => {
         const zone = ZONES.find(z => z.id === node.id)!;
-        const prog = zoneProgress[node.id] || 0;
+        const prog = getZoneProg(node.id);
         const isMastered  = prog >= 100;
         const isStarted   = prog > 0 && !isMastered;
         const isUnstarted = prog === 0;
@@ -234,7 +238,6 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
 
 function HubMap() {
   const navigate = useNavigate();
-  const zoneProgress = useQuestStore((state) => state.zoneProgress);
   const completedLevels = useQuestStore((state) => state.completedLevels);
   const xp = useQuestStore((state) => state.xp);
   const playerName = useQuestStore((state) => state.playerName);
@@ -520,11 +523,11 @@ function HubMap() {
           {viewMode === 'grid' && (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {ZONES.map((zone, i) => {
-              const progress = zoneProgress[zone.id] || 0;
-              const isMastered = progress >= 100;
-              const isStarted = progress > 0 && !isMastered;
               const totalModules = (ZONE_TIERS[zone.id] ?? []).reduce((sum, t) => sum + t.moduleIds.length, 0);
               const completedCount = completedLevels.filter(k => k.startsWith(`${zone.id}::`)).length;
+              const progress = totalModules > 0 ? Math.round((completedCount / totalModules) * 100) : 0;
+              const isMastered = progress >= 100;
+              const isStarted = progress > 0 && !isMastered;
               return (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}

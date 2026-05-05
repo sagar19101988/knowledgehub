@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy } from 'lucide-react';
 import { useQuestStore } from '../store/useQuestStore';
+import { ZONE_TIERS } from '../data/zones';
 
 interface BadgeToastProps {
   badgesMap: Record<string, string>;
@@ -9,27 +10,25 @@ interface BadgeToastProps {
 
 export function BadgeToast({ badgesMap }: BadgeToastProps) {
   const [notification, setNotification] = useState<{ zoneId: string, badge: string } | null>(null);
-  const zoneProgress = useQuestStore(state => state.zoneProgress);
+  const completedLevels = useQuestStore(state => state.completedLevels);
   const unlockedBadges = useQuestStore(state => state.unlockedBadges);
   const unlockBadge = useQuestStore(state => state.unlockBadge);
 
   useEffect(() => {
-    Object.entries(zoneProgress).forEach(([zoneId, progress]) => {
-      if (progress >= 100) {
+    Object.keys(badgesMap).forEach(zoneId => {
+      const total = (ZONE_TIERS[zoneId] ?? []).reduce((s, t) => s + t.moduleIds.length, 0);
+      if (!total) return;
+      const done = completedLevels.filter(k => k.startsWith(zoneId + '::')).length;
+      if (done >= total) {
         const badgeName = badgesMap[zoneId];
         if (badgeName && !unlockedBadges.includes(badgeName)) {
-          // Unlock it globally
           unlockBadge(badgeName);
-          // Show toast
           setNotification({ zoneId, badge: badgeName });
-          
-          setTimeout(() => {
-            setNotification(null);
-          }, 5000);
+          setTimeout(() => setNotification(null), 5000);
         }
       }
     });
-  }, [zoneProgress, unlockedBadges, badgesMap, unlockBadge]);
+  }, [completedLevels, unlockedBadges, badgesMap, unlockBadge]);
 
   return (
     <AnimatePresence>
