@@ -53,7 +53,8 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
     })), []);
 
   return (
-    <div className="relative w-full" style={{ minHeight: 480 }}>
+    <div className="w-full overflow-x-auto sm:overflow-x-visible -mx-3 sm:mx-0 px-3 sm:px-0">
+      <div className="relative" style={{ minHeight: 480, minWidth: 700 }}>
 
       {/* ── Clipped art layer (bg + particles) ── */}
       <div className="absolute inset-0 rounded-2xl overflow-hidden border border-violet-400/40 dark:border-violet-900/30 shadow-[0_0_40px_rgba(139,92,246,0.08)] dark:shadow-none bg-[#05030f]">
@@ -233,6 +234,7 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
         );
       })}
     </div>
+    </div>
   );
 }
 
@@ -279,18 +281,19 @@ function HubMap() {
     <div className="min-h-screen bg-[#fef7e4] dark:bg-[#07050f] text-stone-800 dark:text-slate-200 font-sans flex flex-col">
 
       {/* Top navbar — HUD Layout: Left | Center | Right */}
-      <header className="h-16 border-b border-violet-300/50 dark:border-violet-900/30 bg-[#fef3d0]/95 dark:bg-[#0a0715]/80 backdrop-blur px-6 flex items-center sticky top-0 z-50">
+      <header className="h-16 border-b border-violet-300/50 dark:border-violet-900/30 bg-[#fef3d0]/95 dark:bg-[#0a0715]/80 backdrop-blur px-3 sm:px-6 flex items-center sticky top-0 z-50 gap-2">
 
         {/* ── LEFT: Logo + title ── */}
-        <div className="flex items-center gap-3 flex-1">
-          <BookOpen size={24} className="text-fuchsia-400 flex-shrink-0" />
-          <h1 className="text-xl font-black bg-gradient-to-r from-fuchsia-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent tracking-tight drop-shadow-[0_0_12px_rgba(192,38,211,0.3)]">
-            QA Quest: The Knowledge Hub
+        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+          <BookOpen size={22} className="text-fuchsia-400 flex-shrink-0" />
+          <h1 className="text-base sm:text-xl font-black bg-gradient-to-r from-fuchsia-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent tracking-tight drop-shadow-[0_0_12px_rgba(192,38,211,0.3)] truncate">
+            <span className="sm:hidden">QA Quest</span>
+            <span className="hidden sm:inline">QA Quest: The Knowledge Hub</span>
           </h1>
         </div>
 
-        {/* ── CENTER: Welcome text ── */}
-        <h1 className="text-xl font-black text-slate-900 dark:text-white whitespace-nowrap">
+        {/* ── CENTER: Welcome text (desktop only) ── */}
+        <h1 className="hidden md:block text-xl font-black text-slate-900 dark:text-white whitespace-nowrap">
           Welcome back,{' '}
           <span className="bg-gradient-to-r from-fuchsia-500 to-cyan-400 bg-clip-text text-transparent">
             {playerName}
@@ -372,8 +375,8 @@ function HubMap() {
       {/* Body */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* ── Left sidebar ── */}
-        <aside className="w-72 flex-shrink-0 border-r border-violet-200/50 dark:border-violet-900/25 bg-[#fef3d0]/80 dark:bg-[#0a0715]/60 flex flex-col gap-5 p-5 overflow-y-auto sidebar-scroll">
+        {/* ── Left sidebar (hidden on mobile — info accessible via avatar) ── */}
+        <aside className="hidden lg:flex w-72 flex-shrink-0 border-r border-violet-200/50 dark:border-violet-900/25 bg-[#fef3d0]/80 dark:bg-[#0a0715]/60 flex-col gap-5 p-5 overflow-y-auto sidebar-scroll">
 
           {/* Player card */}
           <div className="bg-white/60 dark:bg-slate-900/60 border border-violet-300/50 dark:border-violet-900/40 rounded-2xl p-4 shadow-lg">
@@ -486,7 +489,7 @@ function HubMap() {
         </aside>
 
         {/* ── Main: zone cards ── */}
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-5 lg:p-6 overflow-y-auto min-w-0">
           {/* View toggle — centred above content */}
           <div className="flex flex-col items-center gap-2 mb-6">
             <div className="flex bg-white dark:bg-slate-900 border border-slate-200 dark:border-violet-900/40 rounded-xl p-1 gap-1 shadow-sm">

@@ -4,12 +4,12 @@
 
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { ArrowLeft, BookOpen, Swords, Sun, Moon, ChevronDown, CheckCircle2, Lock, LogOut } from 'lucide-react';
+import { ArrowLeft, BookOpen, Swords, Sun, Moon, ChevronDown, CheckCircle2, Lock, LogOut, Menu, X } from 'lucide-react';
 import { ZONES_CONTENT } from '../data/analogies';
 import { ZONES, ZONE_TIERS } from '../data/zones';
 import { QuizEngine } from './QuizEngine';
@@ -26,6 +26,8 @@ export default function ZoneView() {
   const [completionWasFirstTime, setCompletionWasFirstTime] = useState(false);
   const [collapsedTiers, setCollapsedTiers] = useState<Record<string, boolean>>({ beginner: true, intermediate: true, expert: true });
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [lockToast, setLockToast] = useState<string | null>(null);
   const mainContentRef = React.useRef<HTMLDivElement>(null);
   const avatarRef = React.useRef<HTMLDivElement>(null);
 
@@ -82,50 +84,70 @@ export default function ZoneView() {
   const availableLevels = contentData?.levels.map(l => l.id) || [];
   const progressIncrement = Math.floor(100 / (availableLevels.length || 1));
 
+  const pickLevel = (lvl: string) => {
+    setLevel(lvl);
+    setDrawerOpen(false);
+  };
+
+  const showLockToast = (msg: string) => {
+    setLockToast(msg);
+    window.setTimeout(() => setLockToast(null), 2500);
+  };
+
   return (
     <div className="min-h-screen bg-[#fef7e4] dark:bg-[#07050f] text-stone-800 dark:text-slate-200 font-sans flex flex-col">
       {/* Top Navbar — HUD Layout: Left | Center | Right */}
-      <nav className="h-16 border-b border-violet-300/50 dark:border-violet-900/30 bg-[#fef3d0]/95 dark:bg-[#0a0715]/80 backdrop-blur px-6 flex items-center sticky top-0 z-50">
+      <nav className="h-16 border-b border-violet-300/50 dark:border-violet-900/30 bg-[#fef3d0]/95 dark:bg-[#0a0715]/80 backdrop-blur px-3 sm:px-6 flex items-center sticky top-0 z-50 gap-2">
 
-        {/* ── LEFT: Back + Breadcrumb ── */}
-        <div className="flex items-center gap-3 flex-1">
+        {/* ── LEFT: Back + Hamburger (mobile) + Breadcrumb ── */}
+        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
           <button
             onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/')}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-fuchsia-500 dark:hover:text-fuchsia-400 hover:border-fuchsia-300 dark:hover:border-fuchsia-700 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 transition-all duration-200 group"
+            aria-label="Go back"
+            className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-fuchsia-500 dark:hover:text-fuchsia-400 hover:border-fuchsia-300 dark:hover:border-fuchsia-700 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 transition-all duration-200 group flex-shrink-0"
           >
             <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
-            <span className="text-sm font-semibold">Back</span>
+            <span className="text-sm font-semibold hidden sm:inline">Back</span>
           </button>
-          <span className="text-slate-300 dark:text-slate-700 select-none">|</span>
-          <div className="flex items-center gap-2">
-            <span className="[&>svg]:w-5 [&>svg]:h-5">{zoneMeta.icon}</span>
-            <span className="text-sm font-bold text-slate-900 dark:text-white">{zoneMeta.title}</span>
+          <button
+            onClick={() => setDrawerOpen(true)}
+            aria-label="Open module navigator"
+            className="lg:hidden flex items-center justify-center w-9 h-9 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-fuchsia-500 hover:border-fuchsia-300 dark:hover:border-fuchsia-700 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 transition-all duration-200 flex-shrink-0"
+          >
+            <Menu size={17} />
+          </button>
+          <span className="text-slate-300 dark:text-slate-700 select-none hidden sm:inline">|</span>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="[&>svg]:w-5 [&>svg]:h-5 flex-shrink-0 hidden sm:inline">{zoneMeta.icon}</span>
+            <span className="text-sm font-bold text-slate-900 dark:text-white truncate">{zoneMeta.title}</span>
           </div>
         </div>
 
         {/* ── CENTER: Mode switcher ── */}
-        <div className="flex bg-white dark:bg-slate-900 border border-slate-200 dark:border-violet-900/40 rounded-xl p-1 gap-1 shadow-sm">
+        <div className="flex bg-white dark:bg-slate-900 border border-slate-200 dark:border-violet-900/40 rounded-xl p-1 gap-1 shadow-sm flex-shrink-0">
           <button
             onClick={() => setMode('library')}
-            className={`px-5 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all duration-200 ${
+            aria-label="The Library"
+            className={`px-3 sm:px-5 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all duration-200 ${
               mode === 'library'
                 ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-[0_2px_14px_rgba(109,40,217,0.45)]'
                 : 'text-slate-500 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20'
             }`}
           >
             <BookOpen size={15} />
-            The Library
+            <span className="hidden sm:inline">The Library</span>
           </button>
           <button
             onClick={() => setMode('arena')}
-            className={`px-5 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all duration-200 ${
+            aria-label="The Arena"
+            className={`px-3 sm:px-5 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all duration-200 ${
               mode === 'arena'
                 ? 'bg-gradient-to-r from-rose-500 to-orange-500 text-white shadow-[0_2px_14px_rgba(244,63,94,0.45)]'
                 : 'text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20'
             }`}
           >
             <Swords size={15} />
-            The Arena
+            <span className="hidden sm:inline">The Arena</span>
           </button>
         </div>
 
@@ -203,11 +225,39 @@ export default function ZoneView() {
         </div>
       </nav>
 
-      <div className="flex-1 w-full flex gap-6 pl-6 pr-8 py-6">
+      <div className="flex-1 w-full flex gap-3 sm:gap-6 px-3 sm:pl-6 sm:pr-8 py-4 sm:py-6 relative">
 
-        {/* ── Left Sidebar: Module Navigator ── */}
-        <aside className="hidden lg:block w-72 flex-shrink-0">
-          <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pr-1 sidebar-scroll space-y-3">
+        {/* Mobile drawer backdrop */}
+        {drawerOpen && (
+          <div
+            onClick={() => setDrawerOpen(false)}
+            className="lg:hidden fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
+            aria-hidden="true"
+          />
+        )}
+
+        {/* ── Left Sidebar: Module Navigator (desktop inline / mobile drawer) ── */}
+        <aside
+          className={`
+            flex-shrink-0 transition-transform duration-300 ease-out
+            lg:static lg:w-72 lg:translate-x-0 lg:bg-transparent lg:shadow-none lg:border-0
+            fixed top-0 left-0 z-[70] h-screen w-[85%] max-w-sm
+            bg-[#fef7e4] dark:bg-[#0a0715] border-r border-violet-300/50 dark:border-violet-900/40 shadow-2xl
+            ${drawerOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          `}
+        >
+          {/* Mobile drawer header */}
+          <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-violet-200/60 dark:border-violet-900/40">
+            <h2 className="text-sm font-black uppercase tracking-widest text-slate-600 dark:text-slate-300">Modules</h2>
+            <button
+              onClick={() => setDrawerOpen(false)}
+              aria-label="Close menu"
+              className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-fuchsia-500 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 transition-colors"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <div className="lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] h-[calc(100vh-3.25rem)] lg:h-auto overflow-y-auto pr-1 px-3 lg:px-0 py-3 lg:py-0 sidebar-scroll space-y-3">
 
             {/* Header */}
             <div className="flex items-center justify-between px-1 mb-1">
@@ -361,8 +411,7 @@ export default function ZoneView() {
                             return (
                               <button
                                 key={lvl}
-                                onClick={() => !moduleLocked && setLevel(lvl)}
-                                disabled={moduleLocked}
+                                onClick={() => moduleLocked ? (lockTitle && showLockToast(lockTitle)) : pickLevel(lvl)}
                                 title={lockTitle}
                                 className={`w-full text-left px-2.5 py-2 rounded-xl border transition-all duration-200 group/item ${
                                   moduleLocked
@@ -428,7 +477,7 @@ export default function ZoneView() {
                   return (
                     <button
                       key={lvl}
-                      onClick={() => setLevel(lvl)}
+                      onClick={() => pickLevel(lvl)}
                       className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all ${
                         isActive
                           ? `bg-slate-100 dark:bg-slate-800 ${zoneMeta.colorText} border-current`
@@ -454,7 +503,7 @@ export default function ZoneView() {
         </aside>
 
         {/* Main Content Area */}
-        <main ref={mainContentRef} className="flex-1 bg-white/50 dark:bg-slate-900/50 border border-violet-200/50 dark:border-violet-900/25 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
+        <main ref={mainContentRef} className="flex-1 min-w-0 bg-white/50 dark:bg-slate-900/50 border border-violet-200/50 dark:border-violet-900/25 rounded-2xl p-4 sm:p-6 lg:p-8 shadow-2xl relative overflow-hidden">
 
           {/* ── Step Indicator ── */}
           {(() => {
@@ -509,7 +558,7 @@ export default function ZoneView() {
                       <button
                         onClick={() => s.modeKey && setMode(s.modeKey)}
                         disabled={!s.modeKey}
-                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-2 rounded-xl text-sm font-bold transition-all duration-300 ${
+                        className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 px-1.5 sm:px-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 ${
                           isActive && s.key === 'learn'
                             ? 'bg-violet-600 text-white shadow-[0_4px_14px_rgba(109,40,217,0.35)]'
                             : isActive && s.key === 'fight'
@@ -522,10 +571,10 @@ export default function ZoneView() {
                         {isDone
                           ? <CheckCircle2 size={15} />
                           : <span className="text-base leading-none">{s.emoji}</span>}
-                        <span>{s.label}</span>
+                        <span className="truncate">{s.label}</span>
                       </button>
                       {i < steps.length - 1 && (
-                        <div className={`w-6 h-0.5 rounded-full flex-shrink-0 transition-colors duration-500 ${isDone ? 'bg-emerald-400/50' : 'bg-slate-300 dark:bg-slate-700'}`} />
+                        <div className={`w-3 sm:w-6 h-0.5 rounded-full flex-shrink-0 transition-colors duration-500 ${isDone ? 'bg-emerald-400/50' : 'bg-slate-300 dark:bg-slate-700'}`} />
                       )}
                     </React.Fragment>
                   );
@@ -659,6 +708,22 @@ export default function ZoneView() {
 
         </main>
       </div>
+
+      {/* Lock toast (mobile-friendly tap feedback) */}
+      <AnimatePresence>
+        {lockToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 24 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[80] px-4 py-3 rounded-xl bg-slate-900 dark:bg-slate-800 text-white text-sm font-semibold shadow-2xl flex items-center gap-2.5 max-w-[calc(100vw-2rem)]"
+          >
+            <Lock size={14} className="flex-shrink-0 text-fuchsia-400" />
+            <span>{lockToast}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
