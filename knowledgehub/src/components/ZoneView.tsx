@@ -276,7 +276,11 @@ export default function ZoneView() {
                 }[tier.id] || {};
 
                 return (
-                  <div key={tier.id} className={`rounded-2xl border border-l-4 overflow-hidden transition-all duration-200 ${TC.headerBg} ${TC.headerBorder} ${TC.accentBorder} ${TC.shadow} ${tierLocked ? 'opacity-50 grayscale' : ''}`}>
+                  <div key={tier.id} className={`rounded-2xl border border-l-4 overflow-hidden transition-all duration-200 ${
+                    tierLocked
+                      ? 'bg-slate-100 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 border-l-slate-300 dark:border-l-slate-700'
+                      : `${TC.headerBg} ${TC.headerBorder} ${TC.accentBorder} ${TC.shadow}`
+                  }`}>
 
                     {/* ── Tier Header ── */}
                     <button
@@ -286,19 +290,27 @@ export default function ZoneView() {
                     >
                       <div className="flex items-center gap-2.5 mb-2.5">
                         {/* Icon */}
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 border ${TC.headerBg} ${TC.headerBorder}`}>
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 border ${
+                          tierLocked
+                            ? 'bg-slate-200 dark:bg-slate-800 border-slate-300 dark:border-slate-700 grayscale opacity-70'
+                            : `${TC.headerBg} ${TC.headerBorder}`
+                        }`}>
                           {TC.emoji}
                         </div>
                         {/* Label + count */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-1">
-                            <span className={`text-base font-black ${tier.color}`}>{tier.label}</span>
+                            <span className={`text-base font-black ${tierLocked ? 'text-slate-500 dark:text-slate-400' : tier.color}`}>{tier.label}</span>
                             {allTierDone ? (
                               <span className="flex items-center gap-1 text-sm font-bold text-emerald-400">
                                 <CheckCircle2 size={12} /> All done
                               </span>
                             ) : (
-                              <span className={`text-sm font-bold px-1.5 py-0.5 rounded-md ${TC.badge}`}>
+                              <span className={`text-sm font-bold px-1.5 py-0.5 rounded-md ${
+                                tierLocked
+                                  ? 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                                  : TC.badge
+                              }`}>
                                 {tier.moduleIds.length > 0 ? `${completedInTier}/${tier.moduleIds.length}` : '—'}
                               </span>
                             )}
@@ -313,7 +325,7 @@ export default function ZoneView() {
                       {tier.moduleIds.length > 0 && (
                         <div className="h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                           <div
-                            className={`h-full ${allTierDone ? 'bg-emerald-500' : TC.bar} rounded-full transition-all duration-700`}
+                            className={`h-full ${allTierDone ? 'bg-emerald-500' : tierLocked ? 'bg-slate-300 dark:bg-slate-700' : TC.bar} rounded-full transition-all duration-700`}
                             style={{ width: `${tierPct}%` }}
                           />
                         </div>
@@ -354,7 +366,9 @@ export default function ZoneView() {
                                 title={lockTitle}
                                 className={`w-full text-left px-2.5 py-2 rounded-xl border transition-all duration-200 group/item ${
                                   moduleLocked
-                                    ? 'border-dashed border-slate-300/60 dark:border-slate-700/50 opacity-50 grayscale cursor-not-allowed'
+                                    ? tierLocked
+                                      ? 'border-transparent opacity-70 cursor-not-allowed'
+                                      : 'border-dashed border-slate-300/60 dark:border-slate-700/50 opacity-65 cursor-not-allowed'
                                     : isActive
                                     ? `${TC.activeBg} ${TC.activeGlow}`
                                     : isCompleted
@@ -382,7 +396,7 @@ export default function ZoneView() {
                                   {/* Title */}
                                   <span className={`text-sm font-semibold leading-snug flex-1 transition-colors ${
                                     moduleLocked
-                                      ? 'text-slate-400 dark:text-slate-600'
+                                      ? 'text-slate-500 dark:text-slate-400'
                                       : isActive
                                       ? 'text-slate-900 dark:text-white'
                                       : isCompleted
