@@ -1,0 +1,555 @@
+# QA Quest – KnowledgeHub  ·  Project Handoff Document
+
+> **Purpose:** Pass full project context from one Claude Code session/profile to the next.  
+> **Last updated:** 2026-05-06  
+> **Read this file first**, then `CLAUDE.md` (also at the project root) before doing any work.
+
+---
+
+## TL;DR — What the new agent must know in 30 seconds
+
+- **Project:** A gamified QA learning platform called *QA Quest – The Knowledge Hub*. Six "zones" (subjects), three tiers each (Beginner / Intermediate / Expert), each tier has multiple modules with a lesson + Boss Fight (quiz).
+- **Stack:** React 19 + TypeScript + Vite + Tailwind CSS v4 + Zustand + Firebase Auth + Firestore + react-router-dom v7. Deployed on Vercel.
+- **Repo:** `https://github.com/sagar19101988/knowledgehub` — primary branch `main`. Vercel auto-deploys from `main`.
+- **MONOREPO:** `.git` is at `C:\AITestingMaster\AI-Projects\` (parent), NOT at the knowledgehub directory. Multiple sibling projects share the same git repo. Read section 4 carefully.
+- **Production URL:** https://knowledgehub-indol.vercel.app
+- **Local path:** `C:\AITestingMaster\AI-Projects\knowledgehub` (Windows). Run dev with `npm run dev` from this directory.
+- **Required local env:** `.env.local` with `VITE_FIREBASE_*` keys must exist; otherwise auth breaks.
+- **User working style:** Plan first, confirm before implementing, **never push without explicit "commit and push" instruction**.
+- **Current state:** All recent feature work shipped to production. Latest commit on main: `82c43de feat(mobile): responsive layout pass…`. No pending work in flight.
+
+---
+
+## 1. Project Overview
+
+QA Quest is a self-hosted browser app that teaches QA engineering through structured lessons + interactive quizzes. The visual aesthetic is "cosmic neon" with a parchment-warm light mode and dark mode supported throughout. Each module has narrative-style copy, code examples (when relevant), and a "Boss Fight" multiple-choice quiz that awards XP on first-time completion.
+
+### The Six Zones
+1. **Manual Testing** (id: `manual`) — testing fundamentals
+2. **SQL Sorcery** (id: `sql`) — database query skills
+3. **API** (id: `api`) — REST/HTTP testing
+4. **TypeScript** (id: `typescript`) — language fundamentals
+5. **Playwright** (id: `playwright`) — browser automation
+6. **AI for QA** (id: `ai-qa`) — AI/ML testing
+
+### Three Tiers per Zone
+- `beginner` (emerald) · `intermediate` (sky) · `expert` (amber)
+
+### Module Anatomy
+Each module = `{ id, title, lessonMarkdown, analogy }` + a quiz keyed by the same `id`. Lesson content uses `### ` for sub-headings (this convention matters for any progressive-reading feature).
+
+---
+
+## 2. Tech Stack (versions)
+
+| Package | Version | Role |
+|---------|---------|------|
+| react | 19.2.5 | UI |
+| react-router-dom | 7.14.2 | Routing |
+| zustand | 5.0.12 | State management (with persist middleware) |
+| firebase | 12.12.1 | Auth (email/password + Google) and Firestore for cross-device progress |
+| framer-motion | 12.38.0 | Animations |
+| lucide-react | 1.11.0 | Icons |
+| react-markdown | 10.1.0 | Lesson rendering |
+| react-syntax-highlighter | 16.1.1 | Code blocks |
+| remark-gfm | 4.0.1 | GitHub-flavored markdown (tables, strikethrough) |
+| canvas-confetti | 1.9.4 | Quiz completion celebration animation |
+| tailwindcss | 4.2.4 | Styling (v4 — uses `@import "tailwindcss"` syntax) |
+| @tailwindcss/typography | plugin | `prose` classes for markdown |
+| vite | 8.0.10 | Dev/build |
+
+Tailwind config is in `src/index.css` via `@theme` and CSS overrides — **no `tailwind.config.js`**.
+
+---
+
+## 3. Repository & Deployment
+
+| Item | Value |
+|------|-------|
+| GitHub repo | https://github.com/sagar19101988/knowledgehub |
+| Default branch | `main` |
+| Deployment | Vercel (auto-deploys on push to `main`) |
+| Production URL | https://knowledgehub-indol.vercel.app |
+| Vercel project name | `knowledgehub` |
+| Vercel team / owner | `sagar19101988s-projects` |
+| Git user | `sagar19101988` |
+
+### Monorepo structure (CRITICAL)
+
+This is part of a **monorepo**. The `.git` directory is at `C:\AITestingMaster\AI-Projects\.git` (parent), and the knowledgehub project lives in a subdirectory. Sibling projects in the same repo include `Doc2MDConverter`, `JobAssistantBuddy`, `SprintAnalyzerAgent`, `TestOrchestrator`, `sprintlens`, `sprintpulse`.
+
+**Implications:**
+- Running `git log` from the knowledgehub directory shows commits from ALL sibling projects, not just knowledgehub.
+- Git commands accept paths relative to the **repo root** (the parent), so referencing files in commands looks like `git show origin/main:knowledgehub/src/data/quizzes.ts` (with `knowledgehub/` prefix).
+- A `cd ../` from knowledgehub puts you at the monorepo root.
+- The Vercel deploy is configured to build from the `knowledgehub/` subdirectory.
+
+### Vercel SPA routing
+Configured via `knowledgehub/vercel.json`:
+```json
+{ "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }
+```
+
+This is what makes deep links like `/zone/manual` resolve to the React app instead of 404'ing.
+
+---
+
+## 4. Local Development Setup
+
+### Run dev server
+```bash
+cd C:\AITestingMaster\AI-Projects\knowledgehub
+npm run dev
+```
+Vite default port is `5173`; if occupied it auto-picks the next free port.
+
+### Build
+```bash
+npm run build           # runs tsc -b && vite build (so type-check is part of build)
+```
+Output goes to `dist/`. Vercel uses this output.
+
+### Type-check only
+```bash
+npx tsc --noEmit
+```
+
+### Lint
+```bash
+npm run lint            # uses eslint.config.js (ESLint flat config)
+```
+
+### Firebase config
+- Initialization: `src/lib/firebase.ts` — reads config from `import.meta.env.VITE_FIREBASE_*` env vars.
+- The auth helpers exported include: `signInWithEmail`, `signUpWithEmail`, `signInWithGoogle`, `signOutUser`, `resetPassword`, `sendVerificationEmail`, `reloadUser`, plus Firestore helpers `saveUserProgress` and `loadUserProgress`.
+- **Firestore IS used** for cross-device progress sync (not just localStorage). Authenticated users get their `completedLevels`, `xp`, badges synced to a `users/{uid}` doc.
+
+### Environment variables (REQUIRED)
+
+The `.env.local` file at the project root contains:
+```
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=knowledgehub-42f16.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=knowledgehub-42f16
+VITE_FIREBASE_STORAGE_BUCKET=knowledgehub-42f16.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=231597464249
+VITE_FIREBASE_APP_ID=1:231597464249:web:9944924deea2f5f77d1968
+```
+
+**These are required for local dev to work.** Without them, `import.meta.env.VITE_FIREBASE_API_KEY` is undefined and Firebase auth crashes on page load.
+
+`.env.local` is **not committed** (in `.gitignore`). If you lose it on a new machine, regenerate by running:
+```bash
+npx vercel link               # link to the Vercel project
+npx vercel env pull .env.local
+```
+
+The Firebase project itself (`knowledgehub-42f16`) is owned by the user's Firebase account. Auth providers configured: Email/Password, Google.
+
+### Source-of-truth protocol (from CLAUDE.md)
+
+Always run `git fetch origin` before doing codebase analysis. The deployed app is built from `origin/main`. If local `main` ever drifts from `origin/main`, **trust the remote**.
+
+```bash
+git fetch origin
+git log --oneline HEAD..origin/main   # shows what you're missing
+```
+
+If local has diverged with unrelated histories (this happened once in May 2026), recovery:
+```bash
+git branch main-old-backup main           # preserve local commits first
+git checkout main && git reset --hard origin/main
+```
+
+---
+
+## 5. Project Structure
+
+```
+knowledgehub/                         (this project; .git is in parent)
+├── PROJECT_HANDOFF.md                # ← this file
+├── CLAUDE.md                         # Claude Code project rules (READ THIS TOO)
+├── AI_for_QA_Plan.md                 # User's content roadmap (reference doc)
+├── QA_Quest_Tracker.md               # User's project tracker (reference doc)
+├── README.md                         # Standard repo README
+├── .env.local                        # Firebase env vars (NOT committed)
+├── .gitignore                        # Standard ignores + .env.local
+├── eslint.config.js                  # ESLint flat config
+├── tsconfig.json                     # TS project references entry
+├── tsconfig.app.json                 # App TS config
+├── tsconfig.node.json                # Node-side TS config (for vite.config etc.)
+├── vercel.json                       # SPA rewrite rules
+├── package.json
+├── index.html                        # Vite entry HTML
+├── public/
+│   ├── favicon.svg
+│   └── narrator.mpeg                 # Voice-over for AuthPage (login narrator)
+└── src/
+    ├── App.tsx                       # Routes + HubMap (home page) + ZoneMap (constellation view)
+    ├── main.tsx                       # React entry
+    ├── index.css                      # Tailwind v4 + custom CSS (theme tokens, prose, mobile)
+    ├── components/
+    │   ├── AuthPage.tsx               # Email/password + Google + guest mode entry
+    │   ├── ZoneView.tsx               # The lesson + Boss Fight page (per-zone)
+    │   ├── QuizEngine.tsx             # Quiz UI (multiple choice, scoring, XP award)
+    │   └── BadgeToast.tsx             # Floating toast for unlocked zone badges
+    ├── data/
+    │   ├── zones.tsx                  # ZONES array + ZONE_TIERS (which modules in which tier)
+    │   ├── analogies.ts               # ZONES_CONTENT — every module's lessonMarkdown + analogy
+    │   └── quizzes.ts                 # All quiz questions keyed by module id
+    ├── store/
+    │   ├── useQuestStore.ts           # Zustand: completedLevels, xp, theme, playerName, isGuest…
+    │   └── useAuthStore.ts            # Firebase auth state (user, actionLoading, errors)
+    ├── utils/
+    │   └── unlockRules.ts             # Pure: isModuleUnlocked, isTierUnlocked, etc.
+    └── lib/
+        └── firebase.ts                # Firebase init + auth + Firestore helpers
+
+(repo root, parent of knowledgehub/, holds the .git directory and sibling projects)
+```
+
+### Notable utility-script clutter at the project root
+
+These untracked files exist from earlier content authoring sessions and should NOT be added to commits:
+`fix_*.cjs`, `splice_*.cjs`, `pw_beginner_*.txt`, `pw_intermediate_*.txt`, `pw_expert_*.txt`, `ts_expert_*.txt`, `ts_intermediate_*.txt`, `ts_new_basic_*.txt`, `ts_oop_*.txt`, etc. The user knows about these and hasn't decided whether to gitignore or delete them.
+
+### Key files to know
+
+- **`src/data/zones.tsx`** — single source of truth for zone metadata + tier→module mapping. Has a `progressiveUnlock: true` flag on every zone meta enabling sequential gating.
+- **`src/data/analogies.ts`** — *huge* file. Contains all lesson markdown for every module across every zone. Often >1MB.
+- **`src/data/quizzes.ts`** — *huge* file. Quiz questions for every module. Keyed by module id.
+- **`src/components/ZoneView.tsx`** — the second-most-complex component. Renders the navbar, sidebar (module navigator), lesson body, and Boss Fight. Lazy-loaded.
+- **`src/store/useQuestStore.ts`** — central client state. Note: `completedLevels` is the array of `${zoneId}::${moduleId}` strings that drives all unlock logic.
+
+---
+
+## 6. Key Data Models
+
+### A "completed level"
+Stored in `completedLevels: string[]` in Zustand. Format: `"manual::what-is-testing"`, `"sql::sql-select"`, etc. **Always use `${zoneId}::${moduleId}` as the key** — this convention is depended on across many components.
+
+### Zone tier structure (`ZONE_TIERS` in zones.tsx)
+```ts
+ZONE_TIERS: Record<string /*zoneId*/, {
+  id: 'beginner' | 'intermediate' | 'expert';
+  label: string;
+  color: string;        // tailwind text color
+  moduleIds: string[];  // ordered — the order is the sequential unlock order
+}[]>
+```
+
+### ZONE meta (`ZONES` array in zones.tsx)
+```ts
+{
+  id: 'manual', title: 'Manual Testing',
+  icon, description, badge, colorText,
+  bgColor, borderColor, accentBorder, cardShadow, glowColor, shimmerColor,
+  progressiveUnlock: true,   // 👈 enables sequential gating; present on all 6 zones
+}
+```
+
+### Routes (App.tsx)
+- `/login` → AuthPage (or redirect to `/` if logged in)
+- `/` → HubMap (protected; requires user OR isGuest)
+- `/zone/:id` → ZoneView (protected)
+- `*` → redirect to `/`
+
+`ProtectedRoute` checks: `if (!user && !isGuest) navigate('/login')`.  
+`LoginRoute` checks: `if (user) navigate('/')`.
+
+---
+
+## 7. Authentication
+
+### Modes
+1. **Email + Password** — Firebase auth with email-verification flow. New signups must verify before they can log in.
+2. **Google OAuth** — Firebase popup-based sign-in.
+3. **Guest mode** — sets `isGuest=true` and `playerName` in Zustand. Progress saved to localStorage only. App shows a warning modal explaining data-loss risk before entering.
+
+### Auth store states (`useAuthStore`)
+| Field | Meaning |
+|-------|---------|
+| `user` | Firebase user or `null` |
+| `authLoading` | `true` while Firebase checks session on startup (prevents Welcome page flash on logout) |
+| `actionLoading` | `true` while login/signup/logout is in-flight |
+| `pendingVerification` | `true` after signup until email is verified |
+| `unverifiedEmail` | email address awaiting verification |
+| `error` | last auth error message |
+
+### Cross-device sync (Firestore)
+For authenticated users, `useAuthStore` calls `loadUserProgress(user.uid)` on login and `saveUserProgress(user.uid, payload)` on relevant changes. The Firestore doc is `users/{uid}` containing `completedLevels`, `xp`, badges, etc. Guest users skip this entirely — their progress lives in localStorage only.
+
+### Session storage
+- Firebase persists auth in IndexedDB (`firebaseLocalStorageDb`).
+- Zustand persists `quest-storage` in localStorage (theme, playerName, completedLevels, xp, etc.).
+- To fully reset local state for testing: DevTools → Application → Storage → "Clear site data".
+
+### Inputs disabled during loading
+The login/signup form disables name/email/password inputs while `actionLoading` is true (prevents edits mid-submission).
+
+---
+
+## 8. Recent Work Log (chronological)
+
+### Jul–Sep 2025 (early phase, summarized)
+- Initial scaffold and TypeScript zone (commits going back to Tier 1/2 TypeScript modules)
+- Light/dark mode + theme system
+- Manual Testing zone (20 modules + 100 quizzes)
+- Login narrator voice-over
+
+### Oct 2025
+- SQL Sorcery zone (Beginner – 8 modules)
+- Holographic shimmer + animations on zone cards
+- RPG-style zone progress map
+- Auth: email verification flow + signup validation
+- Auth: guest mode warning modal
+- Parchment warm light mode
+- AI for QA zone — Beginner (13), Intermediate (14), Expert (13)
+- Playwright zone — Beginner, Intermediate, Expert
+- AuthPage: keep spinner active until user fully loaded
+- AuthPage: eliminate Welcome page flash on logout
+
+### Recent (this session and previous)
+- **`29e6629` fix(progress)** — compute zone % from `completedLevels` count instead of stored cumulative value (the zone progress was showing stale/wrong percentages).
+- **`0beb2ab` fix(auth)** — disable AuthPage input fields while login/signup is in progress.
+- **`387e01b` feat(sidebar)** — flush ZoneView sidebar to viewport left edge with bigger fonts.
+- **`5e32df2` feat(unlock)** — sequential module/tier gating across ALL six zones. Pure functions in `src/utils/unlockRules.ts`. First Beginner module always open; subsequent modules unlock when previous one is in `completedLevels`. Intermediate tier requires Beginner 100%; Expert requires Intermediate 100%. Locked modules are clickable visually (grayed out + dashed border + lock icon + tooltip pointing to prerequisite). Direct URL access to a locked module auto-redirects to the first unlocked one.
+- **`4068336` fix(unlock)** — replaced harsh `opacity-50 grayscale` with calmer slate palette on locked tiers. Tier card uses neutral slate background instead of brand color when locked. Glow removed when locked. Tier label, count badge, and progress bar all switch to slate. The lock icon stays only at the module level (status badge), not at the tier label.
+- **`82c43de` feat(mobile)** — responsive layout pass.
+  - **ZoneView:** hamburger button (top-left, mobile only) opens the module navigator as a slide-in drawer with backdrop. Same `<aside>` element morphs between inline (lg+) and drawer (< lg). Auto-closes when a module is picked.
+  - Mode switcher (Library / Arena) collapses to icon-only below sm.
+  - Back button collapses to icon-only below sm.
+  - Lesson body padding scales `p-4 sm:p-6 lg:p-8`.
+  - Step indicator (Learn → Boss Fight → Complete) labels truncate gracefully on narrow widths.
+  - Lock toast (bottom-center) shows on tap when a locked module is touched — replaces hover-only tooltip on touch devices.
+  - **HubMap:** nav title shortens to "QA Quest" on phones; welcome text hidden below md; left rail (player card, level progress) hidden below lg (info still in avatar dropdown).
+  - **Realm Map:** wrapped in horizontally-scrollable container with 700px min-width so the constellation nodes don't overlap on small screens.
+  - **Markdown content:** prose h3 size scales 1.25rem → 1.5rem → 1.75rem. Code blocks and tables get `overflow-x: auto`. Inline code wraps via `word-break`.
+
+All commits are pushed and live on production via Vercel.
+
+---
+
+## 9. Active Feature Areas (current state)
+
+### Sequential Module/Tier Unlock
+**Status: Shipped.** All zones are gated. The unlock rule is purely derived from `completedLevels` — no new persistence layer. To turn it off for a zone: remove `progressiveUnlock: true` from its zone meta. To turn it off globally: remove the flag from all 6 zones.
+
+### Mobile Responsiveness
+**Status: Shipped.** Tested breakpoints: 360px, 414px, 768px, 1024px+. Desktop (lg+) view unchanged.
+
+### Locked Tier Visibility
+**Status: Shipped.** Final design: slate-palette card (neutral, no glow) with lock icon at module level only. Module rows in a locked tier still show their numbered badges and titles in muted slate.
+
+### Auth (email + Google + guest)
+**Status: Shipped & stable.** Full flow including email verification, password reset, guest warning modal.
+
+---
+
+## 10. Pending / Deferred Work
+
+### "Progressive Lesson" — section-level unlock inside a module
+**Status: Plan written, NOT implemented.** The user reviewed two iterations of a generic plan and ultimately said: *"I don't want to proceed with the progressive learning for now."*
+
+**If revived later:** the agreed design was data-driven — a `src/data/sectionQuestions.ts` registry keyed by module id, with three question types (true-false, card-pick, order-rank). The orchestrator splits markdown on `### ` and gates the Boss Fight until every section's question is answered. Pilot was to be Manual Testing › Beginner › "What is Software Testing".
+
+The full plan is in the conversation transcript — not in code. Search for "Generic Progressive Learning Plan" if you need to resurrect it.
+
+### Untracked junk in main project
+The repository root has many untracked utility files left over from one-off content authoring scripts:
+- `*.cjs` — Node scripts used to splice content into `analogies.ts` and `quizzes.ts`
+- `*.txt` — content snippets staged for splicing
+- `pw_*`, `ts_*`, `splice_*`, `fix_*` prefixes
+- `AI_for_QA_Plan.md`, `QA_Quest_Tracker.md`, `CLAUDE.md`
+
+**The user has been warned about these but hasn't decided whether to .gitignore or delete them.** Don't add them to commits without explicit approval. Don't clean them up unilaterally.
+
+### Mobile QuizEngine polish
+The mobile pass kept the existing QuizEngine layout. If quiz options break on narrow widths, that's a follow-up — not a known issue at present.
+
+---
+
+## 11. User Working Style — IMPORTANT
+
+The user has consistent expectations from prior sessions. Memorize these:
+
+| Rule | Meaning |
+|------|---------|
+| **Plan first, then confirm, then implement** | When asked for a feature, write a detailed plan and wait for "go ahead" / "implement" before editing code. |
+| **Never push without explicit instruction** | Even for trivial fixes. The user always says "commit and push" when ready. Until then, work stays local. |
+| **Respect "DON'T MAKE CHANGES UNLESS I CONFIRM"** | The user uses this phrase often. Honor it strictly — give plan/answer only, no edits. |
+| **Token efficiency** | Be concise. Long preambles annoy. Status updates should be 1–2 sentences. |
+| **Verify before claiming done** | Run `npx tsc --noEmit` and (if applicable) `npx vite build` before declaring success. |
+| **Test locally before push** | The user runs `npm run dev` from the main project root themselves and verifies the changes visually before approving a push. |
+| **No documentation files unless asked** | Don't create README/MD files spontaneously. The user will ask if they want documentation. |
+
+---
+
+## 12. Common Gotchas (from real incidents this session)
+
+### Gotcha 1: Worktree vs Main Project
+Claude Code may operate in a **git worktree** at `C:\AITestingMaster\AI-Projects\knowledgehub\.claude\worktrees\<random-name>\`. This worktree is on a **different (often older) branch** than `main`.
+
+- **All file edits you make** in a Claude Code session land in the main project (`C:\AITestingMaster\AI-Projects\knowledgehub`), not the worktree, *unless* you explicitly write into the worktree path.
+- **The Vite preview server spawned by Claude's `preview_start` tool runs from the worktree** — so it serves the worktree's branch, not your edits to main. **Skip preview verification when changes are in main.**
+- **The user must run `npm run dev` themselves** from the main project root to see the actual edits.
+- Communicating this clearly to the user is critical — they once thought edits broke the auth page, when really they were comparing main-project code to a worktree-branch dev server.
+
+### Gotcha 2: The Vite cache
+If the dev server seems to serve old code, kill all `node.exe` processes and `rm -rf node_modules/.vite` to clear Vite's optimizer cache.
+
+### Gotcha 3: localStorage state masquerading as bugs
+A cached `isGuest: true` in localStorage will skip `/login` and land users on the home page guest panel. To test the auth page, clear `quest-storage` localStorage AND `firebaseLocalStorageDb` IndexedDB. Easiest: DevTools → Application → "Clear site data".
+
+### Gotcha 4: Tailwind v4 syntax
+This project uses Tailwind v4 (not v3). Custom theme tokens are declared via `@theme { … }` in `index.css`, not in `tailwind.config.js`. Don't try to add a `tailwind.config.js`.
+
+### Gotcha 5: `ZONE_TIERS` keys vs `ZONES[].id`
+Both must match. The keys in `ZONE_TIERS` ARE the zone ids: `manual`, `sql`, `api`, `typescript`, `playwright`, `ai-qa`. Don't confuse `manual` with `manual-testing` — only the former is correct.
+
+### Gotcha 6: Module ids must be globally unique
+Even though they live inside zone-scoped tiers, the unlock-key format `${zoneId}::${moduleId}` makes them effectively scoped. Still, by convention each zone prefixes its module ids (e.g., `sql-select`, `pw-locators`, `ts-generics`) — except Manual Testing which uses bare names like `what-is-testing`.
+
+### Gotcha 7: `analogies.ts` template literal escaping
+This file uses backtick template literals containing example YAML/code that includes `${...}`. Any GitHub Actions snippet must escape `${{ ... }}` as `\${{ ... }}` or it will be parsed as JS template expression — TypeScript will fail. Watch for this when editing.
+
+### Gotcha 8: CLAUDE.md zone counts are OUTDATED
+`CLAUDE.md` lists Playwright as 3 modules and AI for QA as 3 modules — both labelled "thin." This is **stale**. Both zones were expanded substantially in commits `9415830`, `4b130ad`, `0223116`, `4d8d3c7`, `f1dfabf`, `09c18f1`. As of latest `main`:
+- Playwright: 8 Beginner + 8 Intermediate + 8 Expert + 1 ui-interactions = 25 modules
+- AI for QA: 13 Beginner + 14 Intermediate + 13 Expert = 40 modules
+
+When CLAUDE.md and the actual code disagree, **trust the code**. Always run a sanity-check grep against `quizzes.ts` and `analogies.ts` before quoting numbers.
+
+### Gotcha 9: Sanity-check protocol (from CLAUDE.md)
+Before claiming anything about content completeness or module counts:
+1. Pick a module visible in the live app (e.g. `sql-stored-procedures`)
+2. Grep for it in `src/data/quizzes.ts` and `src/data/analogies.ts`
+3. If not found, check `git status` and `git log HEAD..origin/main` — you may be on a stale branch.
+
+### Gotcha 10: `npm run build` includes type-check
+`npm run build` runs `tsc -b && vite build`. So `npm run build` doubles as a full type-check across project references. `npx tsc --noEmit` is faster for quick checks but build is the authoritative validation.
+
+---
+
+## 13. New Profile / New Agent — Onboarding Steps
+
+When you switch to a different profile and start a new Claude Code session:
+
+### Step 1 — Provide this file + CLAUDE.md
+Hand the new agent BOTH `PROJECT_HANDOFF.md` and `CLAUDE.md` at the project root. Tell it:
+> "Read `PROJECT_HANDOFF.md` first, then `CLAUDE.md`, before doing anything. Both live at `C:\AITestingMaster\AI-Projects\knowledgehub\`. Follow the user working style rules in section 11 of the handoff. Note that the zone-count table in `CLAUDE.md` is outdated — section 12 (Gotcha 8) of the handoff has the corrected counts."
+
+### Step 2 — Verify access
+The new profile's GitHub credentials must allow push access to `https://github.com/sagar19101988/knowledgehub`. Confirm with `gh auth status` or `git push --dry-run origin main`.
+
+### Step 3 — Verify `.env.local` exists
+The new agent CAN'T see env files normally, but the new profile's filesystem must have `C:\AITestingMaster\AI-Projects\knowledgehub\.env.local` with all six `VITE_FIREBASE_*` keys. If the new machine doesn't have this file:
+```bash
+cd C:\AITestingMaster\AI-Projects\knowledgehub
+npx vercel link               # one-time link to the project
+npx vercel env pull .env.local
+```
+Without this, local dev will silently break Firebase auth.
+
+### Step 4 — Pull latest
+```bash
+cd C:\AITestingMaster\AI-Projects\knowledgehub
+git pull origin main
+```
+This ensures the new session starts from the production state.
+
+### Step 5 — Inform the agent of branching strategy
+> "Work directly on `main`. Each user-confirmed change set becomes its own commit. Never branch unless I explicitly ask you to."
+
+### Step 6 — Tell the agent how dev runs
+> "I run `npm run dev` myself from `C:\AITestingMaster\AI-Projects\knowledgehub`. Don't try to start the dev server yourself — the harness will spawn it from a worktree on an old branch and confuse us both. Skip preview verification."
+
+### Step 7 — Set expectations
+> "Plan-first, confirm-then-implement. Never commit/push unless I say 'commit and push'. Be concise."
+
+### Step 8 (optional) — Show the agent the recent work summary
+Section 8 of this document is the work log. The new agent doesn't need to read every line of every commit but should skim it to understand what's been touched recently.
+
+---
+
+## 14. Quick Reference Commands
+
+```bash
+# Run dev (do this in your own terminal)
+npm run dev
+
+# Type-check
+npx tsc --noEmit
+
+# Production build (rarely needed locally; Vercel does this)
+npm run build
+
+# See recent commits
+git log --oneline -10
+
+# Stage specific files
+git add src/components/ZoneView.tsx src/data/zones.tsx
+
+# Commit (always include Co-Authored-By for Claude work)
+git commit -m "feat(scope): subject line
+
+Body explaining the why.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+
+# Push
+git push origin main
+
+# Pull from remote
+git pull origin main
+```
+
+---
+
+## 15. Known State at Handoff
+
+- **Branch:** `main`
+- **Latest commit:** `82c43de feat(mobile): responsive layout pass across navbar, sidebar, and content`
+- **Working tree:** clean (only untracked utility scripts left over from earlier content authoring; safely ignored)
+- **Remote:** in sync with `origin/main`
+- **Vercel:** auto-deployed from latest commit
+- **TypeScript:** clean (`npx tsc --noEmit` passes)
+- **Vite build:** clean (`npx vite build` passes)
+- **No uncommitted user-facing changes**
+
+---
+
+## 16. Things That Should NOT Be Done Without Asking
+
+Repeat after me:
+
+1. ❌ Don't `git push` without the user saying "push" or "commit and push".
+2. ❌ Don't `git push --force` ever.
+3. ❌ Don't run destructive git commands (`reset --hard`, `clean -f`, `branch -D`) without confirmation.
+4. ❌ Don't add untracked utility files to commits.
+5. ❌ Don't change auth, Firebase config, or anything in `lib/firebase.ts` without asking.
+6. ❌ Don't edit `analogies.ts` or `quizzes.ts` content without confirming the scope (these are content files, not code).
+7. ❌ Don't introduce new dependencies without asking.
+8. ❌ Don't create README or docs files unless requested.
+9. ❌ Don't start the dev server yourself when the user is testing — they prefer to run it.
+10. ❌ Don't claim verification when you skipped it. If preview verification was skipped because of the worktree gotcha, say so explicitly.
+
+---
+
+## 17. Where This File Lives
+
+**Path:** `C:\AITestingMaster\AI-Projects\knowledgehub\PROJECT_HANDOFF.md`  
+**Status:** Untracked (not committed). Decide whether to commit it or keep it local-only.
+
+If you want to commit it for future reference:
+```bash
+git add PROJECT_HANDOFF.md
+git commit -m "docs: add project handoff document for session continuity"
+git push origin main
+```
+
+If you'd rather keep it local (so it doesn't appear publicly on GitHub), leave it untracked. You can also add it to `.gitignore`.
+
+---
+
+*End of handoff document. Welcome aboard.*
