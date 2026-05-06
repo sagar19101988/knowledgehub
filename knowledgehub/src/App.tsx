@@ -1,11 +1,13 @@
 import React, { useState, useLayoutEffect, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { BookOpen, LogOut, Sun, Moon, Loader2, Map, LayoutGrid, ChevronDown } from 'lucide-react';
+import { BookOpen, LogOut, Sun, Moon, Loader2, Map, LayoutGrid, ChevronDown, Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BadgeToast } from './components/BadgeToast';
+import { RankLadderModal } from './components/RankLadderModal';
+import { RankUpWatcher } from './components/RankUpWatcher';
 import { useQuestStore } from './store/useQuestStore';
 import { useAuthStore } from './store/useAuthStore';
-import { ZONES, ZONE_TIERS, getLevel } from './data/zones';
+import { ZONES, ZONE_TIERS, getLevel, getTotalModuleCount } from './data/zones';
 
 // ── Lazy-loaded routes (excluded from initial bundle) ─────────
 const ZoneView  = React.lazy(() => import('./components/ZoneView'));
@@ -274,14 +276,25 @@ function HubMap() {
     return () => document.removeEventListener('mousedown', handle);
   }, [avatarOpen]);
 
-  const { current, next, progress } = getLevel(xp);
+  const { current, next, progress } = getLevel(xp, { completedModuleCount: completedLevels.length });
+
+  // Caption text — shows current XP + next threshold (and module gate when next is Final Trial).
+  const totalModules = getTotalModuleCount();
+  const nextProgressText = !next
+    ? `${xp.toLocaleString()} XP · Maximum rank`
+    : next.requiresFullCompletion
+      ? `${xp.toLocaleString()} / ${next.min.toLocaleString()} XP · ${completedLevels.length} / ${totalModules} modules`
+      : `${xp.toLocaleString()} / ${next.min.toLocaleString()} XP`;
   const earnedCount = unlockedBadges.length;
 
+  // Rank ladder modal (rank-up celebration is now handled globally by RankUpWatcher in App)
+  const [ladderOpen, setLadderOpen] = useState(false);
+
   return (
-    <div className="min-h-screen bg-[#fef7e4] dark:bg-[#07050f] text-stone-800 dark:text-slate-200 font-sans flex flex-col">
+    <div className="min-h-screen bg-[#f4f3ff] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans flex flex-col">
 
       {/* Top navbar — HUD Layout: Left | Center | Right */}
-      <header className="h-16 border-b border-violet-300/50 dark:border-violet-900/30 bg-[#fef3d0]/95 dark:bg-[#0a0715]/80 backdrop-blur px-3 sm:px-6 flex items-center sticky top-0 z-50 gap-2">
+      <header className="h-16 border-b border-violet-200/60 dark:border-violet-900/30 bg-white/85 dark:bg-[#0a0715]/80 backdrop-blur px-3 sm:px-6 flex items-center sticky top-0 z-50 gap-2">
 
         {/* ── LEFT: Logo + title ── */}
         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
@@ -301,8 +314,30 @@ function HubMap() {
           👋
         </h1>
 
-        {/* ── RIGHT: Avatar dropdown ── */}
-        <div className="flex-1 flex justify-end">
+        {/* ── RIGHT: Rank chip + Avatar dropdown ── */}
+        <div className="flex-1 flex justify-end items-center gap-2">
+          {/* Rank chip — mobile/tablet only (sidebar shows it on lg+) */}
+          <button
+            onClick={() => setLadderOpen(true)}
+            aria-label={`Rank ${current.level} ${current.title} — open rank ladder`}
+            className="lg:hidden group relative flex items-center gap-1.5 pl-2 pr-2.5 py-1 rounded-xl border border-amber-400/40 bg-amber-500/5 hover:bg-amber-500/15 hover:border-amber-400/70 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 transition-all duration-200"
+          >
+            <Trophy size={13} className="text-amber-500 flex-shrink-0" />
+            <span className="text-xs font-black text-amber-700 dark:text-amber-300 tracking-tight">
+              Lv.{current.level}
+            </span>
+            <span className="hidden sm:inline text-xs font-bold text-slate-700 dark:text-slate-200 truncate max-w-[160px]">
+              · {current.title}
+            </span>
+            {/* progress underline */}
+            <span className="absolute left-2 right-2 -bottom-0.5 h-[2px] bg-slate-200/70 dark:bg-slate-800/80 rounded-full overflow-hidden">
+              <span
+                className="block h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full"
+                style={{ width: `${progress}%` }}
+              />
+            </span>
+          </button>
+
           <div className="relative" ref={avatarRef}>
             <button
               onClick={() => setAvatarOpen(p => !p)}
@@ -325,14 +360,28 @@ function HubMap() {
                 className="absolute right-0 top-[calc(100%+8px)] w-56 bg-white dark:bg-[#0e0b1f] border border-slate-200 dark:border-violet-900/50 rounded-2xl shadow-2xl shadow-black/20 dark:shadow-black/60 overflow-hidden z-50"
               >
                 {/* Player header */}
-                <div className="flex items-center gap-3 px-4 py-3.5 bg-gradient-to-r from-violet-500/5 to-fuchsia-500/5 dark:from-violet-900/30 dark:to-fuchsia-900/20 border-b border-slate-100 dark:border-violet-900/30">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-white font-black text-base shadow-[0_0_12px_rgba(192,38,211,0.4)] flex-shrink-0">
-                    {playerName?.[0]?.toUpperCase() ?? '?'}
+                <div className="px-4 py-3.5 bg-gradient-to-r from-violet-500/5 to-fuchsia-500/5 dark:from-violet-900/30 dark:to-fuchsia-900/20 border-b border-slate-100 dark:border-violet-900/30">
+                  <div className="flex items-center gap-3 mb-2.5">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-white font-black text-base shadow-[0_0_12px_rgba(192,38,211,0.4)] flex-shrink-0">
+                      {playerName?.[0]?.toUpperCase() ?? '?'}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{playerName}</p>
+                      <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400 truncate">
+                        Lv.{current.level} · {current.title}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{playerName}</p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500">{isGuest ? 'Guest Mode' : 'Explorer'}</p>
+                  {/* Rank progress */}
+                  <div className="h-1.5 w-full bg-slate-200/70 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all"
+                      style={{ width: `${progress}%` }}
+                    />
                   </div>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5">
+                    {nextProgressText}
+                  </p>
                 </div>
 
                 <div className="p-1.5 space-y-0.5">
@@ -376,36 +425,59 @@ function HubMap() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* ── Left sidebar (hidden on mobile — info accessible via avatar) ── */}
-        <aside className="hidden lg:flex w-72 flex-shrink-0 border-r border-violet-200/50 dark:border-violet-900/25 bg-[#fef3d0]/80 dark:bg-[#0a0715]/60 flex-col gap-5 p-5 overflow-y-auto sidebar-scroll">
+        <aside className="hidden lg:flex w-72 flex-shrink-0 border-r border-violet-200/50 dark:border-violet-900/25 bg-white/70 dark:bg-[#0a0715]/60 flex-col gap-5 p-5 overflow-y-auto sidebar-scroll">
 
-          {/* Player card */}
+          {/* Player card — slimmed to identity only (rank info lives in chip below) */}
           <div className="bg-white/60 dark:bg-slate-900/60 border border-violet-300/50 dark:border-violet-900/40 rounded-2xl p-4 shadow-lg">
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3">
               <div className="w-11 h-11 rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-500 flex items-center justify-center text-white font-black text-lg flex-shrink-0 shadow-[0_0_16px_rgba(192,38,211,0.4)]">
                 {playerName?.[0]?.toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-slate-900 dark:text-white font-bold text-sm truncate">{playerName}</p>
-                <p className="text-amber-400 text-xs truncate">{current.title}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{isGuest ? 'Guest Mode' : 'Explorer'}</p>
               </div>
-              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-full flex-shrink-0">
-                Lv.{current.level}
-              </span>
             </div>
-            <div className="flex justify-between text-xs text-slate-500 mb-1.5">
-              <span className="font-medium">{xp.toLocaleString()} XP</span>
-              <span>{next ? `Next: ${next.min.toLocaleString()}` : 'Max Level'}</span>
+          </div>
+
+          {/* Rank chip — desktop sidebar version (prominent identity card, click → ladder modal) */}
+          <button
+            onClick={() => setLadderOpen(true)}
+            aria-label={`Rank ${current.level} ${current.title} — open rank ladder`}
+            className="group relative flex items-center gap-3 px-4 py-3.5 rounded-xl border border-amber-400/40 bg-amber-500/5 hover:bg-amber-500/15 hover:border-amber-400/70 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 transition-all duration-200 text-left"
+          >
+            {/* Level badge */}
+            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center shadow-[0_0_12px_rgba(245,158,11,0.35)]">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-900/70 leading-none -mb-0.5">Lv</span>
+              <span className="text-base font-black text-slate-900 leading-none ml-0.5">{current.level}</span>
             </div>
-            <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                transition={{ duration: 1, ease: 'easeOut' }}
-                className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full"
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <Trophy size={13} className="text-amber-500 flex-shrink-0" />
+                <p className="text-sm font-black text-slate-900 dark:text-white tracking-tight truncate">
+                  {current.title}
+                </p>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 truncate">
+                {nextProgressText}
+              </p>
+            </div>
+            {/* progress underline */}
+            <span className="absolute left-3 right-3 -bottom-0.5 h-[2px] bg-slate-200/70 dark:bg-slate-800/80 rounded-full overflow-hidden">
+              <span
+                className="block h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full"
+                style={{ width: `${progress}%` }}
               />
-            </div>
-            <p className="text-slate-500 dark:text-slate-600 text-xs mt-1.5">
-              {next ? `${(next.min - xp).toLocaleString()} XP to ${next.title}` : 'You have achieved the ultimate rank.'}
+            </span>
+          </button>
+
+          {/* Total XP stat tile (compact, single-line) */}
+          <div className="flex items-center justify-between rounded-xl border border-amber-300/30 dark:border-amber-700/30 bg-gradient-to-br from-amber-50 to-yellow-50/60 dark:from-amber-950/30 dark:to-yellow-900/15 px-3.5 py-2 shadow-sm">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-700/80 dark:text-amber-400/80">
+              Total XP
+            </p>
+            <p className="text-base font-black text-amber-700 dark:text-amber-300 tracking-tight">
+              {xp.toLocaleString()}
             </p>
           </div>
 
@@ -645,6 +717,14 @@ function HubMap() {
         </main>
 
       </div>
+
+      {/* Rank ladder modal */}
+      <RankLadderModal
+        open={ladderOpen}
+        onClose={() => setLadderOpen(false)}
+        xp={xp}
+        completedModuleCount={completedLevels.length}
+      />
     </div>
   );
 }
@@ -729,6 +809,7 @@ export default function App() {
     <Router>
       <SyncToCloud />
       <BadgeToast badgesMap={badgesMap} />
+      <RankUpWatcher />
       <Suspense fallback={<AuthSpinner />}>
         <Routes>
           <Route path="/login" element={<LoginRoute />} />

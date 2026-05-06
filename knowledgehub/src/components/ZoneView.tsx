@@ -95,9 +95,9 @@ export default function ZoneView() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fef7e4] dark:bg-[#07050f] text-stone-800 dark:text-slate-200 font-sans flex flex-col">
+    <div className="min-h-screen bg-[#f4f3ff] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans flex flex-col">
       {/* Top Navbar — HUD Layout: Left | Center | Right */}
-      <nav className="h-16 border-b border-violet-300/50 dark:border-violet-900/30 bg-[#fef3d0]/95 dark:bg-[#0a0715]/80 backdrop-blur px-3 sm:px-6 flex items-center sticky top-0 z-50 gap-2">
+      <nav className="h-16 border-b border-violet-200/60 dark:border-violet-900/30 bg-white/85 dark:bg-[#0a0715]/80 backdrop-blur px-3 sm:px-6 flex items-center sticky top-0 z-50 gap-2">
 
         {/* ── LEFT: Back + Hamburger (mobile) + Breadcrumb ── */}
         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
@@ -242,7 +242,7 @@ export default function ZoneView() {
             flex-shrink-0 transition-transform duration-300 ease-out
             lg:static lg:w-72 lg:translate-x-0 lg:bg-transparent lg:shadow-none lg:border-0
             fixed top-0 left-0 z-[70] h-screen w-[85%] max-w-sm
-            bg-[#fef7e4] dark:bg-[#0a0715] border-r border-violet-300/50 dark:border-violet-900/40 shadow-2xl
+            bg-[#f4f3ff] dark:bg-[#0a0715] border-r border-violet-200/60 dark:border-violet-900/40 shadow-2xl
             ${drawerOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           `}
         >

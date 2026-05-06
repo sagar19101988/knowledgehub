@@ -179,22 +179,90 @@ export const ZONE_TIERS: Record<string, { id: string; label: string; color: stri
   ],
 };
 
-export const XP_LEVELS = [
-  { level: 1, title: 'Professional Button Clicker', min: 0    },
-  { level: 2, title: 'Chaos Apprentice',            min: 200  },
-  { level: 3, title: 'Bug Whisperer',               min: 500  },
-  { level: 4, title: 'Assert Addict',               min: 1000 },
-  { level: 5, title: 'Flake Fighter',               min: 1800 },
-  { level: 6, title: 'Pipeline Overlord',           min: 2800 },
-  { level: 7, title: 'Test Oracle',                 min: 4000 },
-  { level: 8, title: 'The Unkillable QA',           min: 5500 },
+/** XP awarded for first-time completion of any module. */
+export const XP_PER_MODULE = 100;
+
+/**
+ * Total XP a player can earn from completing every module in every zone exactly once.
+ * Auto-derived from ZONE_TIERS — add/remove modules and this updates automatically.
+ * Does NOT include daily-bounty XP (which is unbounded and treated as bonus).
+ */
+export function getTotalEarnableXp(): number {
+  return Object.values(ZONE_TIERS)
+    .flat()
+    .reduce((sum, tier) => sum + tier.moduleIds.length, 0) * XP_PER_MODULE;
+}
+
+/**
+ * Rank ladder (hybrid auto-anchored design).
+ *
+ * Lv.1–7 use fixed thresholds — stable across typical content additions, so
+ * existing players don't get unexpectedly demoted when a few modules are added.
+ *
+ * Lv.8 (max rank) is auto-anchored to 100% content completion via
+ * getTotalEarnableXp(). Add modules → threshold rises in lockstep.
+ * "Max rank" therefore always means "you've completed everything that exists."
+ *
+ * ⚠️ Review Lv.2–7 thresholds when total earnable XP grows beyond ~25,000
+ * (currently auto-tracked; ~15,800 with 158 modules as of last calibration).
+ */
+const RANK_FIXED_LOWER = [0, 500, 1500, 3000, 5500, 8500, 12000];
+
+const RANK_META = [
+  { title: 'Professional Button Clicker', flavor: 'Every great QA starts with a click. And another. And another.' },
+  { title: 'Chaos Apprentice',            flavor: "You've learned to break things on purpose. Mostly on purpose." },
+  { title: 'Bug Whisperer',               flavor: "They don't shout at bugs. The bugs shout to them." },
+  { title: 'Assert Addict',               flavor: 'You see truth, and you pin it down with `expect(`.' },
+  { title: 'Flake Fighter',               flavor: 'Intermittent failures bow to your retry strategy.' },
+  { title: 'Pipeline Overlord',           flavor: 'Green builds bend the knee.' },
+  { title: 'Test Oracle',                 flavor: 'You glimpse the failure before the build runs.' },
+  { title: 'The Unkillable QA',           flavor: 'Production may burn. You will not.' },
 ];
 
-export function getLevel(xp: number) {
+export const XP_LEVELS = RANK_META.map((meta, i) => ({
+  level:  i + 1,
+  title:  meta.title,
+  flavor: meta.flavor,
+  // Lv.1–7 = fixed thresholds. Lv.8 = max rank = auto-anchored to 100% completion.
+  // Math.max guard ensures Lv.8 always exceeds Lv.7 even if content radically shrinks.
+  min: i < RANK_FIXED_LOWER.length
+    ? RANK_FIXED_LOWER[i]
+    : Math.max(getTotalEarnableXp(), RANK_FIXED_LOWER[RANK_FIXED_LOWER.length - 1] + 1),
+  // True only for the max rank — UI uses this to surface the dual-gate requirement.
+  requiresFullCompletion: i === RANK_META.length - 1,
+}));
+
+/** Total module count across all zones — used by the Lv.8 completion gate. */
+export function getTotalModuleCount(): number {
+  return Object.values(ZONE_TIERS)
+    .flat()
+    .reduce((sum, tier) => sum + tier.moduleIds.length, 0);
+}
+
+/**
+ * Compute current rank from XP.
+ *
+ * `ctx.completedModuleCount` enables the Lv.8 completion gate: if a player has
+ * enough XP for Lv.8 but hasn't finished every module, they stay at Lv.7. This
+ * prevents pure daily-bounty grinding from reaching the max title.
+ *
+ * Without `ctx`, ranks are pure-XP (legacy behaviour).
+ */
+export function getLevel(xp: number, ctx?: { completedModuleCount: number }) {
   let current = XP_LEVELS[0];
   for (const lvl of XP_LEVELS) {
     if (xp >= lvl.min) current = lvl;
   }
+
+  // Lv.8 completion gate
+  if (ctx && current.requiresFullCompletion) {
+    const total = getTotalModuleCount();
+    if (ctx.completedModuleCount < total) {
+      // Cap at Lv.7
+      current = XP_LEVELS[XP_LEVELS.length - 2];
+    }
+  }
+
   const nextIdx = XP_LEVELS.findIndex(l => l.level === current.level) + 1;
   const next    = XP_LEVELS[nextIdx] ?? null;
   const progress = next

@@ -152,6 +152,15 @@ export const useQuestStore = create<QuestState>()(
         isGuest:        state.isGuest, // persist so guest survives refresh
         // playerName intentionally excluded — always comes from Firebase auth or enterGuestMode
       }),
+      // After rehydrating from localStorage, restore the guest display name.
+      // (playerName isn't persisted, so a refreshed guest session would otherwise
+      // come back with playerName=null even though isGuest=true.)
+      onRehydrateStorage: () => (state, error) => {
+        if (error || !state) return;
+        if (state.isGuest && !state.playerName) {
+          state.playerName = 'Guest';
+        }
+      },
     }
   )
 );

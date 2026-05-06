@@ -9,10 +9,10 @@
   --color-dark-900: #07050f;
 }
 
-/* Light mode defaults */
+/* Light mode defaults — Daybreak: lavender mist + crisp slate text, harmonising with the cosmic neon accents */
 body {
-  background-color: #fef7e4;
-  color: #1c0f00;
+  background-color: #f4f3ff; /* lavender mist */
+  color: #0f172a;            /* slate-900 — crisp, high-contrast */
   margin: 0;
   font-family: 'Inter', -apple-system, sans-serif;
 }
@@ -89,12 +89,12 @@ button:not(:disabled) {
   border-bottom: 2px solid rgba(56, 189, 248, 0.2);
 }
 
-/* Parchment mode: warm amber headings */
+/* Daybreak (light) mode: violet headings — matches the cosmic neon accent palette */
 .prose h3 {
-  color: #92400e !important; /* amber-800 — warm on parchment */
+  color: #7c3aed !important; /* violet-600 — strong, in-theme accent */
   font-size: 1.25rem !important;
   font-weight: 900 !important;
-  border-bottom: 2px solid rgba(2, 132, 199, 0.2);
+  border-bottom: 2px solid rgba(124, 58, 237, 0.2); /* violet-600/20 */
   padding-bottom: 0.5rem;
   margin-top: 2rem !important;
   margin-bottom: 1.25rem !important;
@@ -134,9 +134,9 @@ button:not(:disabled) {
   white-space: nowrap;
 }
 
-/* Prose body text in parchment mode */
+/* Prose body text in daybreak (light) mode */
 .prose p, .prose li, .prose ul, .prose ol {
-  color: #292524; /* stone-800 — warm dark on parchment */
+  color: #334155; /* slate-700 — high-readability cool dark */
 }
 
 .dark .prose p, .dark .prose li, .dark .prose ul, .dark .prose ol {
