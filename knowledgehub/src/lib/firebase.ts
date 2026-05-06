@@ -42,7 +42,9 @@ export interface UserProgress {
   unlockedBadges: string[];
   completedLevels: string[];
   lastBountyDate: string | null;
-  theme: 'dark' | 'light';
+  // theme is no longer synced (device-local preference); kept optional
+  // because legacy Firestore docs may still have it written.
+  theme?: 'dark' | 'light';
 }
 
 export interface FirestoreUser {
@@ -61,7 +63,6 @@ export const DEFAULT_PROGRESS: UserProgress = {
   unlockedBadges: [],
   completedLevels: [],
   lastBountyDate: null,
-  theme: 'dark',
 };
 
 // ─── Auth helpers ──────────────────────────────────────────────

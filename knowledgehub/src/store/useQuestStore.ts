@@ -95,6 +95,9 @@ export const useQuestStore = create<QuestState>()(
 
       // ── Called by useAuthStore when user logs in ────────────
       hydrateFromFirestore: (progress, displayName) => {
+        // Theme is intentionally NOT hydrated — it's a device-local preference
+        // (your phone and laptop can have different themes). Login should not
+        // override the theme you were just using.
         set({
           playerName:     displayName,
           xp:             progress.xp,
@@ -102,7 +105,6 @@ export const useQuestStore = create<QuestState>()(
           unlockedBadges: progress.unlockedBadges,
           completedLevels:progress.completedLevels,
           lastBountyDate: progress.lastBountyDate,
-          theme:          progress.theme,
           isGuest:        false, // real login clears guest mode
         });
       },
@@ -129,6 +131,7 @@ export const useQuestStore = create<QuestState>()(
 
       // ── Debounced Firestore save ────────────────────────────
       syncToFirestore: (uid) => {
+        // Theme is intentionally NOT synced — it's a device-local preference.
         const s = get();
         debouncedSave(uid, {
           xp:             s.xp,
@@ -136,7 +139,6 @@ export const useQuestStore = create<QuestState>()(
           unlockedBadges: s.unlockedBadges,
           completedLevels:s.completedLevels,
           lastBountyDate: s.lastBountyDate,
-          theme:          s.theme,
         });
       },
     }),
