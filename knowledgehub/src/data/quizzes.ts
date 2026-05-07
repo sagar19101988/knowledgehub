@@ -1749,6 +1749,112 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ]
     },
     {
+      level: 'test-environment-management',
+      questions: [
+        {
+          question: 'True or False: A test environment that diverges slightly from production is fine, as long as the tests pass.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'Every divergence between test and production environments is a place where bugs hide. Tests passing in a divergent environment teach you the wrong things — they pass because of the divergence, not because the code works in production.'
+        },
+        {
+          question: 'A team finds bugs in production that did not appear in staging. Investigation shows staging used a single-region database while production uses multi-region replication. Which fix BEST addresses the root cause?',
+          options: [
+            { id: 'a', text: 'Increase test coverage in staging.', isCorrect: false },
+            { id: 'b', text: 'Make staging mirror the multi-region production architecture, or add a closer-to-production environment between staging and prod.', isCorrect: true },
+            { id: 'c', text: 'Run more end-to-end tests in dev.', isCorrect: false },
+            { id: 'd', text: 'Stop using multi-region in production.', isCorrect: false }
+          ],
+          explanation: 'When environments diverge architecturally, bugs hide in the difference. The fix is to reduce that divergence — either by making staging match production, or adding a pre-prod tier that does. Adding more tests in a divergent environment cannot find architecture-specific bugs.'
+        },
+        {
+          question: 'Which is the cheapest highest-value investment in test environment management?',
+          options: [
+            { id: 'a', text: 'Hiring more environment admins.', isCorrect: false },
+            { id: 'b', text: 'Infrastructure as Code (Terraform, Pulumi) — environments become recreatable from source.', isCorrect: true },
+            { id: 'c', text: 'Buying premium hardware.', isCorrect: false },
+            { id: 'd', text: 'Manual configuration documents.', isCorrect: false }
+          ],
+          explanation: 'Infrastructure as Code converts environment management from a tribal-knowledge problem into a software problem. The recipe is in version control, the environments are reproducible, and drift becomes traceable. Most environment problems become solvable rather than recurring.'
+        },
+        {
+          question: 'Why does the test environment pyramid (dev → CI → QA → staging → prod) exist?',
+          options: [
+            { id: 'a', text: 'Bureaucracy.', isCorrect: false },
+            { id: 'b', text: 'Each environment serves a different purpose; the closer to production, the more production-like, and bugs progress upward through the pyramid where they are caught earlier and cheaper.', isCorrect: true },
+            { id: 'c', text: 'Auditing requirements only.', isCorrect: false },
+            { id: 'd', text: 'It is not a real pattern.', isCorrect: false }
+          ],
+          explanation: 'Each tier balances cost vs production-likeness. Dev is fast and cheap but unrealistic. Staging is expensive but production-like. Bugs progress up the pyramid; the goal is to catch each bug at the cheapest tier where it can be reproduced.'
+        },
+        {
+          question: 'What is the WORST sign for a test environment?',
+          options: [
+            { id: 'a', text: 'It costs money to run.', isCorrect: false },
+            { id: 'b', text: 'It has no named owner, and "it is broken" responses are nobody-in-particular work.', isCorrect: true },
+            { id: 'c', text: 'It is recreated nightly.', isCorrect: false },
+            { id: 'd', text: 'It has its own monitoring dashboard.', isCorrect: false }
+          ],
+          explanation: 'No ownership means no maintenance. Test environments slowly degrade, fall out of sync with production, and become "always broken." A named owner (often QA Lead or a DevOps engineer) responsible for uptime and refresh is the cheapest fix for most environment problems.'
+        }
+      ]
+    },
+    {
+      level: 'test-data-management',
+      questions: [
+        {
+          question: 'True or False: It is acceptable to copy production data directly into the test environment for realism.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'Production data contains PII (personally identifiable information). Copying it to test environments without sanitisation is illegal in many jurisdictions (GDPR, HIPAA, etc.) and exposes the company to regulatory fines. Production data must be MASKED or ANONYMISED before reaching test environments.'
+        },
+        {
+          question: 'A bank QA uses a test database snapshot from 18 months ago. A live customer reports a crash when their display name contains an emoji. The test data did not include any emoji users. What is the lesson?',
+          options: [
+            { id: 'a', text: 'Emojis should be banned.', isCorrect: false },
+            { id: 'b', text: 'Test data goes stale; real-world patterns change over time, and synthetic / production-derived data must be refreshed periodically.', isCorrect: true },
+            { id: 'c', text: 'The QA was incompetent.', isCorrect: false },
+            { id: 'd', text: 'Snapshots should never be used.', isCorrect: false }
+          ],
+          explanation: 'Real-world data evolves. Patterns that did not exist 18 months ago are now common. Stale test data fails to reflect current reality, so tests miss bugs that real users hit. Periodic refresh of test data — quarterly or per major release — is a baseline practice.'
+        },
+        {
+          question: 'Which test data strategy is BEST for unit tests?',
+          options: [
+            { id: 'a', text: 'A copy of production data.', isCorrect: false },
+            { id: 'b', text: 'Synthetic data generated by factories — fast, deterministic, isolated.', isCorrect: true },
+            { id: 'c', text: 'A masked subset of production.', isCorrect: false },
+            { id: 'd', text: 'Manually curated edge case data.', isCorrect: false }
+          ],
+          explanation: 'Unit tests run thousands of times per day and must be fast and isolated. Synthetic data via factories — where each test creates exactly the data it needs in milliseconds — is the right fit. Masked production copies and curated edge-case data have their place at higher test levels.'
+        },
+        {
+          question: 'A team has a test where two parallel test runs corrupt each other through shared data. What is the underlying anti-pattern?',
+          options: [
+            { id: 'a', text: 'The tests run too fast.', isCorrect: false },
+            { id: 'b', text: 'Test data is shared and mutable across runs, instead of each test creating and tearing down its own data.', isCorrect: true },
+            { id: 'c', text: 'The team is using too much automation.', isCorrect: false },
+            { id: 'd', text: 'Tests should not run in parallel.', isCorrect: false }
+          ],
+          explanation: 'The fix is data isolation: each test creates its own data, mutates only its own data, and cleans up afterwards. Parallel runs is desirable; shared mutable state is the bug. Modern test frameworks support per-test data setup and teardown specifically to avoid this.'
+        },
+        {
+          question: 'Which technique reduces both PII risk AND test data freshness problems at the same time?',
+          options: [
+            { id: 'a', text: 'Copying production data directly.', isCorrect: false },
+            { id: 'b', text: 'Automated production-data masking pipeline that periodically refreshes a sanitised subset into the test environment.', isCorrect: true },
+            { id: 'c', text: 'Using only synthetic data forever.', isCorrect: false },
+            { id: 'd', text: 'Banning all test data refreshes.', isCorrect: false }
+          ],
+          explanation: 'A masking pipeline gives the realism of production patterns (current-day, real-shape data) WITHOUT the PII (replaced with fake-but-realistic values). Automated and periodic, it stays fresh. This is the sweet spot for staging and integration test environments.'
+        }
+      ]
+    },
+    {
       level: 'state-dependency',
       questions: [
         {
@@ -1914,6 +2020,112 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ]
     },
     {
+      level: 'performance-testing',
+      questions: [
+        {
+          question: 'True or False: Load testing and Stress testing measure the same thing.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'Load testing checks behaviour at EXPECTED capacity. Stress testing pushes PAST expected capacity to find the breaking point and observe how the system fails. Different goals, different test designs, different conclusions.'
+        },
+        {
+          question: 'A trading platform runs perfectly under load and stress tests but mysteriously crashes every 36 hours in production. Which type of performance test would have caught this?',
+          options: [
+            { id: 'a', text: 'Load testing', isCorrect: false },
+            { id: 'b', text: 'Spike testing', isCorrect: false },
+            { id: 'c', text: 'Soak testing — runs the system at moderate load for a long duration to find slow-burn issues like memory leaks.', isCorrect: true },
+            { id: 'd', text: 'Stress testing', isCorrect: false }
+          ],
+          explanation: 'Memory leaks, file-handle leaks, slow cache pollution, and time-of-day bugs only manifest after sustained running. Soak tests (24-48 hours of continuous load) are designed exactly for this category of slow-burning issues.'
+        },
+        {
+          question: 'A retail website crashes every Black Friday despite passing all "normal" performance tests. Which type of test would BEST simulate the issue?',
+          options: [
+            { id: 'a', text: 'Soak testing', isCorrect: false },
+            { id: 'b', text: 'Spike testing — sudden sharp surge in load that reproduces the Black Friday traffic pattern.', isCorrect: true },
+            { id: 'c', text: 'Static analysis', isCorrect: false },
+            { id: 'd', text: 'Unit testing', isCorrect: false }
+          ],
+          explanation: 'Black Friday is a spike: the system goes from normal to peak in seconds. Auto-scalers cannot react fast enough; connection pools cannot grow in time. Spike testing simulates exactly this pattern, which is why "normal" load tests miss the failure mode entirely.'
+        },
+        {
+          question: 'Which is the MOST useful performance metric for a customer-facing web app?',
+          options: [
+            { id: 'a', text: 'Average response time', isCorrect: false },
+            { id: 'b', text: '95th-percentile (p95) and 99th-percentile (p99) response times — captures the experience of the slowest 5-1% of users, which averages hide.', isCorrect: true },
+            { id: 'c', text: 'CPU utilisation only.', isCorrect: false },
+            { id: 'd', text: 'Memory usage only.', isCorrect: false }
+          ],
+          explanation: 'Averages hide the worst experiences. A p50 of 200ms with a p99 of 5 seconds means 1% of users — possibly hundreds of thousands of people — see a broken-feeling app. Percentile metrics surface this; averages do not.'
+        },
+        {
+          question: 'A team finishes performance testing and reports "the system handles 1000 concurrent users." What essential question is missing from that report?',
+          options: [
+            { id: 'a', text: 'How fast was the test runner?', isCorrect: false },
+            { id: 'b', text: 'WITH WHAT response time? "Handling" 1000 users at 30-second response times is failure dressed as success.', isCorrect: true },
+            { id: 'c', text: 'How much disk space the system used.', isCorrect: false },
+            { id: 'd', text: 'The colour of the dashboard.', isCorrect: false }
+          ],
+          explanation: 'Throughput without latency is meaningless. The system might "handle" 1000 users but produce an unusable user experience. Performance results must always pair concurrent-user counts with response-time percentiles AND error rates.'
+        }
+      ]
+    },
+    {
+      level: 'security-testing',
+      questions: [
+        {
+          question: 'True or False: A senior QA needs to be a certified penetration tester to find security bugs.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'Most production security breaches exploit well-known categories from the OWASP Top 10 — broken access control, injection, misconfiguration. A senior QA can spot many of these during ordinary functional testing without specialist certification. Pen-testers handle the deeper specialist categories (cryptography, custom auth).'
+        },
+        {
+          question: 'A QA logs in as user A (ID 1), then changes the URL to /users/2/profile and sees user 2 data. Which OWASP category is this?',
+          options: [
+            { id: 'a', text: 'Cryptographic Failures', isCorrect: false },
+            { id: 'b', text: 'Broken Access Control — the user accessed something they should not.', isCorrect: true },
+            { id: 'c', text: 'Vulnerable Components', isCorrect: false },
+            { id: 'd', text: 'Server-Side Request Forgery', isCorrect: false }
+          ],
+          explanation: 'Broken Access Control is OWASP #1. The classic test (try to access another user URL while logged in as a different user) takes seconds and catches a category that consistently produces the largest data breaches. Always test it in any feature with per-user data.'
+        },
+        {
+          question: 'Which is a BASIC security test that any QA can run?',
+          options: [
+            { id: 'a', text: 'Submit SQL syntax in a form field and see if errors leak DB internals.', isCorrect: true },
+            { id: 'b', text: 'Reverse-engineer the encryption library.', isCorrect: false },
+            { id: 'c', text: 'Build a custom zero-day exploit.', isCorrect: false },
+            { id: 'd', text: 'Audit the kernel.', isCorrect: false }
+          ],
+          explanation: 'Trying to break input validation by submitting unusual payloads (SQL syntax, scripts, oversized files, special characters) is the bread-and-butter of QA-level security testing. The other options require specialist expertise.'
+        },
+        {
+          question: 'A team uses a popular library that has a publicly-disclosed CVE (vulnerability). Which OWASP category does this fall under?',
+          options: [
+            { id: 'a', text: 'Authentication Failures', isCorrect: false },
+            { id: 'b', text: 'Vulnerable and Outdated Components — known issues in dependencies the team is using.', isCorrect: true },
+            { id: 'c', text: 'Injection', isCorrect: false },
+            { id: 'd', text: 'Cryptographic Failures', isCorrect: false }
+          ],
+          explanation: 'Using known-vulnerable dependencies is OWASP A06. Tools like npm audit, OWASP Dependency Check, and Snyk automate detection. This is one of the easiest wins — a CI step that flags vulnerable dependencies prevents shipping known-broken libraries to production.'
+        },
+        {
+          question: 'Which input would be MOST likely to expose a SQL injection vulnerability in a poorly-written login form?',
+          options: [
+            { id: 'a', text: 'Just typing your normal password slowly.', isCorrect: false },
+            { id: 'b', text: 'A password field that contains SQL syntax like a closing quote followed by OR 1=1.', isCorrect: true },
+            { id: 'c', text: 'Pressing the Login button twice.', isCorrect: false },
+            { id: 'd', text: 'Refreshing the page mid-login.', isCorrect: false }
+          ],
+          explanation: 'SQL injection works by submitting input that breaks out of the expected string context and adds attacker-controlled SQL. Classic payloads use closing quotes and tautologies (OR 1=1) to make the resulting query always-true. A 30-second test with such an input catches a category that has caused the largest data breaches in history.'
+        }
+      ]
+    },
+    {
       level: 'usability-testing',
       questions: [
         {
@@ -1969,6 +2181,271 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ]
     },
     {
+      level: 'ci-cd-testing',
+      questions: [
+        {
+          question: 'True or False: A flaky test in CI/CD is mostly harmless — you can just rerun the build.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'Flaky tests are slow poison. Over time, developers start ignoring failed tests as "probably flaky" and miss real failures. A team with even 30 known-flaky tests will eventually ship a real regression because someone assumed it was just flakiness.'
+        },
+        {
+          question: 'In a CI/CD pipeline, where do the SLOWEST and MOST THOROUGH tests typically run?',
+          options: [
+            { id: 'a', text: 'Pre-commit hooks.', isCorrect: false },
+            { id: 'b', text: 'Pull request checks.', isCorrect: false },
+            { id: 'c', text: 'Post-merge to main, after fast checks already passed.', isCorrect: true },
+            { id: 'd', text: 'Manual testing only.', isCorrect: false }
+          ],
+          explanation: 'Earlier stages of the pipeline get the FAST cheap tests (lint, unit). Slow comprehensive suites (full E2E, accessibility, visual regression) run later because their cost would block every commit if they ran first. Match test speed to pipeline stage.'
+        },
+        {
+          question: 'A team has 4000 tests. About 30 are known flaky and developers re-run failed builds without investigating. A real regression breaks checkout — but the developer assumed it was "probably flaky." What is the lesson?',
+          options: [
+            { id: 'a', text: 'Reduce the number of tests.', isCorrect: false },
+            { id: 'b', text: 'Treat flaky tests as bugs — fix or quarantine within 24 hours; never let them linger.', isCorrect: true },
+            { id: 'c', text: 'Stop using CI/CD.', isCorrect: false },
+            { id: 'd', text: 'Automatically retry every failure.', isCorrect: false }
+          ],
+          explanation: 'Persistent flakiness destroys trust in the pipeline. Senior teams treat flakiness as a top-priority bug class — fix immediately, or quarantine (skip with a tracked ticket). Tolerating flakiness is what causes real bugs to be ignored.'
+        },
+        {
+          question: 'Which of the following is the MOST important characteristic of CI/CD-grade tests?',
+          options: [
+            { id: 'a', text: 'They are written by senior engineers.', isCorrect: false },
+            { id: 'b', text: 'They are fast, reliable, isolated, and deterministic.', isCorrect: true },
+            { id: 'c', text: 'They use the latest framework.', isCorrect: false },
+            { id: 'd', text: 'They have colourful reports.', isCorrect: false }
+          ],
+          explanation: 'CI/CD tests run on every commit. If they are slow, they block delivery. If they are flaky, they erode trust. If they share state, they fail unpredictably. If they are non-deterministic, the same code passes one minute and fails the next. The four properties — fast, reliable, isolated, deterministic — are what make tests pipeline-worthy.'
+        },
+        {
+          question: 'What is a "quality gate" in a CI/CD context?',
+          options: [
+            { id: 'a', text: 'A QA team member who manually approves every release.', isCorrect: false },
+            { id: 'b', text: 'An automated rule (e.g., "all tests pass," "coverage above 80%," "no critical vulnerabilities") that decides whether the pipeline proceeds.', isCorrect: true },
+            { id: 'c', text: 'A document defining tests.', isCorrect: false },
+            { id: 'd', text: 'A code review.', isCorrect: false }
+          ],
+          explanation: 'Quality gates remove human judgement from predictable cases. They are automated checks the pipeline enforces — pass and proceed, fail and stop. Humans remain in the loop for edge cases, but routine go/no-go decisions become deterministic.'
+        }
+      ]
+    },
+    {
+      level: 'shift-left-shift-right',
+      questions: [
+        {
+          question: 'True or False: Shift-Left and Shift-Right are alternatives — teams pick one or the other.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'Shift-Left and Shift-Right are COMPLEMENTARY, not alternatives. Together they extend testing across the entire software lifecycle — from requirements (shift-left) through production (shift-right). Mature teams do both.'
+        },
+        {
+          question: 'A QA reviews requirements on day one of a sprint and flags ambiguity in a user story. Which practice is this?',
+          options: [
+            { id: 'a', text: 'Shift-Left — testing activity moved earlier in the lifecycle, before code is written.', isCorrect: true },
+            { id: 'b', text: 'Shift-Right — testing in production.', isCorrect: false },
+            { id: 'c', text: 'Regression testing.', isCorrect: false },
+            { id: 'd', text: 'Soak testing.', isCorrect: false }
+          ],
+          explanation: 'Reviewing requirements before code is the canonical shift-left activity. It catches defects (ambiguous specs, missing scenarios, conflicting rules) at the cheapest possible moment — before any developer time has been spent.'
+        },
+        {
+          question: 'A team releases a new feature to 1% of users via feature flag, monitors error rates, then expands to 10%, then 100%. Which practice is this?',
+          options: [
+            { id: 'a', text: 'Shift-Left.', isCorrect: false },
+            { id: 'b', text: 'Shift-Right (canary deployment with feature flags) — testing in production with a small blast radius.', isCorrect: true },
+            { id: 'c', text: 'Regression testing.', isCorrect: false },
+            { id: 'd', text: 'Stress testing.', isCorrect: false }
+          ],
+          explanation: 'Canary deployments and feature flags are shift-right practices — they extend testing INTO production with controlled scope. The blast radius starts at 1% so a problem affects far fewer users than a 100% release would.'
+        },
+        {
+          question: 'Why does shift-left save money compared to traditional "test at the end"?',
+          options: [
+            { id: 'a', text: 'It does not — early testing is more expensive.', isCorrect: false },
+            { id: 'b', text: 'Defects caught at requirements cost roughly 1×; the same defects in production cost 100× or more. Shift-left moves cost forward in time.', isCorrect: true },
+            { id: 'c', text: 'It eliminates the need for any tests.', isCorrect: false },
+            { id: 'd', text: 'It increases buffer time.', isCorrect: false }
+          ],
+          explanation: 'The Rule of Ten in software economics: each phase a defect passes through multiplies the cost to fix it. A spec ambiguity caught at requirements costs an hour of conversation. The same ambiguity caught after release costs hotfixes, support tickets, and customer trust.'
+        },
+        {
+          question: 'A fintech team adopts both shift-left (BDD scenarios with PMs at sprint planning) and shift-right (1% canary with auto-rollback). Production incidents drop 70% in six months. What is the combined effect?',
+          options: [
+            { id: 'a', text: 'Shift-left finds bugs that never reach code; shift-right limits the blast radius of bugs that do escape; together they shrink both bug VOLUME and bug IMPACT.', isCorrect: true },
+            { id: 'b', text: 'They cancel each other out.', isCorrect: false },
+            { id: 'c', text: 'Only shift-left mattered.', isCorrect: false },
+            { id: 'd', text: 'It was a coincidence.', isCorrect: false }
+          ],
+          explanation: 'Shift-left reduces the number of bugs that ever exist. Shift-right reduces the impact when bugs do escape. The combination compresses the testing surface from both ends and produces results neither alone can match.'
+        }
+      ]
+    },
+    {
+      level: 'ab-testing',
+      questions: [
+        {
+          question: 'True or False: In an A/B test, only Variant B (the new version) needs to be tested by QA.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'A and B are BOTH live code paths shown to real users. Both need full QA coverage. Skipping the control variant is a common oversight that ships a bug to half your users while you focus on the new version.'
+        },
+        {
+          question: 'A QA notices that the same user sees Variant A on Monday and Variant B on Tuesday. What is the most likely problem?',
+          options: [
+            { id: 'a', text: 'It is fine — A/B is supposed to flip for the same user.', isCorrect: false },
+            { id: 'b', text: 'Sticky-assignment failure: the user-to-variant mapping is not stable across sessions, contaminating the experiment.', isCorrect: true },
+            { id: 'c', text: 'Browser cache problem.', isCorrect: false },
+            { id: 'd', text: 'A network issue.', isCorrect: false }
+          ],
+          explanation: 'Each user must be consistently assigned to ONE variant for the duration of the test. Variant flipping contaminates the data — the user is affected by both versions, so neither variant gets a clean measurement. This is one of QA primary checks during A/B test setup.'
+        },
+        {
+          question: 'A team launches an A/B test, sees Variant B winning by 3% after 2 days, and ships it. Three weeks later retention drops 8%. What was the underlying mistake?',
+          options: [
+            { id: 'a', text: 'Variant B was correct; the retention drop is unrelated.', isCorrect: false },
+            { id: 'b', text: 'Optimised for the wrong primary metric (clicks instead of long-term engagement); a short-term metric win disguised a long-term loss.', isCorrect: true },
+            { id: 'c', text: 'Variant A should have been removed entirely.', isCorrect: false },
+            { id: 'd', text: 'A/B testing is broken.', isCorrect: false }
+          ],
+          explanation: 'Defining the right primary metric is one of the most-overlooked steps. "Clicks" optimises for engagement-now; the longer-term retention picture matters more for sustained business value. Senior QAs ask "what is the primary metric?" before any test begins.'
+        },
+        {
+          question: 'Which is NOT typically a QA responsibility for A/B testing?',
+          options: [
+            { id: 'a', text: 'Testing both variants.', isCorrect: false },
+            { id: 'b', text: 'Verifying assignment / bucketing logic works.', isCorrect: false },
+            { id: 'c', text: 'Choosing the experiment hypothesis and primary metric.', isCorrect: true },
+            { id: 'd', text: 'Verifying metric collection events fire correctly for both variants.', isCorrect: false }
+          ],
+          explanation: 'Choosing the hypothesis and primary metric is a Product / data-science responsibility. QA verifies the test runs CORRECTLY (variants work, assignment is sticky, metrics flow) and PUSHES BACK on poor experimental design — but the metric choice itself sits with Product.'
+        },
+        {
+          question: 'A team stops an A/B test after 2 hours because Variant B is "winning." Why is this dangerous?',
+          options: [
+            { id: 'a', text: 'It is fine — fast decisions are best.', isCorrect: false },
+            { id: 'b', text: 'Statistical significance has not yet been achieved at 2 hours; the apparent win is likely noise. Stopping early routinely produces wrong conclusions.', isCorrect: true },
+            { id: 'c', text: 'There is no problem.', isCorrect: false },
+            { id: 'd', text: 'Variant A would have won later.', isCorrect: false }
+          ],
+          explanation: 'Statistical significance requires enough data to be confident the difference is not random. Stopping at "Variant B is winning" before the planned sample size produces false-positive results — the apparent win is noise. Pre-planning the stop criterion (sample size, time window) is essential and ignoring it ruins the experiment.'
+        }
+      ]
+    },
+    {
+      level: 'production-testing',
+      questions: [
+        {
+          question: 'True or False: Testing in production is reckless and modern teams avoid it.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'Modern teams test in production EXTENSIVELY using safe techniques — feature flags, canary deploys, dark launches, synthetic monitoring. Production has things no other environment has (real users, real data, real third-party SLAs), and ignoring those is what is reckless.'
+        },
+        {
+          question: 'A team launches a new search feature behind a feature flag at 10% of users. Latency dashboards show search jumped from 200ms to 1.2 seconds — but only for users in Asia. They roll back the flag in 5 minutes. Which production-testing technique enabled this?',
+          options: [
+            { id: 'a', text: 'Smoke testing in QA.', isCorrect: false },
+            { id: 'b', text: 'Feature flags + observability — gradual rollout with real-time visibility into impact.', isCorrect: true },
+            { id: 'c', text: 'Unit tests.', isCorrect: false },
+            { id: 'd', text: 'Code review.', isCorrect: false }
+          ],
+          explanation: 'Feature flags scope the blast radius. Observability surfaces the issue. Together they make production testing safe: a problem that would have hit 100% of users for hours instead hit 10% for 5 minutes. Without either, the bug would have been a major incident.'
+        },
+        {
+          question: 'What are the THREE pillars of observability?',
+          options: [
+            { id: 'a', text: 'Speed, scale, security.', isCorrect: false },
+            { id: 'b', text: 'Logs, metrics, traces.', isCorrect: true },
+            { id: 'c', text: 'Tests, automation, manual.', isCorrect: false },
+            { id: 'd', text: 'Code, design, deploy.', isCorrect: false }
+          ],
+          explanation: 'Logs answer "what happened?" Metrics answer "how much, how often, how fast?" Traces answer "where in the request chain?" Together they make the internal state of a running system visible from the outside.'
+        },
+        {
+          question: 'Which production-testing technique has the LOWEST risk of customer impact?',
+          options: [
+            { id: 'a', text: 'Canary deploy at 5% of traffic.', isCorrect: false },
+            { id: 'b', text: 'Synthetic monitoring (bots running fake user transactions in production).', isCorrect: true },
+            { id: 'c', text: 'Chaos engineering experiment.', isCorrect: false },
+            { id: 'd', text: 'A/B test at 50%.', isCorrect: false }
+          ],
+          explanation: 'Synthetic monitoring uses bots, not real users — there is zero customer impact by design. Canary, chaos, and A/B all expose real users to varying degrees of risk. Synthetic is the safest baseline observation technique and should run continuously.'
+        },
+        {
+          question: 'Why are 95th and 99th percentile metrics MORE useful than averages for monitoring user experience?',
+          options: [
+            { id: 'a', text: 'They are easier to compute.', isCorrect: false },
+            { id: 'b', text: 'Averages hide the worst experiences; percentile metrics capture the long-tail of slow / failing requests that real users notice.', isCorrect: true },
+            { id: 'c', text: 'They produce smaller numbers.', isCorrect: false },
+            { id: 'd', text: 'They are mandated by regulation.', isCorrect: false }
+          ],
+          explanation: 'A "200ms average" can hide that 1% of users see 5-second responses. Percentile metrics reveal the worst experiences and let teams act on them. Customer trust is destroyed by the worst, not the average — so metrics that surface the worst are what matter.'
+        }
+      ]
+    },
+    {
+      level: 'chaos-engineering',
+      questions: [
+        {
+          question: 'True or False: Chaos engineering means deliberately breaking production at random.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'Chaos engineering is CONTROLLED, deliberate, and hypothesis-driven. Each experiment has a stated hypothesis ("if we kill this server, the load balancer will reroute"), defined abort criteria, narrow scope, and full team awareness. Random breakage is not chaos engineering — it is recklessness.'
+        },
+        {
+          question: 'A team plans their first chaos experiment. Which prerequisite is MOST important?',
+          options: [
+            { id: 'a', text: 'A monthly outage budget.', isCorrect: false },
+            { id: 'b', text: 'Mature observability — without seeing what is happening, experiments cannot be run safely.', isCorrect: true },
+            { id: 'c', text: 'Approval from the CEO.', isCorrect: false },
+            { id: 'd', text: 'A custom chaos tool.', isCorrect: false }
+          ],
+          explanation: 'Observability is the safety net for chaos. If you cannot see error rates, latencies, and dependencies in real time, you cannot detect when an experiment is causing customer harm. Mature observability comes BEFORE chaos engineering, not after.'
+        },
+        {
+          question: 'A streaming service runs a chaos experiment: kill the recommendation service. The fallback "popular content" list takes over but is very slow under real load — home page renders in 12 seconds. The team aborts. What did the experiment achieve?',
+          options: [
+            { id: 'a', text: 'It failed — they aborted.', isCorrect: false },
+            { id: 'b', text: 'It succeeded — it found a real production weakness in 8 minutes that would otherwise have been discovered during a real outage at peak hours.', isCorrect: true },
+            { id: 'c', text: 'It was a waste.', isCorrect: false },
+            { id: 'd', text: 'Nothing was learned.', isCorrect: false }
+          ],
+          explanation: 'A chaos experiment that ABORTS is still successful — it found a real weakness under controlled conditions. The team learned the fallback was slow, fixed it, and avoided a real-world outage. Failure of the system under controlled chaos is the entire point.'
+        },
+        {
+          question: 'Which is the SAFEST starting point for a team new to chaos engineering?',
+          options: [
+            { id: 'a', text: 'Kill 50% of production servers at peak hours.', isCorrect: false },
+            { id: 'b', text: 'Start in staging with the smallest possible experiment (kill ONE pod), with clear abort criteria.', isCorrect: true },
+            { id: 'c', text: 'Pick a Friday night to maximise impact.', isCorrect: false },
+            { id: 'd', text: 'Skip the observability work — fix what breaks.', isCorrect: false }
+          ],
+          explanation: 'Start small and safe. Staging removes customer impact. ONE pod is the smallest experiment. Clear abort criteria stop runaway experiments. As confidence grows, scope can expand. Beginning with full-scale production chaos is how teams cause real outages and lose leadership support for the practice.'
+        },
+        {
+          question: 'When is chaos engineering NOT a good fit for a team?',
+          options: [
+            { id: 'a', text: 'When they have weak observability, immature incident response, or a culture that punishes failure-finding.', isCorrect: true },
+            { id: 'b', text: 'When their system is distributed.', isCorrect: false },
+            { id: 'c', text: 'When they release frequently.', isCorrect: false },
+            { id: 'd', text: 'When they have many users.', isCorrect: false }
+          ],
+          explanation: 'Chaos engineering requires the foundation of observability and a blameless culture. Without observability, you cannot run experiments safely. Without blameless culture, finding weaknesses gets people punished, and the practice dies. The right teams adopt these foundations FIRST, then chaos engineering becomes high-leverage.'
+        }
+      ]
+    },
+    {
       level: 'test-metrics',
       questions: [
         {
@@ -2020,6 +2497,59 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
             { id: 'd', text: 'Remove the metrics dashboard.', isCorrect: false }
           ],
           explanation: 'DRE = (Bugs found before release / Total bugs) × 100. A DRE of 60% is poor — it means 40% of defects escaped to production where they are 10-100x more expensive to fix. The target should be 90%+. Low DRE demands immediate testing process review.'
+        }
+      ]
+    },
+    {
+      level: 'modern-testing-principles',
+      questions: [
+        {
+          question: 'True or False: In modern testing, the QA role is to be the primary gatekeeper who finds all the bugs at the end of the cycle.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'Modern testing rejects the "QA as gatekeeper at the end" model. Instead, QAs PREVENT bugs (shift-left), COACH developers in testing, BUILD test infrastructure, and CONTRIBUTE to production observability. Quality is a team capability, not a single role responsibility.'
+        },
+        {
+          question: 'In the Agile Testing Quadrants, where do exploratory testing and usability testing sit?',
+          options: [
+            { id: 'a', text: 'Q1 (technology-facing, supporting the team).', isCorrect: false },
+            { id: 'b', text: 'Q2 (business-facing, supporting the team).', isCorrect: false },
+            { id: 'c', text: 'Q3 (business-facing, critiquing the product).', isCorrect: true },
+            { id: 'd', text: 'Q4 (technology-facing, critiquing the product).', isCorrect: false }
+          ],
+          explanation: 'Exploratory and usability testing are BUSINESS-FACING (they assess the product from the user perspective) and CRITIQUING (they look for weaknesses, not just check requirements). Q3 is where the human eye finds what scripts cannot.'
+        },
+        {
+          question: 'Which is the BEST description of "We are a force multiplier" from the Modern Testing Principles?',
+          options: [
+            { id: 'a', text: 'QAs should run more tests faster.', isCorrect: false },
+            { id: 'b', text: 'QAs train others, build tools, and share patterns — one QA who teaches 10 developers to test well outperforms 10 QAs who only test themselves.', isCorrect: true },
+            { id: 'c', text: 'QAs should automate everything.', isCorrect: false },
+            { id: 'd', text: 'QAs should report directly to the CEO.', isCorrect: false }
+          ],
+          explanation: 'A force multiplier amplifies the abilities of others. In modern testing this means QAs invest in capabilities that scale BEYOND their own work — coaching developers, building test infrastructure, sharing testing patterns. The math is compounding: enabling 10 others is greater than testing alone.'
+        },
+        {
+          question: 'A team neglects Q4 (performance, security, load testing) entirely while heavily investing in Q1 (unit tests). What is the most likely consequence?',
+          options: [
+            { id: 'a', text: 'No consequence — Q1 is the most important quadrant.', isCorrect: false },
+            { id: 'b', text: 'Functional bugs are caught early, but non-functional issues (slow response, security holes, scale failures) only surface in production.', isCorrect: true },
+            { id: 'c', text: 'Q1 covers Q4 automatically.', isCorrect: false },
+            { id: 'd', text: 'The team will not ship.', isCorrect: false }
+          ],
+          explanation: 'The four quadrants exist because each catches different bug categories. Heavy Q1 investment catches logic errors but not load, security, or scale issues. Most teams over-invest in Q1/Q2 (easier to automate) and under-invest in Q3/Q4. Senior QAs balance all four.'
+        },
+        {
+          question: 'According to Modern Testing Principles, decisions about quality should be based on what?',
+          options: [
+            { id: 'a', text: 'The most senior tester opinion.', isCorrect: false },
+            { id: 'b', text: 'Real evidence — production telemetry, user behaviour, defect data — not opinions about what feels right.', isCorrect: true },
+            { id: 'c', text: 'Manager intuition.', isCorrect: false },
+            { id: 'd', text: 'Industry conferences.', isCorrect: false }
+          ],
+          explanation: '"We use data extensively" is one of the seven Modern Testing Principles. Real telemetry from production, real defect patterns, real user behaviour — these inform quality decisions far better than opinions, however senior. Modern QAs are data-driven first.'
         }
       ]
     }

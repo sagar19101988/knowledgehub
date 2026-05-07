@@ -133,7 +133,7 @@ export const ZONE_TIERS: Record<string, { id: string; label: string; color: stri
     },
     {
       id: 'expert', label: 'Expert', color: 'text-amber-400',
-      moduleIds: ['risk-based-testing','state-dependency','race-conditions','interrupt-testing','usability-testing','test-metrics'],
+      moduleIds: ['risk-based-testing','test-environment-management','test-data-management','state-dependency','race-conditions','interrupt-testing','performance-testing','security-testing','usability-testing','ci-cd-testing','shift-left-shift-right','ab-testing','production-testing','chaos-engineering','test-metrics','modern-testing-principles'],
     },
   ],
   sql: [

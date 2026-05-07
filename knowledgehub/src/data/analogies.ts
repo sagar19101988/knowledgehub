@@ -2426,6 +2426,141 @@ Time spent: 80% on the 17 high+critical features, 20% on the 23 low-risk feature
       },
 
       {
+        id: 'test-environment-management',
+        title: 'Expert: Test Environment Management',
+        analogy: "A test environment is the kitchen where you cook the meal you will serve to real customers. If your kitchen has a broken oven, no fridge, and the wrong ingredients, no amount of skill produces a good meal. Test environment management is keeping the kitchen ready, stocked, and behaving like the real one.",
+        lessonMarkdown: `
+## Test Environment Management
+
+A test environment is any system where testing happens before production — typically dev, QA, staging, UAT, pre-prod. Managing these environments well is one of the most underrated skills in QA. Bad environment management produces phantom bugs, wasted time, and tests that pass everywhere except production.
+
+### 1. Why Environments Matter More Than Most Teams Admit
+
+A test environment that diverges from production teaches you the wrong things. Common divergence problems:
+
+| Symptom | Root cause |
+|---|---|
+| Test passes in QA, fails in production | Wrong DB schema, wrong env vars, wrong third-party config |
+| Bug reproduces in staging but not in dev | Different data, different cache state, different feature flags |
+| Test environment is "down" half the time | Shared by too many teams, no ownership, no monitoring |
+| Performance tests show 100ms in QA, 2s in prod | Different hardware, different network, different concurrency |
+
+Every divergence is a place where bugs hide. The closer your environments mirror production, the more your testing actually predicts production behaviour.
+
+*💡 Analogy: Practising football on a perfectly flat indoor pitch and then playing the cup final on a muddy uneven outdoor pitch. You may be a great indoor player. The match is not indoors. Practice where you will play.*
+
+---
+
+### 2. Common Environment Problems and Their Fixes
+
+| Problem | Fix |
+|---|---|
+| **Drift from production** | Infrastructure as Code (Terraform, Pulumi) so envs are recreatable from source |
+| **Shared environment chaos** | Per-team or per-PR ephemeral environments via containers (Docker Compose, k8s) |
+| **Stale data** | Scheduled refresh from prod (sanitised), or synthetic generation pipelines |
+| **Manual configuration** | Configuration management tools, env-specific config files in version control |
+| **No ownership** | A named owner (often QA Lead or DevOps) responsible for uptime and refreshes |
+| **No monitoring** | Health checks and alerts on test environments — the same way prod is monitored |
+| **Mystery feature flags** | A single source of truth for flag state per environment, visible to all testers |
+
+The cheapest investment is **Infrastructure as Code**. If you can rebuild the environment from a script in 30 minutes, most environment problems become solvable rather than recurring.
+
+*💡 Analogy: A restaurant that loses its written recipes and relies on the senior chef remembering everything. The day she leaves, every dish goes wrong. Infrastructure as Code is the recipe book — anyone can recreate the kitchen.*
+
+---
+
+### 3. The Multi-Environment Pyramid
+
+Most teams maintain a hierarchy of environments, each with a specific role:
+
+| Environment | Purpose | Data | Updated by |
+|---|---|---|---|
+| **Local / Dev** | Developer workspace | Synthetic | Each developer |
+| **CI** | Automated test runs | Generated per run | CI pipeline |
+| **Integration / QA** | Manual + automated test execution | Sanitised prod copy or synthetic | QA team / pipeline |
+| **Staging / Pre-prod** | Final pre-release sign-off | Production-like volume and shape | Release process |
+| **Production** | Real users | Real data | Live |
+
+Bugs progress upward through this pyramid. A bug caught in dev costs hours; the same bug in staging costs days; in production, it costs customer trust. The environments closer to production should look more like production.
+
+**Real Example:**
+A retail team had QA and staging environments that were "the same." One day a release passed staging, hit production, and immediately broke checkout for 30% of users. Investigation: staging used a single-region database; production used multi-region replication with eventual consistency. The bug was a race condition that existed only with replication lag. The team added a replicated test environment between staging and production. The same bug class never reached production again.
+
+The cost of a properly maintained test environment is real. The cost of a broken one is realer.
+        `
+      },
+
+      {
+        id: 'test-data-management',
+        title: 'Expert: Test Data Management',
+        analogy: "Test data is the actors in your test play. Bad actors (wrong age, wrong name, no payment method) cannot perform the scene. Real actors from real performances (production data) come with copyright issues. Test data management is casting your show with the right actors, every time, without legal trouble.",
+        lessonMarkdown: `
+## Test Data Management
+
+Tests are only as good as the data they run against. Test data management (TDM) is the discipline of producing, maintaining, refreshing, and securing the data that drives test execution. It is invisible when it works and catastrophic when it does not.
+
+### 1. Why Test Data Is Hard
+
+| Challenge | Why it matters |
+|---|---|
+| **Realism** | Synthetic data is often too clean. Real bugs hide in messy real-world data. |
+| **Volume** | A 10-row test database tells you nothing about how a query behaves on 10 million rows. |
+| **Freshness** | Stale data fails to cover new edge cases users now create. |
+| **Privacy** | Production data contains PII — copying it to test environments without sanitising is illegal in many jurisdictions (GDPR, HIPAA). |
+| **Stability** | Tests need *predictable* data — if test data changes between runs, tests become flaky. |
+| **Isolation** | Two parallel test runs should not corrupt each other through shared data. |
+
+Mismanagement produces three classic failure modes:
+1. Tests pass on synthetic data, fail on real production patterns.
+2. Production-copied data leaks PII into the test environment, with legal exposure.
+3. Tests are flaky because they share mutable data.
+
+*💡 Analogy: A flight simulator. If the simulator only ever shows clear skies, pilots are unprepared for storms. If the simulator uses real footage of the captain landing in Heathrow last Tuesday, you have privacy problems. The simulator needs realistic-but-not-real data — and that is hard to produce.*
+
+---
+
+### 2. Common Test Data Strategies
+
+| Strategy | What it is | Best for |
+|---|---|---|
+| **Synthetic generation** | Build data from scratch using factories / fakers | Unit + integration tests |
+| **Subsetting** | Pull a representative slice of production | Larger integration / performance tests |
+| **Masking / anonymisation** | Copy production but replace PII with fake-but-realistic values | Staging environments |
+| **Manual seeding** | Hand-crafted scenarios for specific test cases | Edge cases, complex regression |
+| **Snapshot + replay** | Capture state, restore between tests | Tests that mutate state |
+| **Hybrid** | Combine the above based on test type | Most real teams |
+
+Most mature teams use a hybrid: synthetic for unit, masked-prod-subset for integration, full masked staging for end-to-end and performance.
+
+*💡 Analogy: A film studio. Some scenes use real props (real production data, sanitised). Some use mock-ups (synthetic). Some use stunt doubles (masked). The director picks the right technique per scene.*
+
+---
+
+### 3. Common Test Data Pitfalls
+
+| Pitfall | Consequence |
+|---|---|
+| **Tests depend on a specific record** | Someone deletes record 42; every test breaks |
+| **Tests modify shared data** | Test A passes, runs again, fails — because Test B left the data in a different state |
+| **No teardown** | Database fills up with test artefacts; environment slowly dies |
+| **PII leaked into test env** | Compliance violation, legal exposure |
+| **Synthetic data too clean** | Real-world bugs (unusual characters, edge timestamps, weird sequences) never trigger |
+| **Stale test data** | Tests pass for years until a real user creates a new pattern that breaks the system |
+
+**Best practices that solve most of these:**
+- Each test creates the data it needs, ideally via factories
+- Each test cleans up after itself (or the environment is reset between runs)
+- Production-derived data goes through an automated masking pipeline before reaching test env
+- Synthetic data generators include "weird" patterns: emojis, RTL text, leap-day dates, very long names
+
+**Real Example:**
+A bank's QA used a test environment seeded with a snapshot of production from 18 months earlier. Tests passed. A live customer reported a crash when their account had an emoji in their display name. Investigation: emojis became common only in the last year — the test data did not include any. Fix: regenerate synthetic data quarterly with current real-world patterns. No tester missed the bug intentionally; the data did.
+
+The data is the test bed. Bad data, bad tests. Test data management is what turns "we tested it" into "we actually tested representative reality."
+        `
+      },
+
+      {
         id: 'state-dependency',
         title: 'Expert: State Dependency Bugs',
         analogy: "A state dependency bug is like two people editing the same Google Doc simultaneously, but one person's screen never refreshes. They're both convinced they have the latest version. Only one of them is right.",
@@ -2644,6 +2779,187 @@ A mobile banking app would process a transfer even when backgrounded mid-transfe
       },
 
       {
+        id: 'performance-testing',
+        title: 'Expert: Performance Testing — Load, Stress, Spike, Soak',
+        analogy: "Performance testing is taking your software to the gym. Load testing checks if it can lift the everyday weight (your normal users). Stress testing checks where it breaks (the world record attempt). Spike testing checks how it handles a sudden barbell drop (Black Friday). Soak testing checks if it can hold the weight for hours without collapsing (a 24-hour event).",
+        lessonMarkdown: `
+## Performance Testing — Load, Stress, Spike, Soak
+
+Performance is a non-functional concern that becomes catastrophically functional when it fails. A correct app that responds in 30 seconds is a broken app. Performance testing is the discipline of measuring, finding, and fixing the limits of a system before real users find them.
+
+### 1. Why Performance Testing Matters
+
+| Failure mode | Real-world cost |
+|---|---|
+| Page load >3 seconds | ~50% of users abandon (Google research) |
+| Checkout slow under Black Friday load | Revenue lost in millions per minute |
+| API rate-limited under unexpected viral usage | Downstream services fail in cascades |
+| Memory leak after 12 hours | Servers crash overnight, support phone rings |
+| Database grinds under year-2 data volume | Whole product feels slow until rebuilt |
+
+Functional testing answers *"does it work?"* Performance testing answers *"will it work under realistic conditions?"* Both are required to ship safely.
+
+*💡 Analogy: A bridge. Functional testing checks the bridge holds one car. Performance testing checks it holds 200 cars in rush hour, a passing earthquake, ice in winter, and a decade of constant traffic. All four scenarios are different tests.*
+
+---
+
+### 2. Load Testing — Can the System Handle Expected Demand?
+
+**Load testing** simulates the *expected* number of concurrent users doing realistic actions, and measures whether the system responds within acceptable limits.
+
+What you measure:
+- Response time (average, 95th percentile, 99th percentile)
+- Throughput (requests per second)
+- Error rate
+- Resource usage (CPU, memory, DB connections)
+
+A typical pass criterion: *"Page load under 2 seconds for 95% of users at 1,000 concurrent sessions."*
+
+**Real Example:**
+A SaaS team was confident their app handled "hundreds of users." A load test with 500 concurrent users showed page loads dropping to 8 seconds, a database connection pool exhausted at request 200, and 15% errors above 350 users. The team had only ever tested with 5 simultaneous QA testers. Two weeks of capacity work followed before the planned launch.
+
+*💡 Analogy: A new restaurant boasting "we can handle anyone." Load test = booking 80 tables for Saturday night. Suddenly they can. They also discover they only have one functional dishwasher.*
+
+---
+
+### 3. Stress Testing — Where Does the System Break?
+
+**Stress testing** pushes the system PAST its expected capacity to find the breaking point and observe what happens at the edge.
+
+You are not asking "can it handle 1,000 users?" You are asking "what happens at 1,500? At 5,000? At 50,000?"
+
+The goal is to discover:
+- The exact breaking point (e.g., "system degrades at 3,200 users; crashes at 4,500")
+- The failure mode (gracefully degrades? throws errors? freezes? data corrupts?)
+- The recovery behaviour (does it self-recover when load drops, or stay broken?)
+
+A graceful failure mode (queue overflow → return 503 with retry-after header → recover when load drops) is acceptable. A catastrophic one (database corrupts, requires manual intervention to restart) is not.
+
+*💡 Analogy: A car at top speed on a closed track. The point is not to drive at 200mph daily — the point is to find what fails first at 200mph (tyres? brakes? engine?) so engineers can design margin into the production model.*
+
+---
+
+### 4. Spike Testing — Sudden, Sharp Bursts
+
+**Spike testing** simulates a *sudden, sharp increase* in load — going from baseline to peak in seconds rather than ramping gradually.
+
+This catches a different failure class than load testing. Many systems handle steady high load fine but collapse when load spikes, because:
+- Auto-scaling cannot react fast enough
+- Connection pools cannot grow in time
+- Queues fill before workers can drain them
+- Caches miss simultaneously, hitting the database in a thundering herd
+
+Common scenarios that trigger real-world spikes:
+- A viral social media post
+- A scheduled news broadcast mentioning your product
+- Black Friday or Boxing Day sales
+- A celebrity tweet
+- A marketing email blast hitting many users at once
+
+*💡 Analogy: An outdoor concert. The venue can hold 50,000 people. When the gates open at 19:00, all 50,000 try to enter in 30 seconds. The venue capacity was fine; the gate-handling under spike was the failure point.*
+
+---
+
+### 5. Soak Testing — Does It Hold Up Over Time?
+
+**Soak testing** runs the system at moderate-to-high load for a *long duration* — hours, sometimes days — to find slow-burning issues.
+
+What soak tests find that other types miss:
+- Memory leaks (slow growth that crashes after 18 hours)
+- File-handle leaks (eventually no more network connections)
+- Cache pollution (response times slowly degrade)
+- Log file growth (disk fills up overnight)
+- Time-based bugs (something breaks at midnight, daylight saving, year boundary)
+- Connection pool exhaustion (works fine for an hour, broken after 6)
+
+A typical soak test runs 50% of expected production load for 24 hours, monitoring for any *gradual* changes in response time, error rate, or memory usage.
+
+**Real Example:**
+A trading platform passed all load and stress tests perfectly. A 48-hour soak test revealed memory consumption climbing 200MB per hour. Investigation found a forgotten cache that never expired. At expected production scale the system would crash every 36 hours. Fixed before launch by adding TTL to the cache. The bug only existed under sustained load over time — no other test type would have surfaced it.
+
+*💡 Analogy: A long-distance lorry. The engine works fine for 100 miles. But on a 1,000-mile run, you discover the cooling system has a slow leak, the tyres develop a vibration at sustained motorway speed, and the driver-fatigue light flickers after hour 8. Soak testing is the long-haul drive.*
+        `
+      },
+
+      {
+        id: 'security-testing',
+        title: 'Expert: Security Testing Fundamentals',
+        analogy: "Security testing is the burglar checking your house, hired by you. They look for unlocked windows, the spare key under the mat, weak hinges on the back door, and the alarm with the default code. Their job is to find the holes BEFORE the actual burglar does. The thank-you note is fixing what they find.",
+        lessonMarkdown: `
+## Security Testing Fundamentals
+
+Security testing is checking that the application protects what it should — user data, business data, infrastructure access, and trust. A senior tester does not need to be a penetration tester to add security value, but they do need to know the categories, the OWASP Top 10, and how to test against them.
+
+### 1. Why Security Belongs in QA
+
+The cost asymmetry is brutal:
+- A 30-minute security test in QA costs: 30 minutes
+- The same vulnerability shipped to production and exploited costs: regulatory fines (GDPR up to 4% of global revenue), customer notification campaigns, lawsuits, brand damage, executive resignations
+
+Most data breaches exploit *known* vulnerability classes — the OWASP Top 10 has remained surprisingly stable for years. The bugs that cause the largest breaches are the ones a senior tester could have flagged in a code review or a manual test pass.
+
+*💡 Analogy: A bank vault that is unlocked. The robber does not need to crack the safe. They walk in. Most security breaches are the digital equivalent of an unlocked vault, not Hollywood-style hacking.*
+
+---
+
+### 2. The OWASP Top 10 (Practical Summary)
+
+OWASP publishes the Top 10 web application security risks. Every QA should recognise these:
+
+| # | Risk | What it is | A test you can run |
+|---|---|---|---|
+| 1 | **Broken Access Control** | A user accesses something they should not | Log in as user A, try to access user B's data via URL |
+| 2 | **Cryptographic Failures** | Sensitive data sent or stored unencrypted | Inspect network traffic for plaintext passwords |
+| 3 | **Injection** | User input executed as code (SQL, command, NoSQL) | Submit SQL syntax (\`'; DROP TABLE users; --\`) in form fields |
+| 4 | **Insecure Design** | Architectural flaw, not a code bug | Threat-model the feature; ask "what can go wrong?" |
+| 5 | **Security Misconfiguration** | Default credentials, exposed admin pages, verbose errors | Visit /admin, /phpmyadmin, /.env; check error pages |
+| 6 | **Vulnerable Components** | Using libraries with known CVEs | Run \`npm audit\`, OWASP Dependency Check |
+| 7 | **Auth Failures** | Weak passwords accepted, session tokens predictable | Try logging in 100 times — is there rate limiting? |
+| 8 | **Software/Data Integrity** | Untrusted updates, deserialisation flaws | Check that builds are signed, dependencies pinned |
+| 9 | **Logging/Monitoring Failures** | Attacks not detected because nothing logged | Try a brute-force attack — does anyone notice? |
+| 10 | **Server-Side Request Forgery (SSRF)** | App fetches URLs the attacker controls | If the app fetches by URL, try internal IPs (127.0.0.1) |
+
+A senior tester does not exhaustively cover all of these — but every release should include at least a quick pass on the highest-risk categories for that feature.
+
+*💡 Analogy: A safety inspector at a construction site. They do not personally inspect every nail. They have a checklist of categories — fall hazards, electrical, fire, scaffolding — and they sample-check each. OWASP Top 10 is that checklist for software.*
+
+---
+
+### 3. Common Security Test Categories You Can Run
+
+| Category | What to test | Tools |
+|---|---|---|
+| **Authentication** | Wrong passwords, brute force, session timeout, password reset abuse | Manual + Burp Suite |
+| **Authorisation** | User A accessing user B; horizontal and vertical privilege escalation | Manual with two test accounts |
+| **Input validation** | SQL injection, XSS, command injection, path traversal | OWASP ZAP, Burp, manual |
+| **Session management** | Token entropy, expiration, replay attacks | Burp Suite |
+| **Sensitive data exposure** | Network traffic inspection, response bodies, error messages | Browser DevTools, Wireshark |
+| **API security** | Auth on every endpoint, rate limiting, CORS, mass assignment | Postman + Burp |
+| **File upload** | Wrong file types, oversized files, malicious filenames | Manual |
+| **Error handling** | Stack traces revealed, debug info in responses | Manual exploration |
+
+A focused 2-hour security pass at the end of a feature catches many bugs that a developer-only review misses. Pair-test with a security-aware developer when possible.
+
+---
+
+### 4. Where to Draw the Line
+
+A senior QA does NOT need to be a penetration tester. They DO need to:
+- Recognise and flag OWASP Top 10 vulnerabilities during normal testing
+- Run automated scans (npm audit, OWASP ZAP) as part of CI
+- Know when to escalate to a specialist (anything involving cryptography, custom auth, regulated data)
+- Push back on insecure design choices in requirements review
+
+The role of QA is to **catch the obvious 80%** before the security team or external pen-testers get involved. Tools like OWASP ZAP and \`npm audit\` automate much of that.
+
+**Real Example:**
+A team built a profile-page feature. URL was \`/users/:id/profile\`. QA tester logged in as user A (ID 1), then tried \`/users/2/profile\` — and saw user 2's data. Classic Broken Access Control (OWASP #1). Caught in 30 seconds during normal testing. Fix was a 5-line auth check. Without that test, it would have shipped to production where it became a GDPR violation.
+
+The security tests that find the biggest issues are usually surprisingly simple. Curiosity and the OWASP Top 10 cover most of the ground.
+        `
+      },
+
+      {
         id: 'usability-testing',
         title: 'Expert: Usability & Accessibility Testing',
         analogy: "Usability testing is handing your app to your grandmother and watching silently while she tries to book a flight. Every time she sighs, hesitates, or clicks the wrong thing is a usability bug — even if technically nothing is broken.",
@@ -2724,6 +3040,355 @@ A government benefits portal had a red "Error" banner for form validation. Users
       },
 
       {
+        id: 'ci-cd-testing',
+        title: 'Expert: Testing in CI/CD Pipelines',
+        analogy: "A CI/CD pipeline is an assembly line for shipping software. Each station along the line performs one check — does it build? do unit tests pass? does the deploy work? Quality gates are the inspector at each station with the authority to pull the emergency cord. Testing in CI/CD is wiring quality into every station, not just the one at the end.",
+        lessonMarkdown: `
+## Testing in CI/CD Pipelines
+
+Modern delivery is continuous. Code merges trigger automated builds; builds trigger test runs; passing tests trigger deploys. Testing inside this pipeline is fundamentally different from "test the build at the end" because it must be fast, reliable, and *trusted*. A flaky test in CI/CD blocks everyone; a missing test ships the bug.
+
+### 1. Why CI/CD Changes Testing
+
+| Old way (manual gate) | CI/CD way |
+|---|---|
+| Test once at end of release | Test on every commit |
+| Hours to days of test execution OK | Minutes — anything slower blocks delivery |
+| Flaky tests can be retried | Flaky tests destroy trust in the pipeline |
+| Tests live in a separate document | Tests live in the same repo as code |
+| QA approves the release | The pipeline approves the release |
+| Bugs found by humans, days later | Bugs found by machines, seconds later |
+
+The shift demands that tests be: **fast** (minutes, not hours), **reliable** (zero flakes), **isolated** (no shared state), and **deterministic** (same input → same output, every time).
+
+*💡 Analogy: A factory production line. The old way was inspecting the finished car at the end. The new way is sensors at every welder, every fastener, every paint sprayer — each capable of stopping the line if something fails. The line moves faster because checks are continuous, not lumped at the end.*
+
+---
+
+### 2. The Pipeline Stages and What to Test at Each
+
+| Stage | What runs | Time budget |
+|---|---|---|
+| **Pre-commit / on-save** | Linting, type-check, unit tests for changed files | Seconds |
+| **Pull request** | Full unit test suite, integration tests, code coverage | 2–10 minutes |
+| **Pre-merge / merge queue** | Critical-path E2E, security scans | 5–15 minutes |
+| **Post-merge to main** | Full E2E suite, accessibility, visual regression | 15–30 minutes |
+| **Pre-deploy to staging** | Smoke + sanity in production-like env | 5–10 minutes |
+| **Post-deploy** | Canary checks, synthetic transactions, monitoring | Continuous |
+
+You cannot fit everything into every stage. The earlier the stage, the faster it must be — so you put the cheapest fastest tests first and the slowest most-thorough ones later.
+
+*💡 Analogy: Boarding a plane. Quick visual ID check at the gate (linting). Boarding-pass scan (unit tests). Carry-on size check (integration). Final security pat-down only for randomly selected passengers (E2E). Each layer has a different cost-vs-coverage tradeoff.*
+
+---
+
+### 3. Quality Gates — The Bouncers of the Pipeline
+
+A **quality gate** is an automated rule that decides whether the pipeline proceeds or stops. Common gates:
+
+- All unit tests pass
+- Code coverage above threshold (e.g., 80%)
+- No critical security vulnerabilities in dependencies
+- No new accessibility regressions
+- Build succeeds with no warnings
+- E2E suite passes on the canary deploy
+
+Gates remove human judgement from go/no-go decisions for predictable cases. Humans remain in the loop for the unpredictable ones (production incident, contested test failure).
+
+*💡 Analogy: Bouncers at a club. Standard rules are non-negotiable (over 18, ID, sober). The owner only intervenes for edge cases. Quality gates are the bouncers; release managers are the owner.*
+
+---
+
+### 4. The Big Trap — Flaky Tests
+
+Flaky tests are tests that fail intermittently for reasons unrelated to the code. They are the slow poison of CI/CD because they erode trust until developers start ignoring failed tests.
+
+**Common causes of flakiness:**
+- Timing assumptions (test waits for 100ms; CI is slower one day, fails)
+- Shared state between tests (test order matters)
+- Network flakiness (third-party API slow)
+- Race conditions in the test itself
+- Animation timing
+- Timezone or date-dependent assumptions
+
+**Practical rule for senior teams:** a flaky test is treated as a bug. Either fix it within 24 hours or quarantine it (skip + log) and prioritise the fix. *Never* let a flaky test linger — within weeks, the team will start treating real failures as "probably flaky" and miss real bugs.
+
+**Real Example:**
+A team had a CI suite of 4,000 tests. About 30 were known flaky. Developers re-ran failed builds without investigating. One day, a real regression slipped through — a bug that broke checkout — because the developer assumed the failed test was just one of the flaky 30. Customer impact, hot-fix, embarrassing post-mortem. After that, flakiness was treated as the highest-priority work category.
+        `
+      },
+
+      {
+        id: 'shift-left-shift-right',
+        title: 'Expert: Shift-Left and Shift-Right Testing',
+        analogy: "Shift-left is checking the cake mixture before it goes in the oven (testing before production). Shift-right is tasting tiny samples from the cake as it bakes and after it leaves the kitchen (testing in production). Together they bracket the entire baking process — not just the final inspection.",
+        lessonMarkdown: `
+## Shift-Left and Shift-Right Testing
+
+The traditional model places testing at the end of the development cycle. Modern practice extends testing in two directions — *earlier* (shift-left) and *later, into production* (shift-right). Done together, the result is testing that runs across the entire software lifecycle.
+
+### 1. Shift-Left — Test Earlier in the Lifecycle
+
+**Shift-left moves testing activities to the left end of the timeline** — closer to (or even into) requirements and design.
+
+Concrete shift-left activities:
+- QA reviews requirements and flags ambiguity before code is written
+- Test cases drafted alongside (or before) feature implementation
+- Behaviour-Driven Development (BDD) scenarios written collaboratively
+- Static analysis on every commit (catches bugs without running the code)
+- Pair-programming with a tester to review code as it is written
+- Pre-merge automated tests in CI
+
+Why it works: defects caught at requirements cost roughly 1× to fix; the same defects caught at production cost 100× or more. Shifting left pulls those costs forward by orders of magnitude.
+
+*💡 Analogy: A construction team that has a structural engineer review the blueprints before pouring concrete. Shift-left is the engineer at the design stage. The alternative is finding the load-bearing mistake by watching a wall fall over.*
+
+---
+
+### 2. Shift-Right — Test in (and after) Production
+
+**Shift-right extends testing INTO production** using techniques that monitor real users and real traffic.
+
+Concrete shift-right activities:
+- Feature flags (release feature to 1% of users, monitor, expand)
+- Canary deploys (new version goes to 5% of traffic first)
+- Synthetic monitoring (automated transactions running 24/7 in production)
+- Real User Monitoring (RUM) — measuring actual user performance
+- A/B testing (releasing two variants and measuring impact)
+- Production observability (logs, metrics, traces — see the running system, not just tests)
+- Chaos engineering (deliberately injecting failures to test resilience)
+
+Why it works: production is the only environment that has the real users, real data volumes, real network latency, and real edge cases. No matter how good your test environments are, production will surface things they cannot.
+
+*💡 Analogy: Crash-test dummies are great. But cars are also monitored on the road — black-box recorders, recall data, telematics. The lab is necessary; the road is irreplaceable.*
+
+---
+
+### 3. The Continuum — Both Together
+
+Mature teams do both. Each phase has its own bug-finding flavour:
+
+| Phase | Bugs you find here | Bugs you cannot find here |
+|---|---|---|
+| Requirements (shift-left) | Ambiguity, missing scenarios, conflicting rules | Code bugs |
+| Design (shift-left) | Architectural flaws, scalability concerns, missing concerns | Implementation bugs |
+| Code (shift-left) | Logic errors, security issues, type mismatches | Integration bugs |
+| Test (traditional) | Functional bugs, regressions, edge cases | Real-world load patterns |
+| Deploy (shift-right canary) | Configuration errors, env-specific issues | Long-term issues |
+| Production (shift-right) | Real load, real users, real data, slow leaks | Bugs already past — you are reacting now |
+
+**Real Example:**
+A fintech team adopted shift-left + shift-right together. Shift-left: BDD scenarios written with PMs at sprint planning, eliminating ambiguity. Shift-right: every release goes to 1% canary for 2 hours, then 10%, then 100% — automated rollback on error-rate spike. Combined effect: production incidents dropped 70% in six months. The bugs that did escape were caught at 1% scope, not 100%.
+
+The mindset change: testing is not a phase. It is a continuous activity that begins before the code is written and continues after it has shipped.
+        `
+      },
+
+      {
+        id: 'ab-testing',
+        title: 'Expert: A/B Testing',
+        analogy: "A/B testing is putting two menu cards on alternating tables in a restaurant. Half the customers see Menu A, half see Menu B. Three months later you measure: which menu sold more starters? Which kept tables occupied longer? You let the customers vote with their orders, not your guesses with your taste.",
+        lessonMarkdown: `
+## A/B Testing
+
+A/B testing is the controlled experiment of releasing two variants of a feature to different user groups, measuring outcomes, and using statistics to decide which variant performs better. It moves product decisions from opinion to evidence — and creates a new testing surface that QA needs to handle.
+
+### 1. The Premise
+
+Traditional product decisions go: someone proposes an idea, the team builds it, ships to all users. Maybe it works. Maybe it does not. Maybe it makes things worse and nobody notices for months.
+
+A/B testing replaces that with: build two variants (A = control, B = treatment), randomly assign users to each, measure a defined metric over a defined window, decide based on the data.
+
+Common A/B test scenarios:
+- Two checkout button colours (does green or orange convert better?)
+- Two pricing tiers
+- Two onboarding flows
+- New feature on/off (does the feature actually help, or just feel like it does?)
+- Two recommendation algorithms
+
+The output is statistical: *"Variant B converted 14% better than A, with 95% confidence."* Not "we think B is better."
+
+*💡 Analogy: A pharmaceutical trial. You do not give every patient the new drug and hope. You give half a placebo, half the new drug, blinded — and measure outcomes. A/B testing is that, applied to product decisions.*
+
+---
+
+### 2. The Role of QA in A/B Testing
+
+QA has THREE distinct responsibilities in A/B tests:
+
+**1. Test BOTH variants individually.**
+Variant A and Variant B are both code paths that need to work. Running tests against only one half is a common mistake — the other variant ships untested.
+
+**2. Test the assignment / bucketing logic.**
+Users must be assigned to A or B correctly:
+- Sticky assignment (the same user does not flip between variants on different visits)
+- Proportional distribution (50/50 actually splits 50/50)
+- Mutually exclusive experiments (one user does not end up in conflicting overlapping tests)
+- Fallback (if the experiment service is down, what does the user see?)
+
+**3. Test the metric collection.**
+The whole point is the metric. If conversion is being miscounted, the experiment is meaningless.
+- Are events being fired correctly for both variants?
+- Is the metric defined consistently across teams?
+- Are the metrics stored / queried correctly downstream?
+
+*💡 Analogy: A pharmaceutical trial QA. You do not just test that the drug exists — you test that patients are correctly assigned to control vs treatment, that the dosage is correct, that the lab can actually measure the outcome, and that the data flows to the analyst correctly. Same for A/B testing.*
+
+---
+
+### 3. Common A/B Testing Pitfalls QA Should Catch
+
+| Pitfall | Why it ruins the experiment |
+|---|---|
+| **Stopping the test early** | "Variant B is winning! Let us ship!" — but the result is not yet statistically significant |
+| **Sample size too small** | Too few users to draw a reliable conclusion; the "winner" is noise |
+| **Multiple metrics, no primary metric** | Variant B is better on conversion but worse on retention; without a primary metric, the conclusion is ambiguous |
+| **Sample contamination** | The same user sees both variants because of session-vs-cookie mismatches |
+| **Long tail variant** | The new feature improves average performance but breaks for 1% of users — invisible in averages |
+| **Seasonality** | Running the test during Black Friday, then comparing it against ordinary traffic |
+| **Network effects** | Variant B works because users see what their friends are using; impossible to isolate |
+
+Senior QAs do not run experiments themselves but ARE the most-likely person to spot these problems. Asking "what is the primary metric? what is the sample size? when does this stop?" before launch saves teams from shipping based on wrong conclusions.
+
+**Real Example:**
+A media site ran an A/B test on a new article-recommendation algorithm. Variant B "won" by 3% on click-through rate. They shipped it. Three weeks later, retention had dropped 8%. Investigation: B optimised for clicks but recommended less-relevant content; users clicked, were disappointed, and stopped visiting. The experiment used the wrong primary metric (clicks instead of long-term engagement). Catching that *before* the test would have saved months of damage.
+        `
+      },
+
+      {
+        id: 'production-testing',
+        title: 'Expert: Production Testing & Observability',
+        analogy: "Production testing is checking a bridge by driving real cars over it, not just standing on it in dry weather. The lab tests are useful. But the bridge ultimately serves real cars in real weather with real loads — and you only fully know it works when you watch real cars cross it. Observability is the network of sensors on every cable and joint of the bridge that tell you what is happening, in real time.",
+        lessonMarkdown: `
+## Production Testing & Observability
+
+Production is no longer a place where testing stops — it is a place where testing continues, with different techniques. Modern teams treat production as their richest source of truth and use observability tooling to understand what is actually happening to real users.
+
+### 1. Why Test in Production at All?
+
+Test environments are imperfect copies. Production has things no other environment has:
+- Real users with real behaviour patterns nobody anticipated
+- Real data at real volume (a 50TB table behaves differently from a 50MB one)
+- Real network conditions (packet loss, latency, ISP routing)
+- Real third-party SLAs (the payment processor really did go down at 3am)
+- Real concurrency (10,000 actual people, not 10,000 simulated bots)
+
+Pre-production testing finds many bugs but never finds *all* of them. Production testing is how you catch the rest — ideally before the customer notices.
+
+*💡 Analogy: A drug passes all clinical trials. Then it goes to market and a rare side effect appears in 1 in 100,000 users — undetectable in a 10,000-person trial. Post-market surveillance catches it. Production testing is post-market surveillance for software.*
+
+---
+
+### 2. Production Testing Techniques
+
+Modern teams use a stack of techniques to test safely in production:
+
+| Technique | What it is | Risk level |
+|---|---|---|
+| **Feature flags** | Code is in production but disabled per user / per group; toggle on for some, off for others | Very low |
+| **Canary deploy** | New version goes to 1-5% of traffic; monitored; expanded gradually | Low |
+| **Blue/green deploy** | Two parallel environments; traffic flips instantly between them | Low (instant rollback) |
+| **Dark launch** | New code runs invisibly alongside old, output compared but not shown to users | Very low |
+| **Synthetic monitoring** | Bots running real-looking transactions 24/7; alert on failure | None — synthetic |
+| **Real User Monitoring (RUM)** | Passive measurement of real user performance (page load, errors) | None — observation only |
+| **Chaos engineering** | Deliberate fault injection (kill a server, slow down the network) | Higher — designed to break things |
+
+Each technique trades off speed of feedback vs risk of customer impact. Synthetic monitoring is risk-free but tells you what synthetic users see. RUM tells you what real users see but reactively. Canary catches issues at 1% scope before they hit 100%.
+
+*💡 Analogy: Hospital monitoring. Constant background telemetry (RUM) for every patient. Scheduled rounds (synthetic). New treatments tried first on small cohorts (canary). The combination is what hospitals call "patient safety," and it maps well to production safety.*
+
+---
+
+### 3. Observability — Knowing What Production Is Actually Doing
+
+**Observability is the practice of making the internal state of a running system visible from the outside** — through logs, metrics, and traces.
+
+The three pillars of observability:
+
+| Pillar | What it answers | Example |
+|---|---|---|
+| **Logs** | "What happened?" | "User 42 received a 500 error at 14:32:08" |
+| **Metrics** | "How much, how often, how fast?" | "Error rate is 0.3%; p95 latency is 220ms" |
+| **Traces** | "Where in the chain did it happen?" | "Request took 800ms; 700ms was waiting for the DB query" |
+
+A well-instrumented production system can answer any of these without redeploying or reproducing the bug locally. A poorly-instrumented system requires guessing.
+
+QAs increasingly contribute to observability:
+- Defining what to log when a feature behaves unusually
+- Defining alert thresholds (when does the on-call get paged?)
+- Building dashboards that surface metrics that matter for quality
+- Reviewing trace data to find performance regressions
+
+**Real Example:**
+A team launched a new search feature behind a feature flag at 10%. Within an hour, observability dashboards showed search latency jumped from 200ms to 1.2 seconds — but only for users in Asia. Investigation found a misconfigured CDN region. Rolled back the flag in 5 minutes. Zero customer complaints. Pre-observability, the bug would have surfaced as customer support tickets days later, after damage was done.
+
+Observability is what makes production testing safe. Without it, you are flying blind — and you will only know the engine failed when the plane is on fire.
+        `
+      },
+
+      {
+        id: 'chaos-engineering',
+        title: 'Expert: Chaos Engineering — An Introduction',
+        analogy: "Chaos engineering is fire drills for software. The building does not burn — that is the whole point. You light a controlled small fire (kill one server, slow one network link) and watch how the system, the alarms, and the people respond. You learn the failures before reality forces them on you.",
+        lessonMarkdown: `
+## Chaos Engineering — An Introduction
+
+Chaos engineering is the practice of *deliberately injecting failures* into a system in production (or production-like environments) to discover weaknesses before they cause real outages. It sounds reckless. It is in fact the opposite — it is preparing for failure under controlled conditions, instead of being surprised by it under real ones.
+
+### 1. The Premise
+
+Distributed systems fail in ways that are impossible to predict from first principles. Networks slow down. Servers die. Disks fill up. Third-party APIs go silent. Caches go stale. Loads spike. Each individual failure is something the team thought of — but the *combinations* are infinite, and the cascading effects are surprising.
+
+The traditional approach: hope it does not happen, scramble when it does.
+
+The chaos engineering approach: deliberately reproduce small failures in a controlled way, watch what happens, fix the weaknesses, repeat.
+
+*💡 Analogy: An airline pilot does not learn to handle engine failure during an actual emergency. They practise it, hundreds of times, in a simulator. By the time it happens for real, the response is muscle memory. Chaos engineering is putting your software through the simulator.*
+
+---
+
+### 2. Common Chaos Experiments
+
+| Experiment | What it tests |
+|---|---|
+| **Kill a server** | Does the load balancer reroute? Does the system self-heal? |
+| **Slow the network** | Are timeouts set correctly? Do retries cause cascading load? |
+| **Drop database connection** | Does the app reconnect? Does it spam errors? |
+| **Spike memory usage** | Does autoscaling kick in? Do pods get killed gracefully? |
+| **Inject latency on a third-party** | Does the app block the user, or degrade gracefully? |
+| **Fill the disk** | Does the system warn first, or crash silently? |
+| **Drop region** | Does multi-region failover actually work? |
+| **Time skew** | Does the system tolerate clock drift? |
+
+Each experiment has a hypothesis: *"If we kill this server, the load balancer will redirect traffic and users will see no impact."* You run the experiment, observe, and either confirm the hypothesis or learn something new.
+
+*💡 Analogy: A factory tests its fire suppression system by lighting a small controlled fire in a sealed area. They are not hoping the system fails — they are confirming it works under realistic conditions. If the system fails, better to find out at the test fire than during a real one.*
+
+---
+
+### 3. Starting Small and Safely
+
+A common mistake: treating chaos engineering as "let us break things in production on day one."
+
+The right path:
+1. **Start in staging / pre-prod.** Run experiments where customer impact is zero.
+2. **Establish observability first.** If you cannot see what is happening, you cannot run experiments safely.
+3. **Define a clear hypothesis and abort criteria.** "If error rate exceeds 1%, abort the experiment."
+4. **Begin with the smallest possible experiment.** Kill ONE pod, not an entire cluster.
+5. **Schedule experiments in business hours when on-call is fully staffed.** Not at 3am.
+6. **Communicate broadly.** Engineering, QA, support — everyone knows an experiment is happening.
+7. **Document the result.** Hypothesis confirmed? Surprise? What did you fix?
+
+Tools: **Chaos Monkey** (Netflix, original), **Gremlin** (commercial, broad), **LitmusChaos** (Kubernetes-native), **AWS Fault Injection Service**.
+
+**Real Example:**
+A streaming service ran a planned chaos experiment: kill the primary recommendation service during a quiet weekday afternoon. Hypothesis: a fallback "popular content" list would seamlessly take over. Reality: the fallback existed but was *very slow* under real load — the home page took 12 seconds to render. Customers noticed within minutes. The experiment was aborted, but the team had found a genuine production weakness in 8 minutes that would otherwise have only revealed itself during a real outage during peak hours.
+
+Chaos engineering is not for every team. It requires mature observability, strong incident response, and culture that treats failure-finding as valuable rather than punishable. For teams that have those — it is one of the highest-leverage testing practices that exists.
+        `
+      },
+
+      {
         id: 'test-metrics',
         title: 'Expert: Test Metrics & Reporting',
         analogy: "Test metrics are your speedometer and fuel gauge for the testing process. Without them, you're driving blind — you don't know if you're going fast enough, running out of time, or about to break down.",
@@ -2797,6 +3462,88 @@ Non-technical stakeholders (PMs, executives) need dashboards, not spreadsheets.
 This is clear, specific, data-backed, and gives the stakeholder everything they need to make an informed decision.
 
 *💡 Analogy: A pilot's pre-flight checklist isn't just "does the plane feel okay?" It is a specific list of 50+ items with pass/fail checks. When a pilot says "cleared for takeoff," they mean every item on that checklist was verified. That is what test metrics give your release decision — a verifiable, documented basis for confidence.*
+        `
+      },
+
+      {
+        id: 'modern-testing-principles',
+        title: 'Expert: Modern Testing Principles',
+        analogy: "Old-school testing was a department: a wall between development and release with QAs guarding the gate. Modern testing is everyone's job all the time — closer to a fire-safety practice than a checkpoint. Everyone is trained, everyone is responsible, the building is safer because the responsibility never sits on one person alone.",
+        lessonMarkdown: `
+## Modern Testing Principles
+
+Software delivery has changed faster than the QA discipline. Continuous deployment, microservices, observability, and DevOps culture demand a model of quality that the old "test phase at the end" cannot serve. Two influential frameworks — **The Agile Testing Quadrants** (Brian Marick) and **Modern Testing Principles** (Alan Page and Brent Jensen) — describe how senior testers think about quality today.
+
+### 1. The Agile Testing Quadrants
+
+Brian Marick proposed a 2×2 grid that maps testing activities by *who they help* and *what they verify*:
+
+|  | **Supporting the team** (informs build) | **Critiquing the product** (informs ship) |
+|---|---|---|
+| **Business-facing** | Q2 — Functional tests, examples, acceptance criteria | Q3 — Exploratory testing, usability, UAT |
+| **Technology-facing** | Q1 — Unit tests, component tests, API tests | Q4 — Performance, security, load, reliability |
+
+What the quadrants give you:
+- **Q1 (auto, supporting, tech):** unit tests, API tests — fast, machine-driven, prevents regressions
+- **Q2 (auto + manual, supporting, business):** acceptance tests, BDD scenarios — verifies "did we build the right thing?"
+- **Q3 (manual, critiquing, business):** exploratory testing, usability — the human eye finds what scripts cannot
+- **Q4 (auto + tools, critiquing, tech):** performance, security, chaos — non-functional verification
+
+A team neglecting any quadrant has a known weakness. Most teams over-invest in Q1 and Q2 (easier to automate) and under-invest in Q3 and Q4. Senior QAs balance the four.
+
+*💡 Analogy: A car has four wheels. You can drive on three for a while, but you will not drive far. The quadrants are the four wheels of testing — leave any of them flat and the journey is going to end soon.*
+
+---
+
+### 2. The Modern Testing Principles
+
+Page and Jensen proposed seven principles that describe how mature testing teams operate:
+
+1. **Our priority is improving the business.**
+   Testing exists to help the business succeed, not to gatekeep. Find quality bottlenecks anywhere — requirements, design, deployment — not just in code.
+
+2. **We accelerate the team.**
+   Use tools, processes, and techniques that help the whole team ship faster *with confidence*. A bottleneck-QA-team is a failure mode.
+
+3. **We are a force multiplier.**
+   Train others, build tools, share patterns. One QA who teaches 10 developers to test well outperforms 10 QAs who only test themselves.
+
+4. **We bring the customer's perspective.**
+   The team knows the system from the inside. The QA brings the *outside* view — what real users actually experience and care about.
+
+5. **We use data extensively.**
+   Decisions about quality are based on real evidence: production telemetry, user behaviour, defect data — not opinions about what "feels right."
+
+6. **We coach team members on quality.**
+   Quality is a team capability. The QA's job is to raise the team's overall quality skill, not to be the only person who has it.
+
+7. **We use models to guide our thinking.**
+   The Quadrants, Risk-Based Testing, the Testing Pyramid, OWASP Top 10 — these are models that help reason about *where* and *how* to test. Models are tools, not rules.
+
+*💡 Analogy: An old-school football goalkeeper waits in the goal hoping to save shots. A modern goalkeeper plays as a sweeper, communicates with defenders, distributes the ball, and shapes the team's play. Same position, completely different job. Modern testing is that shift in role.*
+
+---
+
+### 3. The QA Role Today
+
+The combined effect of these principles is a redefinition of what QAs do:
+
+| Old QA | Modern QA |
+|---|---|
+| Found bugs at the end of dev cycles | Prevents bugs from being designed in |
+| Owned testing alone | Coaches developers and PMs to test |
+| Wrote test scripts | Builds test infrastructure and frameworks |
+| Manual regression every release | Automation + production observability |
+| Gatekeeper of releases | Coach for the whole team's quality |
+| Waited for the build to be ready | Pairs with developers as code is written |
+| Defended QA from accountability | Owns quality outcomes alongside the team |
+
+This is not a less demanding role. It requires more breadth (technical skills, communication, coaching), more depth in fewer techniques, and more comfort with ambiguity. The reward: senior testers today have more impact on real products than at any point in software history.
+
+**Real Example:**
+A QA lead at a SaaS company replaced her team's monolithic 3-week regression cycle with: BDD scenarios in sprint planning, pair-programming with junior devs once a week, automated tests built collaboratively, dashboards that surfaced bug-correlation patterns. Within six months, escaped defects dropped 40%, sprint cycle accelerated 25%, and the QA team was viewed as the most valuable team in engineering. Same number of testers. Same number of releases. Different model.
+
+*💡 Analogy: A school nurse who only treats injuries vs one who runs nutrition workshops, fitness sessions, and mental health support. The first nurse is necessary. The second nurse is transformative.*
         `
       }
     ]
