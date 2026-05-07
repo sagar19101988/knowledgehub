@@ -74,6 +74,165 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ]
     },
     {
+      level: 'qa-vs-qc-vs-testing',
+      questions: [
+        {
+          question: 'True or False: QA is mostly reactive — it kicks in only after bugs are reported.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'QA is preventive and process-focused. It is everything done before a bug exists — coding standards, review processes, retrospectives. It runs throughout the SDLC, not after the fact.'
+        },
+        {
+          question: 'A team writes a coding-standards document and runs ESLint on every pull request. Which discipline does this best describe?',
+          options: [
+            { id: 'a', text: 'Quality Assurance — it is process-focused and preventive.', isCorrect: true },
+            { id: 'b', text: 'Quality Control — it inspects the finished product.', isCorrect: false },
+            { id: 'c', text: 'Testing — it executes test cases against builds.', isCorrect: false },
+            { id: 'd', text: 'None — linting is automation, not quality work.', isCorrect: false }
+          ],
+          explanation: 'Setting standards and enforcing them on every PR is classic QA — defining the process that makes bugs less likely in the first place.'
+        },
+        {
+          question: 'A tester runs 30 test cases against the staging build, logs 5 bugs, and signs off the rest. This activity is most accurately:',
+          options: [
+            { id: 'a', text: 'Quality Assurance only', isCorrect: false },
+            { id: 'b', text: 'Testing — which is the execution arm of Quality Control.', isCorrect: true },
+            { id: 'c', text: 'Pure Quality Control with no testing involved.', isCorrect: false },
+            { id: 'd', text: 'Process improvement.', isCorrect: false }
+          ],
+          explanation: 'Testing is the act of running checks to find defects. Every act of testing is a QC activity. But QC also includes things like sign-off paperwork that are not testing.'
+        },
+        {
+          question: 'Which of the following is the most preventive, rather than detective, quality activity?',
+          options: [
+            { id: 'a', text: 'Running smoke tests on a new build.', isCorrect: false },
+            { id: 'b', text: 'Filing a bug for a broken checkout.', isCorrect: false },
+            { id: 'c', text: 'Defining a Definition of Done with the team.', isCorrect: true },
+            { id: 'd', text: 'Sign-off on the release notes.', isCorrect: false }
+          ],
+          explanation: 'Defining a Definition of Done is preventive QA — it stops half-finished work from moving forward. The other options all detect or document defects after the fact.'
+        },
+        {
+          question: 'A project has a strong testing team but no QA discipline at all (no standards, no retros, no defined process). What tends to happen over time?',
+          options: [
+            { id: 'a', text: 'Bugs are found faster, but the same kinds of bugs keep being introduced because there is no learning loop.', isCorrect: true },
+            { id: 'b', text: 'Bug counts drop to zero.', isCorrect: false },
+            { id: 'c', text: 'Testers become unnecessary.', isCorrect: false },
+            { id: 'd', text: 'The team automatically becomes Agile.', isCorrect: false }
+          ],
+          explanation: 'Testing finds bugs, but without QA there is no mechanism to prevent recurrence. The same root causes resurface release after release. QA is the layer that turns "we caught it again" into "we will not let it happen again."'
+        }
+      ]
+    },
+    {
+      level: 'verification-vs-validation',
+      questions: [
+        {
+          question: 'True or False: Verification can be performed without running the software.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: true },
+            { id: 'b', text: 'False', isCorrect: false }
+          ],
+          explanation: 'Verification compares work against the specification — reading documents, inspecting code, walking through designs. The software does not need to be running. Validation, on the other hand, requires real execution by real users.'
+        },
+        {
+          question: 'A team builds a feature exactly as the spec describes. UAT begins, and users say "this solves the wrong problem." Which activity is failing?',
+          options: [
+            { id: 'a', text: 'Verification — the build does not match the spec.', isCorrect: false },
+            { id: 'b', text: 'Validation — the spec itself does not match user needs.', isCorrect: true },
+            { id: 'c', text: 'Compilation — the code did not build.', isCorrect: false },
+            { id: 'd', text: 'Regression — old features broke.', isCorrect: false }
+          ],
+          explanation: 'Verification asks "Did we build it right?" — passes here, since the build matches the spec. Validation asks "Did we build the right thing?" — fails, because the spec was incomplete or wrong. This is exactly why both layers are needed.'
+        },
+        {
+          question: 'A senior architect reviews a design document against the original requirements before any code is written. This is:',
+          options: [
+            { id: 'a', text: 'Validation', isCorrect: false },
+            { id: 'b', text: 'Verification', isCorrect: true },
+            { id: 'c', text: 'Smoke testing', isCorrect: false },
+            { id: 'd', text: 'UAT', isCorrect: false }
+          ],
+          explanation: 'Reviewing a design against requirements is verification — checking that one artefact matches another. No software runs, no user is involved.'
+        },
+        {
+          question: 'Which question does Validation answer?',
+          options: [
+            { id: 'a', text: '"Did we follow the coding standards?"', isCorrect: false },
+            { id: 'b', text: '"Did we build it right?"', isCorrect: false },
+            { id: 'c', text: '"Did we build the right thing?"', isCorrect: true },
+            { id: 'd', text: '"Does this code compile?"', isCorrect: false }
+          ],
+          explanation: 'The classic phrasing: Verification = "Did we build it right?" Validation = "Did we build the right thing?" Validation is checking whether the right product was built at all — not whether it was built per spec.'
+        },
+        {
+          question: 'Why is it not enough to just verify against the spec? Why do you also need validation?',
+          options: [
+            { id: 'a', text: 'Specs can be ambiguous, incomplete, or simply wrong about what users actually need.', isCorrect: true },
+            { id: 'b', text: 'Validation is faster than verification.', isCorrect: false },
+            { id: 'c', text: 'Verification cannot be automated, but validation can.', isCorrect: false },
+            { id: 'd', text: 'Validation replaces unit testing.', isCorrect: false }
+          ],
+          explanation: 'A perfect implementation of a flawed spec is still a flawed product. Verification ensures the build matches the spec; validation ensures the spec — and therefore the product — actually solves the real problem.'
+        }
+      ]
+    },
+    {
+      level: 'sdlc-vs-stlc',
+      questions: [
+        {
+          question: 'True or False: STLC begins only after development is complete.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'STLC runs in parallel with SDLC from day one. Test Requirement Analysis starts when the requirement document is first written. Treating testing as "the phase at the end" is the most common cause of last-minute slips.'
+        },
+        {
+          question: 'On day one of a new project, a QA engineer reads the requirement spec and flags an ambiguous rule about empty search input. Which STLC phase is this?',
+          options: [
+            { id: 'a', text: 'Test Closure', isCorrect: false },
+            { id: 'b', text: 'Test Execution', isCorrect: false },
+            { id: 'c', text: 'Test Requirement Analysis', isCorrect: true },
+            { id: 'd', text: 'Test Environment Setup', isCorrect: false }
+          ],
+          explanation: 'Reading requirements, identifying testable conditions, and flagging gaps is the first phase of STLC: Test Requirement Analysis. This is the cheapest moment in the entire project to surface ambiguity.'
+        },
+        {
+          question: 'Which phase comes immediately after Test Planning in STLC?',
+          options: [
+            { id: 'a', text: 'Test Closure', isCorrect: false },
+            { id: 'b', text: 'Test Case Design', isCorrect: true },
+            { id: 'c', text: 'Test Execution', isCorrect: false },
+            { id: 'd', text: 'Requirement Analysis', isCorrect: false }
+          ],
+          explanation: 'Order: Requirement Analysis → Test Planning → Test Case Design → Test Environment Setup → Test Execution → Test Closure. Once the plan is set, you write the actual test cases and data.'
+        },
+        {
+          question: 'Which of the following is NOT a phase of STLC?',
+          options: [
+            { id: 'a', text: 'Test Case Design', isCorrect: false },
+            { id: 'b', text: 'Test Execution', isCorrect: false },
+            { id: 'c', text: 'Build Deployment to Production', isCorrect: true },
+            { id: 'd', text: 'Test Closure', isCorrect: false }
+          ],
+          explanation: 'Build Deployment is an SDLC phase, not STLC. STLC stays inside the testing discipline: analysis, planning, design, environment, execution, closure.'
+        },
+        {
+          question: 'Why do mature teams insist on running STLC in parallel with SDLC, instead of "testing at the end"?',
+          options: [
+            { id: 'a', text: 'It costs more, but it looks more professional in audits.', isCorrect: false },
+            { id: 'b', text: 'It surfaces ambiguity and missing requirements early — when fixes cost hours, not days.', isCorrect: true },
+            { id: 'c', text: 'It eliminates the need for User Acceptance Testing.', isCorrect: false },
+            { id: 'd', text: 'It allows developers to skip code review.', isCorrect: false }
+          ],
+          explanation: 'Parallel STLC catches design and requirement defects before code is written. The Rule of Ten applies: a defect found at requirements costs ×1; the same defect found at execution costs ×20+. Parallel STLC pulls those costs forward.'
+        }
+      ]
+    },
+    {
       level: 'types-of-testing',
       questions: [
         {
@@ -129,6 +288,112 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ]
     },
     {
+      level: 'test-levels',
+      questions: [
+        {
+          question: 'True or False: A well-written unit test should connect to a real database to make it more realistic.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'Unit tests test ONE function in isolation. They should not touch real databases, networks, or UI — that is what integration and system tests are for. A unit test that hits a real database is slow, flaky, and tells you nothing useful about the unit itself.'
+        },
+        {
+          question: 'A bug is found: the login function passes the email where the JWT-generation function expects the user ID. Each function works perfectly when tested alone. Which test level is best designed to catch this kind of bug?',
+          options: [
+            { id: 'a', text: 'Unit Testing — both functions work alone, so unit tests should catch it.', isCorrect: false },
+            { id: 'b', text: 'Integration Testing — the bug is in how the two units talk to each other.', isCorrect: true },
+            { id: 'c', text: 'UAT — only real users notice this kind of issue.', isCorrect: false },
+            { id: 'd', text: 'Performance Testing — the contract mismatch causes slow responses.', isCorrect: false }
+          ],
+          explanation: 'Each unit being individually correct does not mean their integration is correct. Bugs at the boundary between two components — wrong parameter types, mismatched contracts, ordering assumptions — are exactly what integration tests are designed to catch.'
+        },
+        {
+          question: 'A logistics company commissions an internal app. Unit, integration, and system tests all pass. The first warehouse worker says: "There is no offline mode — half our depots have no Wi-Fi." Which level surfaced this?',
+          options: [
+            { id: 'a', text: 'Unit Testing', isCorrect: false },
+            { id: 'b', text: 'Integration Testing', isCorrect: false },
+            { id: 'c', text: 'System Testing', isCorrect: false },
+            { id: 'd', text: 'User Acceptance Testing (UAT)', isCorrect: true }
+          ],
+          explanation: 'UAT regularly catches what every other level misses — real-world constraints, missed requirements, "we cannot use this in our office because…" feedback. Unit/integration/system can verify the build matches the spec; only UAT validates the spec was right in the first place.'
+        },
+        {
+          question: 'According to the testing pyramid, what is the recommended balance of test counts?',
+          options: [
+            { id: 'a', text: 'Equal numbers of unit, integration, system, and UAT tests.', isCorrect: false },
+            { id: 'b', text: 'Many unit tests at the bottom, fewer tests at each higher level, and only a small number of UAT tests at the top.', isCorrect: true },
+            { id: 'c', text: 'Mostly UAT tests, with unit tests as a backup.', isCorrect: false },
+            { id: 'd', text: 'Only system tests — they exercise everything end-to-end.', isCorrect: false }
+          ],
+          explanation: 'The pyramid shape is: lots of fast cheap unit tests at the base, fewer integration tests, even fewer system tests, and a small number of UAT tests at the top. Each level catches what the level above missed, but inverting the pyramid makes feedback slow, expensive, and hard to localize.'
+        },
+        {
+          question: 'A team decides to skip unit and integration tests because "system tests cover everything end-to-end anyway." What is the main risk of this approach?',
+          options: [
+            { id: 'a', text: 'There is no real risk — system tests exercise all the code paths.', isCorrect: false },
+            { id: 'b', text: 'When a system test fails, it is slow, expensive, and hard to pinpoint which component is actually broken.', isCorrect: true },
+            { id: 'c', text: 'System tests are too easy to maintain.', isCorrect: false },
+            { id: 'd', text: 'It would prevent UAT from happening.', isCorrect: false }
+          ],
+          explanation: 'This is the classic "ice-cream cone" anti-pattern (an inverted pyramid). System tests are slow, brittle, and when they fail you do not know which of 50 functions caused it. Unit tests catch the bug in milliseconds and tell you the exact line. Skipping the lower levels makes debugging exponentially harder.'
+        }
+      ]
+    },
+    {
+      level: 'static-vs-dynamic',
+      questions: [
+        {
+          question: 'True or False: Static testing requires running the software.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'Static testing does NOT require executing the code. It is reading and inspecting — code reviews, walkthroughs, requirement reviews, lint tools. Dynamic testing is what requires the software to be running.'
+        },
+        {
+          question: 'ESLint scans a JavaScript file and flags 12 unused variables and one suspicious assignment. Which type of testing is this?',
+          options: [
+            { id: 'a', text: 'Static analysis — a form of static testing.', isCorrect: true },
+            { id: 'b', text: 'Dynamic testing — the linter runs over the code.', isCorrect: false },
+            { id: 'c', text: 'Unit testing.', isCorrect: false },
+            { id: 'd', text: 'Smoke testing.', isCorrect: false }
+          ],
+          explanation: 'Linters and static analysers inspect the code without executing it. They are tools that automate static testing — finding patterns, smells, and obvious bugs by reading the source.'
+        },
+        {
+          question: 'A penetration tester sends a malformed JSON payload to the API and observes that the server returns a 500 error revealing the database driver version. Which type of testing is this?',
+          options: [
+            { id: 'a', text: 'Static testing — they read the response.', isCorrect: false },
+            { id: 'b', text: 'Dynamic testing — the API was executed and observed.', isCorrect: true },
+            { id: 'c', text: 'Code review.', isCorrect: false },
+            { id: 'd', text: 'Inspection.', isCorrect: false }
+          ],
+          explanation: 'Penetration testing executes the system with crafted inputs and observes runtime behaviour. That is the definition of dynamic testing. Static testing would have been reading the code and noticing the verbose error handling without ever sending a request.'
+        },
+        {
+          question: 'A senior engineer reviews a pull request and spots a single equals sign where double equals was intended — code that would always grant admin access. Which type of testing caught this?',
+          options: [
+            { id: 'a', text: 'Dynamic testing.', isCorrect: false },
+            { id: 'b', text: 'Static testing — code review without executing the code.', isCorrect: true },
+            { id: 'c', text: 'UAT.', isCorrect: false },
+            { id: 'd', text: 'Performance testing.', isCorrect: false }
+          ],
+          explanation: 'The bug was caught by reading the code, not by running it. The compiler happily accepts the assignment, and many test inputs would never trigger the edge case. Code review (static) catches this kind of defect in seconds.'
+        },
+        {
+          question: 'Why is static testing usually cheaper per defect found than dynamic testing?',
+          options: [
+            { id: 'a', text: 'Because static testing runs faster on the CI server.', isCorrect: false },
+            { id: 'b', text: 'Because it catches defects earlier in the lifecycle, when they cost far less to fix, and it does not need test environments or data.', isCorrect: true },
+            { id: 'c', text: 'Because static testing is always automated.', isCorrect: false },
+            { id: 'd', text: 'Because static testing finds more bugs than dynamic testing.', isCorrect: false }
+          ],
+          explanation: 'Static testing pulls defects forward in time. A defect caught at code review costs an hour. The same defect caught in production costs far more — environment setup, deploy cycles, customer impact, hotfixes. The Rule of Ten is the same principle applied to V&V layering.'
+        }
+      ]
+    },
+    {
       level: 'writing-test-cases',
       questions: [
         {
@@ -180,6 +445,59 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
             { id: 'd', text: 'Mark it as passed anyway.', isCorrect: false }
           ],
           explanation: 'Test cases are living documents. They must be updated when features change. Outdated test cases give false confidence and are worse than no tests at all.'
+        }
+      ]
+    },
+    {
+      level: 'test-scenarios-vs-test-cases',
+      questions: [
+        {
+          question: 'True or False: Each test scenario maps to exactly one test case.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'A scenario is high-level and typically expands into multiple test cases. "Verify user can log in" might produce 5 test cases (valid login, wrong password, locked account, empty fields, expired session). One-to-many is normal.'
+        },
+        {
+          question: 'Which of the following is most likely a test SCENARIO rather than a test CASE?',
+          options: [
+            { id: 'a', text: '"Step 1: Open /login. Step 2: Enter test@qa.com. Step 3: Enter Test@1234. Step 4: Click Submit. Expected: redirect to /dashboard."', isCorrect: false },
+            { id: 'b', text: '"Verify password reset works via email."', isCorrect: true },
+            { id: 'c', text: '"Test Case ID: TC-LOGIN-002, Preconditions: user exists, ..."', isCorrect: false },
+            { id: 'd', text: '"Expected result: HTTP 401 returned with error code AUTH_INVALID."', isCorrect: false }
+          ],
+          explanation: 'A scenario is one sentence describing what to test, with no steps, data, or expected results. The other options are all parts of test cases — IDs, preconditions, steps, expected outputs.'
+        },
+        {
+          question: 'A junior tester writes: "Test login with bad password." What is the main thing missing for this to be a complete test case?',
+          options: [
+            { id: 'a', text: 'A scenario name.', isCorrect: false },
+            { id: 'b', text: 'Preconditions, exact test data, numbered steps, and expected result.', isCorrect: true },
+            { id: 'c', text: 'A bug ID.', isCorrect: false },
+            { id: 'd', text: 'A severity rating.', isCorrect: false }
+          ],
+          explanation: 'That sentence is a scenario — fine for planning. As a test case it is too vague: which "bad" password? What account? What error message is expected? Test cases must be reproducible by anyone reading them, including someone who has never seen the system.'
+        },
+        {
+          question: 'In what order should a team typically work?',
+          options: [
+            { id: 'a', text: 'Write detailed test cases first, then summarise them into scenarios.', isCorrect: false },
+            { id: 'b', text: 'List scenarios first to ensure coverage, then expand each into one or more test cases.', isCorrect: true },
+            { id: 'c', text: 'Write only test cases — scenarios are unnecessary.', isCorrect: false },
+            { id: 'd', text: 'Write scenarios and test cases in parallel without coordination.', isCorrect: false }
+          ],
+          explanation: 'Scenarios first → review for coverage gaps → expand each scenario into test cases. The scenarios layer ensures you have not forgotten an important behaviour; the test cases layer ensures execution rigour. Skipping scenarios means deep test cases on obvious paths and missing coverage of less obvious ones.'
+        },
+        {
+          question: 'A team writes detailed test cases without listing scenarios first. What is the most common consequence?',
+          options: [
+            { id: 'a', text: 'They run faster — less paperwork.', isCorrect: false },
+            { id: 'b', text: 'They tend to over-test obvious paths and miss whole categories of behaviour they never thought to list.', isCorrect: true },
+            { id: 'c', text: 'They cannot file bug reports.', isCorrect: false },
+            { id: 'd', text: 'Their automation will not work.', isCorrect: false }
+          ],
+          explanation: 'Without a scenarios pass, testers anchor on what they already know. Less obvious flows — "reset link after expiry," "user logs in while another session is active," "discount applied to a refunded order" — get missed. The scenarios layer is the cheapest possible coverage check.'
         }
       ]
     },
@@ -290,6 +608,59 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
             { id: 'd', text: 'Error messages should not be tested.', isCorrect: false }
           ],
           explanation: 'An app that rejects input silently is broken. "Something went wrong" is not helpful. A good error message says WHAT is wrong: "Phone number must be 10 digits." Testing this IS testing.'
+        }
+      ]
+    },
+    {
+      level: 'smoke-vs-sanity',
+      questions: [
+        {
+          question: 'True or False: Smoke testing is run after every individual bug fix.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'Smoke testing is run on every NEW BUILD entering QA — not on every fix. It is a broad, shallow check that the build is stable enough to test. Sanity testing is what you run after a specific fix, on a narrow area.'
+        },
+        {
+          question: 'A new build of the app has just been delivered to QA. The build has dozens of changes across many areas. What do you run FIRST?',
+          options: [
+            { id: 'a', text: 'Smoke testing — broad shallow check that the build is stable enough to test.', isCorrect: true },
+            { id: 'b', text: 'Sanity testing on the most recent bug fix.', isCorrect: false },
+            { id: 'c', text: 'Full regression suite.', isCorrect: false },
+            { id: 'd', text: 'Performance testing.', isCorrect: false }
+          ],
+          explanation: 'Always smoke first. If the basic flows are broken, there is no point running deeper tests. Smoke confirms "is this build worth my time?" — pass means proceed; fail means reject the build and tell the dev team.'
+        },
+        {
+          question: 'Yesterday, a tester filed a bug: "Login fails when password contains a £ symbol." Today, the developer delivers a fix. What is the most appropriate IMMEDIATE next step?',
+          options: [
+            { id: 'a', text: 'Re-run the entire regression suite from scratch.', isCorrect: false },
+            { id: 'b', text: 'Run a sanity test focused on the login plus special-character behaviour.', isCorrect: true },
+            { id: 'c', text: 'Run a smoke test on the entire application.', isCorrect: false },
+            { id: 'd', text: 'Close the bug and move on.', isCorrect: false }
+          ],
+          explanation: 'Sanity testing is the right fit for verifying a specific fix. You check the bug is gone (£ in password works) and a few related cases ($, €, normal passwords) before triggering broader regression. Running a full regression first is wasteful; running a smoke test does not validate the specific fix.'
+        },
+        {
+          question: 'Which best describes the SHAPE of smoke testing?',
+          options: [
+            { id: 'a', text: 'Wide and shallow — touch every major area lightly.', isCorrect: true },
+            { id: 'b', text: 'Narrow and deep — exhaustive coverage of one feature.', isCorrect: false },
+            { id: 'c', text: 'Random and unstructured.', isCorrect: false },
+            { id: 'd', text: 'A formal sign-off document with no execution.', isCorrect: false }
+          ],
+          explanation: 'Smoke = wide and shallow. You check that every major area at least loads and the critical happy path works end-to-end. Sanity is the opposite — narrow and deep on one specific change.'
+        },
+        {
+          question: 'A smoke test fails on a new build — the login screen returns a 500 error. What is the right next action?',
+          options: [
+            { id: 'a', text: 'Continue with the planned regression suite.', isCorrect: false },
+            { id: 'b', text: 'Reject the build, stop deeper testing, and notify the development team.', isCorrect: true },
+            { id: 'c', text: 'Run all sanity tests for previous bug fixes.', isCorrect: false },
+            { id: 'd', text: 'Mark all tests as blocked but keep running them.', isCorrect: false }
+          ],
+          explanation: 'A smoke fail means the build is not stable enough to test. Continuing wastes QA time and produces noise. Reject the build, file the smoke failure, and let the dev team produce a new build before any deeper testing begins.'
         }
       ]
     },

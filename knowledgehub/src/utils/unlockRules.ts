@@ -21,8 +21,20 @@ export function isModuleUnlocked(zoneId: string, moduleId: string, completedLeve
   if (idx === 0) return true;
   if (completedLevels.includes(`${zoneId}::${moduleId}`)) return true;
 
+  // Standard rule: unlocked when the immediately-previous module is completed.
   const prev = all[idx - 1];
-  return completedLevels.includes(`${zoneId}::${prev.moduleId}`);
+  if (completedLevels.includes(`${zoneId}::${prev.moduleId}`)) return true;
+
+  // Migration-grace rule: if any later module in the same zone is completed,
+  // this one unlocks retroactively. Handles new modules being inserted into a
+  // curriculum path the user has already walked past — without their prior
+  // progress, those new modules would be wedged between completed modules
+  // looking permanently locked.
+  for (let i = idx + 1; i < all.length; i++) {
+    if (completedLevels.includes(`${zoneId}::${all[i].moduleId}`)) return true;
+  }
+
+  return false;
 }
 
 export function isTierUnlocked(zoneId: string, tierId: string, completedLevels: string[]): boolean {

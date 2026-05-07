@@ -81,6 +81,225 @@ A startup launches a mobile banking app. After 3 weeks in production, users disc
       },
 
       {
+        id: 'qa-vs-qc-vs-testing',
+        title: 'Beginner: QA vs QC vs Testing',
+        analogy: "QA is the kitchen rulebook. QC is the chef tasting each dish before it leaves the kitchen. Testing is the food critic who finds the burnt bit nobody else spotted. Three roles, one mission — don't ship bad food.",
+        lessonMarkdown: `
+## QA vs QC vs Testing
+
+These three terms get used interchangeably in job adverts, on LinkedIn, and in stand-ups — but they mean different things. Knowing the difference is the first thing that separates a junior tester from a confused one.
+
+### 1. Quality Assurance (QA) — Building Quality In
+
+**QA is about the process.** It is everything you do *before* the bug exists, to make bugs less likely in the first place.
+
+QA activities:
+- Defining coding standards and review checklists
+- Setting up Definition of Done for user stories
+- Establishing a Git branching strategy that prevents broken merges
+- Running retrospectives so the same bug doesn't ship twice
+- Auditing whether the team actually follows the agreed process
+
+QA is preventive. The QA mindset is: *"How do we stop bugs from being introduced at all?"*
+
+*💡 Analogy: QA is the rulebook in a restaurant kitchen — wash hands, label dates, check fridge temperatures every shift. Nobody is tasting food yet. The rules just make it harder for bad food to ever happen.*
+
+---
+
+### 2. Quality Control (QC) — Catching Mistakes Before They Ship
+
+**QC is about the product.** It is checking that the *thing you built* actually meets the requirements before it goes to users.
+
+QC activities:
+- Running test cases against the build
+- Verifying the feature behaves per the spec
+- Comparing actual output to expected output
+- Sign-off before release
+
+QC is reactive. The QC mindset is: *"Does this specific build meet the bar?"*
+
+*💡 Analogy: QC is the chef tasting every dish at the pass before a server takes it to the table. The cooking is done. The question now is: does this plate go out, or back to the kitchen?*
+
+---
+
+### 3. Testing — The Bug Hunters
+
+**Testing is the execution arm of QC.** It is the act of running checks (manual or automated) to find defects.
+
+Testing activities:
+- Writing test cases
+- Executing those test cases
+- Filing bug reports for failures
+- Re-testing after fixes
+
+Testing is hunting. The testing mindset is: *"Where can I make this break?"*
+
+Every act of testing is a QC activity. But not every QC activity is testing — sign-off paperwork, reviewing requirements for testability, and approving release notes are QC but not testing.
+
+*💡 Analogy: Testing is the food critic. The rulebook (QA) is followed. The chef has tasted (QC). But the critic comes in cold, orders the dish, and looks for what nobody else noticed — the chip on the plate, the missing garnish, the slightly cold sauce.*
+
+---
+
+### 4. How They Fit Together
+
+| | QA | QC | Testing |
+|---|---|---|---|
+| **Focus** | Process | Product | Execution |
+| **When** | Throughout the SDLC | Before release | During QC |
+| **Goal** | Prevent defects | Detect defects | Find defects |
+| **Example artefact** | Code review checklist | Sign-off report | Bug report |
+| **Mindset** | "How do we stop bugs?" | "Does this build pass?" | "How can I break this?" |
+
+**Real Example:**
+
+A team is shipping a new payment feature. Here is each role in action:
+- **QA:** Insists every PR touching payment goes through a 4-eye review and triggers automated security scans.
+- **QC:** Checks the assembled build in staging — does the payment journey end-to-end work against the requirements?
+- **Testing:** Runs through 30 test cases — happy path, expired card, declined card, network drop mid-payment, double-click on Pay button.
+
+If QA is missing, bugs slip in faster than you can find them. If QC is missing, you ship without a sign-off gate. If testing is missing, the gate is meaningless because nobody is actually checking.
+
+You need all three.
+        `
+      },
+
+      {
+        id: 'verification-vs-validation',
+        title: 'Beginner: Verification vs Validation',
+        analogy: "Verification asks 'Did we build the thing right?' Validation asks 'Did we build the right thing?' One checks the recipe was followed. The other tastes the soup and asks if anyone wanted soup in the first place.",
+        lessonMarkdown: `
+## Verification vs Validation
+
+V&V is one of those term-pairs every QA interview loves. Most candidates fumble it because the words sound similar — but the distinction is sharp once you see it.
+
+### 1. Verification — Are We Building It Right?
+
+**Verification checks the work against the specification.** Did the developer build what the document said to build?
+
+Verification activities:
+- Reviewing requirement documents for clarity
+- Inspecting design diagrams against the requirements
+- Code reviews against coding standards
+- Walking through a feature against the user story
+
+Verification does not require running the software. You can verify by reading.
+
+**Example:**
+The user story says: *"The login button must be disabled until both email and password fields are filled."*
+Verification asks: Does the code disable the button until both fields are filled? Read the code. Read the design. Compare. Tick if it matches.
+
+*💡 Analogy: Verification is checking that the chef followed the recipe. The recipe says "boil for 10 minutes." Did they boil for 10 minutes? Did they use the listed ingredients? You are not tasting yet — you are checking against the recipe.*
+
+---
+
+### 2. Validation — Are We Building the Right Thing?
+
+**Validation checks the work against the actual user need.** Even if it matches the spec perfectly, does the user actually want this?
+
+Validation activities:
+- User acceptance testing (UAT)
+- Beta releases and feedback collection
+- Usability testing with real users
+- Demo sessions where the user signs off
+
+Validation requires running the software and observing real behaviour or real user reactions.
+
+**Example:**
+The team built that login button exactly per spec. Validation asks: Do users find the disabled-button behaviour confusing? Are they clicking it expecting an error message? Maybe the spec was wrong.
+
+*💡 Analogy: Validation is the customer tasting the soup. The chef followed the recipe perfectly (verified). But the customer wanted gazpacho, not minestrone. Validation finds out whether the right dish was even on the menu.*
+
+---
+
+### 3. Side-by-Side: When Each Matters
+
+| | Verification | Validation |
+|---|---|---|
+| **Question** | "Did we build it right?" | "Did we build the right thing?" |
+| **Compares against** | Specifications, designs, standards | User needs, business goals |
+| **Methods** | Reviews, walkthroughs, inspections, static analysis | UAT, demos, beta tests, usability sessions |
+| **When** | Throughout development | Towards the end / after delivery |
+| **Software running?** | Not required | Required |
+
+**Real Example — Why You Need Both:**
+
+A team builds a feature exactly per spec: *"Show users a confirmation dialog before deleting an account."* The dialog appears. The button works. Verification passes — built per spec.
+
+In UAT (validation), users complain: the dialog only says "Are you sure?" with no warning about losing 2 years of saved data. The spec was incomplete. Validation surfaces what verification missed: the spec itself was wrong.
+
+This is why you cannot skip either. Verification without validation ships exactly-what-was-asked-but-nobody-wanted. Validation without verification ships something different from what was agreed and probably has bugs.
+        `
+      },
+
+      {
+        id: 'sdlc-vs-stlc',
+        title: 'Beginner: SDLC vs STLC',
+        analogy: "SDLC is building a house — you plan, design, lay foundations, build, paint, hand over. STLC is the inspector who walks through every stage with a clipboard. The house gets built once. The inspector signs off at every step.",
+        lessonMarkdown: `
+## SDLC vs STLC
+
+Every QA needs to know how testing fits into the bigger software delivery picture. SDLC is the whole journey of building software. STLC is the parallel testing journey that runs alongside it.
+
+### 1. SDLC — The Build Cycle
+
+**Software Development Life Cycle (SDLC)** is the end-to-end process of producing software. The classic phases:
+
+| Phase | What Happens | Output |
+|---|---|---|
+| **Requirement Analysis** | Stakeholders agree on what to build | Requirements document |
+| **Design** | Architects decide how it will be built | Design document, mockups |
+| **Development** | Developers write the code | Working code |
+| **Testing** | Quality team verifies the build | Test reports, sign-off |
+| **Deployment** | Code is released to users | Live product |
+| **Maintenance** | Bugs and changes are handled post-release | Patches, updates |
+
+These phases can be sequential (Waterfall), iterative (Agile), or continuous (DevOps) — but the *types* of activities are the same.
+
+*💡 Analogy: SDLC is building a house. Requirements = "We need 3 bedrooms, 2 baths, garage." Design = blueprints. Development = bricks and beams going up. Testing = inspections. Deployment = handing over the keys. Maintenance = leaky pipe fixes after move-in.*
+
+---
+
+### 2. STLC — The Test Cycle Running Alongside
+
+**Software Testing Life Cycle (STLC)** is the testing-side mirror of SDLC. It does *not* wait for development to finish — it runs in parallel from day one.
+
+| STLC Phase | What Happens | Output |
+|---|---|---|
+| **Requirement Analysis** | QA reads requirements for testability | List of testable items, gaps flagged |
+| **Test Planning** | Strategy, scope, schedule, resources | Test plan |
+| **Test Case Design** | Write specific test cases and data | Test cases, test data |
+| **Test Environment Setup** | Configure machines, tools, builds | Ready test environment |
+| **Test Execution** | Run the tests, log defects | Test results, bug reports |
+| **Test Closure** | Final report, lessons learned | Closure report, metrics |
+
+STLC starts at the *same time* as SDLC — not later. The biggest mistake juniors make is treating testing as a "phase at the end."
+
+*💡 Analogy: STLC is the inspector. They show up the moment the architect delivers the blueprint and start asking "How will I know this wall is load-bearing? Where is the access point for inspecting the wiring?" They do not wait until the house is built and move-in day to start asking questions.*
+
+---
+
+### 3. How They Map Phase by Phase
+
+| SDLC Phase | Parallel STLC Activity |
+|---|---|
+| Requirement Analysis | Read requirements, identify testable conditions, flag ambiguity |
+| Design | Review design for testability, plan integration test approach |
+| Development | Write test cases, set up test data, prepare automation |
+| Testing | Execute tests, log defects, retest fixes |
+| Deployment | Smoke test in production, monitor for early issues |
+| Maintenance | Regression test patches, manage test asset evolution |
+
+**Real Example:**
+
+A team is building a new search feature. Bad practice: developers code for 4 weeks, then "throw it over the wall" to QA who has 1 week to test. QA finds 30 bugs, half are design flaws, release slips.
+
+Good practice (STLC running alongside SDLC): On day 1, QA reads the requirement and flags *"What happens when the user searches for an empty string?"* — a question the spec never answered. The team decides the rule on day 1, not week 5. By the time development is done, QA has test cases ready to execute and 80% of the surprises have already been resolved.
+
+This is the whole point of STLC running parallel: ambiguity gets surfaced early, when fixing it costs hours, not days.
+        `
+      },
+
+      {
         id: 'types-of-testing',
         title: 'Beginner: Types of Testing',
         analogy: "Types of testing are like different tools in a toolbox. A hammer, screwdriver, and wrench all serve different purposes — you wouldn't use a hammer to tighten a bolt.",
@@ -155,6 +374,205 @@ These describe HOW MUCH you know about the system's internals when testing.
       },
 
       {
+        id: 'test-levels',
+        title: 'Beginner: Test Levels — Unit, Integration, System, UAT',
+        analogy: "Building a car. First check each bolt and panel (unit). Then check the doors actually fit and close (integration). Then drive the whole car around a track (system). Finally hand the keys to the buyer who decides if they like it (UAT). Skip a level and you will find out the hard way at the worst possible time.",
+        lessonMarkdown: `
+## Test Levels — Unit, Integration, System, UAT
+
+Software is tested at four distinct levels, each catching a different kind of bug. This is sometimes called the *testing pyramid* — lots of small fast tests at the bottom, fewer big tests at the top. Skipping a level is one of the most common reasons production goes on fire.
+
+### 1. The Testing Pyramid — Why Levels Exist
+
+A bug can hide in many places. A typo in one function. A miscommunication between two functions. A misconfigured database. A misunderstanding of what the customer actually wanted. No single test catches all of these.
+
+So we layer the tests:
+
+| Layer | Count | Speed | Catches |
+|---|---|---|---|
+| **UAT** | A few | Slowest | "Did we build the right thing?" |
+| **System** | Some | Slow | End-to-end flows, configuration, full-stack bugs |
+| **Integration** | Many | Medium | Contract bugs between components |
+| **Unit** | Lots | Fastest | Logic errors inside a single function |
+
+Each level catches what the level above it missed.
+
+*💡 Analogy: An aircraft passes through bolt-level checks, sub-assembly checks, full-aircraft ground tests, and finally a test pilot before passengers fly. Nobody trusts a single inspection at the end. Each layer catches what the previous one could not.*
+
+---
+
+### 2. Unit Testing — One Brick at a Time
+
+**Unit tests check the smallest piece of code in isolation.** Usually one function. Usually written by the developer.
+
+Properties:
+- Fast (milliseconds per test)
+- Run on every save / commit
+- Test one thing — no databases, no networks, no UI
+- If a unit test fails, you know exactly which function is broken
+
+**Example:**
+
+A pure function calculateDiscount(price, percent) returns price minus the percentage. Unit tests:
+
+- calculateDiscount(100, 10) should return 90
+- calculateDiscount(50, 0) should return 50
+- calculateDiscount(0, 50) should return 0
+- calculateDiscount(100, 100) should return 0
+
+If the function returns 91 instead of 90, the unit test catches it before the code ever reaches another layer.
+
+*💡 Analogy: Checking each Lego brick before you start building. The brick is the smallest piece. If one brick is cracked, you find out now — not after building the castle.*
+
+---
+
+### 3. Integration Testing — Do the Bricks Stick Together?
+
+**Integration tests check that two or more units work together correctly.** Each unit might be perfect, but the *connection* between them often hides bugs.
+
+Examples of integration boundaries:
+- Frontend ↔ Backend API
+- Backend ↔ Database
+- Service A ↔ Service B
+- Application ↔ Third-party SDK (payment, maps, auth)
+
+**Example:**
+The login function (unit-tested ✅) and the JWT-generation function (unit-tested ✅) both work fine in isolation. But the login function passes the *email* where JWT-generation expects the *user ID*. Nothing fails until they meet — and then you get logged in as somebody else.
+
+A unit test cannot find this. An integration test that drives login → token → API call exposes it instantly.
+
+*💡 Analogy: Two perfectly good Lego bricks of different sets. Each brick is fine. But the studs do not quite fit together. You only discover this when you try to connect them.*
+
+---
+
+### 4. System Testing — Does the Whole Building Stand?
+
+**System tests exercise the entire application end-to-end** as a single, fully-integrated product. Usually run in a near-production environment with real databases and real configurations.
+
+System tests check:
+- The complete user journey (signup → login → use feature → log out)
+- Cross-feature interactions (does paying for a subscription correctly unlock premium features?)
+- Non-functional concerns (performance under load, accessibility, security)
+- Configuration and deployment correctness
+
+System tests are slower and more expensive to run than unit or integration. You write fewer of them — but they catch the bugs nothing else can.
+
+**Example:**
+A user signs up, receives a verification email, clicks the link, confirms the account, logs in, adds a £50 item to the cart, applies a 10% discount code, and pays. Did the order go through? Did the inventory drop by one? Did a confirmation email send? Did the discount apply correctly? A system test runs that entire journey and verifies every checkpoint.
+
+*💡 Analogy: Final walkthrough of a finished house. Lights work? Heating works? Plumbing flows? Doors lock? You check the whole system as one — not the bricks, not the wiring, the **house**.*
+
+---
+
+### 5. User Acceptance Testing (UAT) — Will the Owner Move In?
+
+**UAT is the final layer — real users (or business representatives) check whether the software actually meets their needs.** This is validation, not verification.
+
+UAT participants are usually:
+- Product owners
+- Business analysts
+- Real customers (in a beta)
+- Clients (in agency / B2B work)
+
+They do not run scripted test cases. They use the product the way they will use it for real.
+
+**What UAT often catches that no other level does:**
+- The feature is technically correct but solves the wrong problem
+- The workflow is confusing even though every individual screen works
+- Industry-specific rules the dev team did not know about
+- "We cannot actually use this in our office because…"
+
+**Real Example:**
+
+A logistics company commissions an internal app to track parcel deliveries. Unit, integration, and system tests all pass. UAT begins. The first warehouse worker tries it and says: *"There is no offline mode. Half our depots have no Wi-Fi."* Critical requirement, missed in spec, surfaced only in UAT. Fix would have taken 1 day if found at design time. At UAT, it is a 3-week rebuild.
+
+*💡 Analogy: Handing over the keys. The buyer walks in, looks around, opens cupboards, tries the taps. They sign off — or they say "actually, we wanted the kitchen on the other side."*
+        `
+      },
+
+      {
+        id: 'static-vs-dynamic',
+        title: 'Beginner: Static vs Dynamic Testing',
+        analogy: "Static testing is proofreading the play script before rehearsals. Dynamic testing is watching the actors actually perform it. One spots typos and missing scenes; the other spots actors tripping over the rug. You need both.",
+        lessonMarkdown: `
+## Static vs Dynamic Testing
+
+Not all testing involves running the software. Some of the most valuable defects are caught by *reading* — never executing a single line of code. Knowing when to read and when to run is a senior-level instinct.
+
+### 1. Static Testing — Reading Without Running
+
+**Static testing finds defects without executing the code.** You inspect the artefacts directly.
+
+What can be statically tested:
+- Requirements documents
+- Design documents and architecture diagrams
+- Source code
+- Test cases themselves
+- Configuration files
+- API specifications (OpenAPI / Swagger)
+
+Common static testing techniques:
+
+| Technique | What It Is | Example |
+|---|---|---|
+| **Review** | Informal read-through by a peer | "Hey, can you eyeball this PR?" |
+| **Walkthrough** | Author guides others through the work | Architect presents a design to the team |
+| **Inspection** | Formal, checklist-driven review with defined roles | Security review of a payment module |
+| **Static Analysis** | Tools scan code for patterns | ESLint, SonarQube, TypeScript compiler |
+
+**Real Example:**
+
+A senior reviewer reads a PR and notices an assignment used where a comparison was intended — a single equals sign, *if (user.role = "admin")*, instead of double equals. The code would *always* treat the user as admin. The compiler accepts it. Unit tests with proper input might miss it. Static testing catches it in 30 seconds.
+
+*💡 Analogy: Static testing is proofreading the play script. The actors are not on stage yet. You spot missing scenes, typos, and contradictions just by reading. No need to wait for the performance.*
+
+---
+
+### 2. Dynamic Testing — Running and Watching
+
+**Dynamic testing finds defects by executing the software** with specific inputs and observing the outputs.
+
+This is what most people mean by "testing":
+- Manual test execution
+- Automated test scripts
+- Performance and load testing
+- Security penetration testing
+- Exploratory sessions
+
+Dynamic testing tells you: *given this input, the system actually produced this output*. It catches bugs in runtime behaviour that no amount of reading can find.
+
+**Example:**
+You can read login code all day and never spot that the database connection times out after 30 seconds of inactivity, locking out users mid-session. A dynamic test that idles for 31 seconds and then submits the form catches it instantly.
+
+*💡 Analogy: Dynamic testing is the dress rehearsal. The actors run the play. You spot the prop that breaks, the line nobody can hear from row 10, and the actor who keeps tripping on the same step. None of that is in the script.*
+
+---
+
+### 3. Both Together: Layered Quality
+
+The two layers find different bugs and complement each other.
+
+| | Static | Dynamic |
+|---|---|---|
+| **Software runs?** | No | Yes |
+| **Catches** | Logic errors, missing requirements, ambiguous specs, code smells | Runtime errors, performance issues, integration failures, real user behaviour |
+| **Cost** | Cheap, fast, early | More expensive, slower, later |
+| **When in SDLC** | Throughout — including before any code is written | After code is written |
+| **Example output** | Review comments, lint warnings, walkthrough notes | Bug reports, test results, performance graphs |
+
+**Real Example — Layered Defence:**
+
+A new payment endpoint is being shipped.
+- **Static testing:** A code review catches a SQL query with no parameter binding (SQL injection risk). Fixed before merge.
+- **Dynamic testing:** A penetration test simulates a malformed payload — finds that the API returns a 500 error revealing the database driver version. Fixed before release.
+
+Each layer caught a different bug. Skip static testing and you ship the SQL injection. Skip dynamic and you ship the information leak. Run both and you ship neither.
+
+The practical rule: **the earlier you catch it, the cheaper it is.** Static testing pulls defects forward in time, where they are tens of times cheaper to fix.
+        `
+      },
+
+      {
         id: 'writing-test-cases',
         title: 'Beginner: Writing Test Cases',
         analogy: "A test case is like a recipe. If you write 'add some flour', you'll get a different cake every time. You need to write 'add exactly 200g of plain flour, sifted' to get consistent, repeatable results.",
@@ -218,6 +636,93 @@ For a single "Login" feature, a complete test case suite should cover:
 Notice how TC-001 is just the beginning. Real testing is everything else.
 
 *💡 Analogy: A doctor doesn't just check if your heart is beating. They check your blood pressure, cholesterol, oxygen levels, and ask if you get chest pain when climbing stairs. A heartbeat alone doesn't mean you're healthy.*
+        `
+      },
+
+      {
+        id: 'test-scenarios-vs-test-cases',
+        title: 'Beginner: Test Scenarios vs Test Cases',
+        analogy: "A test scenario is 'We are going to Paris.' A test case is the exact flight, seat number, boarding gate, passport check, and meal preference. The scenario tells you the destination. The test case tells you exactly how to get there.",
+        lessonMarkdown: `
+## Test Scenarios vs Test Cases
+
+These two terms get used interchangeably and it confuses new testers. They are related but operate at different altitudes. Senior testers think in scenarios first, then derive test cases from them.
+
+### 1. Test Scenario — The What
+
+**A test scenario describes a high-level testing condition or feature flow.** One sentence. No steps, no data, no expected results.
+
+Examples of scenarios:
+- "Verify that a user can log in with valid credentials."
+- "Verify the checkout flow with a discount code applied."
+- "Verify password reset via email."
+
+Scenarios answer the question: *"What are we testing?"* They are easy to write, easy to discuss with non-testers, and useful for coverage planning. You list scenarios first to make sure you have not forgotten an important behaviour.
+
+A scenario is **one-to-many** with test cases — a single scenario typically expands into multiple test cases.
+
+*💡 Analogy: A scenario is the chapter title in a guidebook. "Day 3: Visit the Louvre." It tells you the destination and the day. It does not tell you which Métro line, which entrance, which queue, or what time the museum closes.*
+
+---
+
+### 2. Test Case — The Exactly How
+
+**A test case is the detailed, step-by-step instruction** for executing a single test, with exact data and expected results.
+
+A test case for the scenario *"Verify user can log in with valid credentials"* might be:
+
+| Field | Value |
+|---|---|
+| **Test Case ID** | TC-LOGIN-001 |
+| **Title** | Login with valid email and password |
+| **Preconditions** | User test@qa.com exists with password Test@1234 |
+| **Steps** | 1. Go to /login  2. Enter email  3. Enter password  4. Click Submit |
+| **Test Data** | Email: test@qa.com  Password: Test@1234 |
+| **Expected Result** | User is redirected to /dashboard. Greeting "Hello, Test User" appears. |
+
+The same scenario also expands into:
+- TC-LOGIN-002: Login with valid email but wrong password
+- TC-LOGIN-003: Login with non-existent email
+- TC-LOGIN-004: Login attempt with empty fields
+- TC-LOGIN-005: Login locked after 5 failed attempts
+
+One scenario, five test cases. Each test case is reproducible by anyone reading it — including a tester who has never seen the system before.
+
+*💡 Analogy: A test case is the actual itinerary. "Day 3: Take Métro Line 1, exit at Palais Royal–Musée du Louvre, enter via the Pyramid, security takes 20 minutes, the museum opens at 09:00 and is closed Tuesdays." Now anyone can follow it.*
+
+---
+
+### 3. Where Each Belongs in the Workflow
+
+| | Test Scenario | Test Case |
+|---|---|---|
+| **Level of detail** | High-level | Step-by-step |
+| **Length** | One sentence | Many fields |
+| **Audience** | Anyone (PM, dev, QA) | Tester executing the test |
+| **When written** | Early in test planning | After scenarios, before execution |
+| **Reusability** | Across releases | Across runs of the same scenario |
+| **Cardinality** | One scenario | Many test cases per scenario |
+
+**Workflow:**
+1. Read requirements → list scenarios (10–30 per feature)
+2. Review scenarios with the team → catch missing behaviours
+3. Expand each scenario into 1–N test cases with steps and data
+4. Execute the test cases → log defects
+
+**Real Example:**
+
+A team is testing a new "Forgot Password" feature. The PM and QA lead spend an hour together listing scenarios:
+- User requests reset with valid email
+- User requests reset with non-existent email
+- User clicks reset link within validity window
+- User clicks reset link after expiry
+- User submits new password matching old password rules
+- User submits weak new password
+- User attempts reset on a locked account
+
+That is **7 scenarios in 30 minutes**. From there, QA writes test cases — typically 1 to 3 per scenario, so ~12–20 test cases total. The scenarios layer ensures coverage; the test cases layer ensures execution rigour.
+
+Skip the scenarios step and you tend to write deep test cases for the obvious paths and miss whole categories (like the "reset link after expiry" branch). Skip the test cases step and your testing is too vague to be reproducible.
         `
       },
 
@@ -346,6 +851,93 @@ Some negative tests protect against deliberate attacks:
 **These are not hacker tricks — these are standard test cases.** Every QA engineer should run them on any text field that saves data.
 
 *💡 Analogy: A bank tests its vault by hiring a locksmith to try to break in. They are not hoping he succeeds — they need to know the door is actually secure before putting real money inside.*
+        `
+      },
+
+      {
+        id: 'smoke-vs-sanity',
+        title: 'Beginner: Smoke vs Sanity Testing',
+        analogy: "Smoke testing is what pilots do before take-off — does the plane even start, do the lights work, does anything obvious smell of burning? Sanity testing is what a mechanic does after a specific repair — 'I just changed the brakes; are the brakes working before I bother test-driving the whole car?'",
+        lessonMarkdown: `
+## Smoke vs Sanity Testing
+
+These two terms are constantly confused — even in job adverts. They are both *quick checks* before deeper testing, but they are triggered by different events and answer different questions.
+
+### 1. Smoke Testing — Does the Build Even Run?
+
+**Smoke testing is a broad, shallow check on a fresh build** to confirm that the basic critical functions work and the build is stable enough to bother testing further.
+
+Properties of smoke testing:
+- Run on **every new build** entering QA
+- Covers **breadth, not depth** — touch every major area, but lightly
+- Usually 10–30 minutes
+- Pass = build is testable. Fail = reject the build, send it back to dev
+
+Typical smoke test for a web app:
+- App loads without error
+- Login works with one valid credential
+- Home page renders
+- Major navigation links work
+- One end-to-end happy-path journey completes
+
+If smoke fails, you do not deepen testing — you stop and tell the dev team the build is broken.
+
+**Where the name comes from:** electrical engineering. Plug in the new circuit and see if any smoke comes out. If it does, do not bother running the full test suite — you have bigger problems.
+
+*💡 Analogy: A pilot's pre-flight check. Before take-off they do not audit every passenger seat or test every meal. They check: do the engines start? Are the controls responsive? Are the lights working? Anything obviously broken? If yes, the plane stays grounded. If no, we proceed to the actual flight (deeper testing).*
+
+---
+
+### 2. Sanity Testing — Did My Specific Fix Land?
+
+**Sanity testing is a narrow, focused check on a specific fix or change** to confirm the fix actually worked and did not obviously break anything nearby.
+
+Properties of sanity testing:
+- Run after a **specific bug fix** or small change
+- Covers **depth, not breadth** — deep dive on the changed area only
+- Usually 5–15 minutes
+- Pass = the fix works, proceed to regression. Fail = the fix is bad, kick back to dev
+
+Example:
+A bug was filed: *"Login fails when password contains a £ symbol."* Dev fixes the bug. QA runs a sanity test:
+- Try login with password containing £
+- Try login with password containing other special characters ($, €, ¥)
+- Try login with normal password (did not break the basic case)
+
+That is it. QA does not retest the entire app — that is what regression testing is for.
+
+*💡 Analogy: A mechanic just changed your brakes. Before driving the car back to you, they push the pedal in the workshop and watch the brake light come on. They do not redo the oil check, the tyre pressure, or the air-con. They check the *thing they just touched*.*
+
+---
+
+### 3. Side-by-Side: When to Use Which
+
+| | Smoke Testing | Sanity Testing |
+|---|---|---|
+| **Purpose** | Confirm build is stable enough to test | Confirm a specific fix works |
+| **Scope** | Wide, shallow | Narrow, deep |
+| **When triggered** | New build received from dev | Specific bug fix delivered |
+| **Documentation** | Often scripted, may be automated | Often unscripted / ad-hoc |
+| **Performed by** | QA team broadly | The tester closest to the bug |
+| **What follows it** | Functional + regression testing | Regression testing |
+| **What if it fails** | Reject the entire build | Reject the fix only |
+
+**Decision shortcut:**
+- *"New build dropped — is anything completely broken?"* → Smoke
+- *"They fixed the bug I raised — is it actually fixed?"* → Sanity
+
+**Real Example — Both in One Day:**
+
+09:00 — Dev team delivers Build 4.2.0 to QA.
+09:15 — QA runs smoke test. Login is broken (500 error). Build rejected. Dev investigates.
+11:30 — Dev pushes Build 4.2.1 with the login fix.
+11:45 — QA runs smoke again. Pass. Full test cycle begins.
+14:00 — Tester finds bug: discount code accepts negative values.
+15:30 — Dev pushes a fix.
+15:45 — Tester runs **sanity** on the fix: try negative values (now rejected), zero, valid positive, max valid value. Sanity passes.
+16:00 — Tester runs a focused regression on the checkout area to ensure no nearby breakage.
+
+Smoke = "should I be testing this build at all?" Sanity = "did my specific bug actually get fixed?"
         `
       },
 

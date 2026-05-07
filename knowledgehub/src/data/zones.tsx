@@ -125,7 +125,7 @@ export const ZONE_TIERS: Record<string, { id: string; label: string; color: stri
   manual: [
     {
       id: 'beginner', label: 'Beginner', color: 'text-emerald-400',
-      moduleIds: ['what-is-testing','types-of-testing','writing-test-cases','happy-path','negative-testing','exploratory-testing','bug-life-cycle','severity-vs-priority'],
+      moduleIds: ['what-is-testing','qa-vs-qc-vs-testing','verification-vs-validation','sdlc-vs-stlc','types-of-testing','test-levels','static-vs-dynamic','writing-test-cases','test-scenarios-vs-test-cases','happy-path','negative-testing','smoke-vs-sanity','exploratory-testing','bug-life-cycle','severity-vs-priority'],
     },
     {
       id: 'intermediate', label: 'Intermediate', color: 'text-sky-400',
