@@ -129,7 +129,7 @@ export const ZONE_TIERS: Record<string, { id: string; label: string; color: stri
     },
     {
       id: 'intermediate', label: 'Intermediate', color: 'text-sky-400',
-      moduleIds: ['bva','equivalence-partitioning','state-transition','test-planning','defect-reporting','regression-testing'],
+      moduleIds: ['bva','equivalence-partitioning','decision-table-testing','pairwise-testing','use-case-testing','error-guessing','state-transition','test-planning','entry-exit-criteria','test-estimation','defect-reporting','regression-testing','compatibility-testing','localization-testing','accessibility-testing','mobile-testing'],
     },
     {
       id: 'expert', label: 'Expert', color: 'text-amber-400',

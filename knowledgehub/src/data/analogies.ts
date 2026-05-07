@@ -1284,6 +1284,270 @@ That is 10 targeted tests that cover every meaningful scenario in a system with 
       },
 
       {
+        id: 'decision-table-testing',
+        title: 'Intermediate: Decision Table Testing',
+        analogy: "A decision table is a restaurant menu for logic. Diet vegetarian + lunch + indoor seating = quinoa bowl. Carnivore + dinner + outdoor seating = ribeye. Each combination of conditions points to exactly one action — no ambiguity, no missed cases.",
+        lessonMarkdown: `
+## Decision Table Testing
+
+When the system has multiple inputs and the output depends on the *combination* of those inputs, simple boundary or partition testing is not enough. Decision tables make every combination explicit so nothing slips through.
+
+### 1. When You Need a Decision Table
+
+You reach for a decision table whenever requirements sound like:
+- "If X and Y, then A. If X but not Y, then B. If neither, then C."
+- "Discounts apply when the user is a member AND the order is over £100, OR when there is a promo code."
+- "Show the warning if the file is over 10MB OR contains executable content."
+
+Boundary Value Analysis tests the edges of one input. Equivalence Partitioning tests one representative per group. Decision Tables test the *interactions* between inputs.
+
+*💡 Analogy: BVA and EP are like checking each ingredient. Decision tables are like checking every recipe combination on the menu — because the dish only works when the ingredients meet correctly.*
+
+---
+
+### 2. Building a Decision Table
+
+A decision table has two halves: **conditions** at the top, **actions** at the bottom. Each column is one rule (one combination of conditions).
+
+**Example — Login Discount Rule:**
+*"Logged-in members over 60 get 20% off. Logged-in non-members get 5% off. Guests get nothing."*
+
+| Condition | R1 | R2 | R3 | R4 |
+|---|---|---|---|---|
+| Logged in? | Y | Y | Y | N |
+| Member? | Y | Y | N | — |
+| Age ≥ 60? | Y | N | — | — |
+| **Action** | | | | |
+| Apply 20% | ✓ | | | |
+| Apply 5% | | ✓ | ✓ | |
+| Apply 0% | | | | ✓ |
+
+Each column = one test case. R1 tests senior members, R2 tests younger members, R3 tests non-members, R4 tests guests. The dashes (—) are "doesn't matter" — that condition has no effect on the outcome for that rule.
+
+*💡 Analogy: A traffic light intersection. Red light + pedestrian waiting = stop and let them cross. Green light + no pedestrian = drive through. Each combination has exactly one correct response, no improvisation.*
+
+---
+
+### 3. Why Decision Tables Catch What Ad-Hoc Testing Misses
+
+Without a decision table, testers pick combinations they can think of — usually the obvious ones. The bugs hide in the awkward middle: *"What about a member who is exactly 60? What about a logged-out member?"*
+
+A decision table forces you to enumerate ALL combinations of conditions, then ask "what should happen?" for each. Two things fall out:
+
+1. **Missed requirements** — combinations the spec never addressed. ("What about logged-in users with no member status — do they get free shipping?") This is a question for the PM, not a test case.
+2. **Conflicting rules** — two conditions that imply different actions. The decision table makes the conflict explicit.
+
+**Real Example:**
+A travel booking app rule: "Refunds allowed within 24 hours OR if flight is cancelled." A decision table found a gap: *"Booking made 25 hours ago, flight then cancelled — does the user get a refund?"* The spec said no. The product owner said yes. The decision table found the spec bug before any code was written.
+
+**Decision Tables vs Other Techniques:**
+
+| Technique | Best For | Misses |
+|---|---|---|
+| BVA | Range edges (min/max) | Combinations |
+| Equivalence Partitioning | Single-input grouping | Combinations |
+| **Decision Tables** | **Multiple-input combinations** | **Sequence / state changes** |
+| State Transition | Order of events | Static combinations |
+
+The four often work together. BVA + EP for inputs, decision tables for combinations, state transition for ordering.
+        `
+      },
+
+      {
+        id: 'pairwise-testing',
+        title: 'Intermediate: Pairwise (Combinatorial) Testing',
+        analogy: "Pairwise testing is the 80/20 rule for combinations. Most bugs need only TWO inputs to combine wrongly to manifest. So instead of testing every possible combination (millions), you test every possible PAIR (hundreds). Massive coverage, fraction of the work.",
+        lessonMarkdown: `
+## Pairwise (Combinatorial) Testing
+
+When a feature has many inputs, exhaustive testing is impossible. Pairwise testing — also called *all-pairs* — is the most useful trick in the intermediate tester's kit. It cuts the test count from millions to hundreds while still catching the vast majority of combinatorial bugs.
+
+### 1. The Combinatorial Explosion Problem
+
+Consider a flight booking form with 5 fields:
+- Class: Economy / Business / First (3 options)
+- Trip type: One-way / Return (2)
+- Passengers: 1 / 2 / 3 / 4 (4)
+- Meal: Standard / Veg / Vegan / Halal (4)
+- Insurance: Yes / No (2)
+
+Exhaustive testing = 3 × 2 × 4 × 4 × 2 = **192 test cases**. And that is for a small form. A real form with 10 fields × 5 options each = 9.7 million.
+
+You cannot test 192 combinations, never mind 9.7 million. So you compromise — and most testers compromise badly, picking 10–15 "obvious" combinations and missing entire categories.
+
+*💡 Analogy: Cooking testing. You cannot try every combination of every ingredient. But you can guarantee that every PAIR of ingredients (chicken+rice, chicken+pasta, fish+rice, fish+pasta) has been tasted together. That alone catches almost every bad pairing.*
+
+---
+
+### 2. The Pairwise Insight
+
+Research on industrial bug data (Kuhn, NIST) found that **most bugs are triggered by the interaction of just 1 or 2 input fields**. Three-way interactions account for a small additional slice. Bugs requiring 4+ specific inputs to combine are rare.
+
+So if every PAIR of options has been tested together at least once, you have probably exercised the bugs that exist — without testing every full combination.
+
+**For our flight form, pairwise reduces 192 to ~20 test cases.** Coverage of all pairs of options across all field-pairs: 100%. Coverage of full 5-input combinations: way less than 100% — but the bugs in those combinations would have been caught by simpler pairs anyway.
+
+*💡 Analogy: Speed-dating. Instead of every guest having a 4-hour conversation with every other guest, every guest gets a 5-minute chat with every other guest. You cover all pairs. The matches that work are usually visible from those 5 minutes.*
+
+---
+
+### 3. Generating Pairwise Test Sets
+
+You do not generate pairwise tables by hand for anything bigger than 3 fields. Use tools:
+
+- **PICT** (Microsoft) — command-line, free, the standard
+- **Hexawise** — commercial, GUI
+- **Allpairs.exe** — free Perl/Python tool
+- Online generators (search "pairwise test generator")
+
+**Workflow:**
+1. List your input variables and their possible values (the *parameters* and *levels*).
+2. Feed them to a tool.
+3. The tool outputs a minimal set of test cases that covers every pair of (level-X-of-param-A, level-Y-of-param-B).
+4. Run those tests.
+
+**Real Example:**
+A team testing a calendar app had 6 input fields with 3–5 options each = 4,500 combinations. Manual smart-sampling missed a bug where *"Recurring weekly + ends-by-date + invitee in different timezone"* corrupted the recurrence. After switching to pairwise (40 tests instead of 4,500), the same bug fell out of the second test in the generated set. Tool found in 90 seconds what humans missed in two days.
+
+**When NOT to use pairwise:**
+- You have only 2–3 input variables — just test combinations directly
+- Your bug is a known higher-order interaction (3+ fields must combine specifically) — pairwise will not catch it. Use *3-way* (covering all triples) instead.
+- The fields are independent — no interaction effects exist, so any reasonable sampling works
+        `
+      },
+
+      {
+        id: 'use-case-testing',
+        title: 'Intermediate: Use Case Testing',
+        analogy: "A use case is a movie script for one user goal. Setting, characters, plot, ending. Use case testing is testing the movie scene by scene — including the deleted scenes (alternative paths) and the bloopers (exceptional flows).",
+        lessonMarkdown: `
+## Use Case Testing
+
+Use case testing focuses on real user goals — the *journeys* a user takes through the system to accomplish something meaningful — rather than isolated features. It catches bugs that only appear when several screens, validations, and actions chain together.
+
+### 1. What a Use Case Looks Like
+
+A use case has a name, an actor, a goal, and a sequence of steps:
+
+| Element | Example |
+|---|---|
+| **Use Case** | Withdraw cash from ATM |
+| **Actor** | Bank customer |
+| **Goal** | Get cash in hand |
+| **Preconditions** | Has valid card, knows PIN, account has funds |
+| **Main flow** | Insert card → enter PIN → select withdraw → enter amount → take cash → take card → take receipt |
+| **Alternative flows** | Wrong PIN entered, insufficient funds, no receipt requested, transaction cancelled, card retained |
+| **Postconditions** | Account balance reduced, transaction logged |
+
+The main flow is the happy path through the system. Alternative flows describe what happens when reality intervenes.
+
+*💡 Analogy: A recipe is a use case for cooking. Main flow = "do these steps in order." Alternatives = "if the milk has gone off, substitute with cream." A test case is one *attempt* to follow the recipe, all the way through.*
+
+---
+
+### 2. How Use Case Testing Differs from Functional Testing
+
+Functional testing checks individual features in isolation: does the login button work? Does the search return results? Does the cart show the right total?
+
+Use case testing chains those features together: from the moment a user opens the app intending to *buy a thing*, every screen, validation, and edge case along the way is part of the test.
+
+**Why this finds different bugs:**
+- A login form works perfectly. A cart works perfectly. But logging in mid-checkout drops the cart contents. **Functional testing missed this. Use case testing finds it.**
+- A search and a filter both work. But applying a filter then changing the search resets the filter unexpectedly. Found by following a real journey, not by testing each component alone.
+
+---
+
+### 3. Building Use Case Tests
+
+**Step 1: Identify the actors and their goals.**
+Talk to the product owner. Read the user stories. List "things a user comes here to accomplish."
+
+**Step 2: Write the main flow for each goal.**
+Plain English, numbered steps, from start to outcome.
+
+**Step 3: List alternative and exception flows.**
+For every step in the main flow, ask: "what if this goes wrong, or differently?"
+
+**Step 4: Convert each flow into a test case.**
+Main flow becomes one test. Each alternative becomes one test. Exceptions get their own tests too.
+
+**Real Example:**
+A grocery delivery app. Use case: *"Order weekly shopping for delivery."* Main flow has 12 steps. Alternative flows: payment declined, delivery slot expired during checkout, item went out of stock between adding to cart and paying, address validation failed on save, customer is not logged in when they hit checkout (must auth first). Six alternatives, each its own test.
+
+By the end, you have ~7 tests for one use case. But each one mirrors something a real customer can do. None of them are contrived. **Bugs found here are bugs real users would hit on day one.**
+
+*💡 Analogy: Dress rehearsal for a play. You do not just check that each actor knows their lines — you run the whole performance, including what happens when an actor misses a cue. Things that worked in rehearsal often fall apart in performance.*
+        `
+      },
+
+      {
+        id: 'error-guessing',
+        title: 'Intermediate: Error Guessing',
+        analogy: "Error guessing is the seasoned chef who looks at a recipe and immediately says 'that flour amount is wrong.' Years of experience tell you exactly where the bug is hiding — before you even start cooking.",
+        lessonMarkdown: `
+## Error Guessing
+
+Error guessing is the formal name for what experienced testers do intuitively: looking at a feature and *guessing* where the bugs are most likely to be, based on patterns from past projects. It sounds unscientific. In practice, it is one of the highest-yield techniques in any senior tester's toolkit.
+
+### 1. What It Actually Is
+
+Error guessing is **structured intuition**. You bring two things to a feature:
+- General knowledge of common bug patterns (off-by-one, null inputs, encoding issues, race conditions, etc.)
+- Specific knowledge of *this* team, *this* codebase, *this* tech stack
+
+You combine them to predict where bugs probably live. You then write tests aimed precisely at those spots.
+
+It is not a replacement for BVA, EP, or decision tables. Those techniques systematically cover the ground. Error guessing is what you add on top to reach the spots no formal technique would have suggested.
+
+*💡 Analogy: A car mechanic listening to an engine. They cannot describe the algorithm they are using — but they know exactly which part to check first based on the sound. That is what 15 years of mechanical experience gives them. Same with senior testers.*
+
+---
+
+### 2. Common Error Categories to Guess
+
+A starter checklist for error guessing on any feature:
+
+| Category | What to test |
+|---|---|
+| **Empty inputs** | Empty string, empty array, null, undefined |
+| **Boundary values** | 0, 1, -1, MAX_INT, MAX_INT + 1 |
+| **Special characters** | Quotes, slashes, emojis, RTL text, control characters |
+| **Encoding** | UTF-8, UTF-16, mixed encodings, BOM markers |
+| **Whitespace** | Leading, trailing, internal, tab vs space, non-breaking space |
+| **Sequence** | What if step 2 happens before step 1? Twice? Concurrently? |
+| **Network** | Slow, dropped, partial responses, retries, timeouts |
+| **Date/time** | Leap year, midnight, DST changes, timezone differences, year 9999 |
+| **Permissions** | What happens if a logged-out user hits this? Wrong role? Expired token? |
+| **Resource** | Out of disk, out of memory, max connections, max file size |
+
+Senior testers carry their own personal version of this list, weighted by past projects. *"On the last 3 projects, dates broke at year boundaries. I will test that immediately on every new project."*
+
+---
+
+### 3. Combining With Other Techniques
+
+Error guessing works best as a **multiplier** on top of systematic techniques:
+
+1. **BVA / EP** identifies the obvious test inputs.
+2. **Decision tables** cover combinations.
+3. **Use case testing** covers user journeys.
+4. **Error guessing** adds tests for *specific failure modes you suspect from experience.*
+
+**Real Example:**
+A team built an in-app messaging feature. Systematic testing covered: login, send, receive, delete. Error guessing added:
+- Send a message containing only emojis (broke the database collation)
+- Send a message at the exact moment the recipient logged out (lost the message)
+- Send 100 messages in 5 seconds (rate limiter blocked legitimate users)
+- Send a message with a 1MB image attachment (timed out silently)
+- Send a message during DST transition (timestamp went backwards)
+
+None of these were in the test plan. Five real bugs. All found by a single tester with 5 years of messaging-app experience asking *"where would I have screwed this up if I were the developer?"*
+
+*💡 Analogy: A burglar testing your house security thinks like a burglar, not like a security guard. They go straight to the windows everyone forgets to lock and the spare key under the mat. Error guessing is testing while thinking like a bug.*
+        `
+      },
+
+      {
         id: 'state-transition',
         title: 'Intermediate: State Transition Testing',
         analogy: "Think of a traffic light. It MUST go Green → Amber → Red → Green. If it ever goes directly from Red to Green without Amber, or tries to be Green and Red simultaneously, someone is going to get hurt.",
@@ -1422,6 +1686,167 @@ These are often confused. Here is the difference:
 The Test Strategy says: *"All projects at this company will use BVA and EP techniques, Jira for bug tracking, and require 0 P1 bugs before release."*
 
 The Test Plan for the "December Payment Upgrade" says: *"Testing runs from Dec 1–Dec 15. Three QA engineers. Testing focuses on payment flows and refund processing. Go/No-Go meeting on Dec 14."*
+        `
+      },
+
+      {
+        id: 'entry-exit-criteria',
+        title: 'Intermediate: Entry and Exit Criteria',
+        analogy: "Entry criteria are the bouncer's checklist for letting you into the club. Exit criteria are the bouncer's checklist for letting you leave. Without bouncers, anyone gets in and nobody can prove the night was a success.",
+        lessonMarkdown: `
+## Entry and Exit Criteria
+
+Every test phase has a *gate* at the start and a *gate* at the end. Entry criteria define when testing should *start*. Exit criteria define when testing is *done*. Skipping these gates is how teams end up testing builds that should never have been delivered, and how they end up shipping releases that were never properly verified.
+
+### 1. Entry Criteria — The Conditions to Start Testing
+
+**Entry criteria are the prerequisites that must be true before a test phase begins.** They protect QA from wasting time on builds that are not ready.
+
+Typical entry criteria for a system testing phase:
+
+| Type | Example |
+|---|---|
+| **Build** | A deployable build is available in the test environment |
+| **Smoke** | The build passes a 30-minute smoke test |
+| **Documentation** | All test cases written and reviewed |
+| **Environment** | Test environment is up, configured, and stable |
+| **Test data** | Required test data is loaded and verified |
+| **Defects** | All blocker bugs from the previous phase are closed |
+| **Approvals** | Dev lead has signed off on code-complete |
+
+If even one entry criterion is unmet, testing should not start. The cost of starting too early: bugs that are actually environment problems, retesting after late deliveries, and finger-pointing.
+
+*💡 Analogy: A surgeon does not start an operation until the patient is prepped, the team is scrubbed, the instruments are sterilised, and the imaging is on the screen. Skipping any of those is malpractice. Same logic applies to testing.*
+
+---
+
+### 2. Exit Criteria — The Conditions to Declare Done
+
+**Exit criteria are the conditions that must be met before testing is considered complete.** They are the difference between "I think we are done" and "we have provably finished."
+
+Typical exit criteria for a system testing phase:
+
+| Type | Example |
+|---|---|
+| **Coverage** | 100% of planned test cases executed |
+| **Pass rate** | At least 95% of executed tests pass |
+| **Defects** | Zero open critical or high-severity defects |
+| **Defect trend** | New-bug rate has dropped to <2 per day for 3 days |
+| **Sign-off** | Test lead and product owner have approved release |
+| **Risk** | All identified high-risk areas have full coverage |
+
+A common mistake: equating "we ran out of time" with "we finished." Exit criteria force the conversation: *"We did not meet criterion X — what now? Slip the date? Reduce scope? Accept the risk and document it?"*
+
+*💡 Analogy: Exit criteria are the marathon finish line. You do not get to declare yourself "finished" because the sun is going down — you finished when you crossed the line. If you stopped at mile 23, you stopped at mile 23, not at the finish.*
+
+---
+
+### 3. Putting Both to Work
+
+**Real Example — Web Application Release:**
+
+**Entry criteria for system testing:**
+1. Build deployed to staging environment
+2. Smoke test passed (login, search, checkout work end-to-end)
+3. All planned test cases reviewed and ready
+4. Test data set loaded
+5. No blocker defects from integration phase
+
+**Exit criteria for system testing:**
+1. 100% of system test cases executed
+2. ≥98% pass rate
+3. Zero critical defects open
+4. ≤5 medium defects open, all triaged with documented decisions
+5. Performance test results meet SLA (page load <2s for 95th percentile)
+6. Security scan complete with zero high-severity findings
+7. Regression suite passes
+8. Test summary report signed off by QA lead and product owner
+
+When the team meets all exit criteria, the release is releasable. When they do not, *something* must change — fix the gap, or formally accept the gap with stakeholder approval and document it in the release notes.
+
+The discipline of writing entry and exit criteria — and forcing them to be met — is what separates teams that ship reliable software from teams that ship "we ran out of time."
+        `
+      },
+
+      {
+        id: 'test-estimation',
+        title: 'Intermediate: Test Estimation',
+        analogy: "Test estimation is forecasting the weather. You will never be exact. You can be roughly right or precisely wrong. The teams who say 'three weeks, give or take a few days' deliver in three weeks. The teams who promise 'exactly 14 working days' miss by a month.",
+        lessonMarkdown: `
+## Test Estimation
+
+How long will testing take? This question gets asked at every project planning meeting, and a senior tester needs a defensible answer. Estimation is not guessing — it is a structured process that produces a number with reasoning behind it.
+
+### 1. Why Estimation Is Hard
+
+Estimation is hard because:
+- **You estimate before all the requirements are clear.** Late requirement changes inflate the actual time.
+- **Defects you have not seen yet drive most of the variance.** A clean build tests in days. A buggy build tests in weeks of cycles.
+- **Environmental issues are unpredictable.** Test environment downtime steals time you cannot recover.
+- **The team's skill mix changes.** A senior tester finds bugs faster than a junior. Mix matters.
+
+Even with all of this, you have to give a number. The trick is producing one with explicit assumptions, so when reality differs you can re-estimate from the same baseline.
+
+*💡 Analogy: A builder quoting for a kitchen renovation. They cannot promise exactly 14 days because they have not opened the walls yet. But they can quote "12-16 days assuming no surprises with the plumbing, plus 2 days contingency for old houses." That is honest, defensible, and revisable.*
+
+---
+
+### 2. Common Estimation Techniques
+
+| Technique | How it Works | Best for |
+|---|---|---|
+| **Work Breakdown Structure (WBS)** | Break down all activities, estimate each, sum up | Detailed plans, well-known scope |
+| **Three-Point Estimation** | Optimistic + Pessimistic + Most Likely / 4 weighted | When uncertainty is high |
+| **Use Case Points** | Calculate from use case complexity | Use-case-driven projects |
+| **Function Points** | Calculate from feature counts and weights | Formal industry settings |
+| **Analogous Estimation** | Compare to a similar past project | When data exists |
+| **Expert Judgement** | Senior tester gives a number based on experience | Quick early estimates |
+| **Delphi / Wideband Delphi** | Multiple experts estimate, discuss, re-estimate, converge | Group consensus needed |
+
+In practice, most teams blend two or three. WBS for the detail, expert judgement for the unknowns, three-point for the high-uncertainty items.
+
+*💡 Analogy: Cooking for 10 guests. WBS = listing every dish and how long it takes. Three-point = "starter takes 20-40 minutes depending on how cooperative the pastry is." Analogous = "I made the same dinner last month, it took 3 hours." Expert judgement = "I have been cooking dinners for 20 years; this is a 4-hour meal." Combine them and you get a defensible estimate.*
+
+---
+
+### 3. Producing a Defensible Estimate
+
+A practical workflow for estimating a testing phase:
+
+**Step 1 — List all testing activities**
+Test planning, test case design, test data setup, test environment setup, test execution, defect management, retesting, regression, test closure, reporting.
+
+**Step 2 — Estimate each in person-days**
+Use historical data when you have it ("last release this took 5 days"). Use expert judgement when you do not.
+
+**Step 3 — Add buffers explicitly**
+- 15-20% for known unknowns (defects, retesting cycles)
+- 10% for environmental issues
+- Document them so they do not look like padding
+
+**Step 4 — Adjust for risk**
+- High-risk modules need more time per test case
+- New tech stack adds learning time
+- Team size changes need ramp-up time
+
+**Step 5 — Communicate the assumptions**
+The estimate is "X days *assuming* Y, Y, and Y." If any assumption breaks, the estimate updates.
+
+**Real Example:**
+
+A team estimates testing for a new payment feature.
+- Test planning: 2 days
+- Test case design: 4 days (~30 cases)
+- Test execution (first pass): 5 days
+- Defect cycles (assuming ~10 defects, 2 cycles): 4 days
+- Regression: 2 days
+- Reporting and sign-off: 1 day
+- Subtotal: 18 days
+- Defect contingency (20%): 3.6 days
+- Environment contingency (10%): 1.8 days
+- **Total: ~24 days**
+
+The team commits to "24 working days, plus or minus 3, assuming the build is delivered on time and no major requirement changes." When stakeholders push for "16 days," the answer is: *"Cut what? We can drop the regression pass to save 2 days, but we accept the risk of regression bugs in production."* That is a real tradeoff conversation, not a wishful number.
         `
       },
 
@@ -1589,6 +2014,331 @@ Categorise test cases as:
 - 🟢 **Release Regress** — run only before major releases
 
 This keeps the suite manageable without sacrificing coverage where it matters.
+        `
+      },
+
+      {
+        id: 'compatibility-testing',
+        title: 'Intermediate: Compatibility / Cross-browser Testing',
+        analogy: "Your software is a band performing the same song. The user is the audience hearing it through different speakers — a phone, a laptop, an old TV, a hearing aid. Compatibility testing is checking the song still sounds like the song no matter what speaker is playing it.",
+        lessonMarkdown: `
+## Compatibility / Cross-browser Testing
+
+Web and mobile software runs on a wild zoo of browsers, operating systems, devices, screen sizes, and network conditions. Compatibility testing is the discipline of confirming the software actually works across all the combinations real users have — not just the one on the developer's laptop.
+
+### 1. The Compatibility Matrix
+
+You cannot test everything. So you build a *compatibility matrix* — the prioritised set of combinations the team commits to supporting.
+
+A typical web compatibility matrix:
+
+| Tier | Browsers | Operating Systems | Why this tier |
+|---|---|---|---|
+| **P1 (must work)** | Chrome (latest), Safari (latest), Edge (latest) | Windows 11, macOS, iOS, Android | 80%+ of real users |
+| **P2 (should work)** | Firefox (latest), Chrome (latest-1), Safari (latest-1) | Windows 10 | The remaining 15% |
+| **P3 (nice to work)** | Older browsers, Opera, Brave | Older OS versions | Edge cases |
+
+Bugs in P1 are blockers. Bugs in P2 are normal-priority. Bugs in P3 may be acknowledged-but-deferred.
+
+You build the matrix from analytics data: who actually uses your product? If 60% of your users are on Chrome and 5% on Firefox, that determines the priorities — not personal preference.
+
+*💡 Analogy: A restaurant cannot please every diet. They commit to clearly listing what they support — vegetarian, gluten-free, halal — and being upfront about what they do not (sorry, no kosher). Compatibility matrix is the same: explicit support tiers based on what your audience actually wants.*
+
+---
+
+### 2. What Specifically to Test
+
+For each combination on the matrix, you test:
+
+| Aspect | Examples of bugs that hide here |
+|---|---|
+| **Layout** | Misaligned buttons on Safari, broken grid on small screens |
+| **Functionality** | A button that works on Chrome but does nothing on Firefox |
+| **Performance** | App loads in 1s on Chrome, 8s on old Edge |
+| **Fonts and rendering** | Font fallbacks, emoji rendering, RTL text |
+| **Input** | Touch on mobile, mouse on desktop, keyboard navigation |
+| **Storage** | localStorage, IndexedDB, cookies — different limits per browser |
+| **Media** | Video playback codec support, audio autoplay rules |
+
+Common-but-overlooked categories: clipboard behaviour, file upload (Safari has different MIME-type rules), notifications (browser permissions vary), and date inputs (each browser renders the picker differently).
+
+---
+
+### 3. Tools and Workflow
+
+You cannot maintain a physical lab with every device. The industry uses cloud device labs:
+
+- **BrowserStack, LambdaTest, Sauce Labs** — cloud browsers/devices, pay per minute
+- **Headless browsers** for automated cross-browser regression (Playwright runs on Chromium / Firefox / WebKit out of the box)
+- **Real-device cloud** for mobile (the simulator is not the same as a real iPhone)
+
+**Practical workflow for a release:**
+1. Local desktop dev: Chrome (default)
+2. Pre-merge CI: Playwright running on Chromium + Firefox + WebKit headless
+3. Pre-release manual sweep: P1 combinations from the compatibility matrix
+4. Post-release smoke: real users on real analytics-tracked browsers, monitor for spikes in errors
+
+**Real Example:**
+A B2B SaaS company assumed Chrome was 95% of their traffic. After a redesign launch, support tickets exploded. Their corporate enterprise customers were on Edge — 30% of users. Edge had a CSS Grid bug the team had never seen on Chrome. Two weeks of patches followed. The compatibility matrix would have caught it in 30 minutes of testing.
+
+*💡 Analogy: Recording a song. It sounds great in the studio (Chrome). It sounds great on the producer's monitor speakers (Firefox). Then someone listens on AirPods on a noisy train (Safari mobile, weak network) and the bass is gone. You always need to listen on the speakers your audience uses.*
+        `
+      },
+
+      {
+        id: 'localization-testing',
+        title: 'Intermediate: Localization (l10n) and Internationalization (i18n) Testing',
+        analogy: "Internationalization is wiring your house so it can plug into any country's electrical system. Localization is plugging into the local socket of one specific country. The first is engineering. The second is verification of one specific market.",
+        lessonMarkdown: `
+## Localization (l10n) and Internationalization (i18n) Testing
+
+Software that targets users in more than one country must handle languages, currencies, dates, and cultural conventions correctly. The two related disciplines are *internationalization* (the engineering work to support many locales) and *localization* (verifying it actually works in one specific locale). Bugs here are embarrassing, expensive, and easy to miss.
+
+### 1. Internationalization (i18n) — Built To Support Many
+
+**i18n is the engineering side: making the codebase capable of supporting any locale without code changes.** This includes:
+
+- All user-facing strings extracted into resource files (no hard-coded English in templates)
+- Date, time, number, and currency formatting via locale-aware libraries (Intl APIs, ICU, etc.)
+- Layouts that flex for variable string lengths (German is on average 30% longer than English)
+- Right-to-left (RTL) language support for Arabic, Hebrew, Persian
+- Unicode support throughout — strings, database collations, search, and sorting
+- Time zone awareness — store UTC, render local
+
+i18n testing checks the *capability* — not a specific language. A common test: switch the locale to a "pseudo-locale" that wraps strings in brackets and appends accented characters. Hard-coded strings stick out as plain English in a sea of \`[Söümé strïng]\`.
+
+*💡 Analogy: i18n is building a universal power adapter. The engineering challenge is supporting any voltage, any plug shape. You can test it without ever travelling — you just verify the adapter works in principle.*
+
+---
+
+### 2. Localization (l10n) — Verified for One Locale
+
+**l10n is the verification side: confirming the product works correctly for one specific locale.** This includes:
+
+- All strings translated, in context (no English left over)
+- Translations fit within the UI (no truncation, no overlap)
+- Date format is correct ("31 décembre 2026" for French, "Dec 31, 2026" for US English)
+- Currency renders correctly (€1.234,56 in Germany; €1,234.56 in Ireland)
+- Cultural appropriateness (no offensive imagery, gestures, or colour symbolism)
+- Legal compliance (cookie banners must say specific things in EU; warning labels in some markets)
+- Phone number, address, postcode formats accept local patterns
+
+l10n testing is locale-by-locale. You set up the test environment to French, run through key flows, file bugs.
+
+*💡 Analogy: l10n is plugging your universal adapter into a French wall socket and verifying the kettle actually boils. The adapter being "capable" was not the same as the kettle actually working in Paris. You only know after you visit Paris.*
+
+---
+
+### 3. Common l10n / i18n Bugs
+
+| Bug | Why it happens | Impact |
+|---|---|---|
+| **Truncated translations** | Designer assumed strings would fit | Buttons unusable, missing labels |
+| **Concatenated strings** | "You have " + count + " items" — broken in languages with different word order | Sentences read like nonsense |
+| **Hard-coded English** | Developer forgot to wrap a string in i18n | Mixed-language UI |
+| **Wrong date format** | Server timezone vs user timezone | Bookings on the wrong day |
+| **Currency symbol position** | "$1.99" vs "1.99 €" vs "¥199" | Looks unprofessional |
+| **Sort order** | German ä, ö, ü sort differently from English a, o, u | Lists in wrong order |
+| **Pluralisation** | "1 item" vs "2 items" — Polish, Russian, Arabic have multiple plural forms | Grammar mistakes |
+| **Right-to-left layout** | Arabic interface still flowing left-to-right | Unusable for RTL languages |
+
+**Real Example:**
+A retail website launched in Japan with an English-built product detail page. The Japanese translation of their product name was 40% longer than English. The "Add to Cart" button was directly to the right. The longer Japanese title overlapped the button. Users could not click it. Sales tanked for two days until the team noticed in their conversion analytics.
+
+**Pseudo-localization technique:**
+For early i18n bug detection, run the entire UI in a pseudo-locale that wraps every translatable string with brackets and accented characters. Example: "Add to Cart" becomes \`[Áddד tö Çârt]\`. This makes hard-coded strings (still showing as "Add to Cart") immediately visible, confirms strings expand without breaking layout, and shows what right-to-left mirroring will affect.
+
+*💡 Analogy: A film with subtitles. Internationalization is making sure the player can render any subtitle file. Localization is checking that the French subtitles actually translate the dialogue correctly, fit on screen, and do not appear during scenes where they would obscure the action.*
+        `
+      },
+
+      {
+        id: 'accessibility-testing',
+        title: 'Intermediate: Accessibility (a11y) Testing',
+        analogy: "Accessibility is the wheelchair ramp at the entrance of a building. The building does not work for people who use wheelchairs without it. Same building, same shop, same products — but for one in five customers, the door is locked. Accessibility testing is checking the ramp is there, working, and at the right angle.",
+        lessonMarkdown: `
+## Accessibility (a11y) Testing
+
+Roughly 1 in 5 people has a disability that affects how they use software — visual, motor, cognitive, or auditory. Accessibility testing — often abbreviated *a11y* (eleven letters between "a" and "y") — is the practice of confirming the product is usable by people regardless of ability. Increasingly it is also a legal requirement.
+
+### 1. Why a11y Matters Now
+
+- **Legal compliance.** EU Accessibility Act, Americans with Disabilities Act, Equality Act 2010 (UK). Non-compliance = lawsuits.
+- **Audience size.** ~15-20% of users globally have some form of disability. That includes ageing populations who develop disabilities over time.
+- **Universal design improves UX for everyone.** Captioning, larger touch targets, and clear focus indicators help in noisy environments, on tiny phones, and when the user is just tired.
+- **SEO.** Accessibility attributes (alt text, headings, semantic HTML) overlap heavily with what search engines need to index a site.
+
+The four pillars of accessibility are codified in **WCAG (Web Content Accessibility Guidelines)** under the acronym **POUR**:
+- **Perceivable** — users can perceive the content (text alternatives, captions, contrast)
+- **Operable** — users can navigate (keyboard, no time-traps, no flashing)
+- **Understandable** — users can comprehend (clear language, predictable behaviour)
+- **Robust** — works with assistive technologies (screen readers, voice control)
+
+WCAG has three levels: A (minimum), AA (industry standard), AAA (strict). Most teams target AA.
+
+*💡 Analogy: Building codes for public buildings. Wheelchair access, fire exits, lighting, signage. You meet code, you can open the doors. You ignore code, you do not get a permit.*
+
+---
+
+### 2. Common a11y Failures and How to Catch Them
+
+| Failure | What it breaks | How to test |
+|---|---|---|
+| **No alt text on images** | Screen readers cannot describe images | axe DevTools, manual screen reader |
+| **Insufficient colour contrast** | Low-vision users cannot read text | WebAIM contrast checker, Lighthouse |
+| **Keyboard trap** | Keyboard-only users get stuck in a modal | Tab through the entire UI without a mouse |
+| **Missing form labels** | Screen readers cannot announce field names | axe, NVDA / VoiceOver |
+| **Heading order skipped** | Document outline broken (h1 → h3 with no h2) | Browser headings extension |
+| **Focus indicator removed** | Keyboard users do not see where they are | Tab through with no mouse, watch for visible focus |
+| **Click-only handlers** | Touch and keyboard cannot trigger actions | Use only the keyboard |
+| **Animation cannot be paused** | Vestibular issues, distraction | Look for pause controls on auto-playing media |
+
+**Two-tier testing approach:**
+
+**Automated tests (catch ~30% of issues):**
+- axe DevTools, Lighthouse, WAVE, Pa11y
+- Run in CI on every build
+- Catches: missing alt text, contrast, missing labels, basic ARIA mistakes
+
+**Manual tests (catch the other 70%):**
+- Tab through the whole flow with no mouse
+- Use a screen reader (NVDA on Windows free, VoiceOver on Mac built-in, TalkBack on Android)
+- Zoom the browser to 200% — does the layout still work?
+- High-contrast mode and dark mode
+
+*💡 Analogy: An automated tool is a metal detector at airport security. It catches the obvious. The detailed pat-down (manual testing) catches what the metal detector cannot.*
+
+---
+
+### 3. A Practical a11y Test Pass
+
+Real workflow for testing a new feature:
+
+**Step 1 — Run the automated scan**
+Open the page. Run axe DevTools or Lighthouse Accessibility audit. Fix the surfaced issues. This takes 5 minutes and catches the basics.
+
+**Step 2 — Keyboard-only navigation**
+Unplug the mouse. Tab through every interactive element. Verify:
+- Every interactive element is reachable
+- Tab order is logical
+- Focus is visibly indicated at every step
+- You can activate every button/link with Enter or Space
+- You can close modals with Esc
+- You are never trapped — Tab always cycles out eventually
+
+**Step 3 — Screen reader pass**
+Turn on VoiceOver (Mac, Cmd+F5) or NVDA (Windows, free). Navigate the page. Verify:
+- Page title is announced
+- Headings make a logical outline
+- Images describe themselves (or are correctly marked as decorative)
+- Buttons announce their purpose ("Submit" — not just "button")
+- Form errors are announced as they occur
+- Dynamic content (toasts, modals) is announced
+
+**Step 4 — Visual stress test**
+- Zoom to 200% — layout still works?
+- Reduce contrast — text still readable?
+- Animation — is there a respect for \`prefers-reduced-motion\`?
+
+**Real Example:**
+A bank's mobile banking app passed automated a11y tests. A blind customer reported being unable to confirm a transfer — the confirmation modal was technically present, but the screen reader was announcing the page underneath it because the modal was not properly marked. The customer could not hear "are you sure?" and accidentally cancelled their rent payment three times. Fixed by adding \`aria-modal="true"\` and proper focus management. One line of fix; a year of complaints.
+
+The cost of a11y bugs is real — financial, legal, and reputational. Like security testing, the gap between "there are no obvious bugs" and "the experience is actually good" is where senior testers earn their salaries.
+        `
+      },
+
+      {
+        id: 'mobile-testing',
+        title: 'Intermediate: Mobile Testing Fundamentals',
+        analogy: "A mobile app is a city centre office building, but the user is carrying it in their pocket on the bus, dropping it on the train, getting interrupted by a phone call, and trying to use it with one hand in the rain. Mobile testing is checking the building does not fall apart under any of those conditions.",
+        lessonMarkdown: `
+## Mobile Testing Fundamentals
+
+Mobile applications add an entirely new dimension of failure modes that web testing rarely covers. Network changes, interruptions, gestures, battery, sensors, varying screen sizes, OS-level permissions, and the simple fact that the device fits in a pocket all create bug surfaces that desktop testing never sees.
+
+### 1. What Makes Mobile Testing Different
+
+| Concern | Why it is mobile-specific |
+|---|---|
+| **Network volatility** | Wi-Fi to 4G to no signal to 5G in 30 seconds |
+| **Battery and power** | App must work on low battery; heavy CPU drains battery fast |
+| **Interruptions** | Phone call, low battery alert, push notification, alarm |
+| **Gestures** | Swipe, pinch, long-press, force touch — not just clicks |
+| **Permissions** | Camera, location, microphone, contacts — granted, denied, or revoked mid-use |
+| **Sensors** | Accelerometer, gyroscope, GPS, biometric |
+| **Screen sizes** | 4-inch phones to 13-inch tablets, foldables, notches |
+| **OS fragmentation** | iOS has 2-3 supported versions; Android has dozens of variants |
+| **Background and lifecycle** | App suspended, killed, or restored — state must persist |
+| **App stores** | Approval gates, signing, capability declarations, store metadata |
+
+A web test plan that ignores these will miss most mobile-specific bugs.
+
+*💡 Analogy: Driving a car on a closed test track is web testing. Driving the same car through rush-hour traffic in monsoon rain with a flat-tyre warning, a screaming child in the back, and a tow truck cutting you off — that is mobile testing.*
+
+---
+
+### 2. Native vs Hybrid vs Web — They Test Differently
+
+| Type | What it is | Testing focus |
+|---|---|---|
+| **Native** | Built specifically for iOS or Android using their SDKs (Swift, Kotlin) | Best performance, most platform integration; test each platform separately |
+| **Hybrid** | Web tech wrapped in a native shell (Cordova, Ionic, React Native, Flutter) | Single codebase, cross-platform issues, performance gaps |
+| **Mobile Web** | Responsive website accessed via mobile browser | Browser quirks, touch events, viewport |
+
+A native iOS app and a native Android app are *different products* even if they look identical. They need their own test cycles, their own bug reports, and often their own test environments.
+
+---
+
+### 3. The Mobile Test Plan
+
+A complete mobile test plan covers:
+
+**Functional**
+- All web equivalents (login, search, transactions, etc.)
+- Plus mobile-specific: pull-to-refresh, swipe-to-delete, infinite scroll, gestures
+
+**Network**
+- Wi-Fi only
+- 4G/5G mobile data
+- 3G (slow)
+- No signal (offline mode if applicable)
+- Network drop *during* a transaction (does it recover or corrupt?)
+- Network slow but not zero (loading spinners do not hang forever)
+
+**Interruption**
+- Incoming phone call during use
+- Push notification arrives mid-action
+- Low-battery warning interrupts
+- App is backgrounded (Home button) and reopened — state preserved?
+- App is killed by OS due to memory pressure — does it recover?
+- Receiving an SMS / Bluetooth pairing dialog mid-use
+
+**Device-specific**
+- Multiple physical devices on the compatibility matrix (cheap Android, mid-range Android, top-tier Android, iPhone X, iPhone 14, iPad)
+- Multiple OS versions (iOS 16, 17, 18; Android 12, 13, 14)
+- Different screen sizes, including foldables if relevant
+
+**Performance**
+- App launch time (cold start, warm start)
+- Memory usage
+- Battery drain over a session
+- Heat (some apps cook the phone)
+
+**Permissions**
+- First-time permission requests render correctly
+- App handles permission denied gracefully (does not crash)
+- Permission revoked while app is running (it can happen via Settings)
+
+**Real Example:**
+A ride-sharing app tested perfectly in development. Production: drivers complained the app crashed when they got into elevators. Root cause: the app updated location every second; in elevators GPS dropped to zero accuracy then jumped back; the location handler was not coded for the rapid signal swing and threw uncaught exceptions. Web testing would never have surfaced this. Real-device, real-world mobile testing did.
+
+**Tools to know:**
+- **Real-device labs:** BrowserStack App Live, Sauce Labs, AWS Device Farm, Firebase Test Lab
+- **Emulators:** Xcode Simulator (iOS), Android Studio AVD (Android) — useful but NOT a substitute for real devices
+- **Network shaping:** Chrome DevTools network throttling, Charles Proxy, OS-level developer settings
+- **Automation:** Appium, Espresso (Android), XCUITest (iOS), Detox, Maestro
+
+*💡 Analogy: Testing a car. The garage tells you everything looks fine. But you need to drive it in the rain, on the motorway, in stop-and-go city traffic, and parallel-park it in a tight spot before you can sign off "this car is ready to sell." Mobile testing is the same — the simulator is the garage; the real world is the road.*
         `
       },
 

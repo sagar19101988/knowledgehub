@@ -942,6 +942,218 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ]
     },
     {
+      level: 'decision-table-testing',
+      questions: [
+        {
+          question: 'True or False: Decision Table Testing is mainly useful for finding bugs in the boundaries of a single input range.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'Decision tables target the INTERACTION between multiple inputs. Single-input boundary bugs are what BVA is for. Decision tables shine when the output depends on combinations of conditions.'
+        },
+        {
+          question: 'A team is testing a discount rule: "Logged-in members over 60 get 20 percent off, logged-in non-members get 5 percent, guests get nothing." Which technique is best suited?',
+          options: [
+            { id: 'a', text: 'Boundary Value Analysis — find the exact age threshold.', isCorrect: false },
+            { id: 'b', text: 'Decision Table Testing — multiple conditions interact to produce the discount.', isCorrect: true },
+            { id: 'c', text: 'Pairwise Testing — only two inputs at most.', isCorrect: false },
+            { id: 'd', text: 'Equivalence Partitioning — group similar discounts.', isCorrect: false }
+          ],
+          explanation: 'The output (which discount) depends on a combination of three conditions: logged-in, member status, and age. That is exactly what decision tables enumerate.'
+        },
+        {
+          question: 'In a decision table, what does a dash in a condition cell typically mean?',
+          options: [
+            { id: 'a', text: 'The condition is unknown — it has not been tested yet.', isCorrect: false },
+            { id: 'b', text: 'The condition does not affect the outcome for this rule (column).', isCorrect: true },
+            { id: 'c', text: 'The condition has failed.', isCorrect: false },
+            { id: 'd', text: 'The condition is mandatory.', isCorrect: false }
+          ],
+          explanation: 'A dash (or "do not care") indicates that the condition has no effect on the action for that rule. For example, in the discount rule, "Age" does not matter for guests because guests get no discount regardless of age.'
+        },
+        {
+          question: 'A team writes a decision table and discovers a combination of conditions that the spec did not address. What is the right next action?',
+          options: [
+            { id: 'a', text: 'Skip that combination — the spec does not require it.', isCorrect: false },
+            { id: 'b', text: 'Take the question to the product owner — the spec has a gap that needs filling.', isCorrect: true },
+            { id: 'c', text: 'Test it with a guess and assume the dev will figure it out.', isCorrect: false },
+            { id: 'd', text: 'File it as a bug.', isCorrect: false }
+          ],
+          explanation: 'Decision tables surface spec gaps before code is written. The right move is to clarify with the product owner so the rule is documented before development. This is one of the highest-value side effects of the technique.'
+        },
+        {
+          question: 'Which technique sits BEST alongside Decision Tables to handle situations where the *order* of events matters, not just the combination?',
+          options: [
+            { id: 'a', text: 'Boundary Value Analysis', isCorrect: false },
+            { id: 'b', text: 'Equivalence Partitioning', isCorrect: false },
+            { id: 'c', text: 'State Transition Testing', isCorrect: true },
+            { id: 'd', text: 'Smoke Testing', isCorrect: false }
+          ],
+          explanation: 'Decision tables capture static combinations. State transition testing captures sequences and order-dependent behaviour. The two are complementary — when both static combinations AND ordering matter, you need both techniques.'
+        }
+      ]
+    },
+    {
+      level: 'pairwise-testing',
+      questions: [
+        {
+          question: 'True or False: Pairwise testing covers every full combination of all input fields.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'Pairwise testing covers every PAIR of values across field-pairs — not every full combination of all fields. It deliberately accepts that 3+ way interactions may not be exercised, in exchange for a massive reduction in test count.'
+        },
+        {
+          question: 'A booking form has 5 fields, each with 3 options. Exhaustive testing is 3 to the power of 5 = 243 combinations. Roughly how many tests would pairwise produce?',
+          options: [
+            { id: 'a', text: 'About 5 — one per field.', isCorrect: false },
+            { id: 'b', text: 'About 9 — pairs are minimal.', isCorrect: true },
+            { id: 'c', text: 'About 100 — half of exhaustive.', isCorrect: false },
+            { id: 'd', text: 'About 243 — same as exhaustive.', isCorrect: false }
+          ],
+          explanation: 'For 5 fields with 3 options each, pairwise reduces 243 to roughly 9-12 tests (depending on the algorithm). The exact number varies, but pairwise consistently shrinks combinatorial sets by an order of magnitude or more while covering all 2-way interactions.'
+        },
+        {
+          question: 'According to industrial bug research (NIST, Kuhn), what fraction of bugs are typically triggered by interactions of just 1 or 2 input values?',
+          options: [
+            { id: 'a', text: 'A small minority (~10%)', isCorrect: false },
+            { id: 'b', text: 'About half', isCorrect: false },
+            { id: 'c', text: 'The majority — most bugs need only 1 or 2 inputs to interact wrongly.', isCorrect: true },
+            { id: 'd', text: 'None — all bugs need 4+ inputs to interact.', isCorrect: false }
+          ],
+          explanation: 'NIST research found that the vast majority of failures are triggered by interactions of just 1 or 2 inputs. This is the empirical justification for pairwise — covering all pairs catches most real bugs at a fraction of the cost of full exhaustive testing.'
+        },
+        {
+          question: 'A team relies on pairwise alone and ships a bug that requires THREE specific inputs to combine in a specific way. What is the correct conclusion?',
+          options: [
+            { id: 'a', text: 'Pairwise is broken; abandon the technique.', isCorrect: false },
+            { id: 'b', text: 'Pairwise is not a guarantee — for known higher-order interactions, use 3-way testing or targeted scenarios on top.', isCorrect: true },
+            { id: 'c', text: 'It is not a testing problem; the developer is to blame.', isCorrect: false },
+            { id: 'd', text: 'All testing techniques fail eventually; randomness is the answer.', isCorrect: false }
+          ],
+          explanation: 'Pairwise covers 2-way interactions. 3+ way bugs slip through by design. The fix is layering: use pairwise for the bulk, plus targeted tests for known high-risk multi-way interactions. Pairwise is not a silver bullet — it is a smart trade-off.'
+        },
+        {
+          question: 'When is pairwise testing LEAST useful?',
+          options: [
+            { id: 'a', text: 'When the form has 8 fields with 5 values each.', isCorrect: false },
+            { id: 'b', text: 'When the form has only 2 input fields and 4 values each — exhaustive is only 16 combinations.', isCorrect: true },
+            { id: 'c', text: 'When the team has limited test time.', isCorrect: false },
+            { id: 'd', text: 'When the inputs interact heavily.', isCorrect: false }
+          ],
+          explanation: 'Pairwise shines when exhaustive testing is impractical (hundreds or thousands of combinations). When exhaustive testing is cheap (like 16 combinations), there is no reason to use a technique that loses coverage to save time you do not need to save.'
+        }
+      ]
+    },
+    {
+      level: 'use-case-testing',
+      questions: [
+        {
+          question: 'True or False: Use case testing focuses on testing individual features in isolation.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'Use case testing chains multiple features into end-to-end user goals. It is the opposite of isolation testing — bugs that surface only when several screens, validations, and steps connect are exactly what use case testing finds.'
+        },
+        {
+          question: 'A login screen passes its tests. A cart screen passes its tests. A user logs in mid-checkout and the cart contents disappear. Which testing approach is best designed to catch this?',
+          options: [
+            { id: 'a', text: 'Unit testing — each screen has unit tests.', isCorrect: false },
+            { id: 'b', text: 'Use case testing — chains the login and cart flows together to surface integration gaps.', isCorrect: true },
+            { id: 'c', text: 'Pairwise testing — pairs of screens.', isCorrect: false },
+            { id: 'd', text: 'Smoke testing — the build is not broken.', isCorrect: false }
+          ],
+          explanation: 'Each screen working in isolation does not mean their combined journey works. Use case testing follows the real user goal end-to-end and catches state-loss, navigation, and integration bugs that isolated tests miss.'
+        },
+        {
+          question: 'In use case testing, what is the difference between the "main flow" and an "alternative flow"?',
+          options: [
+            { id: 'a', text: 'Main flow is automated; alternative flows are manual.', isCorrect: false },
+            { id: 'b', text: 'Main flow is the happy path through the system; alternative flows describe what happens when things deviate (errors, optional choices, exceptional events).', isCorrect: true },
+            { id: 'c', text: 'They are the same thing.', isCorrect: false },
+            { id: 'd', text: 'Main flow is for developers; alternative flows are for testers.', isCorrect: false }
+          ],
+          explanation: 'The main flow is the standard happy path. Alternative flows cover deviations: payment declined, item out of stock, network drop, user cancels mid-flow. Each alternative typically becomes its own test case.'
+        },
+        {
+          question: 'Which of the following is most likely to be a use case in a grocery delivery app?',
+          options: [
+            { id: 'a', text: 'Verify the search bar accepts text input.', isCorrect: false },
+            { id: 'b', text: 'Verify HTTP 200 response from /api/products.', isCorrect: false },
+            { id: 'c', text: 'Order weekly shopping for delivery.', isCorrect: true },
+            { id: 'd', text: 'Verify the cart icon renders in the corner.', isCorrect: false }
+          ],
+          explanation: 'A use case is centred on a USER GOAL. "Order weekly shopping" is a user trying to accomplish something meaningful. The other options are component-level checks — useful, but not use cases.'
+        },
+        {
+          question: 'A team writes use case tests but skips alternative flows entirely. What is the most common consequence?',
+          options: [
+            { id: 'a', text: 'Tests run faster.', isCorrect: false },
+            { id: 'b', text: 'They cover the happy path but miss the realistic edge cases — payment declined, network drop, items out of stock, sessions expiring mid-flow — that real users hit constantly.', isCorrect: true },
+            { id: 'c', text: 'There is no difference.', isCorrect: false },
+            { id: 'd', text: 'Automation breaks.', isCorrect: false }
+          ],
+          explanation: 'Alternative flows describe the realistic deviations that users encounter daily. Skipping them produces tests that pass but ship a product that crumbles under real-world conditions. The alternatives are where the bugs hide.'
+        }
+      ]
+    },
+    {
+      level: 'error-guessing',
+      questions: [
+        {
+          question: 'True or False: Error guessing is purely random — it has no structure.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'Error guessing is STRUCTURED INTUITION. It combines general patterns of common bugs (off-by-one, encoding, race conditions) with specific knowledge of the team and codebase. It is not random — it is targeted, just driven by experience rather than a formal technique.'
+        },
+        {
+          question: 'A senior tester immediately tries an emoji-only message and a 1MB image attachment when testing a new chat feature. Which technique is this?',
+          options: [
+            { id: 'a', text: 'Boundary Value Analysis', isCorrect: false },
+            { id: 'b', text: 'Equivalence Partitioning', isCorrect: false },
+            { id: 'c', text: 'Error Guessing — using past experience to target likely failure spots.', isCorrect: true },
+            { id: 'd', text: 'Smoke Testing', isCorrect: false }
+          ],
+          explanation: 'Targeting specific likely-failure scenarios based on patterns from past projects is the essence of error guessing. The senior tester knows messaging apps often break on emoji-only content (collation issues) or on large attachments (timeout) — so they test those first.'
+        },
+        {
+          question: 'When does error guessing add the most value in a testing process?',
+          options: [
+            { id: 'a', text: 'As a complete replacement for systematic techniques.', isCorrect: false },
+            { id: 'b', text: 'On TOP of systematic techniques — adding tests for specific failure modes the formal techniques would not have flagged.', isCorrect: true },
+            { id: 'c', text: 'Only on greenfield projects with no history.', isCorrect: false },
+            { id: 'd', text: 'Only as a documentation exercise.', isCorrect: false }
+          ],
+          explanation: 'Error guessing is a multiplier, not a substitute. BVA / EP / decision tables systematically cover the ground; error guessing fills in the gaps — bugs that experience tells you to expect but no formal technique would have specifically suggested.'
+        },
+        {
+          question: 'Which of the following is NOT typically a category in an error-guessing checklist?',
+          options: [
+            { id: 'a', text: 'Empty inputs (null, empty string, empty array).', isCorrect: false },
+            { id: 'b', text: 'Date/time edge cases (leap year, midnight, DST).', isCorrect: false },
+            { id: 'c', text: 'Specific brand colour scheme of the product.', isCorrect: true },
+            { id: 'd', text: 'Special characters and encoding (emoji, RTL text, BOM).', isCorrect: false }
+          ],
+          explanation: 'Brand colour is not a failure category. Empty inputs, dates, encoding, special characters, network issues, sequencing, permissions, resource limits — these are the high-yield categories experienced testers carry as a mental checklist.'
+        },
+        {
+          question: 'Why do junior testers struggle with error guessing while senior testers find it the highest-yield technique?',
+          options: [
+            { id: 'a', text: 'It is gatekept by certification.', isCorrect: false },
+            { id: 'b', text: 'It depends on having seen many bugs across many projects — pattern recognition built up over years.', isCorrect: true },
+            { id: 'c', text: 'Juniors are lazier.', isCorrect: false },
+            { id: 'd', text: 'It requires special tools.', isCorrect: false }
+          ],
+          explanation: 'Error guessing is structured intuition built on history. A senior tester has seen messaging apps fail on emojis, dates fail at year boundaries, payments fail on double-clicks. Juniors lack that library and need formal techniques as scaffolding while they build it.'
+        }
+      ]
+    },
+    {
       level: 'state-transition',
       questions: [
         {
@@ -1048,6 +1260,112 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
             { id: 'd', text: 'Estimating how many test cases are needed.', isCorrect: false }
           ],
           explanation: 'Without estimation, teams under- or over-allocate QA resources. Techniques like Work Breakdown Structure, historical data, or 3-point estimation help QA leads forecast effort and justify sprint capacity to management.'
+        }
+      ]
+    },
+    {
+      level: 'entry-exit-criteria',
+      questions: [
+        {
+          question: 'True or False: If even one entry criterion is not met, testing should not start.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: true },
+            { id: 'b', text: 'False', isCorrect: false }
+          ],
+          explanation: 'Entry criteria exist precisely to protect testing from wasting time on builds that are not ready. Starting too early creates noise (environment problems mistaken for real bugs), retesting after late deliveries, and finger-pointing. If a criterion is unmet, fix the gap before testing begins.'
+        },
+        {
+          question: 'Which of the following is most clearly an EXIT criterion (rather than an entry criterion)?',
+          options: [
+            { id: 'a', text: 'Build deployed to staging environment.', isCorrect: false },
+            { id: 'b', text: 'Test data loaded.', isCorrect: false },
+            { id: 'c', text: 'Zero open critical or high-severity defects.', isCorrect: true },
+            { id: 'd', text: 'Smoke test passes on the new build.', isCorrect: false }
+          ],
+          explanation: 'Exit criteria define when testing is DONE. Zero open critical defects is a typical exit gate. The other options are entry criteria — conditions that must be true to START testing.'
+        },
+        {
+          question: 'A team is at the end of a system test phase. They have run 80% of planned test cases but ran out of time. Their exit criteria require 100% execution. What is the right next action?',
+          options: [
+            { id: 'a', text: 'Declare the phase complete — close enough.', isCorrect: false },
+            { id: 'b', text: 'Have an explicit conversation: slip the date, reduce scope, or accept the gap with documented stakeholder approval.', isCorrect: true },
+            { id: 'c', text: 'Quietly mark the remaining tests as passed.', isCorrect: false },
+            { id: 'd', text: 'Move them all to the next release without discussion.', isCorrect: false }
+          ],
+          explanation: 'Running out of time is not the same as finishing. Exit criteria force the conversation: change the date, change the scope, or accept the risk explicitly with a paper trail. Pretending the phase is complete is exactly what exit criteria are designed to prevent.'
+        },
+        {
+          question: 'Why are entry and exit criteria written down formally rather than just understood?',
+          options: [
+            { id: 'a', text: 'Bureaucracy and audits.', isCorrect: false },
+            { id: 'b', text: 'They turn fuzzy "I think we are ready" judgements into objective gates everyone can verify against.', isCorrect: true },
+            { id: 'c', text: 'They replace the need for testing.', isCorrect: false },
+            { id: 'd', text: 'They are required only in regulated industries.', isCorrect: false }
+          ],
+          explanation: 'Written criteria turn judgement calls into objective gates. Without them, any team member can claim readiness on a hunch. With them, anyone can audit: "criterion 4 says zero high-severity bugs open. We have 3. We are not done yet."'
+        },
+        {
+          question: 'Which of the following is the BEST exit criterion for a system test phase?',
+          options: [
+            { id: 'a', text: '"We feel pretty good about the build."', isCorrect: false },
+            { id: 'b', text: '"100% of planned test cases executed; ≥98% pass rate; zero open critical defects; sign-off from QA lead and product owner."', isCorrect: true },
+            { id: 'c', text: '"All developers say their code works."', isCorrect: false },
+            { id: 'd', text: '"The release date has arrived."', isCorrect: false }
+          ],
+          explanation: 'Good exit criteria are specific, measurable, and defensible. Coverage percentages, pass rates, defect thresholds, and named approvers turn "we are done" into a verifiable claim. Vague feelings, dev assurances, or calendar dates are not exit criteria.'
+        }
+      ]
+    },
+    {
+      level: 'test-estimation',
+      questions: [
+        {
+          question: 'True or False: A good test estimate is a single, precise number — anything else is unprofessional.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'A defensible estimate is a number with a RANGE and EXPLICIT ASSUMPTIONS. "24 days plus or minus 3, assuming the build is delivered on time and no major requirement changes" is more honest and more useful than a single precise number that will inevitably be wrong.'
+        },
+        {
+          question: 'Which estimation technique is best when uncertainty is HIGH?',
+          options: [
+            { id: 'a', text: 'Single-point expert judgement', isCorrect: false },
+            { id: 'b', text: 'Three-Point Estimation (Optimistic + Pessimistic + Most Likely)', isCorrect: true },
+            { id: 'c', text: 'Counting test cases linearly', isCorrect: false },
+            { id: 'd', text: 'Skipping estimation entirely', isCorrect: false }
+          ],
+          explanation: 'Three-point estimation captures uncertainty explicitly by combining optimistic, pessimistic, and most-likely scenarios. The wider the spread between optimistic and pessimistic, the higher the uncertainty. It produces a more honest number than a single guess.'
+        },
+        {
+          question: 'A senior QA estimates 24 days for a test phase. Stakeholders push for "16 days." What is the most professional response?',
+          options: [
+            { id: 'a', text: 'Agree to 16 days and hope for the best.', isCorrect: false },
+            { id: 'b', text: 'Refuse and walk out of the meeting.', isCorrect: false },
+            { id: 'c', text: 'Discuss tradeoffs explicitly: "We can drop the regression pass to save 2 days, but we accept the risk of regression bugs in production."', isCorrect: true },
+            { id: 'd', text: 'Privately add buffer to all future estimates.', isCorrect: false }
+          ],
+          explanation: 'A professional estimate becomes a conversation about tradeoffs, not a single defended number. Show stakeholders what cuts they would be making to fit a smaller window — and the risks they would accept. That converts confrontation into collaboration.'
+        },
+        {
+          question: 'Why should estimates include EXPLICIT buffers (e.g., "20% defect contingency")?',
+          options: [
+            { id: 'a', text: 'To pad the estimate so testers can take it easy.', isCorrect: false },
+            { id: 'b', text: 'So that buffers are visible and revisable rather than hidden in inflated activity numbers, and so reality differing from assumption can be tracked back to a specific assumption.', isCorrect: true },
+            { id: 'c', text: 'Buffers are not necessary.', isCorrect: false },
+            { id: 'd', text: 'To inflate the budget.', isCorrect: false }
+          ],
+          explanation: 'Hidden buffers (padded activity estimates) are unaccountable — when the project slips, nobody knows whether it was the activity or the buffer. Explicit buffers are visible, revisable, and auditable. They turn estimation into a more honest forecast.'
+        },
+        {
+          question: 'Which item is the WEAKEST basis for an estimate?',
+          options: [
+            { id: 'a', text: 'Historical data from a similar past project.', isCorrect: false },
+            { id: 'b', text: 'A break-down of activities with each individually estimated.', isCorrect: false },
+            { id: 'c', text: 'Three-point estimation with documented assumptions.', isCorrect: false },
+            { id: 'd', text: 'A round number picked because the manager wanted "two weeks."', isCorrect: true }
+          ],
+          explanation: 'Reverse-engineering an estimate to fit a desired number is the worst possible approach — it is not estimation at all, it is wishful thinking. The other options are all defensible techniques that produce numbers grounded in some form of reasoning.'
         }
       ]
     },
@@ -1163,6 +1481,218 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
     },
 
     // ── EXPERT ───────────────────────────────────────────────────
+    {
+      level: 'compatibility-testing',
+      questions: [
+        {
+          question: 'True or False: A compatibility matrix should be built from personal preference about which browsers to support.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'A compatibility matrix is built from analytics data about your actual users — which browsers, devices, and OS versions they use. Personal preference (or developer convenience) leads to gaps where real users live.'
+        },
+        {
+          question: 'A B2B SaaS company assumes Chrome is 95% of their traffic and only tests Chrome. After redesign, support tickets explode from corporate users on Edge — actually 30% of their audience. What does this illustrate?',
+          options: [
+            { id: 'a', text: 'Edge is broken — file with Microsoft.', isCorrect: false },
+            { id: 'b', text: 'Compatibility matrices must be built from real analytics, not assumptions about user behaviour.', isCorrect: true },
+            { id: 'c', text: 'B2B users should switch to Chrome.', isCorrect: false },
+            { id: 'd', text: 'Smoke testing would have caught it.', isCorrect: false }
+          ],
+          explanation: 'The team assumed without measuring. Real analytics would have shown Edge as a major audience. The lesson: build compatibility matrices from data, not opinions, and revisit when audience demographics shift.'
+        },
+        {
+          question: 'Which of the following is NOT typically a compatibility-testing concern?',
+          options: [
+            { id: 'a', text: 'Layout differences between Safari and Chrome.', isCorrect: false },
+            { id: 'b', text: 'Performance gap between latest and oldest supported browsers.', isCorrect: false },
+            { id: 'c', text: 'The exact version number printed in the build report.', isCorrect: true },
+            { id: 'd', text: 'localStorage limit differences across browsers.', isCorrect: false }
+          ],
+          explanation: 'Build report version numbers are release management, not compatibility. The other options — layout, performance, storage limits — all affect whether the product works for users on different browsers and are core compatibility concerns.'
+        },
+        {
+          question: 'Why do real-device cloud labs (BrowserStack, Sauce Labs) provide value over emulators alone?',
+          options: [
+            { id: 'a', text: 'They are cheaper than emulators.', isCorrect: false },
+            { id: 'b', text: 'A simulator/emulator does not perfectly reproduce real device quirks (touch, network behaviour, GPU rendering, real-world performance).', isCorrect: true },
+            { id: 'c', text: 'They are required by regulation.', isCorrect: false },
+            { id: 'd', text: 'They run faster than local development.', isCorrect: false }
+          ],
+          explanation: 'Emulators are useful for early functional checks but they run on developer-grade hardware and approximate the real device. Real device labs give you actual hardware: real GPU rendering, real network stacks, real touch responsiveness, real battery quirks. Many bugs only surface on real devices.'
+        },
+        {
+          question: 'How should you decide which browsers belong in P1 (must work) vs P2 (should work) vs P3 (nice to have) of your compatibility matrix?',
+          options: [
+            { id: 'a', text: 'Pick the browsers the dev team uses.', isCorrect: false },
+            { id: 'b', text: 'Use real analytics to weight browsers by your actual user share, supplemented by industry standards for less-measured segments.', isCorrect: true },
+            { id: 'c', text: 'Test only the latest version of every browser.', isCorrect: false },
+            { id: 'd', text: 'Test every browser equally.', isCorrect: false }
+          ],
+          explanation: 'Tier prioritisation should reflect impact — what hurts your real users the most if it breaks. Analytics tells you who you are serving. Equal coverage of every browser is impossible; matching your audience is achievable and defensible.'
+        }
+      ]
+    },
+    {
+      level: 'localization-testing',
+      questions: [
+        {
+          question: 'True or False: Internationalization (i18n) and Localization (l10n) are the same thing.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'i18n is the engineering work to make a codebase capable of supporting any locale. l10n is the verification work for one specific locale (Did the German translation fit? Are dates rendered correctly for France?). They are related but distinct phases.'
+        },
+        {
+          question: 'A retail website launches in Japan. The Japanese product titles are 40% longer than English and overlap the "Add to Cart" button, making it unclickable. Which class of bug is this?',
+          options: [
+            { id: 'a', text: 'A backend rendering bug.', isCorrect: false },
+            { id: 'b', text: 'A localization bug — translated text did not fit the layout, a classic l10n failure.', isCorrect: true },
+            { id: 'c', text: 'A network bug.', isCorrect: false },
+            { id: 'd', text: 'A security issue.', isCorrect: false }
+          ],
+          explanation: 'Variable string lengths across languages are one of the most common l10n bugs. German is ~30% longer than English; Japanese can be longer in pixel width even with fewer characters. Pseudo-localization or simulating long strings during i18n testing catches this before launch.'
+        },
+        {
+          question: 'What is "pseudo-localization" used for?',
+          options: [
+            { id: 'a', text: 'Generating fake translations for production.', isCorrect: false },
+            { id: 'b', text: 'A development-time technique that wraps every translatable string in brackets and accented characters, exposing hard-coded strings and layout issues before any real translation exists.', isCorrect: true },
+            { id: 'c', text: 'Replacing translators with AI.', isCorrect: false },
+            { id: 'd', text: 'Measuring server response times.', isCorrect: false }
+          ],
+          explanation: 'Pseudo-localization is an early-detection trick. By rendering the UI in a fake locale that wraps and pads strings, hard-coded English jumps out and layout problems become visible — all before paying for real translations.'
+        },
+        {
+          question: 'Which of these is NOT a typical i18n / l10n testing concern?',
+          options: [
+            { id: 'a', text: 'Pluralisation rules differ across languages (Polish has multiple plural forms).', isCorrect: false },
+            { id: 'b', text: 'Right-to-left layouts for Arabic and Hebrew.', isCorrect: false },
+            { id: 'c', text: 'Currency symbol position (€1.99 vs 1,99 €).', isCorrect: false },
+            { id: 'd', text: 'The compiler version used to build the app.', isCorrect: true }
+          ],
+          explanation: 'Compiler versions are build/deployment concerns, not i18n. The other items — pluralisation, RTL, currency formatting — are core categories of localization testing. Each can break the user experience in regions where the team did not test.'
+        },
+        {
+          question: 'A team writes "You have " + count + " items" in code. Why is this an i18n red flag?',
+          options: [
+            { id: 'a', text: 'String concatenation is always slow.', isCorrect: false },
+            { id: 'b', text: 'Different languages have different word orders and pluralisation rules — the concatenation produces broken sentences in many locales.', isCorrect: true },
+            { id: 'c', text: 'JavaScript does not allow string concatenation.', isCorrect: false },
+            { id: 'd', text: 'The string is too long.', isCorrect: false }
+          ],
+          explanation: 'Languages have different word orders ("You have 5 items" vs "Du hast 5 Artikel" vs "Tienes 5 artículos"). Some have pluralisation forms English does not (Russian has 3, Polish has 4). Concatenation locks in English structure. The fix is using locale-aware libraries (Intl, ICU) that handle pluralisation and word order properly.'
+        }
+      ]
+    },
+    {
+      level: 'accessibility-testing',
+      questions: [
+        {
+          question: 'True or False: Automated accessibility tools catch all accessibility issues.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'Automated tools (axe, Lighthouse, WAVE) catch about 30% of accessibility issues — mostly the structural ones (alt text, contrast, missing labels). The other 70% require manual testing: keyboard navigation, screen reader output, real-world disability simulation. Both layers are needed.'
+        },
+        {
+          question: 'A bank app passes automated a11y tests but a blind customer reports being unable to confirm transfers because the screen reader announces the page UNDERNEATH a confirmation modal. What is missing?',
+          options: [
+            { id: 'a', text: 'Better internet connection.', isCorrect: false },
+            { id: 'b', text: 'Proper modal semantics — aria-modal, focus management, and a manual screen-reader test pass.', isCorrect: true },
+            { id: 'c', text: 'A different colour scheme.', isCorrect: false },
+            { id: 'd', text: 'Larger fonts.', isCorrect: false }
+          ],
+          explanation: 'The modal renders correctly visually, but assistive technology cannot tell it has taken focus. Adding aria-modal, trapping focus inside the modal, and announcing it to screen readers is required. Automated tools struggle with dynamic-content semantics — a manual screen-reader pass catches this in seconds.'
+        },
+        {
+          question: 'What does the WCAG acronym POUR stand for?',
+          options: [
+            { id: 'a', text: 'Pretty / Organised / Usable / Robust', isCorrect: false },
+            { id: 'b', text: 'Perceivable / Operable / Understandable / Robust', isCorrect: true },
+            { id: 'c', text: 'Performance / Output / User / Response', isCorrect: false },
+            { id: 'd', text: 'Privacy / Ownership / User / Rights', isCorrect: false }
+          ],
+          explanation: 'POUR is the four-pillar foundation of WCAG: Perceivable (text alternatives, captions, contrast), Operable (keyboard, no traps), Understandable (clear language, predictable behaviour), Robust (works with assistive tech).'
+        },
+        {
+          question: 'A user navigates your site by Tab key only. What is the MOST CRITICAL accessibility check?',
+          options: [
+            { id: 'a', text: 'That every interactive element is reachable, the focus is always visibly indicated, and Tab eventually cycles out without trapping the user.', isCorrect: true },
+            { id: 'b', text: 'That every page has a hero image.', isCorrect: false },
+            { id: 'c', text: 'That every link is blue.', isCorrect: false },
+            { id: 'd', text: 'That the page loads in under 2 seconds.', isCorrect: false }
+          ],
+          explanation: 'Keyboard-only users (motor disabilities, power users, screen-reader users) need to reach every interactive element, see where they are at every moment (visible focus), and never get trapped in a sub-component with no escape. Skipping this check breaks the experience for a large group of users.'
+        },
+        {
+          question: 'Why is accessibility increasingly a LEGAL concern, not just a best practice?',
+          options: [
+            { id: 'a', text: 'There are no real legal requirements.', isCorrect: false },
+            { id: 'b', text: 'Laws like the EU Accessibility Act, the ADA in the US, and the Equality Act in the UK can result in fines and lawsuits for non-compliant digital products.', isCorrect: true },
+            { id: 'c', text: 'Only the EU enforces it.', isCorrect: false },
+            { id: 'd', text: 'Only physical buildings are regulated.', isCorrect: false }
+          ],
+          explanation: 'Digital accessibility is now actively litigated. Lawsuits against e-commerce sites, banks, education platforms, and public-sector apps are routine. Beyond ethics and audience reach, compliance reduces real legal risk — especially in regulated sectors.'
+        }
+      ]
+    },
+    {
+      level: 'mobile-testing',
+      questions: [
+        {
+          question: 'True or False: Testing on an emulator is equivalent to testing on a real device.',
+          options: [
+            { id: 'a', text: 'True', isCorrect: false },
+            { id: 'b', text: 'False', isCorrect: true }
+          ],
+          explanation: 'Emulators are great for early functional checks but they approximate the device on developer hardware. Many bugs surface only on real devices: actual GPU rendering, real network behaviour, real touch responsiveness, battery effects, sensor signals. Mobile testing without real devices misses entire bug categories.'
+        },
+        {
+          question: 'A ride-sharing app crashes when drivers enter elevators. Investigation reveals GPS accuracy plummets to zero, then jumps back, and the location handler throws an uncaught exception on the rapid swing. Which testing concern would have caught this?',
+          options: [
+            { id: 'a', text: 'Unit testing the location component.', isCorrect: false },
+            { id: 'b', text: 'Real-device testing under realistic network/sensor conditions, including signal loss and recovery.', isCorrect: true },
+            { id: 'c', text: 'A more thorough code review.', isCorrect: false },
+            { id: 'd', text: 'Performance benchmarking.', isCorrect: false }
+          ],
+          explanation: 'This is a classic mobile-only bug — sensor signal volatility under real-world conditions. No web testing or unit testing surfaces it. Only running the app on a real device, in a real building, with real GPS hardware exposes the failure mode.'
+        },
+        {
+          question: 'Which of the following is a UNIQUELY MOBILE testing concern (with no direct web equivalent)?',
+          options: [
+            { id: 'a', text: 'Form validation.', isCorrect: false },
+            { id: 'b', text: 'Behaviour when the app is backgrounded then resumed (lifecycle), or when the OS kills it under memory pressure.', isCorrect: true },
+            { id: 'c', text: 'Login functionality.', isCorrect: false },
+            { id: 'd', text: 'Search results.', isCorrect: false }
+          ],
+          explanation: 'Mobile apps live within an OS-managed lifecycle: backgrounded, suspended, killed for memory, restored later. State must persist correctly across all of these. Web has no equivalent — a tab is just a tab. The lifecycle bug surface is mobile-only and rich.'
+        },
+        {
+          question: 'What is the BEST way to test for "interruption" bugs on mobile?',
+          options: [
+            { id: 'a', text: 'Run the same automated suite repeatedly.', isCorrect: false },
+            { id: 'b', text: 'Trigger real interruptions during real flows: incoming phone call, low-battery alert, push notification, OS dialog, alarm — and verify the app handles them and resumes correctly.', isCorrect: true },
+            { id: 'c', text: 'Code reviews only.', isCorrect: false },
+            { id: 'd', text: 'Increase the network timeout.', isCorrect: false }
+          ],
+          explanation: 'Interruptions are an entire category of mobile-only bugs: state lost, data corrupted, transactions duplicated. They cannot be unit-tested away — they need real-device-real-interruption testing. A senior mobile tester always includes a phone-call-mid-payment scenario in the test plan.'
+        },
+        {
+          question: 'A team building a Hybrid app (React Native) decides to skip iOS testing because "the codebase is the same as Android." What is the main risk?',
+          options: [
+            { id: 'a', text: 'There is no real risk — hybrid apps run identically on both platforms.', isCorrect: false },
+            { id: 'b', text: 'Native modules, OS-level APIs, gestures, and platform UI conventions differ — the same code can behave differently on iOS and Android, sometimes severely.', isCorrect: true },
+            { id: 'c', text: 'iOS users are too few to matter.', isCorrect: false },
+            { id: 'd', text: 'Apple does not allow testing of hybrid apps.', isCorrect: false }
+          ],
+          explanation: 'Hybrid frameworks unify a lot but not everything. Native modules, permission dialogs, gesture handling, and platform-specific UI conventions all differ between iOS and Android. A "shared codebase" still produces two distinct products that need separate test cycles.'
+        }
+      ]
+    },
     {
       level: 'risk-based-testing',
       questions: [
