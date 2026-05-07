@@ -31,6 +31,7 @@ export default function ZoneView() {
   const [lockToast, setLockToast] = useState<string | null>(null);
   const mainContentRef = React.useRef<HTMLDivElement>(null);
   const avatarRef = React.useRef<HTMLDivElement>(null);
+  const sidebarScrollRef = React.useRef<HTMLDivElement>(null);
 
   const toggleTier = (tierId: string) =>
     setCollapsedTiers((prev) => ({ ...prev, [tierId]: !prev[tierId] }));
@@ -85,6 +86,21 @@ export default function ZoneView() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     if (mainContentRef.current) mainContentRef.current.scrollTop = 0;
   }, [level]);
+
+  // Expand the tier containing the active module, collapse others, then scroll it into view
+  React.useEffect(() => {
+    if (!level || !id) return;
+    const tiers = ZONE_TIERS[id];
+    if (!tiers) return;
+    const activeTier = tiers.find(t => t.moduleIds.includes(level));
+    if (!activeTier) return;
+    setCollapsedTiers({ beginner: true, intermediate: true, expert: true, [activeTier.id]: false });
+    // After tier expands, scroll active module into view within sidebar
+    setTimeout(() => {
+      const el = sidebarScrollRef.current?.querySelector('[data-active-module="true"]') as HTMLElement | null;
+      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
+  }, [level, id]);
 
   if (!zoneMeta) return <div className="p-8 text-white">Zone not found</div>;
 
@@ -261,7 +277,7 @@ export default function ZoneView() {
         {/* ── Left Sidebar: Module Navigator (desktop inline / mobile drawer) ── */}
         <aside
           className={`
-            flex-shrink-0 transition-transform duration-300 ease-out
+            relative flex-shrink-0 transition-transform duration-300 ease-out
             lg:static lg:w-72 lg:translate-x-0 lg:bg-transparent lg:shadow-none lg:border-0
             fixed top-0 left-0 z-[70] h-screen w-[85%] max-w-sm
             bg-[#f4f3ff] dark:bg-[#0a0715] border-r border-violet-200/60 dark:border-violet-900/40 shadow-2xl
@@ -279,7 +295,7 @@ export default function ZoneView() {
               <X size={18} />
             </button>
           </div>
-          <div className="lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] h-[calc(100vh-3.25rem)] lg:h-auto overflow-y-auto pr-1 px-3 lg:px-0 py-3 lg:py-0 sidebar-scroll space-y-3">
+          <div ref={sidebarScrollRef} className="lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] h-[calc(100vh-3.25rem)] lg:h-auto overflow-y-auto pr-1 px-3 lg:px-0 py-3 lg:py-0 sidebar-scroll space-y-3">
 
             {/* Header */}
             <div className="flex items-center justify-between px-1 mb-1">
@@ -433,6 +449,7 @@ export default function ZoneView() {
                             return (
                               <button
                                 key={lvl}
+                                data-active-module={isActive ? 'true' : undefined}
                                 onClick={() => moduleLocked ? (lockTitle && showLockToast(lockTitle)) : pickLevel(lvl)}
                                 title={lockTitle}
                                 className={`w-full text-left px-2.5 py-2 rounded-xl border transition-all duration-200 group/item ${
@@ -522,6 +539,8 @@ export default function ZoneView() {
               </div>
             )}
           </div>
+          {/* Fade gradient — signals more content below without a scrollbar */}
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#f4f3ff] dark:from-[#07050f] to-transparent" />
         </aside>
 
         {/* Main Content Area */}
