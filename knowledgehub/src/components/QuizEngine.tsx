@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, XCircle, ChevronRight, RefreshCw } from 'lucide-react';
 import { ZONES_QUIZZES } from '../data/quizzes';
 import { useQuestStore } from '../store/useQuestStore';
@@ -20,6 +20,7 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
   const [showResult, setShowResult] = useState(false);
   const [wasFirstCompletion, setWasFirstCompletion] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [showXpFloat, setShowXpFloat] = useState(false);
 
   const resultRef        = useRef<HTMLDivElement>(null);
   const advanceTimer     = useRef<ReturnType<typeof setTimeout>  | null>(null);
@@ -45,6 +46,7 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
     setShowResult(false);
     setWasFirstCompletion(false);
     setCountdown(null);
+    setShowXpFloat(false);
     stopTimers();
   }, [level, zoneId]);
 
@@ -111,6 +113,7 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
         addXp(100);
         markLevelComplete(levelKey);
         setWasFirstCompletion(true);
+        setShowXpFloat(true);
       }
     }
   };
@@ -237,9 +240,24 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
                 : <XCircle    size={32} className="text-rose-400    flex-shrink-0 mt-1" />
               }
               <div className="w-full">
-                <h4 className={`text-lg font-bold mb-2 ${isCorrect ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {isCorrect ? 'Direct Hit!' : 'Attack Blocked!'}
-                </h4>
+                <div className="relative">
+                  <h4 className={`text-lg font-bold mb-2 ${isCorrect ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {isCorrect ? 'Direct Hit!' : 'Attack Blocked!'}
+                  </h4>
+                  <AnimatePresence>
+                    {showXpFloat && (
+                      <motion.div
+                        initial={{ opacity: 1, y: 0 }}
+                        animate={{ opacity: [1, 1, 0], y: [0, -30, -70] }}
+                        transition={{ duration: 2.4, times: [0, 0.5, 1], ease: 'easeOut' }}
+                        onAnimationComplete={() => setShowXpFloat(false)}
+                        className="absolute -top-1 left-28 pointer-events-none select-none font-extrabold text-amber-400 text-xl drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]"
+                      >
+                        +100 XP ✨
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
                 <p className="text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
                   {question.explanation}
                 </p>

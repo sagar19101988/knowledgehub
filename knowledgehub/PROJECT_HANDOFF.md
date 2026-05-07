@@ -1,7 +1,7 @@
 # QA Quest – KnowledgeHub  ·  Project Handoff Document
 
 > **Purpose:** Pass full project context from one Claude Code session/profile to the next.  
-> **Last updated:** 2026-05-06  
+> **Last updated:** 2026-05-07  
 > **Read this file first**, then `CLAUDE.md` (also at the project root) before doing any work.
 
 ---
@@ -16,13 +16,13 @@
 - **Local path:** `C:\AITestingMaster\AI-Projects\knowledgehub` (Windows). Run dev with `npm run dev` from this directory.
 - **Required local env:** `.env.local` with `VITE_FIREBASE_*` keys must exist; otherwise auth breaks.
 - **User working style:** Plan first, confirm before implementing, **never push without explicit "commit and push" instruction**.
-- **Current state:** All recent feature work shipped to production. Latest commit on main: `82c43de feat(mobile): responsive layout pass…`. No pending work in flight.
+- **Current state:** All recent feature work shipped to production. Latest commit on main: `a595274 feat(manual): enrich Expert with 10 new modules`. No pending work in flight.
 
 ---
 
 ## 1. Project Overview
 
-QA Quest is a self-hosted browser app that teaches QA engineering through structured lessons + interactive quizzes. The visual aesthetic is "cosmic neon" with a parchment-warm light mode and dark mode supported throughout. Each module has narrative-style copy, code examples (when relevant), and a "Boss Fight" multiple-choice quiz that awards XP on first-time completion.
+QA Quest is a self-hosted browser app that teaches QA engineering through structured lessons + interactive quizzes. The visual aesthetic is "cosmic neon" with a Daybreak lavender light mode and dark mode supported throughout. Each module has narrative-style copy, code examples (when relevant), and a "Boss Fight" multiple-choice quiz that awards XP on first-time completion.
 
 ### The Six Zones
 1. **Manual Testing** (id: `manual`) — testing fundamentals
@@ -325,6 +325,16 @@ The login/signup form disables name/email/password inputs while `actionLoading` 
   - **HubMap:** nav title shortens to "QA Quest" on phones; welcome text hidden below md; left rail (player card, level progress) hidden below lg (info still in avatar dropdown).
   - **Realm Map:** wrapped in horizontally-scrollable container with 700px min-width so the constellation nodes don't overlap on small screens.
   - **Markdown content:** prose h3 size scales 1.25rem → 1.5rem → 1.75rem. Code blocks and tables get `overflow-x: auto`. Inline code wraps via `word-break`.
+- **`41f5583` feat(rank)** — rank progression UI + Daybreak light mode pass.
+  - **Rank system:** 8 ranks with flavor titles ("Professional Button Clicker" → "The Unkillable QA"). Rank chip on navbar (mobile) and sidebar (desktop) opens a full Rank Ladder modal. `RankUpWatcher` mounts globally and fires a celebration modal on rank-up regardless of route; has hydration/logout guard to prevent false fires on login.
+  - **XP levels:** Lv.1–7 use fixed thresholds (stable across content additions). Lv.8 is auto-anchored to `getTotalEarnableXp()` and also dual-gated: requires both the XP threshold AND 100% module completion.
+  - **Sidebar restructure:** slimmed player card to identity only (avatar + name), bigger rank chip with gold `Lv.N` badge, compact Total XP stat tile.
+  - **Daybreak light mode:** replaced parchment/cream palette with lavender mist + frosted-white surfaces. Body text shifts from warm stone to cool slate. Prose H3 headings become violet-600 instead of amber-800. Light mode now harmonises with the cosmic-neon dark mode.
+  - New components: `RankLadderModal.tsx`, `RankUpModal.tsx`, `RankUpWatcher.tsx`.
+- **`e9be443` fix(theme)** — theme no longer syncs to Firestore; stays device-local. Previously, logging in would overwrite the current device's theme with whatever was last stored on the server. Theme is now excluded from `syncToFirestore` and `hydrateFromFirestore`. `UserProgress.theme` made optional so legacy Firestore docs with it written are silently ignored. Each device keeps its own theme preference independently via localStorage/Zustand persist.
+- **`b5f258f` feat(manual)** — enrich Manual Testing Beginner tier with 7 new modules + migration-grace unlock.
+- **`a483105` feat(manual)** — enrich Manual Testing Intermediate tier with 10 new modules.
+- **`a595274` feat(manual)** — enrich Manual Testing Expert tier with 10 new modules.
 
 All commits are pushed and live on production via Vercel.
 
@@ -343,6 +353,18 @@ All commits are pushed and live on production via Vercel.
 
 ### Auth (email + Google + guest)
 **Status: Shipped & stable.** Full flow including email verification, password reset, guest warning modal.
+
+### Rank Progression System
+**Status: Shipped.** 8 ranks with flavor titles, XP thresholds, Rank Ladder modal, `RankUpWatcher` global component. Lv.8 dual-gated (XP + 100% completion). Theme: `RankLadderModal.tsx`, `RankUpModal.tsx`, `RankUpWatcher.tsx`.
+
+### Daybreak Light Mode
+**Status: Shipped.** Lavender mist + frosted-white surfaces. Replaces the old parchment/cream palette. Harmonises with cosmic-neon dark mode.
+
+### Theme Device-Local
+**Status: Shipped.** Theme is no longer written to or read from Firestore. Each device keeps its theme in localStorage independently.
+
+### Manual Testing Content Enrichment
+**Status: Shipped.** Manual Testing zone expanded to 47 modules total: 15 Beginner, 16 Intermediate, 16 Expert.
 
 ---
 
@@ -413,12 +435,16 @@ Even though they live inside zone-scoped tiers, the unlock-key format `${zoneId}
 ### Gotcha 7: `analogies.ts` template literal escaping
 This file uses backtick template literals containing example YAML/code that includes `${...}`. Any GitHub Actions snippet must escape `${{ ... }}` as `\${{ ... }}` or it will be parsed as JS template expression — TypeScript will fail. Watch for this when editing.
 
-### Gotcha 8: CLAUDE.md zone counts are OUTDATED
-`CLAUDE.md` lists Playwright as 3 modules and AI for QA as 3 modules — both labelled "thin." This is **stale**. Both zones were expanded substantially in commits `9415830`, `4b130ad`, `0223116`, `4d8d3c7`, `f1dfabf`, `09c18f1`. As of latest `main`:
-- Playwright: 8 Beginner + 8 Intermediate + 8 Expert + 1 ui-interactions = 25 modules
-- AI for QA: 13 Beginner + 14 Intermediate + 13 Expert = 40 modules
+### Gotcha 8: Always trust the code over any doc for module counts
+CLAUDE.md zone counts have historically drifted. As of `a595274` (latest main):
+- Manual Testing: 15 Beginner + 16 Intermediate + 16 Expert = **47 modules**
+- Playwright: 8 Beginner + 9 Intermediate + 8 Expert = **25 modules**
+- AI for QA: 13 Beginner + 14 Intermediate + 13 Expert = **40 modules**
+- SQL Sorcery: 8 Beginner + 8 Intermediate + 6 Expert = **22 modules**
+- API Testing: **19 modules**
+- TypeScript: **17 modules**
 
-When CLAUDE.md and the actual code disagree, **trust the code**. Always run a sanity-check grep against `quizzes.ts` and `analogies.ts` before quoting numbers.
+When any doc and the actual code disagree, **trust the code**. Always grep `zones.tsx` (`moduleIds` arrays) for authoritative counts before quoting numbers.
 
 ### Gotcha 9: Sanity-check protocol (from CLAUDE.md)
 Before claiming anything about content completeness or module counts:
@@ -509,7 +535,7 @@ git pull origin main
 ## 15. Known State at Handoff
 
 - **Branch:** `main`
-- **Latest commit:** `82c43de feat(mobile): responsive layout pass across navbar, sidebar, and content`
+- **Latest commit:** `a595274 feat(manual): enrich Expert with 10 new modules`
 - **Working tree:** clean (only untracked utility scripts left over from earlier content authoring; safely ignored)
 - **Remote:** in sync with `origin/main`
 - **Vercel:** auto-deployed from latest commit

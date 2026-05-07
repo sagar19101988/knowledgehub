@@ -60,16 +60,16 @@ Key data files (all content lives here):
 
 ## Zone Content Status (May 2026, origin/main)
 
-| Zone | Modules | Questions | Q/Module | Status |
-|------|---------|-----------|----------|--------|
-| Manual Testing | 20 | 100 | 5 | ✅ Complete |
-| SQL Sorcery | 22 (8 Beginner, 8 Intermediate, 6 Expert) | 110 | 5 | ✅ Complete |
-| API Testing | 19 | 95 | 5 | ✅ Complete |
-| TypeScript | 17 | 51 | 3 | ✅ Complete |
-| Playwright | 3 | 9 | 3 | ⚠️ Thin |
-| AI for QA | 3 | 9 | 3 | ⚠️ Thin |
+| Zone | Modules | Breakdown | Status |
+|------|---------|-----------|--------|
+| Manual Testing | 47 | 15 Beginner, 16 Intermediate, 16 Expert | ✅ Complete |
+| SQL Sorcery | 22 | 8 Beginner, 8 Intermediate, 6 Expert | ✅ Complete |
+| API Testing | 19 | 8 Beginner, 6 Intermediate, 5 Expert | ✅ Complete |
+| TypeScript | 17 | ✅ Complete |
+| Playwright | 25 | 8 Beginner, 9 Intermediate, 8 Expert | ✅ Complete |
+| AI for QA | 40 | 13 Beginner, 14 Intermediate, 13 Expert | ✅ Complete |
 
-**Gaps:** Playwright and AI for QA are thin (3 modules each). TypeScript could be upgraded from 3 to 5 questions per module to match Manual/SQL/API depth.
+**Note:** All zones are now substantially populated. TypeScript questions are 3/module vs 5/module for other zones — could be upgraded for consistency.
 
 ## Sanity Check Protocol
 

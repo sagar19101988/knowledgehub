@@ -11,7 +11,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { ArrowLeft, BookOpen, Swords, Sun, Moon, ChevronDown, CheckCircle2, Lock, LogOut, Menu, X } from 'lucide-react';
 import { ZONES_CONTENT } from '../data/analogies';
-import { ZONES, ZONE_TIERS } from '../data/zones';
+import { ZONES, ZONE_TIERS, getLevel, getTotalModuleCount } from '../data/zones';
 import { QuizEngine } from './QuizEngine';
 import { useQuestStore } from '../store/useQuestStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -24,6 +24,7 @@ export default function ZoneView() {
   const [level, setLevel] = useState<string>('');
   const [justCompleted, setJustCompleted] = useState(false);
   const [completionWasFirstTime, setCompletionWasFirstTime] = useState(false);
+  const [completedModuleTitle, setCompletedModuleTitle] = useState('');
   const [collapsedTiers, setCollapsedTiers] = useState<Record<string, boolean>>({ beginner: true, intermediate: true, expert: true });
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -40,6 +41,15 @@ export default function ZoneView() {
   const theme = useQuestStore((state) => state.theme);
   const toggleTheme = useQuestStore((state) => state.toggleTheme);
   const isGuest = useQuestStore((state) => state.isGuest);
+  const xp = useQuestStore((state) => state.xp);
+
+  const totalModules = getTotalModuleCount();
+  const { current, next, progress } = getLevel(xp, { completedModuleCount: completedLevels.length });
+  const nextProgressText = !next
+    ? `${xp.toLocaleString()} XP · Maximum rank`
+    : next.requiresFullCompletion
+      ? `${xp.toLocaleString()} / ${next.min.toLocaleString()} XP · ${completedLevels.length} / ${totalModules} modules`
+      : `${xp.toLocaleString()} / ${next.min.toLocaleString()} XP`;
   const resetProgress = useQuestStore((state) => state.resetProgress);
   const playerName = useQuestStore((state) => state.playerName);
   const { logout } = useAuthStore();
@@ -74,7 +84,6 @@ export default function ZoneView() {
   React.useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     if (mainContentRef.current) mainContentRef.current.scrollTop = 0;
-    setJustCompleted(false);
   }, [level]);
 
   if (!zoneMeta) return <div className="p-8 text-white">Zone not found</div>;
@@ -87,6 +96,8 @@ export default function ZoneView() {
   const pickLevel = (lvl: string) => {
     setLevel(lvl);
     setDrawerOpen(false);
+    setJustCompleted(false);
+    setCompletedModuleTitle('');
   };
 
   const showLockToast = (msg: string) => {
@@ -178,14 +189,25 @@ export default function ZoneView() {
                 className="absolute right-0 top-[calc(100%+8px)] w-56 bg-white dark:bg-[#0e0b1f] border border-slate-200 dark:border-violet-900/50 rounded-2xl shadow-2xl shadow-black/20 dark:shadow-black/60 overflow-hidden z-50"
               >
                 {/* Player header */}
-                <div className="flex items-center gap-3 px-4 py-3.5 bg-gradient-to-r from-violet-500/5 to-fuchsia-500/5 dark:from-violet-900/30 dark:to-fuchsia-900/20 border-b border-slate-100 dark:border-violet-900/30">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-white font-black text-base shadow-[0_0_12px_rgba(192,38,211,0.4)] flex-shrink-0">
-                    {playerName?.[0]?.toUpperCase() ?? '?'}
+                <div className="px-4 py-3.5 bg-gradient-to-r from-violet-500/5 to-fuchsia-500/5 dark:from-violet-900/30 dark:to-fuchsia-900/20 border-b border-slate-100 dark:border-violet-900/30">
+                  <div className="flex items-center gap-3 mb-2.5">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-white font-black text-base shadow-[0_0_12px_rgba(192,38,211,0.4)] flex-shrink-0">
+                      {playerName?.[0]?.toUpperCase() ?? '?'}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{playerName}</p>
+                      <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400 truncate">
+                        Lv.{current.level} · {current.title}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{playerName}</p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500">{isGuest ? 'Guest Mode' : 'Explorer'}</p>
+                  <div className="h-1.5 w-full bg-slate-200/70 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all"
+                      style={{ width: `${progress}%` }}
+                    />
                   </div>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5">{nextProgressText}</p>
                 </div>
 
                 <div className="p-1.5 space-y-0.5">
@@ -590,41 +612,65 @@ export default function ZoneView() {
                 const nextLevel = availableLevels[currentIdx + 1] ?? null;
                 return (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.97, y: -8 }}
+                    initial={{ opacity: 0, scale: 0.96, y: -12 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                    className="mb-8 rounded-2xl overflow-hidden border border-emerald-500/30 shadow-[0_0_32px_rgba(16,185,129,0.12)]"
+                    transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+                    className="mb-8 rounded-2xl overflow-hidden border border-emerald-500/30 shadow-[0_0_48px_rgba(16,185,129,0.15)]"
                   >
-                    {/* Top gradient bar */}
-                    <div className="h-1 w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500" />
-                    <div className="p-5 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent flex items-center justify-between gap-4 flex-wrap">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center flex-shrink-0 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-                          <span className="text-2xl">{completionWasFirstTime ? '🏆' : '⚔️'}</span>
+                    {/* Top gradient bar — thicker */}
+                    <div className="h-1.5 w-full bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400" />
+
+                    <div className="bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent px-6 py-5">
+
+                      {/* Row 1 — icon + title + XP badge */}
+                      <div className="flex items-start gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center flex-shrink-0 shadow-[0_0_24px_rgba(16,185,129,0.25)]">
+                          <span className="text-3xl">{completionWasFirstTime ? '🏆' : '⚔️'}</span>
                         </div>
-                        <div>
-                          <p className="text-emerald-400 font-black text-base">
-                            {completionWasFirstTime ? 'Boss Defeated! +100 XP' : 'Victory — Again!'}
-                          </p>
-                          <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <h3 className="text-xl font-black text-emerald-400 leading-tight">
+                              {completionWasFirstTime ? 'Boss Defeated!' : 'Victory — Again!'}
+                            </h3>
+                            {completionWasFirstTime && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-400/20 border border-amber-400/30 text-amber-400 dark:text-amber-300 font-black text-sm">
+                                +100 XP ✨
+                              </span>
+                            )}
+                            {!nextLevel && (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400 font-black text-sm">
+                                🎉 Zone Complete!
+                              </span>
+                            )}
+                          </div>
+                          {/* Completed module name */}
+                          <p className="mt-1.5 text-base font-bold text-slate-700 dark:text-slate-200">
                             {completionWasFirstTime
-                              ? 'Module mastered. The next challenge awaits you.'
-                              : 'Practice makes perfect. Knowledge compounds every replay.'}
+                              ? <><span className="text-emerald-500 dark:text-emerald-400">{completedModuleTitle}</span> <span className="text-slate-400 dark:text-slate-500 font-medium">mastered</span></>
+                              : <span className="text-slate-500 dark:text-slate-400 font-medium text-sm">Practice makes perfect. Knowledge compounds every replay.</span>
+                            }
                           </p>
                         </div>
                       </div>
-                      {nextLevel ? (
-                        <button
-                          onClick={() => setLevel(nextLevel)}
-                          className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm rounded-xl shadow-[0_0_16px_rgba(16,185,129,0.3)] hover:shadow-[0_0_24px_rgba(16,185,129,0.5)] transition-all duration-200"
-                        >
-                          Next Module <span className="text-base">→</span>
-                        </button>
-                      ) : (
-                        <div className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 bg-amber-500/15 border border-amber-500/30 text-amber-400 font-bold text-sm rounded-xl">
-                          🎉 Zone Complete!
-                        </div>
-                      )}
+
+                      {/* Row 2 — Now Studying */}
+                      {completionWasFirstTime && nextLevel && (() => {
+                        const moduleTitle = currentContent?.title.split(':').slice(1).join(':').trim() || currentContent?.title;
+                        return (
+                          <motion.div
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.35, duration: 0.4, ease: 'easeOut' }}
+                            className="mt-4 pt-4 border-t border-emerald-500/20 flex items-center gap-3"
+                          >
+                            <span className="text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 flex-shrink-0">Now Studying</span>
+                            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700/60" />
+                            <span className="text-base font-black text-violet-600 dark:text-violet-400 text-right">
+                              {moduleTitle}
+                            </span>
+                          </motion.div>
+                        );
+                      })()}
                     </div>
                   </motion.div>
                 );
@@ -700,8 +746,21 @@ export default function ZoneView() {
                 setMode('library');
                 setJustCompleted(true);
                 setCompletionWasFirstTime(firstTime);
+                // Capture completed module title before navigating away
+                const rawTitle = contentData?.levels.find(l => l.id === level)?.title || '';
+                setCompletedModuleTitle(rawTitle.split(':').slice(1).join(':').trim() || rawTitle);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 if (mainContentRef.current) mainContentRef.current.scrollTop = 0;
+                // Auto-navigate to the next module and expand its tier if needed
+                const currentIdx = availableLevels.indexOf(level);
+                const nextId = availableLevels[currentIdx + 1] ?? null;
+                if (nextId) {
+                  setLevel(nextId);
+                  const tierWithNext = ZONE_TIERS[id || '']?.find(t => t.moduleIds.includes(nextId));
+                  if (tierWithNext) {
+                    setCollapsedTiers(prev => ({ ...prev, [tierWithNext.id]: false }));
+                  }
+                }
               }}
             />
           )}
