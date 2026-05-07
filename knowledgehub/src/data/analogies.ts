@@ -5073,6 +5073,556 @@ These queries take seconds to write and can catch data errors that would take ho
         `
       },
 
+      {
+        id: 'sql-foreign-keys',
+        title: 'Beginner: Foreign Keys & Referential Integrity',
+        analogy: "A foreign key is like a membership card check at the door. Your order can only reference a customer who actually exists in the customers table — just like you can only check into a hotel room if your booking ID is real. If the booking doesn't exist, you're turned away. If the booking is cancelled, what happens to your room? That's where CASCADE rules kick in.",
+        lessonMarkdown: `
+## Foreign Keys — Linking Tables Safely
+
+So far you've learned how to store data in tables and query it. But real databases have **multiple tables that relate to each other** — orders belong to customers, products belong to categories, comments belong to users. Foreign keys are the mechanism that enforces these relationships so your data never becomes a mess of dangling references.
+
+---
+
+### 1. The Problem Foreign Keys Solve
+
+*💡 Analogy: Imagine an order management system where orders have a \`customer_id\` column. Without any enforcement, someone could insert an order with \`customer_id = 9999\` — even if no customer with ID 9999 exists. You'd end up with "orphan orders" that belong to nobody. A foreign key prevents this.*
+
+Without a foreign key:
+\`\`\`sql
+-- This succeeds even if customer_id 9999 doesn't exist — silent data corruption!
+INSERT INTO orders (customer_id, total) VALUES (9999, 450.00);
+\`\`\`
+
+With a foreign key:
+\`\`\`sql
+-- ERROR: Cannot add or update a child row: a foreign key constraint fails
+-- The database rejects it outright — your data stays clean.
+INSERT INTO orders (customer_id, total) VALUES (9999, 450.00);
+\`\`\`
+
+---
+
+### 2. How to Define a Foreign Key
+
+*💡 Analogy: When you create a job posting that requires a department ID, HR insists the department must exist in the departments table first. The FK constraint enforces this rule automatically.*
+
+\`\`\`sql
+-- Parent table (referenced)
+CREATE TABLE customers (
+    id      INT PRIMARY KEY AUTO_INCREMENT,
+    name    VARCHAR(100) NOT NULL,
+    email   VARCHAR(150) UNIQUE NOT NULL
+);
+
+-- Child table (references the parent)
+CREATE TABLE orders (
+    id          INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT NOT NULL,
+    total       DECIMAL(10, 2),
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    -- FK constraint: customer_id must match an id in customers
+    FOREIGN KEY (customer_id) REFERENCES customers(id)
+);
+\`\`\`
+
+The syntax is always: \`FOREIGN KEY (local_column) REFERENCES other_table(other_column)\`
+
+---
+
+### 3. Adding a FK to an Existing Table
+
+*💡 Analogy: You already built the table but forgot the FK? You can bolt it on afterwards — like retrofitting a door lock to a room that was previously unlocked.*
+
+\`\`\`sql
+ALTER TABLE orders
+ADD CONSTRAINT fk_orders_customer
+FOREIGN KEY (customer_id) REFERENCES customers(id);
+\`\`\`
+
+Naming the constraint (\`fk_orders_customer\`) is optional but recommended — named constraints are much easier to find and drop when needed.
+
+---
+
+### 4. ON DELETE & ON UPDATE Cascade Behaviours
+
+This is where it gets powerful. What should happen to child rows when the parent row is deleted or updated?
+
+| Behaviour | Meaning |
+|-----------|---------|
+| \`RESTRICT\` (default) | Block the delete/update if child rows exist |
+| \`CASCADE\` | Automatically delete/update child rows too |
+| \`SET NULL\` | Set the FK column to NULL in child rows |
+| \`NO ACTION\` | Same as RESTRICT in most databases |
+
+\`\`\`sql
+-- Example 1: Cascade delete
+-- When a customer is deleted, all their orders are deleted too
+CREATE TABLE orders (
+    id          INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT,
+    total       DECIMAL(10, 2),
+    FOREIGN KEY (customer_id) REFERENCES customers(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+-- Example 2: Set NULL on delete
+-- When a category is deleted, products in that category become uncategorised
+CREATE TABLE products (
+    id          INT PRIMARY KEY AUTO_INCREMENT,
+    name        VARCHAR(100),
+    category_id INT,
+    FOREIGN KEY (category_id) REFERENCES categories(id)
+        ON DELETE SET NULL
+);
+\`\`\`
+
+\`\`\`sql
+-- With CASCADE: deleting a customer auto-deletes all their orders
+DELETE FROM customers WHERE id = 5;
+-- Result: customer 5 gone, AND all orders with customer_id = 5 also gone
+
+-- With RESTRICT (default): this would fail if orders exist for customer 5
+DELETE FROM customers WHERE id = 5;
+-- ERROR: Cannot delete or update a parent row: a foreign key constraint fails
+\`\`\`
+
+---
+
+### 5. Checking Which FKs Exist (MySQL)
+
+*💡 Analogy: When you're handed an unfamiliar database to test, you need to know the "house rules" — which tables are linked to which. The information schema is your rulebook.*
+
+\`\`\`sql
+-- List all foreign keys in your database
+SELECT
+    TABLE_NAME,
+    COLUMN_NAME,
+    CONSTRAINT_NAME,
+    REFERENCED_TABLE_NAME,
+    REFERENCED_COLUMN_NAME
+FROM
+    INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+WHERE
+    REFERENCED_TABLE_SCHEMA = 'your_database_name'
+ORDER BY TABLE_NAME;
+\`\`\`
+
+---
+
+### 6. QA Use Cases — Why This Matters for Testing
+
+**Referential integrity checks** are one of the most valuable FK-related tests you can do:
+
+\`\`\`sql
+-- Find orphaned orders (orders with no matching customer)
+SELECT o.id, o.customer_id
+FROM orders o
+LEFT JOIN customers c ON o.customer_id = c.id
+WHERE c.id IS NULL;
+-- Healthy result: 0 rows. Any rows here = data bug.
+
+-- Find orders where the referenced customer was soft-deleted
+SELECT o.id, o.customer_id, c.deleted_at
+FROM orders o
+JOIN customers c ON o.customer_id = c.id
+WHERE c.deleted_at IS NOT NULL;
+-- These orders reference a "ghost" customer — UI may show blank names
+
+-- Verify cascade delete worked correctly after a test teardown
+DELETE FROM customers WHERE id = 999;  -- test user
+SELECT COUNT(*) FROM orders WHERE customer_id = 999;
+-- Must be 0 if ON DELETE CASCADE is configured
+\`\`\`
+
+Foreign keys are invisible until they break — and when they break, they produce confusing errors or silently corrupt data. Testing them is non-negotiable for any data-driven application.
+        `
+      },
+
+      {
+        id: 'sql-constraints',
+        title: 'Beginner: Constraints — NOT NULL, UNIQUE, DEFAULT, CHECK',
+        analogy: "Constraints are the database's rulebook — a bouncer with a checklist at every door. NOT NULL says 'you must show ID to enter'. UNIQUE says 'no two guests can have the same seat number'. DEFAULT says 'if you don't tell me your drink preference, I'll give you water'. CHECK says 'you must be over 18'. Together they make sure garbage data never gets in.",
+        lessonMarkdown: `
+## Constraints — The Database's Quality Gates
+
+Every time a row is inserted or updated, the database runs it through a set of rules called **constraints**. If the data violates any rule, the operation is rejected with an error. Constraints are your first line of defence against bad data — they act before your application code even runs.
+
+---
+
+### 1. NOT NULL — This Field is Mandatory
+
+*💡 Analogy: A registration form with a required asterisk (\*) on the "Name" field. You can't submit the form without filling it in. NOT NULL is that asterisk, enforced at the database level.*
+
+\`\`\`sql
+CREATE TABLE users (
+    id       INT PRIMARY KEY AUTO_INCREMENT,
+    email    VARCHAR(150) NOT NULL,   -- mandatory
+    name     VARCHAR(100) NOT NULL,   -- mandatory
+    bio      TEXT                     -- optional (NULLs allowed)
+);
+
+-- This succeeds
+INSERT INTO users (email, name) VALUES ('jane@example.com', 'Jane');
+
+-- This FAILS — name is NOT NULL
+INSERT INTO users (email) VALUES ('bob@example.com');
+-- ERROR: Column 'name' cannot be null
+\`\`\`
+
+**QA insight:** A NOT NULL violation in testing often means a required field was left blank in the UI, or a background process failed to populate a field it was supposed to.
+
+---
+
+### 2. UNIQUE — No Duplicates Allowed
+
+*💡 Analogy: A passport number is unique — no two people on the planet can have the same one. UNIQUE tells the database to enforce this: reject any row that would create a duplicate in that column.*
+
+\`\`\`sql
+CREATE TABLE users (
+    id       INT PRIMARY KEY AUTO_INCREMENT,
+    email    VARCHAR(150) NOT NULL UNIQUE,  -- no two users with the same email
+    username VARCHAR(50) UNIQUE             -- no two users with the same username
+);
+
+-- First insert — succeeds
+INSERT INTO users (email, username) VALUES ('jane@test.com', 'jane99');
+
+-- Duplicate email — FAILS
+INSERT INTO users (email, username) VALUES ('jane@test.com', 'jane100');
+-- ERROR: Duplicate entry 'jane@test.com' for key 'email'
+\`\`\`
+
+\`\`\`sql
+-- UNIQUE can also span multiple columns together (composite unique)
+CREATE TABLE enrollments (
+    user_id    INT,
+    course_id  INT,
+    -- A user can only enrol in the same course once
+    UNIQUE KEY uq_user_course (user_id, course_id)
+);
+\`\`\`
+
+**QA insight:** Test your "duplicate user" scenarios at the database level. If the app doesn't return a proper error message for a duplicate email, but the DB rejects it, the UI silently swallows the error — a common bug.
+
+---
+
+### 3. DEFAULT — Automatic Fill-In Values
+
+*💡 Analogy: A government form where "Country" is pre-filled as "India". You can change it, but if you leave it alone, the default is used. DEFAULT does the same for your database columns.*
+
+\`\`\`sql
+CREATE TABLE orders (
+    id         INT PRIMARY KEY AUTO_INCREMENT,
+    status     VARCHAR(20) DEFAULT 'pending',       -- 'pending' if not specified
+    created_at DATETIME    DEFAULT CURRENT_TIMESTAMP, -- auto-set to now
+    is_deleted BOOLEAN     DEFAULT FALSE             -- soft-delete flag starts false
+);
+
+-- You don't need to specify status or created_at — they fill themselves
+INSERT INTO orders (customer_id, total) VALUES (1, 1200.00);
+
+-- Result:
+-- | id | status  | created_at          | is_deleted |
+-- |----|---------|---------------------|------------|
+-- |  1 | pending | 2026-05-07 10:23:45 | 0          |
+\`\`\`
+
+\`\`\`sql
+-- You can still override a default by providing the value
+INSERT INTO orders (customer_id, total, status) VALUES (2, 500.00, 'processing');
+\`\`\`
+
+**QA insight:** When testing an API that creates records, verify that default values are set correctly in the DB even when the API doesn't send those fields. \`DEFAULT CURRENT_TIMESTAMP\` is especially important — if it's missing, \`created_at\` may be NULL.
+
+---
+
+### 4. CHECK — Custom Validation Rules
+
+*💡 Analogy: A hotel booking form that says "check-out date must be after check-in date". CHECK lets you encode this business logic directly into the database schema.*
+
+\`\`\`sql
+CREATE TABLE products (
+    id       INT PRIMARY KEY AUTO_INCREMENT,
+    name     VARCHAR(100) NOT NULL,
+    price    DECIMAL(10, 2) CHECK (price >= 0),        -- price can't be negative
+    quantity INT           CHECK (quantity >= 0),       -- stock can't go negative
+    rating   DECIMAL(2,1)  CHECK (rating BETWEEN 1.0 AND 5.0)
+);
+
+-- This FAILS — price is negative
+INSERT INTO products (name, price, quantity) VALUES ('Widget', -50.00, 100);
+-- ERROR: Check constraint 'products_chk_1' is violated.
+
+-- This FAILS — rating out of range
+INSERT INTO products (name, price, rating) VALUES ('Gadget', 99.99, 7.5);
+-- ERROR: Check constraint violated
+\`\`\`
+
+\`\`\`sql
+-- Named CHECK constraint — easier to debug
+CREATE TABLE employees (
+    id         INT PRIMARY KEY AUTO_INCREMENT,
+    name       VARCHAR(100) NOT NULL,
+    salary     DECIMAL(10,2),
+    hire_date  DATE,
+    CONSTRAINT chk_salary     CHECK (salary > 0),
+    CONSTRAINT chk_hire_date  CHECK (hire_date >= '2000-01-01')
+);
+\`\`\`
+
+---
+
+### 5. Combining Multiple Constraints
+
+\`\`\`sql
+-- Real-world example: a users table with multiple constraints
+CREATE TABLE users (
+    id           INT          PRIMARY KEY AUTO_INCREMENT,
+    email        VARCHAR(150) NOT NULL UNIQUE,
+    username     VARCHAR(50)  NOT NULL UNIQUE,
+    age          INT          CHECK (age >= 13),     -- must be 13+
+    account_type VARCHAR(20)  DEFAULT 'free'         CHECK (account_type IN ('free','pro','enterprise')),
+    created_at   DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    is_active    BOOLEAN      DEFAULT TRUE
+);
+\`\`\`
+
+---
+
+### 6. Checking What Constraints Exist
+
+\`\`\`sql
+-- MySQL: View all constraints on a table
+SELECT CONSTRAINT_NAME, CONSTRAINT_TYPE, TABLE_NAME
+FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+WHERE TABLE_NAME = 'users'
+  AND TABLE_SCHEMA = 'your_database';
+\`\`\`
+
+---
+
+### 7. QA Use Cases — Testing Constraints
+
+Constraints are your secret weapon for **negative testing** — the database will reject invalid data even if your app doesn't:
+
+\`\`\`sql
+-- Test NOT NULL: Was any required field left empty during bulk import?
+SELECT COUNT(*) FROM users WHERE email IS NULL OR name IS NULL;
+-- Healthy: 0 rows
+
+-- Test UNIQUE: Were any duplicate emails created?
+SELECT email, COUNT(*) AS cnt
+FROM users
+GROUP BY email
+HAVING cnt > 1;
+-- Healthy: 0 rows
+
+-- Test CHECK: Are there any products with invalid ratings?
+SELECT id, name, rating FROM products WHERE rating < 1.0 OR rating > 5.0;
+-- Healthy: 0 rows
+
+-- Test DEFAULT: Were created_at timestamps auto-set?
+SELECT COUNT(*) FROM orders WHERE created_at IS NULL;
+-- If > 0, the DEFAULT is missing or being overridden with NULL
+\`\`\`
+
+Constraint violations in production are serious — they mean either the app has a validation gap, or someone is writing directly to the database bypassing your app's rules. Testing constraints catches both.
+        `
+      },
+
+      {
+        id: 'sql-like-wildcards',
+        title: 'Beginner: LIKE, Wildcards, IN & BETWEEN',
+        analogy: "LIKE is your database's search bar. The % wildcard is like typing 'john' in a contacts app and getting 'John', 'Johnny', 'Johnston' — it matches anything before or after. The _ wildcard matches exactly one character, like a blank tile in Scrabble. IN is checking a guest list. BETWEEN is checking if someone's age falls in a range.",
+        lessonMarkdown: `
+## LIKE, Wildcards, IN & BETWEEN — Pattern Matching and Range Filtering
+
+So far your WHERE clauses have used exact matches (\`WHERE status = 'active'\`) or comparisons (\`WHERE price > 100\`). But real-world testing needs **fuzzy searches** and **range checks**. That's where LIKE, IN, and BETWEEN come in.
+
+---
+
+### 1. The LIKE Operator
+
+*💡 Analogy: Think of LIKE as the search box in your email app. You don't remember the exact subject line, but you remember it had the word "invoice" somewhere. LIKE lets you search like that — for patterns rather than exact values.*
+
+\`\`\`sql
+-- Find all users whose email contains 'gmail'
+SELECT * FROM users WHERE email LIKE '%gmail%';
+
+-- Find all products whose name starts with 'Pro'
+SELECT * FROM products WHERE name LIKE 'Pro%';
+
+-- Find all orders with status ending in 'ed'
+SELECT * FROM orders WHERE status LIKE '%ed';
+-- Returns: 'completed', 'cancelled', 'shipped' etc.
+\`\`\`
+
+---
+
+### 2. The % Wildcard — Match Zero or More Characters
+
+*💡 Analogy: % is the "wildcard star" from file searches — like \`*.pdf\` matches any PDF file regardless of the name before it. In LIKE, \`%\` matches zero or more characters.*
+
+| Pattern | Matches | Doesn't match |
+|---------|---------|----------------|
+| \`'%apple%'\` | 'apple', 'pineapple', 'apple pie' | 'aple', 'APPLE' (case matters) |
+| \`'john%'\` | 'john', 'johnny', 'johnson' | 'mjohn', 'JOHN' |
+| \`'%@test.com'\` | 'user@test.com', 'admin@test.com' | 'user@test.org' |
+
+\`\`\`sql
+-- Find all test/staging emails — useful for cleanup queries
+SELECT id, email FROM users WHERE email LIKE '%@test.%';
+
+-- Find all error log entries from a specific module
+SELECT * FROM logs WHERE message LIKE '%PaymentService%';
+
+-- Find products that have 'XL' anywhere in the name
+SELECT * FROM products WHERE name LIKE '%XL%';
+\`\`\`
+
+> ⚠️ **Case sensitivity:** In MySQL, LIKE is case-insensitive by default on most collations. \`LIKE 'APPLE%'\` will match 'apple'. In PostgreSQL, LIKE is case-sensitive — use \`ILIKE\` for case-insensitive matching.
+
+---
+
+### 3. The _ Wildcard — Match Exactly One Character
+
+*💡 Analogy: _ is the blank tile in Scrabble — it fills in for exactly one letter. \`'b_t'\` matches 'bat', 'bit', 'bot', 'but' — but not 'bt' (too short) or 'boat' (too long).*
+
+\`\`\`sql
+-- Match product codes exactly 4 chars: letter + 3 digits
+SELECT * FROM products WHERE code LIKE 'A___';
+-- Matches: 'A001', 'A999', 'A12X' — not 'A12' or 'A0001'
+
+-- Match UK-format post codes starting with 2 letters
+SELECT * FROM addresses WHERE postcode LIKE '__% %';
+
+-- Match phone numbers where the third digit could be anything
+SELECT * FROM users WHERE phone LIKE '+91-__________';
+-- 10 underscores = 10-digit Indian mobile number
+\`\`\`
+
+---
+
+### 4. Combining % and _ Together
+
+\`\`\`sql
+-- SKU codes: starts with 2 chars, then a dash, then anything
+SELECT * FROM products WHERE sku LIKE '__-%';
+-- Matches: 'AB-001', 'XY-PREMIUM', 'MN-123X'
+
+-- Email addresses: exactly one char before @company.com
+SELECT * FROM users WHERE email LIKE '_@company.com';
+-- Matches only single-char-prefixed emails like 'a@company.com'
+\`\`\`
+
+---
+
+### 5. NOT LIKE — Exclude the Pattern
+
+\`\`\`sql
+-- Find all users who did NOT register with a gmail address
+SELECT * FROM users WHERE email NOT LIKE '%gmail.com';
+
+-- Exclude test/dummy accounts from a report
+SELECT * FROM users
+WHERE email NOT LIKE '%test%'
+  AND email NOT LIKE '%dummy%'
+  AND email NOT LIKE '%example.com';
+\`\`\`
+
+---
+
+### 6. The IN Operator — Match a List of Values
+
+*💡 Analogy: IN is a guest list check. Instead of saying "is your name John OR Jane OR Jack?", you hand the bouncer a list: "is your name in this list?" — cleaner and faster.*
+
+\`\`\`sql
+-- Without IN (verbose and repetitive)
+SELECT * FROM orders
+WHERE status = 'pending' OR status = 'processing' OR status = 'on_hold';
+
+-- With IN (clean and readable)
+SELECT * FROM orders
+WHERE status IN ('pending', 'processing', 'on_hold');
+\`\`\`
+
+\`\`\`sql
+-- Find specific users by ID (useful in QA for targeted record lookup)
+SELECT * FROM users WHERE id IN (1, 5, 23, 101);
+
+-- Find products in specific categories
+SELECT * FROM products WHERE category_id IN (3, 7, 12);
+
+-- NOT IN — exclude a list
+SELECT * FROM users WHERE country_code NOT IN ('US', 'CA', 'GB');
+\`\`\`
+
+> ⚠️ **Watch out:** \`NOT IN\` behaves unexpectedly when the list contains NULL. If any value in the list is NULL, \`NOT IN\` returns no rows. Use \`NOT EXISTS\` instead when NULLs are possible.
+
+---
+
+### 7. The BETWEEN Operator — Match a Range
+
+*💡 Analogy: BETWEEN is an age gate — "are you between 18 and 65?" It's inclusive on both ends, like a corridor with walls. The person at exactly 18 or exactly 65 is still inside.*
+
+\`\`\`sql
+-- Find orders placed in a specific date range
+SELECT * FROM orders
+WHERE created_at BETWEEN '2026-01-01' AND '2026-03-31';
+
+-- Find products in a price range
+SELECT * FROM products WHERE price BETWEEN 100 AND 500;
+
+-- Find users by ID range
+SELECT * FROM users WHERE id BETWEEN 1000 AND 1999;
+\`\`\`
+
+> ✅ **BETWEEN is inclusive** — \`BETWEEN 100 AND 500\` includes exactly 100 and exactly 500.
+
+\`\`\`sql
+-- NOT BETWEEN — outside the range
+SELECT * FROM products WHERE price NOT BETWEEN 100 AND 500;
+-- Returns products cheaper than ₹100 or more expensive than ₹500
+\`\`\`
+
+---
+
+### 8. QA Use Cases — Putting It All Together
+
+\`\`\`sql
+-- Find all test accounts created this week (cleanup query before a release)
+SELECT id, email, created_at
+FROM users
+WHERE email LIKE '%@test.%'
+  AND created_at BETWEEN '2026-05-01' AND '2026-05-07';
+
+-- Verify specific order statuses after a workflow test
+SELECT id, status, updated_at
+FROM orders
+WHERE id IN (1001, 1002, 1003, 1004)
+  AND status IN ('completed', 'shipped');
+
+-- Find products with suspiciously low or missing prices (data quality check)
+SELECT id, name, price FROM products
+WHERE price NOT BETWEEN 1 AND 100000
+   OR price IS NULL;
+
+-- Search error logs for a specific error pattern
+SELECT * FROM error_logs
+WHERE message LIKE '%NullPointerException%'
+  AND created_at BETWEEN CURDATE() - INTERVAL 7 DAY AND CURDATE();
+
+-- Find users whose usernames look like auto-generated test IDs
+SELECT * FROM users WHERE username LIKE 'test_%' OR username LIKE 'user_%';
+\`\`\`
+
+These four tools — LIKE, wildcards, IN, and BETWEEN — let you write search and validation queries in minutes that would otherwise require complex app-level logic or manual inspection.
+        `
+      },
+
       // ─── INTERMEDIATE ────────────────────────────────────────────────────────
 
       {

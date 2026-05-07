@@ -3011,6 +3011,174 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ]
     },
 
+    {
+      level: 'sql-foreign-keys',
+      questions: [
+        {
+          question: "After running a bulk data migration, you suspect some orders were inserted with customer_id values that don't exist in the customers table. Which query detects these orphaned orders?",
+          options: [
+            { id: 'a', text: 'SELECT * FROM orders WHERE customer_id IS NULL;', isCorrect: false },
+            { id: 'b', text: 'SELECT o.id FROM orders o LEFT JOIN customers c ON o.customer_id = c.id WHERE c.id IS NULL;', isCorrect: true },
+            { id: 'c', text: 'SELECT * FROM orders WHERE customer_id NOT IN customers;', isCorrect: false },
+            { id: 'd', text: 'SELECT * FROM orders o INNER JOIN customers c ON o.customer_id = c.id WHERE o.customer_id IS NULL;', isCorrect: false },
+          ],
+          explanation: 'A LEFT JOIN keeps all orders regardless of whether a matching customer exists. WHERE c.id IS NULL then filters to only those with no match — the orphans. IS NULL alone only catches orders where customer_id was not set, not ones where it points to a non-existent customer.'
+        },
+        {
+          question: "A DELETE on the customers table fails with: 'Cannot delete or update a parent row: a foreign key constraint fails'. What does this mean and what is the safest fix?",
+          options: [
+            { id: 'a', text: 'The customers table is locked. Wait and retry the delete.', isCorrect: false },
+            { id: 'b', text: 'Child rows in another table still reference this customer. Delete or reassign those child rows first, then delete the customer.', isCorrect: true },
+            { id: 'c', text: 'The customer id does not exist. Check the id value.', isCorrect: false },
+            { id: 'd', text: 'The database has run out of disk space. Free up space and retry.', isCorrect: false },
+          ],
+          explanation: 'A foreign key with the default RESTRICT behaviour prevents deleting a parent row while child rows still reference it. The safe fix is to delete or reassign the child rows first. Alternatively, the FK can be defined with ON DELETE CASCADE, which auto-deletes children — but only if that behaviour is intentional and documented.'
+        },
+        {
+          question: 'You want orders to be automatically deleted whenever their customer is deleted. Which FK definition achieves this?',
+          options: [
+            { id: 'a', text: 'FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT', isCorrect: false },
+            { id: 'b', text: 'FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL', isCorrect: false },
+            { id: 'c', text: 'FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE', isCorrect: true },
+            { id: 'd', text: 'FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE NO ACTION', isCorrect: false },
+          ],
+          explanation: 'ON DELETE CASCADE makes the database automatically delete all child rows (orders) when the parent row (customer) is deleted. RESTRICT and NO ACTION block the delete. SET NULL sets the FK column to NULL in child rows instead of deleting them. CASCADE is powerful but must be used intentionally — accidental deletes can cascade deeply.'
+        },
+        {
+          question: 'Which statement about foreign keys is TRUE?',
+          options: [
+            { id: 'a', text: 'A foreign key column must be the PRIMARY KEY of its own table.', isCorrect: false },
+            { id: 'b', text: 'A foreign key must reference a column that is a PRIMARY KEY or has a UNIQUE constraint in the parent table.', isCorrect: true },
+            { id: 'c', text: 'Foreign keys are enforced only during SELECT queries.', isCorrect: false },
+            { id: 'd', text: 'You can only have one foreign key per table.', isCorrect: false },
+          ],
+          explanation: 'A foreign key must reference a column (or set of columns) that uniquely identifies a row in the parent table — meaning it must be a PRIMARY KEY or have a UNIQUE constraint. A table can have many foreign keys. FKs are enforced on INSERT and UPDATE (child) and on DELETE and UPDATE (parent), not on SELECT.'
+        },
+        {
+          question: "You're testing a QA portal where deleting a test suite should NOT automatically delete its test cases — you want the delete to be blocked if test cases exist. Which ON DELETE behaviour should the FK use?",
+          options: [
+            { id: 'a', text: 'ON DELETE CASCADE', isCorrect: false },
+            { id: 'b', text: 'ON DELETE SET NULL', isCorrect: false },
+            { id: 'c', text: 'ON DELETE RESTRICT', isCorrect: true },
+            { id: 'd', text: 'ON DELETE NO CONSTRAINT', isCorrect: false },
+          ],
+          explanation: 'RESTRICT (the default) blocks the delete of a parent row if any child rows still reference it. This forces the user or process to explicitly delete or move the test cases first — preventing accidental data loss. CASCADE would silently delete all test cases, which is the opposite of what we want here.'
+        },
+      ]
+    },
+
+    {
+      level: 'sql-constraints',
+      questions: [
+        {
+          question: 'After a bulk import of 10,000 users, you want to check if any rows were inserted with a NULL email — violating the NOT NULL constraint. Which query checks this?',
+          options: [
+            { id: 'a', text: "SELECT * FROM users WHERE email = '';", isCorrect: false },
+            { id: 'b', text: 'SELECT COUNT(*) FROM users WHERE email IS NULL;', isCorrect: true },
+            { id: 'c', text: 'SELECT * FROM users WHERE email = NULL;', isCorrect: false },
+            { id: 'd', text: 'SELECT * FROM users WHERE NOT email;', isCorrect: false },
+          ],
+          explanation: "NULL is a special state meaning 'no value' — you cannot compare it with = or !=. The only correct SQL to detect NULLs is IS NULL (or IS NOT NULL). If the column has a NOT NULL constraint and the import succeeded, COUNT should return 0. Any non-zero result means the constraint is either missing or was disabled during import."
+        },
+        {
+          question: "You're testing a registration flow. A user registers twice with the same email. The API returns HTTP 200 on both attempts. You query the database and find two rows with the same email. What does this tell you?",
+          options: [
+            { id: 'a', text: 'The UNIQUE constraint is working correctly — duplicate emails are allowed in the database.', isCorrect: false },
+            { id: 'b', text: 'The UNIQUE constraint is missing or not applied to the email column — the database allowed the duplicate.', isCorrect: true },
+            { id: 'c', text: 'The duplicate was blocked at the database level but the API is not returning the correct error code.', isCorrect: false },
+            { id: 'd', text: 'The PRIMARY KEY constraint failed, not the UNIQUE constraint.', isCorrect: false },
+          ],
+          explanation: 'If the UNIQUE constraint were in place, the second INSERT would fail with a duplicate key error, and no second row would be created. Finding two rows with the same email proves the UNIQUE constraint is missing. This is a critical schema bug — duplicate emails allow account takeovers and auth confusion.'
+        },
+        {
+          question: "A new orders table is created with DEFAULT 'pending' on the status column. A developer's code inserts an order without specifying status. What will the status value be in the database?",
+          options: [
+            { id: 'a', text: "NULL, because the value was not explicitly provided.", isCorrect: false },
+            { id: 'b', text: "An empty string '', because nothing was passed.", isCorrect: false },
+            { id: 'c', text: "'pending', because the DEFAULT fills it in automatically.", isCorrect: true },
+            { id: 'd', text: 'An error is thrown because a required column was omitted.', isCorrect: false },
+          ],
+          explanation: "DEFAULT is applied automatically by the database engine when no value is supplied for that column in the INSERT. The column doesn't need to be listed in the INSERT at all. This is different from NOT NULL — a column can have a DEFAULT without being NOT NULL, or have both (DEFAULT provides a fallback, NOT NULL prevents NULL from being explicitly inserted)."
+        },
+        {
+          question: 'A CHECK constraint is defined as CHECK (rating BETWEEN 1.0 AND 5.0) on the products table. A test tries to INSERT a product with rating = 0.5. What happens?',
+          options: [
+            { id: 'a', text: 'The insert succeeds but the rating is silently rounded up to 1.0.', isCorrect: false },
+            { id: 'b', text: 'The insert is rejected with a constraint violation error.', isCorrect: true },
+            { id: 'c', text: 'The insert succeeds — CHECK constraints only produce warnings.', isCorrect: false },
+            { id: 'd', text: "The insert succeeds only if the application layer doesn't also validate it.", isCorrect: false },
+          ],
+          explanation: "CHECK constraints are hard rules — if the value violates the expression, the INSERT (or UPDATE) is rejected outright with an error. There is no 'warning only' mode. This is exactly the point: the database acts as a final safety net even if the application layer fails to validate the data before sending it."
+        },
+        {
+          question: "Which query best verifies that NOT NULL on email and CHECK (age >= 13) are working correctly after a data import of 500 users?",
+          options: [
+            { id: 'a', text: 'SELECT COUNT(*) FROM users WHERE email IS NULL OR age < 13;', isCorrect: true },
+            { id: 'b', text: 'SELECT * FROM users WHERE email = NULL AND age = 13;', isCorrect: false },
+            { id: 'c', text: 'DESCRIBE users;', isCorrect: false },
+            { id: 'd', text: "SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE TABLE_NAME = 'users';", isCorrect: false },
+          ],
+          explanation: "Checking the data directly — IS NULL for NOT NULL violations, and < 13 for CHECK violations — verifies that the constraints actually prevented bad data from getting in (or reveals that they didn't). DESCRIBE shows the schema definition but not whether bad data slipped through. The INFORMATION_SCHEMA query shows constraint definitions, not violations in the data."
+        },
+      ]
+    },
+
+    {
+      level: 'sql-like-wildcards',
+      questions: [
+        {
+          question: "After a test run, you want to find and clean up all test user accounts whose emails end in '@test.com'. Which query retrieves them?",
+          options: [
+            { id: 'a', text: "SELECT * FROM users WHERE email = '@test.com';", isCorrect: false },
+            { id: 'b', text: "SELECT * FROM users WHERE email LIKE '%@test.com';", isCorrect: true },
+            { id: 'c', text: "SELECT * FROM users WHERE email LIKE '@test.com%';", isCorrect: false },
+            { id: 'd', text: "SELECT * FROM users WHERE email CONTAINS '@test.com';", isCorrect: false },
+          ],
+          explanation: "LIKE '%@test.com' matches any string that ends with '@test.com' — the % at the start means 'anything can come before'. '@test.com%' would only match strings that START with '@test.com', which is wrong. CONTAINS is not valid SQL. The exact match = '@test.com' would only match the bare string '@test.com' with nothing before it."
+        },
+        {
+          question: "You need to find product SKUs that are exactly 6 characters long and start with 'P'. Which LIKE pattern is correct?",
+          options: [
+            { id: 'a', text: "LIKE 'P%%%%%'", isCorrect: false },
+            { id: 'b', text: "LIKE 'P_____'", isCorrect: true },
+            { id: 'c', text: "LIKE 'P______'", isCorrect: false },
+            { id: 'd', text: "LIKE '%P_____'", isCorrect: false },
+          ],
+          explanation: "Each _ matches exactly one character. 'P_____' is P followed by 5 underscores = P + 5 characters = 6 characters total. 'P%%%%%' uses % which matches zero or more characters, so it would match 'P', 'PA', 'PABCDEFGHIJK', etc. — it doesn't enforce a specific length. '%P_____' would match strings that have any prefix then P then 5 chars — not what we want."
+        },
+        {
+          question: "You want to verify that 4 specific order IDs (101, 205, 304, 412) all have status 'delivered' after a fulfilment test. Which query is the most concise?",
+          options: [
+            { id: 'a', text: "SELECT * FROM orders WHERE id = 101 OR id = 205 OR id = 304 OR id = 412 AND status = 'delivered';", isCorrect: false },
+            { id: 'b', text: "SELECT * FROM orders WHERE id IN (101, 205, 304, 412) AND status = 'delivered';", isCorrect: true },
+            { id: 'c', text: "SELECT * FROM orders WHERE id BETWEEN 101 AND 412 AND status = 'delivered';", isCorrect: false },
+            { id: 'd', text: "SELECT * FROM orders WHERE id LIKE '101,205,304,412';", isCorrect: false },
+          ],
+          explanation: "IN (101, 205, 304, 412) matches exactly those four IDs cleanly. The OR approach has a precedence bug — AND binds tighter than OR, so only id=412 gets filtered by status='delivered'. BETWEEN 101 AND 412 would return hundreds of other orders in that range. LIKE is for string pattern matching, not a list of integers."
+        },
+        {
+          question: "You're running a regression test on the reporting module. You want to find all orders with a total between ₹500 and ₹5000 (inclusive). Which option(s) are correct?",
+          options: [
+            { id: 'a', text: "SELECT * FROM orders WHERE total >= 500 AND total <= 5000;", isCorrect: false },
+            { id: 'b', text: "SELECT * FROM orders WHERE total BETWEEN 500 AND 5000;", isCorrect: false },
+            { id: 'c', text: "SELECT * FROM orders WHERE total > 500 AND total < 5000;", isCorrect: false },
+            { id: 'd', text: "Both A and B — BETWEEN is inclusive and equivalent to >= AND <=.", isCorrect: true },
+          ],
+          explanation: "BETWEEN is inclusive on both ends — BETWEEN 500 AND 5000 is exactly equivalent to >= 500 AND <= 5000. Both are correct. Option C uses strict inequalities (> and <) which would exclude ₹500 and ₹5000 exactly. In QA, BETWEEN is often more readable for range checks on dates and amounts."
+        },
+        {
+          question: "You're searching error_logs for all entries that mention 'timeout' anywhere in the message, created in the last 7 days. Which query is most appropriate?",
+          options: [
+            { id: 'a', text: "SELECT * FROM error_logs WHERE message = 'timeout' AND created_at >= CURDATE() - INTERVAL 7 DAY;", isCorrect: false },
+            { id: 'b', text: "SELECT * FROM error_logs WHERE message LIKE '%timeout%' AND created_at BETWEEN CURDATE() - INTERVAL 7 DAY AND CURDATE();", isCorrect: true },
+            { id: 'c', text: "SELECT * FROM error_logs WHERE message IN ('%timeout%') AND created_at >= CURDATE() - INTERVAL 7 DAY;", isCorrect: false },
+            { id: 'd', text: "SELECT * FROM error_logs WHERE message LIKE 'timeout' AND created_at >= CURDATE();", isCorrect: false },
+          ],
+          explanation: "'%timeout%' matches the word 'timeout' anywhere in the message column. The exact match (= 'timeout') would only find messages that contain nothing else. IN doesn't support LIKE wildcards. LIKE 'timeout' without % is effectively the same as = 'timeout'. BETWEEN CURDATE()-7 days AND CURDATE() correctly covers the 7-day window inclusively."
+        },
+      ]
+    },
+
     // ─── INTERMEDIATE ─────────────────────────────────────────────────────────
     {
       level: 'sql-joins',
