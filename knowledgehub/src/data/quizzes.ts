@@ -5452,6 +5452,116 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ],
     },
     {
+      level: 'api-test-data-strategies',
+      questions: [
+        {
+          question: 'Which is the safest pattern for parallel-running tests that all create users?',
+          options: [
+            { id: 'a', text: 'Hardcode the same email "qa@test.com" in every test.', isCorrect: false },
+            { id: 'b', text: 'Generate a unique email per test, e.g., qa+${Date.now()}-${random}@test.com', isCorrect: true },
+            { id: 'c', text: 'Run all tests serially to avoid collisions.', isCorrect: false },
+            { id: 'd', text: 'Sleep 1 second between tests.', isCorrect: false },
+          ],
+          explanation: 'Unique values per test eliminate collisions in parallel runs. Hardcoded values cause "duplicate email" errors. Serial runs sacrifice speed. Sleeping is a flaky workaround that does not actually solve the collision.'
+        },
+        {
+          question: 'A test passes when run alone but fails when run as part of the full suite. What is the most likely cause?',
+          options: [
+            { id: 'a', text: 'The test runner has a bug.', isCorrect: false },
+            { id: 'b', text: 'Order-dependence — an earlier test left data behind that the failing test inherited.', isCorrect: true },
+            { id: 'c', text: 'The test should not be run in suites.', isCorrect: false },
+            { id: 'd', text: 'The CI server is too slow.', isCorrect: false },
+          ],
+          explanation: 'Order-dependent tests are a classic data-poisoning symptom. Either an earlier test left dirty data in the shared environment, or two tests fight over the same record. Fix: each test owns its data and cleans up.'
+        },
+        {
+          question: 'Which is the gold-standard isolation pattern for multi-tenant SaaS APIs?',
+          options: [
+            { id: 'a', text: 'Run all tests in one shared tenant.', isCorrect: false },
+            { id: 'b', text: 'Create a fresh tenant in beforeEach, delete it in afterEach — total isolation per test.', isCorrect: true },
+            { id: 'c', text: 'Use the same hardcoded tenant ID in every test.', isCorrect: false },
+            { id: 'd', text: 'Skip cleanup; the database resets every night.', isCorrect: false },
+          ],
+          explanation: 'Per-test tenant isolation gives total parallel safety with one cleanup call (delete the tenant cascades all data). It is the highest-leverage pattern in modern API testing for multi-tenant systems.'
+        },
+        {
+          question: 'A test uses a snapshot like expect(response).toMatchSnapshot(). The API now returns a new field. What happens on the next test run?',
+          options: [
+            { id: 'a', text: 'The new field is silently merged into the snapshot.', isCorrect: false },
+            { id: 'b', text: 'The test fails because the actual response differs from the saved snapshot, until the snapshot is updated (e.g., jest --updateSnapshot).', isCorrect: true },
+            { id: 'c', text: 'The test always passes regardless of changes.', isCorrect: false },
+            { id: 'd', text: 'The test cannot detect new fields.', isCorrect: false },
+          ],
+          explanation: 'Snapshot tests fail on any difference between actual and saved snapshot — including new fields. The team must consciously bless the new shape via --updateSnapshot. This catches accidental contract changes.'
+        },
+        {
+          question: 'Why should real customer PII never be used in test data, even from a production clone?',
+          options: [
+            { id: 'a', text: 'It is too slow to load.', isCorrect: false },
+            { id: 'b', text: 'GDPR/CCPA/HIPAA expose teams to legal liability if real PII appears in logs, git history, or non-prod systems with weaker access controls.', isCorrect: true },
+            { id: 'c', text: 'Real data is always inaccurate.', isCorrect: false },
+            { id: 'd', text: 'Production data is always too small for testing.', isCorrect: false },
+          ],
+          explanation: 'Privacy regulations (GDPR, CCPA, HIPAA) treat any handling of real PII as regulated activity. Test environments often have weaker access controls than production — a real customer record exposed in a CI log is a serious incident. Always use synthetic or properly-anonymised data.'
+        },
+      ],
+    },
+    {
+      level: 'api-graphql-testing',
+      questions: [
+        {
+          question: 'A GraphQL response returns HTTP 200 with this body: { "data": { "user": null }, "errors": [{ "message": "Forbidden" }] }. What does this mean?',
+          options: [
+            { id: 'a', text: 'The request was successful with empty data.', isCorrect: false },
+            { id: 'b', text: 'The query partially failed — user is null because of an authorization error described in the errors array.', isCorrect: true },
+            { id: 'c', text: 'A network error occurred.', isCorrect: false },
+            { id: 'd', text: 'The server is down.', isCorrect: false },
+          ],
+          explanation: 'GraphQL returns 200 even when the query fails partially or completely. Always check the errors array, not just the status code. A REST-trained tester might miss this and assert "user is null = bug" while ignoring the actual cause.'
+        },
+        {
+          question: 'A user sends a 5-level deep nested query like { user { friends { friends { friends { friends { id } } } } } }. What protection should the server have?',
+          options: [
+            { id: 'a', text: 'No protection needed; GraphQL handles it.', isCorrect: false },
+            { id: 'b', text: 'A query depth limit (or complexity limit) that rejects overly nested queries with a structured error.', isCorrect: true },
+            { id: 'c', text: 'The server should always answer such queries.', isCorrect: false },
+            { id: 'd', text: 'Manual review of every query.', isCorrect: false },
+          ],
+          explanation: 'Without a depth or complexity limit, an attacker can DoS the server with a single query. GraphQL servers should enforce a depth limit (typically 10-15) and a complexity score. As a tester, deliberately send a deeply nested query and verify it is rejected.'
+        },
+        {
+          question: 'A non-admin user queries a publicProduct field and the response includes internalCostPrice (which should be admin-only). What is the bug?',
+          options: [
+            { id: 'a', text: 'GraphQL is broken.', isCorrect: false },
+            { id: 'b', text: 'Authorization bypass via field — the API checks auth on the publicProduct type but not on the internalCostPrice field individually.', isCorrect: true },
+            { id: 'c', text: 'The query syntax was wrong.', isCorrect: false },
+            { id: 'd', text: 'The user must be re-logged in.', isCorrect: false },
+          ],
+          explanation: 'Field-level authorization is critical in GraphQL. Each sensitive field needs its own auth check; a type-level check is not enough. This is one of the most common GraphQL security bugs (OWASP API Top 10 — Broken Object Property Level Authorization).'
+        },
+        {
+          question: 'You request 100 orders, each with a nested customer field. The query takes 10 seconds — but 10 orders take 100 ms. What is happening?',
+          options: [
+            { id: 'a', text: 'GraphQL is slow by design.', isCorrect: false },
+            { id: 'b', text: 'The N+1 problem — the resolver loads each order\'s customer in a separate database query, so 100 orders = 101 queries.', isCorrect: true },
+            { id: 'c', text: 'The server has a memory leak.', isCorrect: false },
+            { id: 'd', text: 'The client is too slow.', isCorrect: false },
+          ],
+          explanation: 'N+1 is the most common GraphQL performance bug. The server should batch related queries (DataLoader pattern) so 100 orders need just 2 queries: one for orders, one for all their customers in a single IN clause.'
+        },
+        {
+          question: 'What is the purpose of GraphQL schema introspection?',
+          options: [
+            { id: 'a', text: 'A debugging tool only — not useful for testing.', isCorrect: false },
+            { id: 'b', text: 'Lets clients query the server for its own schema — useful for tools, auto-complete, and discovering hidden fields.', isCorrect: true },
+            { id: 'c', text: 'It encrypts the GraphQL response.', isCorrect: false },
+            { id: 'd', text: 'It is only for performance optimization.', isCorrect: false },
+          ],
+          explanation: 'Schema introspection ({ __schema { types { name } } }) returns the full schema — every type, every field. Testers use it to discover hidden fields and verify the documented schema matches reality. Note: many teams disable introspection in production for security.'
+        },
+      ],
+    },
+    {
       level: 'api-security-testing',
       questions: [
         {
@@ -5613,6 +5723,116 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
             { id: 'd', text: 'Never — performance tuning is a DevOps responsibility, not QA.', isCorrect: false },
           ],
           explanation: 'Performance bugs are expensive to fix late. Shift left: add baseline performance tests in CI/CD so any commit that slows an endpoint by 30%+ is caught in the PR — not in production during peak traffic.'
+        },
+      ],
+    },
+    {
+      level: 'api-load-testing-tools',
+      questions: [
+        {
+          question: 'In a k6 script, what does export const options = { vus: 50, duration: \'5m\' } configure?',
+          options: [
+            { id: 'a', text: 'Run with 50 virtual users for 5 minutes.', isCorrect: true },
+            { id: 'b', text: 'Run 50 iterations over 5 days.', isCorrect: false },
+            { id: 'c', text: 'Use 50 megabytes of RAM for 5 minutes.', isCorrect: false },
+            { id: 'd', text: 'Send 50 requests per second.', isCorrect: false },
+          ],
+          explanation: 'vus = virtual users (concurrent simulated clients), duration = how long the test runs. 50 VUs for 5 minutes means 50 simultaneous clients hammering the API for 5 minutes.'
+        },
+        {
+          question: 'What does this k6 threshold do? thresholds: { http_req_duration: [\'p(95)<500\'] }',
+          options: [
+            { id: 'a', text: 'Limits each user to 500 requests.', isCorrect: false },
+            { id: 'b', text: 'Fails the test (and the CI build) if 95% of requests are not under 500ms.', isCorrect: true },
+            { id: 'c', text: 'Caps response sizes at 500 bytes.', isCorrect: false },
+            { id: 'd', text: 'Runs the test for 500 seconds.', isCorrect: false },
+          ],
+          explanation: 'Thresholds turn k6 into a quality gate. p(95)<500 means "95th percentile latency must be below 500ms." If the threshold fails, k6 exits non-zero, blocking the CI pipeline. This is how you make load tests actually enforce performance.'
+        },
+        {
+          question: 'You need to load-test with 1,000 different user accounts from a CSV file. Which k6 feature is most efficient?',
+          options: [
+            { id: 'a', text: 'open() inside the default function — read the CSV per iteration.', isCorrect: false },
+            { id: 'b', text: 'SharedArray — load the CSV once, share across all VUs to save memory.', isCorrect: true },
+            { id: 'c', text: 'Hardcode all 1,000 users into the script.', isCorrect: false },
+            { id: 'd', text: 'Use the Postman runner instead.', isCorrect: false },
+          ],
+          explanation: 'SharedArray loads data once into shared memory across all VUs. Using open() per iteration would multiply memory usage by the number of VUs and slow each iteration. SharedArray is the canonical k6 pattern for parameterised data.'
+        },
+        {
+          question: 'Which scenario best fits k6 in 2026 versus JMeter?',
+          options: [
+            { id: 'a', text: 'JMeter is always better.', isCorrect: false },
+            { id: 'b', text: 'k6 fits modern CI-driven JavaScript-fluent teams; JMeter remains relevant for SOAP-heavy or audit-heavy enterprise environments.', isCorrect: true },
+            { id: 'c', text: 'They are interchangeable.', isCorrect: false },
+            { id: 'd', text: 'JMeter does not support API testing.', isCorrect: false },
+          ],
+          explanation: 'k6 has become the default for new modern API teams: single binary, JS scripts, CI-friendly. JMeter is still strong in legacy enterprise contexts (SOAP, GUI-driven test design, formal audit trails). Pick the one that matches your team\'s context.'
+        },
+        {
+          question: 'You ran a load test from your laptop and the API responded slowly. What is the most useful next step?',
+          options: [
+            { id: 'a', text: 'Conclude the API is broken.', isCorrect: false },
+            { id: 'b', text: 'Compare client metrics (k6) with server metrics (CPU, RAM, DB connections) to find the real bottleneck.', isCorrect: true },
+            { id: 'c', text: 'Re-run with more VUs.', isCorrect: false },
+            { id: 'd', text: 'Restart your laptop.', isCorrect: false },
+          ],
+          explanation: 'Slow responses can come from many sources: the API server, the database, your network, your laptop\'s CPU saturation. Without server-side metrics you cannot diagnose. Always pair load testing with server observability (Grafana, CloudWatch, etc.) to find the actual bottleneck.'
+        },
+      ],
+    },
+    {
+      level: 'api-monitoring-observability',
+      questions: [
+        {
+          question: 'What are the "three pillars" of observability?',
+          options: [
+            { id: 'a', text: 'Code, tests, deployments.', isCorrect: false },
+            { id: 'b', text: 'Metrics, logs, and traces.', isCorrect: true },
+            { id: 'c', text: 'Dev, staging, production.', isCorrect: false },
+            { id: 'd', text: 'Latency, availability, errors.', isCorrect: false },
+          ],
+          explanation: 'Metrics (numeric trends over time), logs (discrete events with context), and traces (the path of a single request through services) together give complete visibility into a running system. You need all three.'
+        },
+        {
+          question: 'What is a "synthetic monitor" in API monitoring?',
+          options: [
+            { id: 'a', text: 'A monitor that runs only inside CI.', isCorrect: false },
+            { id: 'b', text: 'A scheduled test that runs every N minutes against production, alerting if it fails.', isCorrect: true },
+            { id: 'c', text: 'A monitor for plastic-related APIs.', isCorrect: false },
+            { id: 'd', text: 'Real user data only.', isCorrect: false },
+          ],
+          explanation: 'A synthetic monitor is a scripted test (often a Postman collection or a single API call) that runs on a schedule against production. If it fails, alerts fire. Best for catching outages and SLO regressions in real time. Postman Monitors and Datadog Synthetics are popular tools.'
+        },
+        {
+          question: 'Which best describes the difference between SLO and SLA?',
+          options: [
+            { id: 'a', text: 'SLO and SLA are the same thing.', isCorrect: false },
+            { id: 'b', text: 'SLO is an internal target you aim for; SLA is the contractual promise to customers (often with refund clauses).', isCorrect: true },
+            { id: 'c', text: 'SLO is for testing only; SLA is for production.', isCorrect: false },
+            { id: 'd', text: 'SLO measures uptime; SLA measures latency.', isCorrect: false },
+          ],
+          explanation: 'SLI = the actual measurement (e.g., "p95 = 320ms"). SLO = the internal target ("p95 < 500ms over 30 days"). SLA = the contract to customers ("99.9% uptime monthly"). SLA is usually slightly less strict than SLO so you have breathing room.'
+        },
+        {
+          question: 'A service receives the header "traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01". What standard is this?',
+          options: [
+            { id: 'a', text: 'A custom header invented by Google.', isCorrect: false },
+            { id: 'b', text: 'The W3C Trace Context standard for distributed tracing.', isCorrect: true },
+            { id: 'c', text: 'An old version of OAuth.', isCorrect: false },
+            { id: 'd', text: 'A JSON Web Token.', isCorrect: false },
+          ],
+          explanation: 'traceparent is the W3C Trace Context standard. It propagates trace IDs across service boundaries so tools like Jaeger or Datadog APM can stitch together a single user request crossing many microservices. Verifying your API forwards this header to downstream calls is a common test.'
+        },
+        {
+          question: 'Which alerting principle helps avoid pager fatigue?',
+          options: [
+            { id: 'a', text: 'Alert on every single failed request.', isCorrect: false },
+            { id: 'b', text: 'Alert on actionable symptoms (e.g., error rate > 1% for 5 minutes), not on every transient blip.', isCorrect: true },
+            { id: 'c', text: 'Send alerts only by postal mail.', isCorrect: false },
+            { id: 'd', text: 'Disable all alerts on weekends.', isCorrect: false },
+          ],
+          explanation: 'Effective alerting is the "Goldilocks problem": too noisy and on-call burns out and ignores alerts; too quiet and bugs run for hours. Best practice: alert on symptoms over a time window (5+ minutes), and every alert should be actionable. If on-call cannot do anything, it should be a dashboard panel, not an alert.'
         },
       ],
     },

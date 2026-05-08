@@ -155,7 +155,7 @@ export const ZONE_TIERS: Record<string, { id: string; label: string; color: stri
     },
     {
       id: 'expert', label: 'Expert', color: 'text-amber-400',
-      moduleIds: ['api-automation','api-security-testing','api-contract-testing','api-performance-testing','api-ci-cd'],
+      moduleIds: ['api-automation','api-test-data-strategies','api-graphql-testing','api-security-testing','api-contract-testing','api-performance-testing','api-load-testing-tools','api-monitoring-observability','api-ci-cd'],
     },
   ],
   playwright: [

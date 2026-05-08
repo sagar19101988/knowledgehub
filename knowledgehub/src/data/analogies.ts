@@ -12639,6 +12639,600 @@ export function setAuthToken(token: string) {
 \`\`\`
 
 Run: \`npx jest --watchAll\`
+
+---
+
+### 🔢 Data-Driven (Parameterised) Tests
+
+*💡 Analogy: A copy-paste test suite is like writing the same letter to 50 customers by hand. Data-driven tests are mail-merge — one template, 50 names, one click.*
+
+Instead of writing 10 nearly-identical tests, write **one test that runs against an array of inputs**.
+
+\`\`\`typescript
+describe.each([
+  { input: { email: 'priya@test.com', age: 28 }, expected: 201 },
+  { input: { email: 'invalid-email',   age: 28 }, expected: 422 },
+  { input: { email: 'priya@test.com', age: 17 }, expected: 422 },
+  { input: { email: '',                age: 28 }, expected: 422 },
+])('POST /users with $input', ({ input, expected }) => {
+  it(\`returns \${expected}\`, async () => {
+    const res = await axios.post(\`\${BASE_URL}/users\`, input, { validateStatus: () => true });
+    expect(res.status).toBe(expected);
+  });
+});
+\`\`\`
+
+**Wins:**
+- One test description, many cases
+- Adding a new edge case = one new line
+- Failure messages name the input that broke
+
+---
+
+### 🧪 Fixtures & Lifecycle (beforeAll / afterEach / etc.)
+
+\`\`\`typescript
+let authToken: string;
+let createdUserIds: number[] = [];
+
+beforeAll(async () => {
+  // One-time login for the whole suite
+  const res = await axios.post(\`\${BASE_URL}/auth/login\`, { email: 'qa@test.com', password: 'pwd' });
+  authToken = res.data.token;
+});
+
+afterEach(async () => {
+  // Clean up any users this test created
+  for (const id of createdUserIds) {
+    await axios.delete(\`\${BASE_URL}/users/\${id}\`, { headers: { Authorization: \`Bearer \${authToken}\` } });
+  }
+  createdUserIds = [];
+});
+\`\`\`
+
+| Hook | Runs |
+|------|------|
+| \`beforeAll\` | Once before the entire describe block |
+| \`beforeEach\` | Before every test |
+| \`afterEach\` | After every test |
+| \`afterAll\` | Once after the entire describe block |
+
+**Rule of thumb:** put expensive setup (login, seeding) in \`beforeAll\`. Put cleanup of data this test created in \`afterEach\`.
+
+---
+
+### 🔀 Parallel Execution & Test Isolation
+
+Modern runners (Jest, Playwright, Vitest) run test files in **parallel workers** by default — 4×, 8×, even 16× faster.
+
+But parallelism breaks fragile tests. The classic gotcha:
+
+\`\`\`
+Test A creates user with email "qa@test.com"
+Test B (parallel) creates user with email "qa@test.com"
+→ Test B fails with "duplicate email"
+\`\`\`
+
+**Fix it with unique data per run:**
+
+\`\`\`typescript
+const uniqueEmail = \`qa+\${Date.now()}-\${Math.random().toString(36).slice(2)}@test.com\`;
+\`\`\`
+
+Or scope each test to a unique tenant/workspace/account so they cannot collide.
+
+**In Jest:** \`--maxWorkers=4\` controls parallelism. Set to \`1\` to debug a flaky parallel test in serial.
+
+---
+
+### 🔁 Retries for Flaky Tests
+
+Some failures are genuine; some are flakes (network blip, eventual consistency, test order dependency). Most runners support a retry policy:
+
+**Jest config:**
+\`\`\`javascript
+jest.retryTimes(2, { logErrorsBeforeRetry: true });
+\`\`\`
+
+**Playwright config:**
+\`\`\`typescript
+export default defineConfig({
+  retries: process.env.CI ? 2 : 0,  // retry only in CI
+});
+\`\`\`
+
+**Healthy attitude toward retries:**
+- ✅ Retry to ride out transient infrastructure issues
+- ❌ Don't retry to mask test bugs — fix the root cause
+- ✅ Track retry rate as a quality metric — sudden spike = something's actually broken
+
+---
+
+### 📊 Reporting — HTML, Allure, JUnit XML
+
+Raw terminal output is useless when sharing test results with managers and devs. Reach for a proper reporter.
+
+**Jest HTML reporter (\`jest-html-reporter\`):**
+\`\`\`javascript
+// jest.config.js
+module.exports = {
+  reporters: ['default', ['jest-html-reporter', { pageTitle: 'API Test Report' }]],
+};
+\`\`\`
+
+**Allure reporter** — gold standard for stakeholders. Produces beautiful, browsable reports with trends, history, screenshots, and grouping.
+
+**JUnit XML** — the universal format for CI dashboards (Jenkins, GitLab, Azure DevOps). Most reporters can output it.
+
+\`\`\`bash
+jest --reporters=default --reporters=jest-junit
+\`\`\`
+
+CI servers parse the JUnit XML and show pass/fail history, flaky tests, slowest tests, and failure trends right in the build UI.
+        `
+      },
+
+      {
+        id: 'api-test-data-strategies',
+        title: 'Expert: Test Data Strategies',
+        analogy: "Test data is the fuel of automated tests. Bad fuel = engine sputters. Some teams hand-write fuel for every car (fixtures), some build a fuel factory (factories), some siphon fuel from production (cloning), and some recycle fuel in an endless loop (snapshots). Pick the wrong strategy and your test fleet breaks down at 2 AM.",
+        lessonMarkdown: `
+### ⛽ Why Test Data Is the #1 Source of Flaky Tests
+
+*💡 Analogy: A racing team can have the world's best driver and the world's best car, but if they fill it with bad petrol, they lose the race. Test data is petrol — every test depends on it being clean, fresh, and just right. Most "flaky tests" are actually flaky data problems in disguise.*
+
+Common test failures that look like product bugs but are actually data problems:
+- "Test expected 5 users, found 6" → leftover data from a prior run
+- "Duplicate email error" → two parallel tests used the same value
+- "Order total mismatch" → exchange rate fixture drifted from production
+- "User not found" → another team wiped the staging database overnight
+
+Fix the data strategy and 60% of flakes vanish.
+
+---
+
+### 📂 Strategy 1: Fixtures — Static, Hand-Written
+
+Fixtures are JSON or YAML files committed alongside tests:
+
+\`\`\`json
+// fixtures/users/valid-user.json
+{
+  "name": "Priya Sharma",
+  "email": "priya@example.com",
+  "age": 28
+}
+\`\`\`
+
+**Pros:** dead simple, version-controlled, readable.
+**Cons:** stale (real schema changed but fixture didn't), collision-prone (every test using the same email = duplicate errors), unreadable in bulk (50 fixture files for 50 tests).
+
+**Best for:** Schema-stable, low-volume scenarios. The "happy path" canonical user used by half your tests.
+
+---
+
+### 🏭 Strategy 2: Factories — Dynamic Generation
+
+A factory is a function that returns a fresh object every call:
+
+\`\`\`typescript
+import { faker } from '@faker-js/faker';
+
+export function buildUser(overrides = {}) {
+  return {
+    name:  faker.person.fullName(),
+    email: faker.internet.email(),
+    age:   faker.number.int({ min: 18, max: 80 }),
+    ...overrides,
+  };
+}
+
+// In tests
+const user = buildUser();                              // random valid user
+const teen = buildUser({ age: 16 });                   // override one field
+const noEmail = buildUser({ email: '' });              // edge case
+\`\`\`
+
+**Pros:** unique data every run (no collisions in parallel), readable test intent (\`buildUser({ age: 16 })\` reads like English), easy to model edge cases.
+**Cons:** non-deterministic (debug a failure → can't repro because random differs).
+
+**Pro tip:** seed faker for reproducibility:
+\`\`\`typescript
+faker.seed(42);  // same "random" data every run
+\`\`\`
+
+**Best for:** Most modern test suites. Default to factories.
+
+---
+
+### 📸 Strategy 3: Snapshots — Recorded Fixtures
+
+A snapshot test captures the response once, asserts everything matches it next time:
+
+\`\`\`typescript
+it('returns expected user shape', async () => {
+  const res = await axios.get(\`\${BASE_URL}/users/1\`);
+  expect(res.data).toMatchSnapshot();
+});
+\`\`\`
+
+First run: writes a \`.snap\` file with the response. Subsequent runs: compares. If the API changes, the test fails until you bless the new shape with \`jest --updateSnapshot\`.
+
+**Pros:** catches every accidental field change instantly.
+**Cons:** "matches what was, not what should be" — buggy responses get baked in. Snapshots can become noise if blessed without thought.
+
+**Best for:** Locking down stable contracts, regression detection. Pair with explicit assertions for critical fields.
+
+---
+
+### 🌱 Strategy 4: Seed-and-Restore — Database Level
+
+Before the suite: load a known SQL dump or fixtures into the test database. After: restore.
+
+\`\`\`bash
+# Before tests
+psql testdb < seed.sql
+
+# Run tests
+npm test
+
+# After tests
+psql testdb -c "TRUNCATE TABLE users, orders CASCADE"
+psql testdb < seed.sql
+\`\`\`
+
+**Pros:** complete control over starting state, fast for read-heavy tests.
+**Cons:** slow setup, requires DB access, teams need to coordinate seeds, parallel tests must use separate DB schemas.
+
+**Best for:** Read-heavy report APIs, complex referential data, on-prem CI.
+
+---
+
+### 🔄 Strategy 5: Transactional Rollback (DB Tests Only)
+
+Each test runs inside a database transaction that's rolled back at the end:
+
+\`\`\`typescript
+beforeEach(async () => { await db.query('BEGIN'); });
+afterEach(async  () => { await db.query('ROLLBACK'); });
+\`\`\`
+
+**Pros:** zero leftover data, fast, no manual cleanup.
+**Cons:** doesn't work if your API runs in a separate process (most do — the test can't share the transaction with the API).
+
+**Best for:** Integration tests where the API and the test share the same DB connection.
+
+---
+
+### 🔀 Parallel-Safe Data Patterns
+
+Running tests in parallel? **Every test must own its data** to avoid collisions.
+
+#### Pattern A: Unique values via timestamp + random
+
+\`\`\`typescript
+const uniqueEmail = \`qa+\${Date.now()}-\${Math.random().toString(36).slice(2)}@test.com\`;
+const uniqueOrgName = \`org_\${process.pid}_\${Date.now()}\`;
+\`\`\`
+
+#### Pattern B: Per-worker namespacing
+
+If your runner exposes a worker ID:
+\`\`\`typescript
+const workerId = process.env.JEST_WORKER_ID;
+const tenantSlug = \`worker-\${workerId}\`;  // tests in worker 3 use "worker-3" tenant
+\`\`\`
+
+#### Pattern C: Per-test tenant or workspace
+
+Modern multi-tenant APIs let each test create a fresh tenant, run inside it, delete it after.
+
+\`\`\`typescript
+beforeEach(async () => {
+  testTenant = await createTenant();
+});
+afterEach(async () => {
+  await deleteTenant(testTenant.id);   // wipes all tenant data in one call
+});
+\`\`\`
+
+This is the gold standard — total isolation, fast cleanup, parallel-safe.
+
+---
+
+### 🧹 Cleanup Strategies
+
+| Strategy | How | Best for |
+|----------|-----|----------|
+| **Fixed list** | Test stores IDs created, deletes them in \`afterEach\` | Small number of records |
+| **Tag-based** | Every test record carries a tag (\`source: "automation"\`); cleanup script deletes by tag | Mixed prod-and-test environments |
+| **Time-based** | Cron deletes everything older than 24 hours | Shared dev environments |
+| **Tenant-scoped** | Delete the whole tenant; cascades wipe all data | Multi-tenant SaaS |
+| **Database snapshot/restore** | Snapshot before suite, restore after | Read-heavy test suites |
+
+---
+
+### 🛡️ Sensitive Data — Never Use Real PII
+
+**Never use real customer names, emails, addresses, credit cards, or government IDs in test data.** Three options:
+
+1. **Synthetic** (best) — faker.js, Mockaroo. Looks real, isn't real.
+2. **Anonymised production clone** — load a snapshot of prod, then run a script that hashes/replaces every PII field.
+3. **Designated test accounts** — for tests that must hit real third parties (e.g., Stripe test cards), use the provider's documented test credentials, not your real ones.
+
+GDPR, CCPA, HIPAA — all of these can land your team in legal trouble if real PII shows up in test logs or git history.
+
+---
+
+### 🐛 Common Test-Data Bugs to Hunt
+
+- ❌ **Data poisoning**: Test A leaves data; Test B (run after) sees too many records and fails
+- ❌ **Order-dependent tests**: passes when run alone, fails as part of the suite
+- ❌ **Hardcoded IDs**: \`/users/42\` works on Tuesday, fails Wednesday because the seed changed
+- ❌ **Race conditions in parallel runs**: two tests racing to create the same record
+- ❌ **Stale fixtures**: API added a required field; fixture missing it; tests fail loudly
+- ❌ **Real PII in test data**: legal nightmare waiting to happen
+- ❌ **Cleanup that doesn't run on test failure**: \`afterEach\` skipped → next run inherits dirty data
+
+---
+
+### 💡 The "One Tenant Per Test" Golden Rule
+
+If your API supports multi-tenancy (organisations, workspaces, projects), this is the single highest-leverage pattern in modern API testing:
+
+1. \`beforeEach\`: create a fresh tenant
+2. Test runs entirely inside that tenant
+3. \`afterEach\`: delete the tenant; one delete cascades all data
+
+Total isolation. Zero collision. Trivial cleanup. Tests can run 100× in parallel without a single conflict. Worth refactoring to enable.
+        `
+      },
+
+      {
+        id: 'api-graphql-testing',
+        title: 'Expert: GraphQL Testing',
+        analogy: "Testing a REST API is like ordering off a fixed menu — point at item 5, get item 5. Testing GraphQL is like walking into the kitchen with a custom request: 'I want chicken with brown rice and skip the gravy, but make sure the chef cannot accidentally hand me the secret recipe book.' Different ask, different bugs, different test playbook.",
+        lessonMarkdown: `
+### 🔮 Why GraphQL Tests Differ from REST Tests
+
+*💡 Analogy: REST has many doors, each labelled (\`/users\`, \`/orders\`). GraphQL has one door but you describe what's behind it. Bugs hide in different places: it's harder to over-fetch in GraphQL but easier to crash the server with a complex query, easier to leak fields the client should not see, easier to bypass authorization on a sub-field.*
+
+GraphQL refresher:
+- **One endpoint** (usually \`/graphql\`)
+- **Always POST** (sometimes GET for caching)
+- **Body has a \`query\` (or \`mutation\`) string** describing exactly the fields you want
+- **Response always 200** even on errors — read \`data\` and \`errors\` arrays
+- **Schema is mandatory** — clients can introspect it
+
+---
+
+### 📖 Reading a GraphQL Response Correctly
+
+A status of 200 does NOT mean success. Always check the \`errors\` array.
+
+\`\`\`json
+{
+  "data": {
+    "user": {
+      "name": "Priya",
+      "email": null
+    }
+  },
+  "errors": [
+    {
+      "message": "Forbidden: cannot read email field",
+      "path": ["user", "email"],
+      "extensions": { "code": "FORBIDDEN" }
+    }
+  ]
+}
+\`\`\`
+
+The query partially succeeded — \`name\` came back, \`email\` is \`null\` because the user lacks permission. **A REST-trained tester might assert "email is null = bug" and miss the actual story in \`errors\`.**
+
+**The right assertion:**
+\`\`\`javascript
+pm.test("No errors in GraphQL response", () => {
+  const body = pm.response.json();
+  pm.expect(body.errors, JSON.stringify(body.errors)).to.be.undefined;
+  pm.expect(body.data.user.email).to.eql("priya@test.com");
+});
+\`\`\`
+
+---
+
+### 🔍 Schema Introspection — A Tester's Cheat Code
+
+Every spec-compliant GraphQL server lets you query its schema:
+
+\`\`\`graphql
+{
+  __schema {
+    types {
+      name
+      fields { name type { name } }
+    }
+  }
+}
+\`\`\`
+
+Send this and the server returns its complete schema — every type, every field, every argument. You now know every endpoint without reading any docs.
+
+**As a tester, this is gold for:**
+- ✅ Discovering hidden fields (admin-only fields visible to everyone is a critical bug)
+- ✅ Verifying every field is documented in the schema
+- ✅ Generating exhaustive test queries automatically
+- ✅ Catching schema drift (last release added a field nobody told QA about)
+
+**Production note:** introspection is sometimes disabled in production for security. Test against a staging server with introspection enabled.
+
+---
+
+### 🏗️ Variables, Fragments, Aliases — and Why They Matter
+
+#### Variables — keep queries reusable
+
+\`\`\`graphql
+query GetUser($id: ID!) {
+  user(id: $id) {
+    name
+    email
+  }
+}
+\`\`\`
+
+Variables go in a separate JSON object alongside the query — clean separation between "what I want" and "what input I'm passing."
+
+#### Fragments — DRY queries
+
+\`\`\`graphql
+fragment UserBasics on User {
+  id
+  name
+  avatarUrl
+}
+
+query {
+  me { ...UserBasics }
+  friends { ...UserBasics }
+}
+\`\`\`
+
+#### Aliases — query the same field twice
+
+\`\`\`graphql
+{
+  admin: user(id: "1") { name }
+  guest: user(id: "2") { name }
+}
+\`\`\`
+
+Returns:
+\`\`\`json
+{ "data": { "admin": { "name": "Priya" }, "guest": { "name": "Amit" } } }
+\`\`\`
+
+**Tester's use:** alias lets you reproduce two-call test scenarios in a single round trip.
+
+---
+
+### 🚨 The Three Most Dangerous GraphQL Bugs
+
+#### Bug 1: N+1 Query Performance Bombs
+
+\`\`\`graphql
+{
+  orders {
+    id
+    customer { name }   ← if resolver loads customer per-order naively, 100 orders = 101 DB queries
+  }
+}
+\`\`\`
+
+**As a tester:** request a list endpoint with nested fields. Verify response time stays reasonable as the list grows. If 10 orders take 100 ms but 100 orders take 10 seconds — N+1 bomb.
+
+#### Bug 2: Unbounded Query Depth or Complexity
+
+\`\`\`graphql
+{
+  user(id: 1) {
+    friends {
+      friends {
+        friends {
+          friends {
+            friends { id name }   ← 5 levels deep, exponential database load
+          }
+        }
+      }
+    }
+  }
+}
+\`\`\`
+
+A malicious or careless client can DoS your server with a single query. **Test:** send a deeply-nested query and verify the server enforces a depth limit (HTTP 400 or a structured error).
+
+#### Bug 3: Authorization Bypass via Specific Fields
+
+REST endpoints check auth at the URL level. GraphQL must check **every field**.
+
+\`\`\`graphql
+{
+  publicProduct(id: 1) {
+    name
+    price
+    internalCostPrice    ← oops, no field-level auth check
+  }
+}
+\`\`\`
+
+**As a tester:** for every type in the schema, identify the sensitive fields (cost, salary, private notes) and verify they're hidden from unauthorised users. This is tedious but critical.
+
+---
+
+### 🧪 Testing Mutations
+
+\`\`\`graphql
+mutation {
+  createUser(input: { name: "Priya", email: "priya@test.com" }) {
+    id
+    name
+    email
+  }
+}
+\`\`\`
+
+**Standard test scenarios:**
+- ✅ Valid input → created entity returned, status 200, no errors
+- ✅ Validation error → \`errors\` array populated with field info
+- ✅ Authorization → unauthenticated mutation returns FORBIDDEN
+- ✅ Idempotency — same mutation twice should not create two records (or, if your API allows it, that's documented)
+
+---
+
+### 📡 Subscriptions — WebSocket Testing
+
+Subscriptions push events to the client over WebSocket. Testing them is async:
+
+\`\`\`graphql
+subscription {
+  newOrder { id total }
+}
+\`\`\`
+
+**Pattern:**
+1. Open a WebSocket subscription
+2. Trigger a mutation that should emit an event
+3. Wait (with timeout) for the subscription to receive
+4. Assert payload shape
+
+Tools: \`graphql-ws\` library in JS tests, Postman supports GraphQL subscriptions, Apollo Studio for manual exploration.
+
+---
+
+### 🛠️ GraphQL Tooling
+
+| Tool | Best for |
+|------|----------|
+| **GraphQL Playground / GraphiQL** | Interactive in-browser query editor with auto-complete |
+| **Apollo Studio** | Schema management, query analytics, performance tracing |
+| **Postman GraphQL mode** | Familiar Postman UI; good if your team is already in Postman |
+| **Insomnia** | GraphQL-friendly REST client |
+| **\`graphql-request\`** (npm) | Tiny library for sending queries from tests |
+
+---
+
+### ✅ Tester's Checklist for a GraphQL API
+
+- ✅ Always check \`errors\` array, not just status code
+- ✅ Verify every sensitive field has field-level authorization
+- ✅ Confirm depth limit (try a 10-level nested query)
+- ✅ Confirm complexity / cost limit (try expensive aliases)
+- ✅ Test variables vs inlined values — both should work identically
+- ✅ Test fragments produce same result as expanded fields
+- ✅ Verify schema introspection is disabled in production (or controlled)
+- ✅ Test subscriptions: subscribe → trigger → assert message → unsubscribe
+- ✅ Performance: measure resolver time as list size grows (catch N+1)
+- ✅ Mutation idempotency: send twice, confirm correct duplicate handling
         `
       },
 
@@ -12757,6 +13351,148 @@ POST /admin/promote-user (as a regular user) → Must be 403
 □ Rate limiting on login   → Must get 429 eventually
 □ Admin endpoints as user  → Must be 403
 \`\`\`
+
+---
+
+### 🛡️ The OWASP API Security Top 10 — A Tester's Walkthrough
+
+OWASP publishes a curated list of the most dangerous API vulnerabilities. Every QA should know these by heart — they are the bugs auditors and pentesters will absolutely look for.
+
+---
+
+#### API1:2023 — Broken Object Level Authorization (BOLA)
+
+**The bug:** an endpoint checks "is this user logged in?" but not "do they own this object?"
+
+\`\`\`
+GET /api/orders/12345        ← Alice is logged in
+                             ← But order 12345 belongs to Bob!
+                             ← Server returns Bob's order to Alice
+\`\`\`
+
+**Tester's recipe:**
+1. Log in as User A, find an object ID owned by A (e.g., \`/orders/100\`).
+2. Log in as User B (different account, different session).
+3. From B's session, request \`/orders/100\` (A's order).
+4. **Expected:** 403 or 404. **Bug:** A's data returned to B.
+
+This is the #1 most reported API vulnerability in 2023. Test it on EVERY endpoint that takes an ID.
+
+---
+
+#### API2:2023 — Broken Authentication
+
+**The bug:** authentication is implemented poorly — weak passwords accepted, tokens with no expiry, predictable session IDs, missing rate limit on login.
+
+**Tester's recipe:**
+- ✅ Submit \`password: "1"\` → must reject as too weak
+- ✅ Use a year-old token → must be rejected
+- ✅ Try 100 logins in 10 seconds → must hit 429
+- ✅ Reset password — confirm the reset link expires after a single use
+- ✅ Logout — confirm the token is invalidated server-side, not just deleted client-side
+
+---
+
+#### API3:2023 — Broken Object Property Level Authorization
+
+**The bug:** the API checks who can see \`/users/42\` but not who can see \`/users/42.salary\`.
+
+**Tester's recipe (especially in GraphQL):**
+1. As a non-admin user, request \`/users/42\` and inspect the response shape.
+2. Look for **fields a non-admin should not see**: salary, internal notes, security questions, MFA secrets.
+3. If any such field appears in the body — file a critical bug.
+
+---
+
+#### API4:2023 — Unrestricted Resource Consumption
+
+**The bug:** the API has no limits on requests, request size, or query complexity. One bad client can crash the server.
+
+**Tester's recipe:**
+- ✅ Send a request with a 100 MB JSON body — server must reject (413 Payload Too Large)
+- ✅ Request \`?per_page=999999\` → server must cap (covered in pagination module)
+- ✅ Make 10,000 requests/sec → server must throttle (429)
+- ✅ For GraphQL, send a deeply nested query → must hit depth limit
+- ✅ Upload a 10 GB file → must hit size limit
+
+---
+
+#### API5:2023 — Broken Function Level Authorization
+
+**The bug:** regular users can call admin-only functions because the front-end hid the buttons but the back-end didn't enforce the check.
+
+**Tester's recipe:**
+1. As a regular user, find admin endpoints (often \`/admin/*\` or methods like DELETE on user records).
+2. Call them with the regular user's token.
+3. **Expected:** 403. **Bug:** request succeeds.
+
+Critical: check **every HTTP method** on every endpoint. PATCH may be locked, but PUT may sneak through.
+
+---
+
+#### API6:2023 — Unrestricted Access to Sensitive Business Flows
+
+**The bug:** sensitive flows (signups, comments, purchases) have no abuse controls. Bots can mass-register, scalp tickets, scrape product data.
+
+**Tester's recipe:**
+- ✅ Attempt 1,000 account signups in a minute — must be throttled or CAPTCHA-gated
+- ✅ Attempt to add 1,000 reviews to one product — must reject duplicates per-user
+- ✅ Buy 100 of a limited-stock item simultaneously — must enforce per-user purchase cap
+
+---
+
+#### API7:2023 — Server Side Request Forgery (SSRF)
+
+**The bug:** the API accepts a URL from the user, then fetches it server-side. Attackers point it at internal IPs.
+
+\`\`\`
+POST /api/import { "url": "http://169.254.169.254/latest/meta-data/" }
+                                   ^^^ AWS metadata service, leaks credentials
+\`\`\`
+
+**Tester's recipe:**
+- ✅ Submit URLs pointing to localhost (\`127.0.0.1\`), private ranges (\`10.0.0.0/8\`, \`192.168.0.0/16\`), or cloud metadata IPs (\`169.254.169.254\`)
+- ✅ Server must reject these with 400, not fetch them and return content
+
+---
+
+#### API8:2023 — Security Misconfiguration
+
+**The bug:** verbose error messages, default credentials, missing security headers, debug endpoints exposed.
+
+**Tester's recipe:**
+- ✅ Trigger a 500 — response must NOT include stack traces or DB queries
+- ✅ Confirm \`Strict-Transport-Security\`, \`X-Content-Type-Options: nosniff\`, \`Content-Security-Policy\` headers are present
+- ✅ Probe for common admin paths (\`/admin\`, \`/.env\`, \`/swagger.json\`) on production — should return 404, not the actual asset
+- ✅ Check CORS — \`Access-Control-Allow-Origin: *\` on a private API is dangerous
+
+---
+
+#### API9:2023 — Improper Inventory Management
+
+**The bug:** old API versions, beta endpoints, or staging URLs are still live in production with weaker security.
+
+**Tester's recipe:**
+- ✅ Hit \`/v1/users/42\` after migration to \`/v2/\` — is v1 still up?
+- ✅ Hit suspected staging hostnames (\`staging.api.shop.com\`, \`dev.api.shop.com\`) — are they reachable from the internet?
+- ✅ Probe for documented-but-deprecated endpoints — do they enforce the same auth as current ones?
+
+---
+
+#### API10:2023 — Unsafe Consumption of APIs
+
+**The bug:** your API trusts data from third-party APIs blindly — no validation, no schema check, no rate limit on the upstream.
+
+**Tester's recipe:**
+- ✅ When the API depends on a third party (geocoding, payment, social), simulate the third party returning malformed data — does your API crash or handle gracefully?
+- ✅ When a third party rate-limits you, does your API surface a sensible error to its own clients?
+- ✅ Confirm third-party URLs are not user-controllable (links to API7 SSRF)
+
+---
+
+### 🎯 Putting It Together — The OWASP Test Pass
+
+For any non-trivial API, plan **one full sweep test session per release** that walks through all 10 categories. Even 2 hours of manual exploration uncovers serious bugs that automated tests miss because security tests require creativity, not just assertions.
         `
       },
 
@@ -12993,6 +13729,403 @@ export const options = {
 | Error rate > 5% under load | Critical — block release |
 | Memory grows during soak test | High — memory leak |
 | Crashes at 2x expected load | Medium — scalability risk |
+
+---
+
+### 🎯 The Five Performance Test Patterns
+
+Each pattern answers a different question. Don't run only one — run the right one for the question you're asking.
+
+| Pattern | Profile | Question it answers |
+|---------|---------|---------------------|
+| **Smoke** | 1-5 users, 1-5 minutes | "Does the system run at all under any load?" |
+| **Load** | Steady users at expected production traffic, 30-60 minutes | "Is performance acceptable at normal load?" |
+| **Stress** | Ramping users until something breaks | "Where does it break, and how does it break?" |
+| **Soak** | Steady moderate load for 8-24 hours | "Are there memory leaks or slow drift over time?" |
+| **Spike** | Sudden 10x jump from baseline, then back | "How does it cope with traffic surges (sales, news)?" |
+
+**Sample profiles:**
+
+- **Smoke (CI gate):** 5 VUs, 1 minute, p95 < 500ms threshold
+- **Load (nightly):** 100 VUs, 30 minutes, p95 < 1s, error rate < 1%
+- **Stress (pre-release):** ramp from 10 to 1,000 VUs over 30 min, find the cliff
+- **Soak (weekly):** 50 VUs, 12 hours, watch RAM/CPU trend, no leaks allowed
+- **Spike (rare):** baseline 50 VUs, jump to 500 for 5 min, return to 50, recovery within 2 min
+
+---
+
+### 📐 What to Measure — Beyond "Average Response Time"
+
+**Average is dangerous.** A 100 ms average can hide that 5% of users wait 10 seconds.
+
+**Use percentiles:**
+
+| Metric | Meaning |
+|--------|---------|
+| **p50** (median) | 50% of requests are faster than this |
+| **p95** | 95% are faster — typical "good" SLO target |
+| **p99** | 99% are faster — strict SLO target |
+| **p99.9** | "Tail latency" — what your worst 1-in-1,000 customer sees |
+
+**Other essentials:**
+
+- **Throughput**: requests per second (req/s) — measures capacity
+- **Error rate**: % of non-2xx responses
+- **Time to first byte (TTFB)**: latency before any response
+- **Concurrency**: how many requests in-flight at once
+- **Resource use**: server CPU %, memory MB, DB connections — measure ON the server, not from the load tool
+
+**Reporting template:**
+\`\`\`
+At 100 VUs, 30 min:
+  Throughput: 1,250 req/s
+  p50: 145 ms
+  p95: 480 ms
+  p99: 1,200 ms
+  Error rate: 0.3%
+  Server CPU peak: 65%
+  RAM stable at 1.8 GB
+\`\`\`
+
+A reader can immediately see: are we meeting our SLOs? Was the server stretched? Did errors spike?
+        `
+      },
+
+      {
+        id: 'api-load-testing-tools',
+        title: 'Expert: Load Testing with k6',
+        analogy: "JMeter is the heavyweight 1990s desktop suite — capable but creaky, full of XML and forms. Locust is the Python-flavoured cousin. k6 is the modern minimalist — open the file, write 30 lines of JavaScript, run from the terminal, results stream live. If the team is already TypeScript-fluent, k6 fits like a glove.",
+        lessonMarkdown: `
+### 🚀 Why k6?
+
+*💡 Analogy: Imagine writing a load test feels like writing any normal Jest test — same syntax, same mental model. That's k6 in one sentence. Free, open-source, fast, single binary, scriptable in JavaScript.*
+
+k6 has become the dominant choice for new API teams because:
+
+- **JavaScript scripts** — no XML, no GUI, no "where's the save button"
+- **Single binary install** — \`brew install k6\`, done
+- **First-class CI integration** — runs in any pipeline
+- **Thresholds built in** — fail the build at p95 > 500 ms with one line
+- **Cloud + distributed runs** — scale to millions of VUs via k6 Cloud
+
+---
+
+### 🛠️ Anatomy of a k6 Script
+
+\`\`\`javascript
+import http from 'k6/http';
+import { check, sleep } from 'k6';
+
+export const options = {
+  vus: 10,             // 10 virtual users
+  duration: '30s',     // for 30 seconds
+  thresholds: {
+    http_req_duration: ['p(95)<500'],   // 95% of requests under 500 ms
+    http_req_failed:   ['rate<0.01'],   // less than 1% failures
+  },
+};
+
+export default function () {
+  const res = http.get('https://api.shop.com/products');
+  check(res, {
+    'status is 200':         (r) => r.status === 200,
+    'response under 1s':     (r) => r.timings.duration < 1000,
+    'has data array':        (r) => Array.isArray(r.json('data')),
+  });
+  sleep(1);
+}
+\`\`\`
+
+Run:
+\`\`\`bash
+k6 run script.js
+\`\`\`
+
+You'll see live updating stats: req/s, p95, error rate, resource use.
+
+---
+
+### 🎚️ Stages — Ramping Load Up and Down
+
+A more realistic test ramps users in and out:
+
+\`\`\`javascript
+export const options = {
+  stages: [
+    { duration: '2m', target: 100 },   // ramp 0 → 100 VUs
+    { duration: '5m', target: 100 },   // hold at 100 VUs
+    { duration: '2m', target: 0 },     // ramp down
+  ],
+};
+\`\`\`
+
+This is the "load" pattern from the previous module, expressed as code.
+
+---
+
+### 🎯 Thresholds — Failing the Build Automatically
+
+Thresholds turn k6 into a CI gate. If they fail, k6 exits non-zero and the pipeline blocks the merge.
+
+\`\`\`javascript
+thresholds: {
+  http_req_duration: ['p(95)<500', 'p(99)<1500'],
+  http_req_failed:   ['rate<0.01'],
+  checks:            ['rate>0.95'],     // 95% of checks pass
+  'http_req_duration{name:list-orders}': ['p(95)<300'],   // per-endpoint tag
+}
+\`\`\`
+
+The last line shows how to set tighter thresholds on critical endpoints.
+
+---
+
+### 🔁 Realistic User Behaviour — Cookie Jar, Sessions, Parameterised Data
+
+\`\`\`javascript
+import http from 'k6/http';
+import { SharedArray } from 'k6/data';
+import papaparse from 'https://jslib.k6.io/papaparse/5.1.1/index.js';
+
+const users = new SharedArray('users', () =>
+  papaparse.parse(open('users.csv'), { header: true }).data
+);
+
+export default function () {
+  const user = users[__VU % users.length];   // each VU picks a different user
+
+  // Login
+  const loginRes = http.post('https://api.shop.com/auth/login',
+    JSON.stringify({ email: user.email, password: user.password }),
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+  const token = loginRes.json('token');
+
+  // Use the token
+  const params = { headers: { Authorization: \`Bearer \${token}\` } };
+  http.get('https://api.shop.com/cart', params);
+  http.post('https://api.shop.com/checkout', JSON.stringify({}), params);
+}
+\`\`\`
+
+\`SharedArray\` loads the CSV once across all VUs (saves memory). \`__VU\` is the VU number — useful for picking a deterministic user per VU.
+
+---
+
+### ⚖️ Quick Comparison
+
+| Feature | **k6** | **JMeter** | **Locust** |
+|---------|-------|------------|------------|
+| Script language | JavaScript | XML / GUI | Python |
+| Setup | Single binary | JVM + GUI | Pip install |
+| CI-friendly | ⭐⭐⭐⭐⭐ | ⭐⭐ (clunky) | ⭐⭐⭐⭐ |
+| Learning curve | Low (if you know JS) | Medium | Low (if you know Python) |
+| Distributed | k6 Cloud / Kubernetes | jmeter-server | Master/worker |
+| Realtime UI | Terminal + Grafana | Built-in GUI | Built-in web UI |
+| Best for | Modern API teams | Legacy / SOAP / large enterprises | Teams that prefer Python |
+
+**Recommendation:** for new projects in 2026, default to k6. JMeter remains relevant for SOAP-heavy, GUI-driven, or audit-heavy enterprise contexts.
+
+---
+
+### 📊 Reading the Results
+
+\`\`\`
+http_req_duration..............: avg=312ms min=89ms med=280ms max=2.1s p(90)=510ms p(95)=720ms
+http_req_failed................: 0.42% ✓ 8 / ✗ 1892
+iterations.....................: 1900   63.31/s
+vus............................: 100
+\`\`\`
+
+| Line | What it tells you |
+|------|-------------------|
+| \`http_req_duration\` | Latency stats — focus on p95, p99 |
+| \`http_req_failed\` | Error rate — this 0.42% may be acceptable, or not |
+| \`iterations\` | Total iterations of \`default()\` and the rate |
+| \`vus\` | Virtual users active at the moment of report |
+
+---
+
+### 📈 Streaming Results to Grafana
+
+Live dashboards beat post-run summaries.
+
+\`\`\`bash
+k6 run --out influxdb=http://localhost:8086/k6 script.js
+\`\`\`
+
+This streams every metric to InfluxDB. Pair with the official Grafana k6 dashboard and you get live charts of latency percentiles, throughput, error rate while the test runs.
+
+In CI, dump JSON or JUnit XML for the build dashboard:
+
+\`\`\`bash
+k6 run --out json=results.json --summary-export=summary.json script.js
+\`\`\`
+
+---
+
+### 🧪 Tester's Checklist
+
+- ✅ Start with smoke (5 VUs, 1 min) — don't write a 1,000-VU test until smoke passes
+- ✅ Define thresholds before running — "we'll see how it goes" produces no useful gate
+- ✅ Tag every request (\`{ tags: { name: 'list-orders' } }\`) so you can analyse per-endpoint
+- ✅ Use \`SharedArray\` for CSV/JSON test data, not \`open()\` per-VU
+- ✅ Run the load against a **dedicated** environment, never production (unless that's the explicit goal and you have written approval)
+- ✅ Watch BOTH client metrics (k6) and server metrics (CPU, RAM, DB connections) — the bottleneck is usually on the server
+- ✅ Re-run the same test after every release — only changes matter; absolute numbers without a baseline mean little
+        `
+      },
+
+      {
+        id: 'api-monitoring-observability',
+        title: 'Expert: Monitoring & Observability for APIs',
+        analogy: "Testing in CI is like checking your car runs in the garage. Monitoring in production is the dashboard while you drive — engine temperature, oil pressure, tyre pressure, fuel level. The car can pass every garage test and still fail on the road if the dashboard is broken or no one is reading it.",
+        lessonMarkdown: `
+### 🔭 Why Monitoring Belongs in QA
+
+*💡 Analogy: Imagine the world's most thorough QA team running tests for two months. Release day arrives, the API ships, and three weeks later customers report the API has been down for an hour. No alerts fired. No one noticed. That's what happens without monitoring — even perfect tests can't catch real-world breakages.*
+
+QA's job doesn't end at deploy. The same skills that build assertions in tests are exactly what's needed to build assertions on production behaviour:
+
+- **Tests** answer: does this work in our environment?
+- **Monitoring** answers: is it still working, right now, for real users?
+
+---
+
+### 🏛️ The Three Pillars of Observability
+
+| Pillar | What it captures | Example tools |
+|--------|-------------------|---------------|
+| **Metrics** | Numbers over time (request rate, error rate, p95) | Prometheus, Datadog, CloudWatch |
+| **Logs** | Discrete events with context | Splunk, ELK, Loki, Datadog Logs |
+| **Traces** | The path of a single request through services | Jaeger, Zipkin, Tempo, Datadog APM |
+
+You need all three. Metrics tell you something is wrong; logs and traces tell you what.
+
+---
+
+### ⏰ Synthetic Monitoring — Tests That Run in Production
+
+A **synthetic monitor** is a scheduled test that runs every N minutes against production. If it fails, alerts fire.
+
+#### Postman Monitors
+
+If you already have Postman collections, you can promote them to monitors with one click:
+
+1. Open a collection → "Monitor Collection"
+2. Set the schedule (every 5 minutes, hourly, etc.)
+3. Configure alerts (email, Slack, webhook)
+4. Postman runs the collection in the cloud, alerts on failures
+
+**Best for:** quick wins, teams already in Postman, smoke-testing critical happy-path flows.
+
+#### Datadog / Pingdom / UptimeRobot Synthetics
+
+Dedicated tools that run from multiple geographic regions, do certificate checks, full transaction recordings (login → checkout → logout).
+
+**Best for:** SLO measurement, geographic coverage, shared dashboards across engineering and ops.
+
+---
+
+### 👁️ Real User Monitoring (RUM) vs Synthetic
+
+| | **Synthetic** | **RUM (Real User)** |
+|---|---|---|
+| Source of data | Test runs you control | Actual end-user sessions |
+| Catches | Outages, regressions, SLA breaches | Real-world variability, edge cases, geo issues |
+| Best for | Known happy paths, SLO measurement | Discovering unknown failure modes |
+
+**Best practice: run both.** Synthetic gives you a clean signal ("did the smoke flow break?"). RUM gives you ground truth ("how does this look from a user in São Paulo on 4G?").
+
+---
+
+### 🪢 Distributed Tracing
+
+In a microservice architecture, a single API call may touch 10+ services. Tracing follows that call end-to-end.
+
+**Trace IDs** propagate via the W3C Trace Context standard:
+
+\`\`\`
+GET /orders/12345 HTTP/1.1
+traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01
+\`\`\`
+
+Each downstream service reads \`traceparent\` and emits its own span linked to the same trace. Tools like Jaeger or Datadog visualize the full call tree.
+
+**Why testers care:**
+- ✅ Verify your API propagates \`traceparent\` to downstream calls (a common bug — services drop the header)
+- ✅ When a test fails, the trace ID lets you find the exact request in production-style logs
+- ✅ Performance bugs become obvious — the trace shows which service ate 800 ms of the 1-second response
+
+---
+
+### 📜 The W3C Trace Context Standard
+
+Two related headers:
+
+| Header | Purpose |
+|--------|---------|
+| \`traceparent\` | Carries the trace ID, span ID, sampling decision |
+| \`tracestate\` | Carries vendor-specific extensions |
+
+A 40-character trace ID looks scary but is just a hex-encoded UUID. Both headers should propagate from the front door to the deepest backend service. **Test:** issue a request with a known \`traceparent\`, then search for the trace in your tracing tool.
+
+---
+
+### 🎯 SLO / SLI / SLA — The Vocabulary You'll Hear in Standups
+
+These three are easy to confuse. Crisp definitions:
+
+| Term | What it is | Example |
+|------|------------|---------|
+| **SLI** (Service Level Indicator) | The actual measurement | "p95 latency for /orders is 320 ms" |
+| **SLO** (Service Level Objective) | The target you set internally | "p95 latency must be under 500 ms over 30 days" |
+| **SLA** (Service Level Agreement) | The contractual promise to customers (often with refund clauses) | "99.9% uptime, monthly" |
+
+**Order:** SLI is what you measure. SLO is what you aim for. SLA is what you promise.
+
+**Tester's role:**
+- ✅ Confirm SLIs are actually being measured and graphed
+- ✅ Confirm alerts fire when SLOs are at risk (not after they've already broken)
+- ✅ Confirm SLAs are realistic given current SLO performance
+
+---
+
+### 🚨 Alerting — The Goldilocks Problem
+
+| Too noisy | Too quiet | Just right |
+|-----------|-----------|------------|
+| Alerts on every 500ms spike | Alerts only after total outage | Alerts when error rate > 1% for 5 minutes |
+| On-call burns out, ignores alerts | Bug runs in prod for hours | On-call gets actionable signal |
+
+**Alerting principles:**
+- ✅ Alert on **symptoms** (high error rate, p95 spiking) not **causes** (specific service down) — symptoms catch unknown unknowns
+- ✅ Every alert should be **actionable** — if there's nothing on-call can do, it's a dashboard panel, not an alert
+- ✅ Use a **time window** (5 minutes, not 1) to avoid pager-fatigue on transient blips
+- ✅ Track **alert noise rate** as a quality metric — too many false alarms means worse incident response
+
+---
+
+### 🧪 What Should QA Actually Build / Verify?
+
+- ✅ A monitor or synthetic for the **top 5 critical happy paths** — login, checkout, search, profile load, key admin
+- ✅ Alerts wired to the team's chat (Slack, Teams) — verify they actually fire by deliberately breaking staging
+- ✅ Dashboards covering SLIs for every public endpoint — request rate, error rate, p95
+- ✅ Runbooks for each alert — when this fires, here's the first 3 steps
+- ✅ Distributed tracing in test environments — catch trace-context bugs before production
+- ✅ Periodic "did anyone check that monitor?" review — alerts that fire and are ignored are worse than no alerts at all
+
+---
+
+### 💡 The Test → Monitor Promotion Pattern
+
+For every smoke test you write, ask: **should this also run in production?**
+
+- ✅ "Login with a known account works" → yes, promote to synthetic
+- ✅ "Search returns at least one result" → yes
+- ❌ "Bad password returns 401" → probably not (no business value if it suddenly breaks the same way in prod)
+
+This single mental shift turns your test suite into your first line of production safety, almost for free.
         `
       },
 
@@ -13123,6 +14256,188 @@ The \`--bail\` flag stops the run immediately on the first failure.
 | Add tests for new features | Test coverage is a QA deliverable |
 
 **Remember:** A CI pipeline is only as good as the tests inside it. Weak tests = false confidence. Strong tests = genuine safety net.
+
+---
+
+### 🛠️ Newman in Different CI Platforms
+
+Newman is Postman's command-line runner — it executes a Postman collection without opening the GUI. The same command works everywhere; only the wrapping pipeline syntax changes.
+
+**The base command:**
+
+\`\`\`bash
+npx newman run ./tests/api.postman_collection.json \\
+  --environment ./tests/staging.postman_environment.json \\
+  --reporters cli,junit,htmlextra \\
+  --reporter-junit-export ./reports/junit.xml \\
+  --reporter-htmlextra-export ./reports/report.html
+\`\`\`
+
+#### GitHub Actions
+
+\`\`\`yaml
+- name: Install Newman + reporter
+  run: npm install -g newman newman-reporter-htmlextra
+
+- name: Run API tests
+  run: newman run ./tests/api.json -e ./tests/staging.json --reporters cli,junit,htmlextra --reporter-junit-export ./reports/junit.xml
+
+- name: Publish report
+  if: always()
+  uses: actions/upload-artifact@v4
+  with:
+    name: api-test-report
+    path: ./reports/
+\`\`\`
+
+#### GitLab CI
+
+\`\`\`yaml
+api_tests:
+  image: node:20
+  script:
+    - npm install -g newman newman-reporter-htmlextra
+    - newman run ./tests/api.json -e ./tests/staging.json --reporters cli,junit --reporter-junit-export ./reports/junit.xml
+  artifacts:
+    when: always
+    reports:
+      junit: ./reports/junit.xml
+    paths:
+      - ./reports/
+\`\`\`
+
+#### Jenkins
+
+\`\`\`groovy
+stage('API Tests') {
+  steps {
+    sh 'npm install -g newman newman-reporter-htmlextra'
+    sh 'newman run ./tests/api.json -e ./tests/staging.json --reporters cli,junit --reporter-junit-export ./reports/junit.xml'
+  }
+  post {
+    always {
+      junit './reports/junit.xml'
+      publishHTML(target: [reportDir: './reports/', reportFiles: 'report.html', reportName: 'API Test Report'])
+    }
+  }
+}
+\`\`\`
+
+The pattern is the same in every platform: install Newman → run collection → publish JUnit + HTML report.
+
+---
+
+### 🔐 Secrets Management — Never Commit Secrets
+
+**Hard rule: API keys, passwords, OAuth secrets must never appear in your repository.** Even in test fixtures. Even briefly. Once they hit Git history, they're public forever — even after you delete the file.
+
+#### Where secrets actually live
+
+| Platform | Storage |
+|----------|---------|
+| GitHub Actions | Repository / Org / Environment Secrets (\`\${{ secrets.API_KEY }}\`) |
+| GitLab CI | CI/CD Variables (masked, optionally protected) |
+| Jenkins | Credentials Plugin |
+| Cloud-native | AWS Secrets Manager, HashiCorp Vault, Azure Key Vault |
+
+#### Pattern: Postman environment with placeholders
+
+\`\`\`json
+{
+  "values": [
+    { "key": "baseUrl",  "value": "{{API_BASE_URL}}" },
+    { "key": "apiToken", "value": "{{API_TOKEN}}" }
+  ]
+}
+\`\`\`
+
+In CI, replace at runtime via Newman's \`--env-var\` flag:
+
+\`\`\`bash
+newman run ./tests/api.json -e ./tests/staging.json \\
+  --env-var "API_BASE_URL=\${API_BASE_URL}" \\
+  --env-var "API_TOKEN=\${API_TOKEN}"
+\`\`\`
+
+The environment file is checkable into git; the secret values come from the CI vault at run time.
+
+#### Verifying you haven't leaked
+
+- ✅ Run \`git-secrets\` or \`trufflehog\` on every PR
+- ✅ Search the repo for known prefixes (\`sk_live\`, \`AKIA\`, \`ghp_\`)
+- ✅ If you ever accidentally commit a secret: **rotate it immediately**, don't try to clean Git history
+
+---
+
+### 🪜 Environment Separation — Dev / Staging / Prod Gates
+
+A mature pipeline has multiple test gates, each running progressively heavier tests:
+
+\`\`\`
+PR opened
+   ↓
+[Smoke tests against dev]              ← every PR, ~1 min, blocking
+   ↓
+PR merged to main
+   ↓
+[Full API tests against staging]       ← every merge, ~10 min, blocking
+   ↓
+[Performance tests (smoke profile)]    ← every merge, ~3 min
+   ↓
+Manual approval (release manager)
+   ↓
+[Smoke tests against production after deploy]  ← post-deploy, ~30 sec
+\`\`\`
+
+Tools differ; the principle is universal: **fast gates close to the developer, expensive gates close to release**. Don't run a 30-minute soak test on every PR.
+
+---
+
+### 📊 Test Reports as Build Artifacts
+
+Treat test reports as **first-class artifacts** of every CI run.
+
+**Three formats every team should publish:**
+
+| Format | Audience | Use |
+|--------|----------|-----|
+| **JUnit XML** | CI server | Inline pass/fail UI, history graphs, flaky test detection |
+| **HTML report** (Newman htmlextra, Allure) | Humans | Shared link in PR comments, retro reviews |
+| **JSON / k6 raw output** | Dashboards | Long-term trend analysis (Grafana, custom dashboards) |
+
+**Bonus: post the report URL as a PR comment automatically.** Most CI platforms have a one-line action for this. Reviewers see "tests passed" AND "click here for full report" right in the PR.
+
+---
+
+### 🛑 Failing the Build — Threshold-Driven Quality Gates
+
+The most common pipeline weakness: tests run but failures are ignored. Fix this with **explicit thresholds**.
+
+\`\`\`yaml
+# Block merge if any of these are true:
+- Test pass rate < 100% (any single failure)
+- p95 latency > 500ms
+- New flaky test introduced (rate > 10%)
+- Code coverage drops more than 1%
+\`\`\`
+
+In Newman, returning non-zero on test failure is the default. In k6, set thresholds in the script. In other tools, configure the CI step to \`exit 1\` when conditions are violated.
+
+**Anti-pattern to avoid:** \`continue-on-error: true\`. This makes the pipeline green even when tests fail. Tests become decorative. The pipeline becomes a lie. Never set this on a quality gate.
+
+---
+
+### 🎯 The QA-Owned Pipeline Capstone Checklist
+
+The mark of a senior QA: when the pipeline breaks, you know exactly which step, why, and how to fix it without bothering DevOps.
+
+- ✅ You can explain every step in the pipeline yaml file by line
+- ✅ You can read the build logs and locate the failing assertion
+- ✅ You know which thresholds gate each environment
+- ✅ You can rotate a secret without breaking tests
+- ✅ You add new tests as part of the same PR that adds the feature — not in a follow-up
+- ✅ You review the pipeline runtime budget — if total time creeps over 15 min, you optimise instead of waiting
+- ✅ You connect the dots: test failures → bug fix → regression test → CI proof → done
         `
       },
 
