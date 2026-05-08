@@ -4240,6 +4240,61 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ],
     },
     {
+      level: 'api-rest-vs-soap-vs-graphql',
+      questions: [
+        {
+          question: 'You are joining a project. The API has many endpoints like /users, /orders, /products and uses GET, POST, PUT, DELETE. What style is it?',
+          options: [
+            { id: 'a', text: 'SOAP', isCorrect: false },
+            { id: 'b', text: 'GraphQL', isCorrect: false },
+            { id: 'c', text: 'REST', isCorrect: true },
+            { id: 'd', text: 'gRPC', isCorrect: false },
+          ],
+          explanation: 'REST APIs expose many "resource" endpoints and use the standard HTTP methods. Many endpoints + GET/POST/PUT/DELETE is the giveaway.'
+        },
+        {
+          question: 'A request body wraps everything in <soap:Envelope> XML tags and is always POSTed to a single URL. Which style is this?',
+          options: [
+            { id: 'a', text: 'REST', isCorrect: false },
+            { id: 'b', text: 'SOAP', isCorrect: true },
+            { id: 'c', text: 'GraphQL', isCorrect: false },
+            { id: 'd', text: 'WebSocket', isCorrect: false },
+          ],
+          explanation: 'SOAP wraps every message in a SOAP envelope (XML), always POSTs to one URL per service, and the actual operation is described inside the body, not the URL.'
+        },
+        {
+          question: 'A team says: "Send a POST to /graphql with a body like { query: \\"{ user(id: 42) { name email } }\\" } and you only get back the fields you asked for." Which style is this?',
+          options: [
+            { id: 'a', text: 'REST with custom filtering', isCorrect: false },
+            { id: 'b', text: 'GraphQL', isCorrect: true },
+            { id: 'c', text: 'SOAP with XPath', isCorrect: false },
+            { id: 'd', text: 'JSON-RPC', isCorrect: false },
+          ],
+          explanation: 'GraphQL uses a single endpoint, always POST, and a query string in the body that lists the exact fields you want. The response contains only those fields — no over-fetching.'
+        },
+        {
+          question: 'Which statement about HTTP status codes is true for these three styles?',
+          options: [
+            { id: 'a', text: 'All three styles always use HTTP status codes the same way.', isCorrect: false },
+            { id: 'b', text: 'REST uses HTTP codes (200/404/500); SOAP and GraphQL often return 200 even when something failed.', isCorrect: true },
+            { id: 'c', text: 'GraphQL is the only style that uses 4xx codes.', isCorrect: false },
+            { id: 'd', text: 'SOAP uses HTTP codes; REST and GraphQL do not.', isCorrect: false },
+          ],
+          explanation: 'REST is the only one that consistently uses HTTP status codes for success/error. SOAP returns 200 with fault info inside the XML body. GraphQL also returns 200 even when there are errors — read the "errors" field in the body.'
+        },
+        {
+          question: 'You spot a typical GraphQL bug: a field in the response is null even though the query asked for it, and the request returned 200. What is the most likely cause?',
+          options: [
+            { id: 'a', text: 'The server crashed silently.', isCorrect: false },
+            { id: 'b', text: 'The field requires a permission the current user does not have, and GraphQL returned the partial result.', isCorrect: true },
+            { id: 'c', text: 'GraphQL always returns null for testing.', isCorrect: false },
+            { id: 'd', text: 'The field name was case-sensitive.', isCorrect: false },
+          ],
+          explanation: 'GraphQL frequently returns 200 with partial data and an "errors" array describing what went wrong (e.g., authorization denied). Always check both "data" and "errors" in a GraphQL response — null fields without checking errors hide real bugs.'
+        },
+      ],
+    },
+    {
       level: 'api-http-methods',
       questions: [
         {
@@ -4570,6 +4625,61 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ],
     },
     {
+      level: 'api-curl-basics',
+      questions: [
+        {
+          question: 'Which cURL flag adds a header to the request?',
+          options: [
+            { id: 'a', text: '-d', isCorrect: false },
+            { id: 'b', text: '-H', isCorrect: true },
+            { id: 'c', text: '-X', isCorrect: false },
+            { id: 'd', text: '-o', isCorrect: false },
+          ],
+          explanation: '-H adds a header. Use it multiple times for multiple headers. -d sends body data, -X sets the HTTP method, -o saves the response to a file.'
+        },
+        {
+          question: 'You want to POST a JSON body in cURL. Which command is correct?',
+          options: [
+            { id: 'a', text: 'curl -X POST https://api.com/users -d \'{"name":"Priya"}\'', isCorrect: false },
+            { id: 'b', text: 'curl -X POST https://api.com/users -H "Content-Type: application/json" -d \'{"name":"Priya"}\'', isCorrect: true },
+            { id: 'c', text: 'curl -X POST https://api.com/users -F \'{"name":"Priya"}\'', isCorrect: false },
+            { id: 'd', text: 'curl POST https://api.com/users body=\'{"name":"Priya"}\'', isCorrect: false },
+          ],
+          explanation: 'When sending JSON, you must include "Content-Type: application/json" — otherwise the server may treat the body as a form. Option (a) sends the body but without the header.'
+        },
+        {
+          question: 'You want to see EVERY header that cURL sent and the server returned, including connection info. Which flag?',
+          options: [
+            { id: 'a', text: '-s (silent)', isCorrect: false },
+            { id: 'b', text: '-v (verbose)', isCorrect: true },
+            { id: 'c', text: '-i (include response headers)', isCorrect: false },
+            { id: 'd', text: '-L (follow redirects)', isCorrect: false },
+          ],
+          explanation: '-v (verbose) shows the full request, response, and connection diagnostics. -i only shows response headers. -s suppresses progress info. -L follows redirects.'
+        },
+        {
+          question: 'A bug report includes a cURL command. You want to reproduce it inside Postman. What is the fastest way?',
+          options: [
+            { id: 'a', text: 'Manually rewrite each header and body field in Postman.', isCorrect: false },
+            { id: 'b', text: 'Click Import in Postman, paste the cURL command, and Postman builds the request automatically.', isCorrect: true },
+            { id: 'c', text: 'Run the cURL command first to see the response, then guess the request shape.', isCorrect: false },
+            { id: 'd', text: 'Convert the cURL to a Python script first, then to Postman.', isCorrect: false },
+          ],
+          explanation: 'Postman has built-in cURL import. Click Import → paste the curl command → Postman parses it into a fully-formed request. Use this every time you receive a curl in a bug report.'
+        },
+        {
+          question: 'On a Mac/Linux terminal, why is using single quotes (\'...\') around a JSON body usually safer than double quotes ("...")?',
+          options: [
+            { id: 'a', text: 'Single quotes display faster on the screen.', isCorrect: false },
+            { id: 'b', text: 'Single quotes prevent the shell from interpreting $, !, and backticks inside the body.', isCorrect: true },
+            { id: 'c', text: 'JSON only allows single quotes around strings.', isCorrect: false },
+            { id: 'd', text: 'Double quotes are not supported by cURL.', isCorrect: false },
+          ],
+          explanation: 'In Bash/Zsh, single quotes are literal — the shell does not expand variables or special characters. Double quotes still expand $variables and `commands`, which can mangle your JSON body unexpectedly.'
+        },
+      ],
+    },
+    {
       level: 'api-headers-params',
       questions: [
         {
@@ -4621,6 +4731,61 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
             { id: 'd', text: 'In the response body.', isCorrect: false },
           ],
           explanation: 'Filtering, sorting, and searching are done via query parameters. Path parameters identify a specific item. /users?city=London = "give me users, filtered by city London."'
+        },
+      ],
+    },
+    {
+      level: 'api-versioning-basics',
+      questions: [
+        {
+          question: 'Which of these is an example of URL path versioning?',
+          options: [
+            { id: 'a', text: 'GET /users/42 with header Accept: application/vnd.shop.v2+json', isCorrect: false },
+            { id: 'b', text: 'GET /v2/users/42', isCorrect: true },
+            { id: 'c', text: 'GET /users/42?api-version=2', isCorrect: false },
+            { id: 'd', text: 'GET /users/42 with header API-Version: 2', isCorrect: false },
+          ],
+          explanation: 'URL path versioning puts the version directly in the URL path (e.g., /v1/, /v2/). The other options show header versioning, query versioning, and custom-header versioning respectively — all valid but different styles.'
+        },
+        {
+          question: 'Why is API versioning important in production?',
+          options: [
+            { id: 'a', text: 'It makes the API faster.', isCorrect: false },
+            { id: 'b', text: 'It lets the API team change behavior without breaking apps that depend on the old contract.', isCorrect: true },
+            { id: 'c', text: 'It is required by HTTP.', isCorrect: false },
+            { id: 'd', text: 'It hides the API from search engines.', isCorrect: false },
+          ],
+          explanation: 'Once an API is in production, mobile apps and partners depend on a specific shape. Versioning lets you ship changes (new fields, different formats) without breaking yesterday\'s clients — old and new versions can run side by side.'
+        },
+        {
+          question: 'A response includes the headers "Deprecation: true" and "Sunset: Sun, 31 Dec 2025 23:59:59 GMT". What should you do as a tester?',
+          options: [
+            { id: 'a', text: 'Ignore them — they are informational only.', isCorrect: false },
+            { id: 'b', text: 'Raise a ticket: this version will be turned off on the Sunset date and any code calling it must migrate first.', isCorrect: true },
+            { id: 'c', text: 'Delete the cached response.', isCorrect: false },
+            { id: 'd', text: 'Send a DELETE request to confirm.', isCorrect: false },
+          ],
+          explanation: 'Deprecation + Sunset headers (RFC 8594) signal that this API version is being retired on a specific date. Any clients still calling it after that date will break. As a tester, this is a high-priority migration ticket.'
+        },
+        {
+          question: 'A QA tester says "the field price is missing from the response, this must be a bug." On checking, the request was sent to /v1/products but the team migrated to /v2/products last sprint. What is the bug?',
+          options: [
+            { id: 'a', text: 'The server is returning the wrong response.', isCorrect: false },
+            { id: 'b', text: 'There is no bug — the tester used the wrong API version.', isCorrect: true },
+            { id: 'c', text: 'The price field was deleted from the database.', isCorrect: false },
+            { id: 'd', text: 'The API is broken; raise a P1.', isCorrect: false },
+          ],
+          explanation: 'Version drift is a common false-positive bug. /v1/ may return a different shape than /v2/. Confirm which version is current and update test assets accordingly. This is why "what version is this?" should be the first question on any new project.'
+        },
+        {
+          question: 'Which versioning style is famously used by Stripe?',
+          options: [
+            { id: 'a', text: 'URL path versioning (/v1/, /v2/)', isCorrect: false },
+            { id: 'b', text: 'Date-based versioning (e.g., 2024-01-15)', isCorrect: true },
+            { id: 'c', text: 'Random GUID versioning', isCorrect: false },
+            { id: 'd', text: 'No versioning at all', isCorrect: false },
+          ],
+          explanation: 'Stripe uses date-based versioning via the Stripe-Version header (e.g., 2023-10-16). Dates are unambiguous and chronological — saying "we are on the 2024-01-15 version" instantly tells you whether you are behind or ahead.'
         },
       ],
     },

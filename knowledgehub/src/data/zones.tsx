@@ -147,7 +147,7 @@ export const ZONE_TIERS: Record<string, { id: string; label: string; color: stri
   api: [
     {
       id: 'beginner', label: 'Beginner', color: 'text-emerald-400',
-      moduleIds: ['api-what-is-api','api-http-methods','api-request-anatomy','api-response-anatomy','api-status-codes','api-json-basics','api-postman-basics','api-headers-params'],
+      moduleIds: ['api-what-is-api','api-rest-vs-soap-vs-graphql','api-http-methods','api-request-anatomy','api-response-anatomy','api-status-codes','api-json-basics','api-postman-basics','api-curl-basics','api-headers-params','api-versioning-basics'],
     },
     {
       id: 'intermediate', label: 'Intermediate', color: 'text-sky-400',

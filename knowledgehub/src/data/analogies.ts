@@ -9021,6 +9021,164 @@ Most bugs live in the API layer — wrong data, missing fields, broken authentic
       },
 
       {
+        id: 'api-rest-vs-soap-vs-graphql',
+        title: 'Beginner: REST vs SOAP vs GraphQL',
+        analogy: "REST is ordering off a menu by item number — short, casual, fast. SOAP is filling out a 5-page government form to request the same food — formal, strict, full of stamps. GraphQL is walking into the kitchen and saying 'I want the chicken without the gravy, but add extra rice and skip the dessert' — you describe exactly what you want, no more, no less.",
+        lessonMarkdown: `
+### 🌐 Why Three API Styles?
+
+*💡 Analogy: Imagine three restaurants. The first hands you a menu — point and order (REST). The second makes you fill out a long printed form for every dish (SOAP). The third lets you write a custom order describing exactly what ingredients you want (GraphQL). Same goal — getting fed — three very different experiences.*
+
+Every API you test will follow one of these styles. Knowing which is which on day one of a project saves hours of confusion.
+
+---
+
+### 🟢 REST — The Most Common (95% of modern APIs)
+
+**REST** = **R**epresentational **S**tate **T**ransfer.
+
+Think of it as a collection of named "resources" (users, orders, products) that you GET, POST, PUT, or DELETE.
+
+\`\`\`
+GET    /users           → list all users
+GET    /users/42        → get user 42
+POST   /users           → create a new user
+PUT    /users/42        → replace user 42
+DELETE /users/42        → delete user 42
+\`\`\`
+
+**Looks like a typical REST request:**
+\`\`\`
+GET https://api.shop.com/products/electronics
+Accept: application/json
+\`\`\`
+
+**Response:**
+\`\`\`json
+{
+  "id": 5,
+  "category": "electronics",
+  "items": [
+    { "id": 101, "name": "Laptop", "price": 75000 },
+    { "id": 102, "name": "Phone",  "price": 45000 }
+  ]
+}
+\`\`\`
+
+**Why QAs love REST:** simple URLs, easy to test in Postman/cURL, every browser dev-tool understands it.
+
+**Why QAs swear at REST:** "over-fetching" (you wanted one field but got fifty), "under-fetching" (you needed two endpoints to build one screen), and inconsistent error formats across teams.
+
+---
+
+### 📜 SOAP — The Old Guard (Banking, Insurance, Telecom)
+
+**SOAP** = **S**imple **O**bject **A**ccess **P**rotocol. Despite the name, it's anything but simple.
+
+A SOAP request is always an XML envelope wrapped in another XML envelope:
+
+\`\`\`xml
+<?xml version="1.0"?>
+<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope">
+  <soap:Header>
+    <auth:Token>abc123</auth:Token>
+  </soap:Header>
+  <soap:Body>
+    <GetCustomer>
+      <CustomerID>42</CustomerID>
+    </GetCustomer>
+  </soap:Body>
+</soap:Envelope>
+\`\`\`
+
+**Always sent via POST** to a single URL like \`https://bank.com/services/CustomerService\`. The action is inside the XML, not in the URL.
+
+**Where you'll meet it:** core banking systems, government tax APIs, telecom billing, insurance claim systems, anything written before 2015 that's still in production.
+
+**As a tester:** you'll need a tool that understands XML — Postman supports SOAP, but **SoapUI** is purpose-built for it. Schemas are described in \`.wsdl\` files (think OpenAPI's grumpy old uncle).
+
+---
+
+### 🚀 GraphQL — The "Ask for Exactly What You Need" Style
+
+**GraphQL** flips REST on its head. There's only **one URL**, and you POST a query describing exactly what fields you want.
+
+\`\`\`
+POST https://api.shop.com/graphql
+Content-Type: application/json
+\`\`\`
+
+**Request body:**
+\`\`\`json
+{
+  "query": "{ user(id: 42) { name email orders { id total } } }"
+}
+\`\`\`
+
+**Response — only the fields you asked for:**
+\`\`\`json
+{
+  "data": {
+    "user": {
+      "name": "Priya",
+      "email": "priya@test.com",
+      "orders": [
+        { "id": 101, "total": 999 },
+        { "id": 102, "total": 1500 }
+      ]
+    }
+  }
+}
+\`\`\`
+
+Notice — no extra fields. Need user's address? Add \`address\` to the query. Don't need email? Drop it.
+
+**Where you'll meet it:** modern mobile apps, dashboards, anything built by GitHub, Shopify, Facebook, or a startup founded after 2018.
+
+---
+
+### 🔍 Side-by-Side Comparison
+
+| Feature | REST | SOAP | GraphQL |
+|---------|------|------|---------|
+| **URL pattern** | Many endpoints (\`/users\`, \`/orders\`) | One endpoint per service | One endpoint total (\`/graphql\`) |
+| **HTTP methods** | GET / POST / PUT / DELETE | Always POST | Always POST |
+| **Format** | Usually JSON | Always XML | JSON |
+| **Schema** | Optional (OpenAPI/Swagger) | Mandatory (\`.wsdl\`) | Mandatory (built-in) |
+| **Status codes** | Uses HTTP codes (200, 404, 500) | Always 200 — error info inside body | Always 200 — error in \`errors\` field |
+| **Over-fetching** | Yes — get everything | Yes | No — you pick fields |
+| **Tooling** | Postman, cURL, browser | SoapUI, Postman | GraphQL Playground, Apollo Studio, Postman |
+| **Best for** | Public APIs, simple CRUD | Legacy enterprise, banking | Mobile apps, complex UIs |
+
+---
+
+### 🧪 Tester's Checklist — Spot the Style on Day One
+
+- **One endpoint accepting POST only?** GraphQL or SOAP. Look at the body — XML = SOAP, JSON with a "query" field = GraphQL.
+- **Many endpoints with different methods?** REST.
+- **\`.wsdl\` file shared in onboarding docs?** SOAP. Brace yourself.
+- **\`/graphql\` in any URL?** GraphQL.
+- **Status codes always 200 even when something failed?** SOAP or GraphQL — read the body for real errors.
+
+---
+
+### 🐛 Common Bugs by Style
+
+**REST:** wrong status codes (200 returned for errors), inconsistent error shapes, breaking changes without versioning.
+
+**SOAP:** XML namespace mismatches, missing mandatory fields silently ignored, faults that look like success at first glance.
+
+**GraphQL:** N+1 query performance bombs, fields returning \`null\` because the user doesn't have permission (and the API calls it "data" not "error"), accidentally exposing internal fields in the schema.
+
+---
+
+### 💡 Why This Matters as Day-One Knowledge
+
+Walking into a project and assuming all APIs look like REST will burn you. Knowing the difference up front means you read the right docs, pick the right tool, and write the right test cases — instead of spending two days wondering why \`/users/42\` returns 404 on what turns out to be a SOAP service.
+        `
+      },
+
+      {
         id: 'api-http-methods',
         title: 'Beginner: HTTP Methods',
         analogy: "HTTP methods are like office actions on a document. GET = read it. POST = create a brand new one. PUT = replace the entire document with a new version. PATCH = fix a single typo. DELETE = shred the document permanently.",
@@ -9131,6 +9289,79 @@ DELETE /users/42
 - **PUT**: Does it overwrite ALL fields? What if you send extra/unknown fields?
 - **PATCH**: Does it update only the changed field? Are other fields preserved?
 - **DELETE**: Is the resource actually deleted? Can you delete the same thing twice?
+
+---
+
+### 🟣 HEAD — Like GET, But No Body
+
+**Purpose:** ask the server "is this thing there, and what would you tell me if I asked for it?" — without downloading the actual content.
+
+\`\`\`
+HEAD /downloads/big-report.pdf
+
+→ Returns headers only:
+  HTTP/1.1 200 OK
+  Content-Length: 5242880
+  Content-Type: application/pdf
+  Last-Modified: Sun, 12 May 2026 10:00:00 GMT
+\`\`\`
+
+**Real life:** before downloading a 5 GB file, run a HEAD to check the file size and that the server has it. Saves bandwidth.
+
+**Use as a tester:** verify a resource exists without pulling its contents. Great for testing CDN cache headers, file sizes, and last-modified timestamps.
+
+---
+
+### ⚙️ OPTIONS — "What Are You Allowed to Do Here?"
+
+**Purpose:** ask the server which methods it allows for a given URL. Most often used by browsers as part of **CORS preflight** before making a cross-origin request.
+
+\`\`\`
+OPTIONS /users/42
+
+→ Server replies:
+  HTTP/1.1 200 OK
+  Allow: GET, PUT, PATCH, DELETE
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, PUT, PATCH, DELETE
+  Access-Control-Allow-Headers: Content-Type, Authorization
+\`\`\`
+
+**As a tester you'll meet OPTIONS in two situations:**
+1. Debugging "CORS errors" in the browser console — the OPTIONS preflight failed.
+2. Discovering allowed methods on an unknown endpoint without breaking anything.
+
+---
+
+### 🔁 Idempotency — The Most Important Concept You'll Be Asked About
+
+A method is **idempotent** if calling it 10 times produces the same end-state as calling it once.
+
+| Method | Idempotent? | Safe? (no side effects) | Why |
+|--------|-------------|-------------------------|-----|
+| GET | ✅ Yes | ✅ Yes | Reading data 10 times changes nothing |
+| HEAD | ✅ Yes | ✅ Yes | Same as GET, no body |
+| OPTIONS | ✅ Yes | ✅ Yes | Pure metadata query |
+| PUT | ✅ Yes | ❌ No | Replacing with the same data 10 times = same state |
+| DELETE | ✅ Yes | ❌ No | Deleting a deleted thing = still deleted |
+| POST | ❌ No | ❌ No | Creates a new resource each call → 10 new users |
+| PATCH | ⚠️ Depends | ❌ No | Idempotent if you set absolute values; not if you increment |
+
+**Why this matters:** when a network blips and the client retries, an idempotent request is safe to retry. POST is dangerous to retry — you might create the same order three times. PATCH \`{ "balance_increment": 100 }\` is dangerous; PATCH \`{ "balance": 500 }\` is safe.
+
+---
+
+### 🐛 Common Bugs to Hunt by Method
+
+| Method | Bugs to look for |
+|--------|------------------|
+| **GET** | Returns 200 with empty array instead of 404 for missing resources; leaks fields it shouldn't (e.g., password hashes); ignores query filters silently |
+| **POST** | Allows duplicate records when same payload sent twice; returns 200 instead of 201; doesn't return the created resource's ID |
+| **PUT** | Wipes fields not included in the body (sometimes intentional, sometimes a bug); allows creating new resources by PUT to a non-existent ID without warning |
+| **PATCH** | Accepts unknown fields silently; doesn't validate types of partial updates; fails atomically on multi-field updates (some fields update, others don't) |
+| **DELETE** | Returns 200 instead of 204; deletes related data without warning (cascade); allows deleting protected/in-use resources without checks |
+| **HEAD** | Returns different headers than its GET counterpart (a violation of the spec); responds with a body when it shouldn't |
+| **OPTIONS** | Reveals admin-only methods to unauthenticated callers; Allow header lies (says PATCH allowed but PATCH returns 405) |
         `
       },
 
@@ -9425,6 +9656,91 @@ Send 200 rapid login requests         → Expect 429 eventually
 ### 🎯 Golden Rule
 
 **Never accept a 500 as "expected behaviour."** A 500 means the server crashed — always a bug. Good APIs should return proper 4xx errors for bad input, never crash with a 500.
+
+---
+
+### 🚦 429 Too Many Requests — Rate Limiting in Depth
+
+*💡 Analogy: A nightclub with a bouncer counting heads. After 100 people enter in 10 minutes, the bouncer says "wait outside for 5 minutes." The club isn't broken — it's protecting itself.*
+
+When you hammer an API too fast, the server replies with **429** to slow you down.
+
+**Look for these helpful headers in the response:**
+
+\`\`\`
+HTTP/1.1 429 Too Many Requests
+Retry-After: 30
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1716552000
+\`\`\`
+
+| Header | Meaning |
+|--------|---------|
+| \`Retry-After\` | Number of seconds to wait before retrying (also accepts an HTTP date) |
+| \`X-RateLimit-Limit\` | Total requests allowed per window |
+| \`X-RateLimit-Remaining\` | How many you have left in the current window |
+| \`X-RateLimit-Reset\` | Unix timestamp when the limit resets |
+
+**As a tester:** force a 429 by sending requests in a fast loop (\`for i in {1..200}; do curl ... ; done\`). Then verify:
+- ✅ The 429 response includes a \`Retry-After\` header
+- ✅ The body explains the limit clearly (don't just say "rate limited")
+- ✅ After waiting \`Retry-After\` seconds, requests succeed again
+- ✅ Different users have separate quotas (one heavy user shouldn't block another)
+
+---
+
+### 🛠️ 502 / 503 / 504 — The Gateway Errors
+
+These three are siblings, all about something **between** your client and the application failing.
+
+**502 Bad Gateway** — the load balancer or reverse proxy got an invalid reply from the application server.
+- Common cause: app crashed mid-request, returned malformed response.
+- "Invalid reply" means the proxy got something — but it wasn't valid HTTP.
+
+**503 Service Unavailable** — the server is up, but refusing requests right now.
+- Common causes: deploy in progress, scheduled maintenance, overload protection.
+- May include \`Retry-After\` header.
+
+**504 Gateway Timeout** — the proxy gave up waiting for the application server.
+- Common cause: a slow database query, deadlock, infinite loop in code.
+- The proxy timeout is usually 30–60 seconds.
+
+| Code | Who's at fault | Typical fix |
+|------|----------------|-------------|
+| 502 | App returned junk | Check app logs for crash/panic |
+| 503 | App refused (deploy/maintenance) | Wait, or check deploy status |
+| 504 | App was too slow | Check slow queries, downstream dependencies |
+
+---
+
+### 🔁 Retry Semantics — When Is It Safe to Retry?
+
+The golden rule: **retry idempotent failures, escalate non-idempotent ones.**
+
+| Status | Retry? | Why |
+|--------|--------|-----|
+| 408 Request Timeout | ✅ Yes | Server didn't get the request fully — safe to resend |
+| 425 Too Early | ✅ Yes | Server says "try again" |
+| 429 Too Many Requests | ✅ After \`Retry-After\` | Server is asking you to slow down, not fail |
+| 500 Internal Server Error | ⚠️ Maybe | Only retry GET/PUT/DELETE (idempotent). Never blindly retry POST. |
+| 502 Bad Gateway | ✅ Usually | Likely transient — retry with backoff |
+| 503 Service Unavailable | ✅ After \`Retry-After\` | Often a deploy — wait |
+| 504 Gateway Timeout | ✅ With caution | Side effect may have already happened on the server |
+| 4xx (other) | ❌ No | Your request is wrong — fix the request, not the retry count |
+
+**Exponential backoff** is the standard pattern: wait 1s, then 2s, then 4s, then 8s, capped at some maximum. Add a random "jitter" so 1,000 clients don't all retry at the same instant and crash the server again.
+
+---
+
+### 🐛 Status Code Bugs to Hunt
+
+- ✅ POST returning **200** instead of **201** for resource creation
+- ✅ DELETE returning **200** with an empty body instead of **204**
+- ✅ Validation errors returning **500** (server crash) instead of **400** (bad input)
+- ✅ Permission errors returning **404** instead of **403** (sometimes deliberate to hide existence — confirm with security team)
+- ✅ Missing \`Retry-After\` on 429/503 — clients can't retry intelligently
+- ✅ \`X-RateLimit-Remaining\` is wrong — sends 5 requests, header still shows 100 remaining
         `
       },
 
@@ -9524,6 +9840,122 @@ When you receive a JSON response from an API, check:
 3. **Are data types correct?** \`"id": "42"\` (string) instead of \`"id": 42\` (number) = bug
 4. **Are arrays populated?** An order with \`"items": []\` might be missing data
 5. **Is sensitive data hidden?** Passwords, SSNs must never appear in the response body
+
+---
+
+### 🪆 Nested Objects and Arrays
+
+Real APIs rarely return flat objects. Most have **nested structures** — objects inside objects inside arrays.
+
+\`\`\`json
+{
+  "orderId": 1001,
+  "customer": {
+    "name": "Priya",
+    "address": {
+      "street": "12 MG Road",
+      "city": "Bangalore",
+      "country": "India"
+    }
+  },
+  "items": [
+    {
+      "productId": 501,
+      "name": "Headphones",
+      "price": 1999,
+      "tags": ["audio", "wireless"]
+    },
+    {
+      "productId": 502,
+      "name": "Charger",
+      "price": 599,
+      "tags": ["accessory"]
+    }
+  ]
+}
+\`\`\`
+
+**How to read this as a tester:**
+- \`customer.address.city\` — drill down with dots
+- \`items[0].name\` — first item's name
+- \`items[0].tags[1]\` — second tag of first item ("wireless")
+- \`items.length\` — number of items in the order
+
+**In Postman tests:**
+\`\`\`javascript
+const data = pm.response.json();
+pm.test("Has customer city", () => {
+  pm.expect(data.customer.address.city).to.eql("Bangalore");
+});
+pm.test("Order has at least one item", () => {
+  pm.expect(data.items).to.have.lengthOf.at.least(1);
+});
+pm.test("First item has audio tag", () => {
+  pm.expect(data.items[0].tags).to.include("audio");
+});
+\`\`\`
+
+---
+
+### 🔡 Escape Characters — The Sneaky Source of "Invalid JSON" Errors
+
+Special characters inside string values must be **escaped** with a backslash.
+
+| Character | Escaped as | Why |
+|-----------|------------|-----|
+| Double quote \`"\` | \`\\"\` | Otherwise it ends the string early |
+| Backslash \`\\\` | \`\\\\\` | Otherwise it escapes the next character |
+| Newline | \`\\n\` | JSON strings must be one line |
+| Tab | \`\\t\` | Same |
+| Carriage return | \`\\r\` | Windows line endings |
+| Unicode character | \`\\uXXXX\` | E.g., \`\\u00e9\` for é |
+
+**Example with quotes inside a string:**
+\`\`\`json
+{ "quote": "She said \\"hello\\" to me" }
+\`\`\`
+
+**Example with a Windows file path:**
+\`\`\`json
+{ "path": "C:\\\\Users\\\\Priya\\\\Documents" }
+\`\`\`
+
+**Common bug:** a tester pastes a real-world string with quotes into a Postman body, gets a 400, and stares at the screen. The fix is to escape the quotes — or safer, use a tool that does it for you (most editors will).
+
+---
+
+### 📄 Brief Mention: XML — JSON's Older Cousin
+
+You may run into legacy systems still speaking **XML** instead of JSON. Same data, much wordier:
+
+\`\`\`xml
+<order>
+  <id>1001</id>
+  <customer>
+    <name>Priya</name>
+  </customer>
+  <items>
+    <item>
+      <productId>501</productId>
+      <name>Headphones</name>
+    </item>
+  </items>
+</order>
+\`\`\`
+
+vs the JSON equivalent:
+
+\`\`\`json
+{
+  "id": 1001,
+  "customer": { "name": "Priya" },
+  "items": [{ "productId": 501, "name": "Headphones" }]
+}
+\`\`\`
+
+**Where you'll meet XML:** SOAP services (banking, telecom, insurance), legacy government APIs, any \`.wsdl\`-based service. Postman supports XML; assertions are done with XPath instead of JSONPath.
+
+**Modern APIs are 95% JSON.** But if a project says "the API returns XML," don't panic — just slow down and reach for an XML-aware tool.
         `
       },
 
@@ -9635,6 +10067,297 @@ Collections are like folders for your API tests. You can re-run any test with on
 - **Check response size** — unusually large responses may indicate over-fetching
 - **Use the Console** (View → Show Postman Console) — see the raw HTTP request for debugging
 - **Check the status code colour** — green = 2xx, orange = 4xx, red = 5xx
+
+---
+
+### 🏢 Workspaces — Where Your Team Lives
+
+*💡 Analogy: A workspace is like a Slack channel for API requests. Each project gets its own room. Some are private (just you), some are team-wide (everyone shares).*
+
+Postman has two types of workspaces:
+
+| Type | Who can see | Best for |
+|------|-------------|----------|
+| **Personal** | Just you | Solo experimentation, drafts |
+| **Team** | All invited members | Project APIs, shared collections, env vars |
+
+**Switching workspaces** — top-left dropdown next to "Workspaces."
+
+**A common project setup:**
+- One team workspace per service (e.g., "Payment API," "User Service")
+- Three environments inside: Dev, Staging, Prod
+- Shared collections so any tester can run regression with one click
+
+---
+
+### 📚 Collections — Organising Your Requests
+
+A **collection** is a folder of requests that you can run, share, and version-control together. Think of it as a saved recipe book.
+
+**Folder structure inside a collection:**
+\`\`\`
+📁 Payment API (collection)
+├── 📁 Auth
+│   ├── POST Login
+│   └── POST Refresh Token
+├── 📁 Cards
+│   ├── GET List Cards
+│   ├── POST Add Card
+│   └── DELETE Remove Card
+└── 📁 Transactions
+    ├── GET Transaction History
+    └── POST Refund
+\`\`\`
+
+**Why collections matter for testers:**
+- Run the entire collection in one go — instant regression
+- Share with developers — they can reproduce your bug exactly
+- Version control — sync to Git via Postman's Git integration
+- Run on a schedule (Postman Monitors) — catch broken APIs at 3 AM
+
+**Right-click any request** → "Save to Collection" → pick or create a collection. Drag-and-drop reorders them.
+
+---
+
+### 🏃 Collection Runner — Run Everything in One Click
+
+The **Runner** executes every request in a collection in order — perfect for end-to-end flows like "login → create order → check balance → logout."
+
+1. Click **Runner** (bottom-left).
+2. Drag a collection in.
+3. Pick an environment (Dev/Staging/Prod).
+4. Set iterations (run 1× or 100× for stability checks).
+5. Click **Run**.
+
+You get a green-or-red dashboard showing which requests passed and which failed.
+
+---
+
+### 📥 Importing Requests from Outside
+
+Postman is a great destination — you can import requests from many sources without retyping them.
+
+**1. Import from cURL** (most common in bug reports):
+- Click **Import** (top-left) → paste your \`curl\` command → Postman auto-builds the request.
+
+**2. Import from OpenAPI / Swagger** (for entire APIs):
+- Click **Import** → paste the URL of the \`openapi.yaml\` or \`swagger.json\` → Postman builds an entire collection with every endpoint.
+
+**3. Import from another tool** (Insomnia, Paw, HAR files):
+- Same Import dialog supports HAR (browser dev-tools network export), Insomnia exports, and more.
+
+**4. Drag-drop a \`.json\` collection file** into the sidebar to add a teammate's collection instantly.
+
+---
+
+### 🌍 Environments and Variables (Quick Intro)
+
+You'll see environments in detail in the Intermediate tier, but the basics:
+
+- **Environment** = a named set of variables (e.g., "Dev" vs "Prod")
+- **Variable** = a placeholder like \`{{baseUrl}}\` or \`{{authToken}}\`
+- Set the environment from the top-right dropdown
+- Variables in URLs/headers/body get auto-replaced when you send
+
+This means one collection works for Dev, Staging, and Prod — no copy-paste of URLs.
+
+---
+
+### 💡 Three Productivity Tips Most Testers Miss
+
+1. **Use the Code button** (\`</>\` icon, right side) to copy any Postman request as cURL, Python, or JavaScript — handy for sharing or moving to automation.
+2. **Set up a Pre-request Script** to generate fresh test data each run (timestamps, random emails) so you don't hit "duplicate" errors.
+3. **Save responses as examples** — right-click response → "Save as example." Now your collection doubles as documentation showing what the response *should* look like.
+        `
+      },
+
+      {
+        id: 'api-curl-basics',
+        title: 'Beginner: cURL Basics',
+        analogy: "cURL is the Swiss Army knife of HTTP. Postman is the comfortable office chair — buttons everywhere, mouse-friendly. cURL is the pocket knife in your jeans — small, blunt-looking, but works on any computer in the world without needing to install anything fancy. Every API documentation, every Stack Overflow answer, every bug report eventually shows you a cURL command.",
+        lessonMarkdown: `
+### 🛠️ What is cURL?
+
+*💡 Analogy: Think of cURL as a vending machine for HTTP. You walk up, type the URL, push a button, and it spits out the response. No GUI, no buttons to click — just type and go. The same command works on Windows, Mac, Linux, and inside CI pipelines.*
+
+**cURL** (pronounced "curl") is a command-line tool that sends HTTP requests. It's already installed on every Mac and Linux machine, and on Windows 10+ as well.
+
+**Why every QA must know cURL:**
+- API docs almost always show cURL examples first.
+- Bug reports become reproducible: paste a cURL command, anyone can run it.
+- It works in CI/CD pipelines where Postman can't.
+- Quick smoke tests without launching a heavy GUI.
+
+---
+
+### ✅ Check It's Installed
+
+Open your terminal and type:
+
+\`\`\`bash
+curl --version
+\`\`\`
+
+You should see something like \`curl 8.4.0\`. If not — install it from [curl.se](https://curl.se/download.html).
+
+---
+
+### 🟢 Your First GET Request
+
+\`\`\`bash
+curl https://jsonplaceholder.typicode.com/users/1
+\`\`\`
+
+**Output:**
+\`\`\`json
+{
+  "id": 1,
+  "name": "Leanne Graham",
+  "email": "Sincere@april.biz"
+}
+\`\`\`
+
+That's it. One line. No setup. The response prints right in your terminal.
+
+**Pretty-print the JSON** by piping into \`jq\` (a tiny JSON formatter):
+\`\`\`bash
+curl https://jsonplaceholder.typicode.com/users/1 | jq
+\`\`\`
+
+---
+
+### 🏷️ Adding Headers (\`-H\`)
+
+\`\`\`bash
+curl https://api.shop.com/products \\
+  -H "Accept: application/json" \\
+  -H "Authorization: Bearer abc123"
+\`\`\`
+
+The backslash \`\\\` at the end of each line continues the command onto the next — makes long curl commands readable. (On Windows CMD, use \`^\` instead; PowerShell uses backtick \\\`.)
+
+---
+
+### 📤 POST with a JSON Body (\`-d\`)
+
+\`\`\`bash
+curl -X POST https://api.shop.com/users \\
+  -H "Content-Type: application/json" \\
+  -d '{"name": "Priya", "email": "priya@test.com"}'
+\`\`\`
+
+- \`-X POST\` — sets the HTTP method.
+- \`-d\` — body data (single quotes prevent shell from mangling \`$\`, \`!\`, etc.).
+- \`-H "Content-Type: application/json"\` — tell the server you're sending JSON, not a form.
+
+---
+
+### 📁 Sending a File (\`-F\` for multipart, \`--data-binary\` for raw)
+
+**Multipart form upload** (like an HTML \`<form>\`):
+\`\`\`bash
+curl -X POST https://api.shop.com/upload \\
+  -F "file=@/Users/qa/test-image.png" \\
+  -F "description=test upload"
+\`\`\`
+
+The \`@\` tells curl "read this file from disk and put it in the body."
+
+---
+
+### 🔐 Authentication
+
+**Basic Auth (username:password):**
+\`\`\`bash
+curl -u priya:secret123 https://api.shop.com/admin
+\`\`\`
+
+**Bearer Token:**
+\`\`\`bash
+curl https://api.shop.com/profile \\
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiJ9..."
+\`\`\`
+
+---
+
+### 💾 Saving the Response
+
+\`\`\`bash
+curl https://api.shop.com/report -o report.json
+\`\`\`
+
+\`-o\` writes the response body to \`report.json\`. Use \`-O\` (uppercase) to save with the server-suggested filename.
+
+---
+
+### 🔍 Debugging with \`-v\` (Verbose)
+
+\`\`\`bash
+curl -v https://api.shop.com/users/1
+\`\`\`
+
+This dumps the **full request and response**, including all headers — gold when an API is misbehaving:
+
+\`\`\`
+> GET /users/1 HTTP/1.1            ← what curl sent
+> Host: api.shop.com
+> Accept: */*
+>
+< HTTP/1.1 200 OK                  ← what the server replied
+< Content-Type: application/json
+< X-RateLimit-Remaining: 99
+<
+{"id":1,"name":"Leanne Graham"}
+\`\`\`
+
+Lines starting with \`>\` are what YOU sent. Lines starting with \`<\` are what the SERVER sent back. Lines with \`*\` are curl's own diagnostics.
+
+---
+
+### 📋 Common Flags Cheat Sheet
+
+| Flag | What it does |
+|------|--------------|
+| \`-X METHOD\` | Set HTTP method (GET, POST, PUT, DELETE...) |
+| \`-H "Name: Value"\` | Add a header (use multiple \`-H\` for multiple headers) |
+| \`-d 'data'\` | Request body (defaults to POST if \`-X\` not given) |
+| \`-F "field=@file"\` | Multipart file upload |
+| \`-u user:pass\` | Basic authentication |
+| \`-o file\` | Write response to file |
+| \`-v\` | Verbose — show headers and connection info |
+| \`-i\` | Include response headers in output |
+| \`-s\` | Silent — hide progress bar (great for scripts) |
+| \`-L\` | Follow redirects |
+| \`-w "%{http_code}"\` | Print just the status code (handy in scripts) |
+
+---
+
+### 🔄 Convert Between Postman ↔ cURL
+
+**Postman → cURL:** in Postman, click the \`</>\` (Code Snippet) icon on the right → choose "cURL." Copy and paste anywhere.
+
+**cURL → Postman:** in Postman, click "Import" (top left) → paste your curl command → Postman builds the request for you.
+
+Use this trick constantly — it's the fastest way to share a request across teams.
+
+---
+
+### 🐛 Common Gotchas (Save Hours of Debugging)
+
+1. **Single vs double quotes:** on Mac/Linux, prefer single quotes around \`-d\` payloads — they prevent the shell from interpreting \`$\`, \`!\`, and backticks. On Windows CMD, you must use double quotes (single quotes don't escape).
+2. **Forgetting \`Content-Type\`:** if you send JSON without \`-H "Content-Type: application/json"\`, the server may treat your body as a form, return 400, and you'll spend 30 minutes blaming the server.
+3. **Trailing newline in saved files:** some shells add a trailing newline. Use \`--data-binary\` instead of \`-d\` if you need an exact byte-perfect body.
+4. **Verbose output mixed with response:** \`-v\` writes to stderr. Use \`curl -v ... 2>&1\` to combine into one stream when piping.
+
+---
+
+### 🧪 Tester's Checklist for cURL
+
+- ✅ Run a GET against an open API (e.g., jsonplaceholder) and confirm 200 + JSON body
+- ✅ Try the same GET with \`-v\` and read every header — what's \`Server\`? What's \`X-RateLimit-Remaining\`?
+- ✅ Send a POST with bad JSON (missing closing brace) — confirm the API returns 400, not 500
+- ✅ Compare a Postman request to its cURL export — they must match byte-for-byte
+- ✅ Save one production-readable cURL command for every endpoint you test — paste them into bug reports for instant repro
         `
       },
 
@@ -9736,6 +10459,231 @@ X-User-Role: superadmin
 \`\`\`
 
 If the server honours these custom headers without proper auth — that's a **critical security bug**.
+
+---
+
+### 🆚 Path Param vs Query Param vs Body — Side-by-Side
+
+A common Day-1 confusion: where does my data go? Here's the answer.
+
+| Where | Looks like | Use it for | Example |
+|-------|------------|------------|---------|
+| **Path** | \`/users/42\` | Identifying a specific resource | "Which user? User #42." |
+| **Query** | \`?status=active&limit=10\` | Filtering, sorting, pagination of a list | "Give me active users, 10 per page." |
+| **Body** | JSON in request body | Sending structured data (create/update) | "Here's the new user's full profile." |
+| **Header** | \`Authorization: Bearer ...\` | Metadata: auth, content type, locale | "Here's how to handle this request." |
+
+**Quick rule of thumb:**
+
+- Identifying a thing? **Path.**
+- Filtering a list? **Query.**
+- Creating/updating a thing? **Body.**
+- Auth, content type, language, or anything that doesn't change *what* you want? **Header.**
+
+**A real-world request that uses all four:**
+
+\`\`\`
+PATCH /users/42?notify=email HTTP/1.1
+Host: api.shop.com
+Authorization: Bearer abc123
+Content-Type: application/json
+
+{ "email": "new.email@test.com" }
+\`\`\`
+
+- **Path** identifies user 42
+- **Query** says "send a notification by email after the update"
+- **Header** carries auth and content type
+- **Body** carries the new email value
+
+---
+
+### 📚 Common Headers Reference Sheet
+
+The headers you'll meet on day one. Memorise these — they appear in 90% of bug reports.
+
+#### Request headers (you send)
+
+| Header | Purpose | Example |
+|--------|---------|---------|
+| \`Accept\` | What format you want back | \`Accept: application/json\` |
+| \`Content-Type\` | What format the body is in | \`Content-Type: application/json\` |
+| \`Authorization\` | Your credentials | \`Authorization: Bearer abc123\` |
+| \`User-Agent\` | Identifies the client | \`User-Agent: PostmanRuntime/7.32\` |
+| \`Cookie\` | Session and tracking cookies | \`Cookie: session=xyz789\` |
+| \`Accept-Language\` | Preferred response language | \`Accept-Language: en-US, hi-IN\` |
+| \`If-None-Match\` | Conditional GET — only if changed | \`If-None-Match: "abc123"\` |
+| \`X-Request-ID\` | Trace this request across services | \`X-Request-ID: 7e8f9a-1234\` |
+
+#### Response headers (server sends)
+
+| Header | Purpose | Example |
+|--------|---------|---------|
+| \`Content-Type\` | Format of the response body | \`Content-Type: application/json\` |
+| \`Content-Length\` | Size of the body in bytes | \`Content-Length: 4521\` |
+| \`Set-Cookie\` | Asks browser to store a cookie | \`Set-Cookie: session=xyz789; HttpOnly\` |
+| \`ETag\` | Version fingerprint for caching | \`ETag: "abc123"\` |
+| \`Cache-Control\` | Tells client how to cache | \`Cache-Control: max-age=3600\` |
+| \`Location\` | URL of the newly created resource | \`Location: /users/42\` |
+| \`Retry-After\` | When to retry after 429/503 | \`Retry-After: 30\` |
+| \`X-RateLimit-Remaining\` | Requests left in current window | \`X-RateLimit-Remaining: 99\` |
+
+---
+
+### 🐛 Common Bugs Around Headers and Params
+
+- ✅ Path param and query param **with the same name** but different values — server uses the wrong one
+- ✅ Special characters in query params not URL-encoded (e.g., space sent as \` \` instead of \`%20\`)
+- ✅ Body sent without \`Content-Type: application/json\` — server treats it as form data
+- ✅ Headers are case-insensitive in the spec but a buggy server only accepts \`authorization\` lowercase
+- ✅ A header is set on the request but stripped by the load balancer before reaching the app
+- ✅ \`Authorization\` header logged into application logs (huge security incident waiting to happen)
+        `
+      },
+
+      {
+        id: 'api-versioning-basics',
+        title: 'Beginner: API Versioning',
+        analogy: "API versioning is like phone editions. iPhone 14 and iPhone 15 share DNA — both are phones, both make calls — but the buttons moved, the camera changed, the charger plug is different. Versioning lets the API team add features and fix mistakes without breaking the apps that were built last year.",
+        lessonMarkdown: `
+### 🔢 Why Version an API?
+
+*💡 Analogy: Imagine your favourite restaurant changes the menu numbering overnight. Yesterday item #5 was a veggie burger; today it's a fish curry. Customers who memorised "I always order #5" get a nasty surprise. API versioning is the restaurant saying: "Old menu is still available — ask for it by name. New menu has different numbers." Both menus exist, both work, no one's lunch gets ruined.*
+
+Once an API is in production, **other apps depend on it**. Mobile apps from two years ago, partner integrations, billing scripts — they're all calling \`/users\` expecting a specific shape. The moment you change that shape, you break someone.
+
+**Versioning lets you:**
+- Add new fields without scaring old clients
+- Change response shapes without breaking yesterday's users
+- Deprecate gracefully — give clients warning before turning off the old version
+- Run multiple versions side-by-side during a migration
+
+---
+
+### 📐 Style 1: URL Path Versioning (Most Common)
+
+The version sits in the URL itself — easiest to spot, easiest to test.
+
+\`\`\`
+GET /v1/users/42
+GET /v2/users/42
+\`\`\`
+
+**Real-world examples:**
+- \`https://api.twitter.com/2/tweets\` — Twitter is on v2
+- \`https://api.github.com/repos\` — GitHub uses date headers, but many internal teams URL-version
+- \`https://api.shop.com/v1/products\` — typical SaaS pattern
+
+**Why teams love it:** dead obvious in logs. \`grep '/v1/'\` and you can see exactly who's still on the old version.
+
+**Why teams hate it:** every shared link, bookmark, and Postman collection has a hardcoded version in the URL. Migrating is loud and visible.
+
+---
+
+### 🏷️ Style 2: Header Versioning
+
+The version travels in a request header — the URL stays clean.
+
+\`\`\`
+GET /users/42
+Accept: application/vnd.shop.v2+json
+\`\`\`
+
+Or a custom header:
+
+\`\`\`
+GET /users/42
+API-Version: 2
+\`\`\`
+
+**Where you'll meet it:** GitHub's API uses \`Accept: application/vnd.github.v3+json\`. Many enterprise APIs prefer this style because it keeps URLs tidy.
+
+**Why teams love it:** the URL is permanent. Migration is invisible to log greppers.
+
+**Why teams hate it:** invisible. A junior dev calling the URL in a browser gets the default version and doesn't realise there's a newer one.
+
+---
+
+### ❓ Style 3: Query Parameter Versioning
+
+The version rides as a query string — least common but seen in legacy systems.
+
+\`\`\`
+GET /users/42?version=2
+GET /users/42?api-version=2024-05-01
+\`\`\`
+
+**Where you'll meet it:** Microsoft Azure APIs heavily use \`?api-version=\`. Otherwise rare.
+
+---
+
+### 📅 Style 4: Date-Based Versioning (Stripe Pattern)
+
+Instead of \`v1\`, \`v2\`, etc., use the **release date** of the API contract.
+
+\`\`\`
+Stripe-Version: 2023-10-16
+\`\`\`
+
+**Why this is brilliant:** dates are unambiguous and chronological. Saying "we're on the 2024-01-15 version" instantly tells you whether you're behind or ahead.
+
+**Where you'll meet it:** Stripe is the most famous example. Some Google APIs do this too.
+
+---
+
+### 🔍 Side-by-Side Comparison
+
+| Style | Looks like | Pros | Cons |
+|-------|------------|------|------|
+| URL Path | \`/v1/users\` | Obvious, easy to grep, easy to test | URLs change on migration |
+| Accept Header | \`Accept: ...vnd.api.v2+json\` | Clean URLs | Invisible — easy to miss |
+| Custom Header | \`API-Version: 2\` | Clean URLs | Easy to forget header |
+| Query Param | \`?version=2\` | Easy to add/remove | Pollutes the URL |
+| Date | \`2024-01-15\` | Clear chronology | Long, easy to typo |
+
+---
+
+### 🚨 Deprecation: Telling Clients "Stop Using This"
+
+When v1 is being retired, the team usually does three things:
+
+1. **Add a \`Deprecation\` header** to all v1 responses:
+   \`\`\`
+   Deprecation: true
+   Sunset: Sun, 31 Dec 2025 23:59:59 GMT
+   \`\`\`
+2. **Send emails** to all integrators about the cutover date.
+3. **Run v1 and v2 in parallel** for months — sometimes a year — before pulling the plug.
+
+The \`Sunset\` HTTP header is a real standard (RFC 8594) — well-built clients can detect it and warn users automatically.
+
+---
+
+### 🧪 Tester's Checklist for Versioning
+
+- ✅ **Confirm the version style** in the API docs on day one — URL path? Header? Date?
+- ✅ **Test the same endpoint across versions** — \`/v1/users/42\` and \`/v2/users/42\`. The shape may differ.
+- ✅ **Test missing version** — what happens if you don't specify? Does it default to oldest, newest, or 400?
+- ✅ **Test invalid version** — \`/v999/users/42\` should return 404 or 400, not 500.
+- ✅ **Watch for \`Deprecation\` and \`Sunset\` headers** in responses — if you see them, ticket the migration.
+- ✅ **Check the response \`Content-Type\`** when using Accept-header versioning — server should echo back which version it served.
+
+---
+
+### 🐛 Common Versioning Bugs to Hunt
+
+1. **Silent default to v1**: requests without a version header silently get v1, even though the team says v2 is the default. Catch this by sending a no-version request and inspecting the response shape.
+2. **Mixed shapes within the same version**: a field's type changes between minor releases of v2 — \`price\` was a number, now it's a string. Schema validation tests catch this.
+3. **Authorisation differences**: v1 used API keys, v2 requires OAuth. Make sure the auth method matches the version you're testing.
+4. **Version drift in tests**: your Postman collection points at \`/v1/\` but production migrated to \`/v2/\` last sprint. Tests pass against \`/v1/\` but reflect old behaviour.
+
+---
+
+### 💡 What This Means for You as a Tester
+
+Whenever you join a project, **the very first question to ask is "How is this API versioned?"** It dictates how you write your test cases, how you build your Postman environments, and how you read bug reports from customers still on the old version.
+
+Get this wrong and you'll spend a week debugging "missing field" issues that turn out to be "you tested the wrong version."
         `
       },
 
