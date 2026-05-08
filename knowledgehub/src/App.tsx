@@ -753,20 +753,20 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 // to Firestore so progress survives logout/re-login.
 function SyncToCloud() {
   const user = useAuthStore((s) => s.user);
+  const hydrated = useAuthStore((s) => s.hydrated);
 
   React.useEffect(() => {
-    if (!user) return;
+    // Wait until we've confirmed-read this user's Firestore doc. Subscribing
+    // before hydration would let an empty local store overwrite real cloud
+    // progress (the data-loss bug fixed in May 2026).
+    if (!user || !hydrated) return;
 
-    // Fire once immediately on login to ensure cloud is up-to-date
-    useQuestStore.getState().syncToFirestore(user.uid);
-
-    // Then watch for any subsequent changes
     const unsubscribe = useQuestStore.subscribe(() => {
       useQuestStore.getState().syncToFirestore(user.uid);
     });
 
     return unsubscribe;
-  }, [user?.uid]);
+  }, [user?.uid, hydrated]);
 
   return null;
 }

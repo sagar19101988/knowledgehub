@@ -21,6 +21,11 @@ interface AuthState {
   actionLoading: boolean;       // true while login/signup/logout is in-flight
   pendingVerification: boolean; // true after signup until email is verified
   unverifiedEmail: string | null; // email address awaiting verification
+  // True once the signed-in user's progress has been read from Firestore (or
+  // confirmed missing for a new account). SyncToCloud must NOT write to
+  // Firestore until this is true — otherwise an empty local store can race
+  // ahead of the read and overwrite real cloud progress.
+  hydrated: boolean;
   error: string | null;
 
   // Actions
@@ -48,11 +53,17 @@ export const useAuthStore = create<AuthState>((set, get) => {
           actionLoading: false,
           pendingVerification: true,
           unverifiedEmail: firebaseUser.email,
+          hydrated: false,
         });
         return;
       }
 
-      // User is logged in and verified — load their progress from Firestore
+      // User is logged in and verified — load their progress from Firestore.
+      // `hydrated` gates SyncToCloud: only flip it true on confirmed read
+      // outcomes (existing progress OR confirmed no-doc). On Firestore read
+      // error we leave it false so we never blind-overwrite cloud progress
+      // with whatever happens to be in localStorage.
+      let hydrated = false;
       try {
         const progress = await loadUserProgress(firebaseUser.uid);
         if (progress) {
@@ -60,13 +71,14 @@ export const useAuthStore = create<AuthState>((set, get) => {
         } else {
           useQuestStore.getState().setPlayerName(firebaseUser.displayName ?? 'Adventurer');
         }
-      } catch {
-        // Firestore unavailable — fall back to localStorage data already in store
+        hydrated = true;
+      } catch (err) {
+        console.error('[auth] Firestore read failed — sync disabled this session to protect cloud data:', err);
         useQuestStore.getState().setPlayerName(firebaseUser.displayName ?? 'Adventurer');
       }
       // Clear actionLoading here so the login spinner stays visible until
       // the user is fully loaded and LoginRoute fires the redirect.
-      set({ user: firebaseUser, authLoading: false, actionLoading: false, pendingVerification: false, unverifiedEmail: null });
+      set({ user: firebaseUser, authLoading: false, actionLoading: false, pendingVerification: false, unverifiedEmail: null, hydrated });
     } else {
       // Logged out — clear progress UNLESS the user is in guest mode
       // (onAuthStateChanged fires on every page load when no Firebase user exists,
@@ -74,7 +86,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       if (!useQuestStore.getState().isGuest) {
         useQuestStore.getState().resetProgress();
       }
-      set({ user: null, authLoading: false, actionLoading: false, pendingVerification: false, unverifiedEmail: null });
+      set({ user: null, authLoading: false, actionLoading: false, pendingVerification: false, unverifiedEmail: null, hydrated: false });
     }
   });
 
@@ -84,6 +96,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
     actionLoading: false,
     pendingVerification: false,
     unverifiedEmail: null,
+    hydrated: false,
     error: null,
 
     loginWithEmail: async (email, password) => {
@@ -176,6 +189,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
         if (refreshed.emailVerified) {
           // Trigger onAuthStateChanged flow by reloading — it will grant access
           // Manually kick the same flow since reload doesn't re-fire onAuthStateChanged
+          let hydrated = false;
           try {
             const progress = await loadUserProgress(refreshed.uid);
             if (progress) {
@@ -183,10 +197,12 @@ export const useAuthStore = create<AuthState>((set, get) => {
             } else {
               useQuestStore.getState().setPlayerName(refreshed.displayName ?? 'Adventurer');
             }
-          } catch {
+            hydrated = true;
+          } catch (err) {
+            console.error('[auth] Firestore read failed during verification:', err);
             useQuestStore.getState().setPlayerName(refreshed.displayName ?? 'Adventurer');
           }
-          set({ user: refreshed, pendingVerification: false, unverifiedEmail: null, actionLoading: false });
+          set({ user: refreshed, pendingVerification: false, unverifiedEmail: null, actionLoading: false, hydrated });
         } else {
           set({ error: 'Email not verified yet. Please click the link in your inbox.', actionLoading: false });
         }
