@@ -4846,6 +4846,116 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ],
     },
     {
+      level: 'api-error-handling',
+      questions: [
+        {
+          question: 'According to RFC 7807 (Problem Details for HTTP APIs), which Content-Type should an error response use?',
+          options: [
+            { id: 'a', text: 'application/json', isCorrect: false },
+            { id: 'b', text: 'application/problem+json', isCorrect: true },
+            { id: 'c', text: 'text/plain', isCorrect: false },
+            { id: 'd', text: 'application/error+json', isCorrect: false },
+          ],
+          explanation: 'RFC 7807 defines the application/problem+json media type for structured error responses. The required fields are type, title, status, and detail.'
+        },
+        {
+          question: 'A validation error (e.g., missing required email field) should typically return which status code?',
+          options: [
+            { id: 'a', text: '500 Internal Server Error', isCorrect: false },
+            { id: 'b', text: '200 OK with success: false', isCorrect: false },
+            { id: 'c', text: '400 Bad Request or 422 Unprocessable Entity', isCorrect: true },
+            { id: 'd', text: '404 Not Found', isCorrect: false },
+          ],
+          explanation: 'Validation errors are caused by bad input from the client — that is a 4xx situation. 400 is generic; 422 specifically signals "your syntax is fine but the content is semantically wrong." Returning 500 for a validation error is a common bug.'
+        },
+        {
+          question: 'You see this error response: { "error": "Something went wrong" }. What is the biggest problem with it?',
+          options: [
+            { id: 'a', text: 'No machine-readable error code, no detail, no field info — clients cannot react intelligently.', isCorrect: true },
+            { id: 'b', text: 'It uses single quotes instead of double quotes.', isCorrect: false },
+            { id: 'c', text: 'It is too long.', isCorrect: false },
+            { id: 'd', text: 'It does not include a timestamp.', isCorrect: false },
+          ],
+          explanation: 'Generic error strings like "Something went wrong" are useless. Good errors include a stable machine-readable code (e.g., "INVALID_EMAIL"), a detailed explanation, and the affected field. Clients cannot localize, log, or branch on the message alone.'
+        },
+        {
+          question: 'Why are machine-readable error codes (e.g., USER_NOT_FOUND) better than relying solely on human-readable messages?',
+          options: [
+            { id: 'a', text: 'They look more professional.', isCorrect: false },
+            { id: 'b', text: 'Codes are stable; messages can be translated, edited, or change between releases without breaking client logic.', isCorrect: true },
+            { id: 'c', text: 'They reduce response payload size dramatically.', isCorrect: false },
+            { id: 'd', text: 'HTTP requires error codes.', isCorrect: false },
+          ],
+          explanation: 'A code like USER_NOT_FOUND is stable across releases and languages. A message like "User does not exist" might be edited to "No user found" or translated to French — breaking any client that compares message strings.'
+        },
+        {
+          question: 'Which is a CRITICAL issue you should always check for in production error responses?',
+          options: [
+            { id: 'a', text: 'The response is encoded in UTF-8.', isCorrect: false },
+            { id: 'b', text: 'Stack traces or database error messages are NOT leaked in the response body.', isCorrect: true },
+            { id: 'c', text: 'Errors are returned as XML.', isCorrect: false },
+            { id: 'd', text: 'The response always contains a UUID.', isCorrect: false },
+          ],
+          explanation: 'Leaking stack traces or raw database errors in production is a serious security issue — it reveals internal structure, library versions, and SQL queries to potential attackers. Production should return clean, generic error info only.'
+        },
+      ],
+    },
+    {
+      level: 'api-rate-limiting-throttling',
+      questions: [
+        {
+          question: 'Which HTTP status code indicates that a client has exceeded a rate limit?',
+          options: [
+            { id: 'a', text: '403 Forbidden', isCorrect: false },
+            { id: 'b', text: '429 Too Many Requests', isCorrect: true },
+            { id: 'c', text: '503 Service Unavailable', isCorrect: false },
+            { id: 'd', text: '418 I am a teapot', isCorrect: false },
+          ],
+          explanation: '429 is the dedicated status code for rate limiting. The response should also include a Retry-After header telling the client how long to wait.'
+        },
+        {
+          question: 'A 429 response without a Retry-After header — why is this a bug?',
+          options: [
+            { id: 'a', text: 'It violates a browser security policy.', isCorrect: false },
+            { id: 'b', text: 'Clients cannot retry intelligently — they have to guess how long to wait.', isCorrect: true },
+            { id: 'c', text: 'The response will not be cached.', isCorrect: false },
+            { id: 'd', text: 'It will fail W3C validation.', isCorrect: false },
+          ],
+          explanation: 'Without Retry-After, clients are forced to either retry immediately (making the problem worse) or guess. A well-designed rate limiter always tells the client when to come back.'
+        },
+        {
+          question: 'You hit the rate limit on user A. User B (different API key) makes a request and is also rate limited. What is the most likely bug?',
+          options: [
+            { id: 'a', text: 'User B has a typo in their API key.', isCorrect: false },
+            { id: 'b', text: 'The rate limit is shared globally instead of per API key — quota is leaking across users.', isCorrect: true },
+            { id: 'c', text: 'User B is rate limited because too many tests are running on the server.', isCorrect: false },
+            { id: 'd', text: 'This is correct behavior — all users share quota.', isCorrect: false },
+          ],
+          explanation: 'Rate limits are typically per-API-key or per-user. If User B is blocked because User A hit the limit, the quota subject is wrong — usually a misconfigured global counter. Confirm intended behavior in the docs and raise a bug.'
+        },
+        {
+          question: 'A 24-hour soak test running at 80% of the rate limit is most likely to catch which bug?',
+          options: [
+            { id: 'a', text: 'Slow database queries on the first request.', isCorrect: false },
+            { id: 'b', text: 'Memory leaks in the rate-limiter counter store, or counter rollover bugs at midnight/week boundaries.', isCorrect: true },
+            { id: 'c', text: 'CSS bugs in the dashboard.', isCorrect: false },
+            { id: 'd', text: 'Typos in the API documentation.', isCorrect: false },
+          ],
+          explanation: 'A long soak at sustained load reveals slow leaks — counter stores that grow without cleanup, off-by-one issues at window boundaries, drift in token-bucket refill rates. A 30-second test cannot catch these.'
+        },
+        {
+          question: 'Which header tells a client how many requests they have left in the current window?',
+          options: [
+            { id: 'a', text: 'X-RateLimit-Remaining', isCorrect: true },
+            { id: 'b', text: 'X-RateLimit-Limit', isCorrect: false },
+            { id: 'c', text: 'X-RateLimit-Reset', isCorrect: false },
+            { id: 'd', text: 'Retry-After', isCorrect: false },
+          ],
+          explanation: 'X-RateLimit-Remaining shows how many requests are left in the current window. X-RateLimit-Limit is the total cap. X-RateLimit-Reset is the timestamp when the window resets. Retry-After only appears on 429 responses.'
+        },
+      ],
+    },
+    {
       level: 'api-test-scenarios',
       questions: [
         {
@@ -4956,6 +5066,61 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ],
     },
     {
+      level: 'api-pagination-filtering-sorting',
+      questions: [
+        {
+          question: 'Which pagination style is best suited for a very large dataset where users do not need to "jump to page 50"?',
+          options: [
+            { id: 'a', text: 'Offset/limit (e.g., ?offset=40&limit=20)', isCorrect: false },
+            { id: 'b', text: 'Cursor-based (e.g., ?cursor=eyJpZCI6MTIzfQ==)', isCorrect: true },
+            { id: 'c', text: 'Page/per-page (e.g., ?page=3&per_page=20)', isCorrect: false },
+            { id: 'd', text: 'No pagination', isCorrect: false },
+          ],
+          explanation: 'Cursor-based pagination is optimal at scale. It avoids the database having to count millions of skipped rows, and prevents skipping/duplicating items when data changes mid-pagination. The trade-off: you cannot jump to an arbitrary page.'
+        },
+        {
+          question: 'You request page 99999 of a list endpoint that only has 50 pages. What is the correct behavior?',
+          options: [
+            { id: 'a', text: 'Return 500 Internal Server Error.', isCorrect: false },
+            { id: 'b', text: 'Return an empty array (or empty data with total=actualTotal), not a server error.', isCorrect: true },
+            { id: 'c', text: 'Loop back to page 1.', isCorrect: false },
+            { id: 'd', text: 'Return the last page automatically.', isCorrect: false },
+          ],
+          explanation: 'A page beyond the range is a valid request that simply has no data — return an empty array (or empty data field) with the correct total. Returning 500 is a bug; returning the last page is silently misleading.'
+        },
+        {
+          question: 'Which sort syntax indicates "descending" in a typical query parameter?',
+          options: [
+            { id: 'a', text: '?sort=price (default is descending)', isCorrect: false },
+            { id: 'b', text: '?sort=-price', isCorrect: true },
+            { id: 'c', text: '?sort=DOWN price', isCorrect: false },
+            { id: 'd', text: '?sort=price&order=DOWN', isCorrect: false },
+          ],
+          explanation: 'A leading minus sign is the most common convention for descending sort: ?sort=-price means price descending. Some APIs use ?sort=price&order=desc — always check the docs for which style your API uses.'
+        },
+        {
+          question: 'You filter a list with ?status=active and the response shows 20 items but total: 12000. What is most likely wrong?',
+          options: [
+            { id: 'a', text: 'The filter is being applied to display but not to the count — total reflects all items, not filtered ones.', isCorrect: true },
+            { id: 'b', text: 'The API is rate-limited.', isCorrect: false },
+            { id: 'c', text: 'The default sort changed.', isCorrect: false },
+            { id: 'd', text: 'There are exactly 12,000 active items.', isCorrect: false },
+          ],
+          explanation: 'A common bug: the SELECT applies the filter, but the COUNT(*) does not. Total should always reflect the filtered result, not the unfiltered set. Confirm by sanity-checking with a different filter and watching total change accordingly.'
+        },
+        {
+          question: 'A list endpoint accepts ?per_page=999999 and returns the entire dataset of 10 million rows. What kind of bug is this?',
+          options: [
+            { id: 'a', text: 'A performance optimization.', isCorrect: false },
+            { id: 'b', text: 'A potential denial-of-service vector — there is no max cap on per_page.', isCorrect: true },
+            { id: 'c', text: 'Just a UI issue.', isCorrect: false },
+            { id: 'd', text: 'Expected behavior; per_page should be unlimited.', isCorrect: false },
+          ],
+          explanation: 'No upper bound on page size lets an attacker (or a runaway script) request all data in a single call, exhausting database, memory, and bandwidth. Servers should cap per_page (e.g., max 100) and respond accordingly.'
+        },
+      ],
+    },
+    {
       level: 'api-chaining',
       questions: [
         {
@@ -5062,6 +5227,116 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
             { id: 'd', text: 'Chalk', isCorrect: false },
           ],
           explanation: 'Ajv is the fastest JSON Schema validator for JavaScript. In tests: const validate = ajv.compile(schema); expect(validate(response.data)).toBe(true); — one line to enforce the entire structure.'
+        },
+      ],
+    },
+    {
+      level: 'api-file-upload-download',
+      questions: [
+        {
+          question: 'Which Content-Type is used when uploading a file via an HTML form-style upload?',
+          options: [
+            { id: 'a', text: 'application/json', isCorrect: false },
+            { id: 'b', text: 'multipart/form-data', isCorrect: true },
+            { id: 'c', text: 'text/plain', isCorrect: false },
+            { id: 'd', text: 'application/octet-stream', isCorrect: false },
+          ],
+          explanation: 'Form-style file uploads use multipart/form-data with a boundary string separating each part (each form field or file). This is what HTML <form enctype="multipart/form-data"> generates.'
+        },
+        {
+          question: 'When using a pre-signed URL pattern (e.g., upload directly to S3), how many HTTP calls does the client typically make?',
+          options: [
+            { id: 'a', text: 'One — directly to the API.', isCorrect: false },
+            { id: 'b', text: 'Three: init (get URL), upload (to S3), finalize (notify API).', isCorrect: true },
+            { id: 'c', text: 'Two: upload then download.', isCorrect: false },
+            { id: 'd', text: 'Pre-signed URLs are not used in modern APIs.', isCorrect: false },
+          ],
+          explanation: 'The standard flow: (1) POST /uploads/init returns a pre-signed S3 URL, (2) PUT directly to S3 with the file bytes, (3) POST /uploads/finalize tells the API the upload is complete. The big file never touches the API server — three places to test for bugs.'
+        },
+        {
+          question: 'A QA tester uploads a file named "../../etc/passwd" — what should the server do?',
+          options: [
+            { id: 'a', text: 'Save it with the original name in the upload directory.', isCorrect: false },
+            { id: 'b', text: 'Reject the filename or sanitize it — never use raw user-supplied names for filesystem paths.', isCorrect: true },
+            { id: 'c', text: 'Return a 500 server error.', isCorrect: false },
+            { id: 'd', text: 'Upload silently as an empty file.', isCorrect: false },
+          ],
+          explanation: 'Path traversal in filenames is a serious vulnerability. The server must sanitize or reject filenames containing "..", forward slashes, backslashes, or absolute paths. Always test this case.'
+        },
+        {
+          question: 'What HTTP status code indicates a partial-content response (used for resumable downloads)?',
+          options: [
+            { id: 'a', text: '200 OK', isCorrect: false },
+            { id: 'b', text: '206 Partial Content', isCorrect: true },
+            { id: 'c', text: '301 Moved Permanently', isCorrect: false },
+            { id: 'd', text: '416 Range Not Satisfiable', isCorrect: false },
+          ],
+          explanation: 'When a client requests a Range (e.g., bytes=0-999999), the server responds with 206 Partial Content and a Content-Range header. 416 is returned only if the requested range is invalid (e.g., beyond the file size).'
+        },
+        {
+          question: 'On a download endpoint, why would you specifically test that Content-Type matches the actual file format?',
+          options: [
+            { id: 'a', text: 'For SEO ranking purposes.', isCorrect: false },
+            { id: 'b', text: 'A wrong Content-Type causes browsers to misrender (e.g., showing PDF bytes as text), and security tools may flag mismatches as suspicious.', isCorrect: true },
+            { id: 'c', text: 'Content-Type is informational only and never affects behavior.', isCorrect: false },
+            { id: 'd', text: 'Browsers ignore Content-Type entirely.', isCorrect: false },
+          ],
+          explanation: 'Browsers and security scanners use Content-Type to decide how to handle a response. A PDF returned with text/html will be displayed as gibberish. A misdeclared content type can also enable MIME confusion attacks. Always assert the type matches the file.'
+        },
+      ],
+    },
+    {
+      level: 'api-webhooks-callbacks',
+      questions: [
+        {
+          question: 'What is the most common security mechanism used to verify a webhook actually came from the legitimate sender?',
+          options: [
+            { id: 'a', text: 'IP address whitelisting only.', isCorrect: false },
+            { id: 'b', text: 'HMAC signature in a header (e.g., X-Stripe-Signature) computed from a shared secret.', isCorrect: true },
+            { id: 'c', text: 'Basic authentication with username/password.', isCorrect: false },
+            { id: 'd', text: 'No verification — webhooks are trusted by default.', isCorrect: false },
+          ],
+          explanation: 'HMAC signatures are the standard. The provider signs the request body using a shared secret; your handler recomputes the signature and compares. IP allowlists are a weak addition (IPs change). Webhooks without signature validation are dangerous — anyone on the internet can post fake events.'
+        },
+        {
+          question: 'A webhook handler returns 500. What does a typical webhook provider do next?',
+          options: [
+            { id: 'a', text: 'Give up immediately and never retry.', isCorrect: false },
+            { id: 'b', text: 'Retry with exponential backoff (e.g., after 5 minutes, 30 minutes, 2 hours, etc.).', isCorrect: true },
+            { id: 'c', text: 'Send the same event 100 times in the next minute.', isCorrect: false },
+            { id: 'd', text: 'Email the API administrator.', isCorrect: false },
+          ],
+          explanation: 'Reputable webhook providers retry failed deliveries with exponential backoff. After enough failures (often 6-10 attempts spanning hours or days), they stop and move the event to a dead-letter queue.'
+        },
+        {
+          question: 'Why must webhook handlers be idempotent (safe to call with the same event multiple times)?',
+          options: [
+            { id: 'a', text: 'To improve database performance.', isCorrect: false },
+            { id: 'b', text: 'Because retries can deliver the same event multiple times — your handler may run twice for the same payment, etc.', isCorrect: true },
+            { id: 'c', text: 'Idempotency is a legal requirement.', isCorrect: false },
+            { id: 'd', text: 'Webhooks are always delivered exactly once.', isCorrect: false },
+          ],
+          explanation: 'Webhooks are at-least-once: retries, network blips, and provider-side replays can deliver the same event multiple times. Without idempotency (checking the event ID before processing), you risk crediting a wallet twice, sending duplicate emails, etc.'
+        },
+        {
+          question: 'You are testing webhooks locally on your laptop. What tool is most commonly used to give your localhost a public URL?',
+          options: [
+            { id: 'a', text: 'curl', isCorrect: false },
+            { id: 'b', text: 'ngrok', isCorrect: true },
+            { id: 'c', text: 'Photoshop', isCorrect: false },
+            { id: 'd', text: 'Wireshark', isCorrect: false },
+          ],
+          explanation: 'ngrok creates a public HTTPS tunnel to your localhost (e.g., https://abc123.ngrok.io → http://localhost:3000), letting external services like Stripe send webhooks directly to your laptop during development. webhook.site is another popular option for sniffing payloads.'
+        },
+        {
+          question: 'A webhook arrives with a valid signature but a timestamp from 4 hours ago. What should the handler do?',
+          options: [
+            { id: 'a', text: 'Process it normally — signature is valid.', isCorrect: false },
+            { id: 'b', text: 'Reject it — likely a replay attack since reputable providers send fresh events.', isCorrect: true },
+            { id: 'c', text: 'Log a warning and process it anyway.', isCorrect: false },
+            { id: 'd', text: 'Forward it to another service.', isCorrect: false },
+          ],
+          explanation: 'Even with a valid signature, an old timestamp (typically more than ~5 minutes old) may indicate a replay attack — someone captured the request and is replaying it. Standard practice: reject anything older than the provider documented tolerance window (often 300 seconds).'
         },
       ],
     },

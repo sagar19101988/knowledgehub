@@ -151,7 +151,7 @@ export const ZONE_TIERS: Record<string, { id: string; label: string; color: stri
     },
     {
       id: 'intermediate', label: 'Intermediate', color: 'text-sky-400',
-      moduleIds: ['api-auth-types','api-test-scenarios','api-assertions','api-chaining','api-schema-validation','api-mock-servers'],
+      moduleIds: ['api-auth-types','api-error-handling','api-rate-limiting-throttling','api-test-scenarios','api-assertions','api-pagination-filtering-sorting','api-chaining','api-schema-validation','api-file-upload-download','api-webhooks-callbacks','api-mock-servers'],
     },
     {
       id: 'expert', label: 'Expert', color: 'text-amber-400',

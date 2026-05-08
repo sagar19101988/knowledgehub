@@ -10805,6 +10805,401 @@ OAuth 2.0 is the protocol behind social login buttons. It lets a user grant your
 \`\`\`
 
 **As a tester:** Verify the redirect works, the token has correct scopes, and expiry/refresh works.
+
+---
+
+### 🎫 OAuth 2.0 Flows in Depth
+
+OAuth 2.0 isn't a single flow — it's a **family of flows** designed for different client types. The two you'll meet most often:
+
+#### A. Authorization Code Flow with PKCE — for mobile and web apps
+
+This is the gold standard for any app where a real human is logging in. PKCE = "Proof Key for Code Exchange" — protects against intercepted authorization codes.
+
+\`\`\`
+1. App generates a random "code_verifier" and its SHA-256 hash ("code_challenge")
+2. User redirected to Google's auth page with code_challenge
+3. User logs in, Google redirects back with a SHORT-LIVED authorization code
+4. App POSTs to /token with the code AND the original code_verifier
+5. Google verifies the verifier matches the challenge → returns access_token + refresh_token
+\`\`\`
+
+**Why PKCE matters:** without it, anyone who intercepts the redirect could exchange the auth code for a token. PKCE proves "the app exchanging the code is the same app that started the flow."
+
+#### B. Client Credentials Flow — for server-to-server (no human)
+
+Used when one backend service calls another. No user is involved.
+
+\`\`\`
+POST /oauth/token
+Body: { grant_type: "client_credentials", client_id: "...", client_secret: "..." }
+→ Returns: { access_token: "...", expires_in: 3600 }
+\`\`\`
+
+**Where you'll meet it:** internal microservices, scheduled jobs, integration tests.
+
+---
+
+### 🔄 Refresh Tokens — Staying Logged In Without Re-Asking the Password
+
+Access tokens are deliberately short-lived (often 15 mins–1 hr). When they expire, the client uses a **refresh token** to get a new one — without bothering the user.
+
+\`\`\`
+POST /oauth/token
+Body: { grant_type: "refresh_token", refresh_token: "rt_xyz..." }
+→ Returns: { access_token: "new_at_...", refresh_token: "new_rt_..." }
+\`\`\`
+
+**As a tester, verify:**
+- ✅ Access token expires after the stated duration
+- ✅ Refresh token gives a fresh access token + (often) a new refresh token (rotation)
+- ✅ Old refresh token is invalidated after rotation (using it again should fail)
+- ✅ Logging out invalidates both tokens immediately
+- ✅ Refresh tokens have a longer max lifetime (e.g., 30 days) and stop working past that
+
+---
+
+### 🔏 HMAC-Signed Requests (AWS, Stripe Webhooks, GitHub)
+
+Some APIs require every request to carry a **signature** — a hash of the request body using a shared secret. The server recomputes the hash and compares; mismatch = reject.
+
+\`\`\`
+POST /webhooks/payment HTTP/1.1
+X-Stripe-Signature: t=1716552000,v1=abc123def456...
+Content-Type: application/json
+
+{ "event": "payment.success", ... }
+\`\`\`
+
+**As a tester:**
+- ✅ Tamper with the body (change one character) → server must reject
+- ✅ Replay a request from yesterday → server should reject (timestamp too old)
+- ✅ Send with wrong signature → 401/403
+- ✅ Confirm the signature secret rotates without breaking valid signatures from before the rotation window
+
+---
+
+### 🛡️ Other Auth Patterns (Quick Reference)
+
+| Pattern | What it is | Where you'll meet it |
+|---------|------------|----------------------|
+| **Session Cookies** | Server stores a session ID, client sends it via Cookie header | Traditional websites (Django, Rails, ASP.NET) |
+| **CSRF Tokens** | Random token in form fields/headers to prevent cross-site request forgery | Apps using session cookies |
+| **mTLS (mutual TLS)** | Both client AND server present certificates | Banking, government, enterprise |
+| **API Gateway Tokens** | Short-lived JWT issued by a gateway to internal services | Microservice architectures |
+
+**Note on session cookies:** if testing a session-based app, your auth tool of choice is **the browser** or Postman with cookie jar enabled — NOT bare cURL. The session cookie sets after login and rides automatically.
+        `
+      },
+
+      {
+        id: 'api-error-handling',
+        title: 'Intermediate: Error Handling & Error Contracts',
+        analogy: "An API without error contracts is like a hospital that says 'something went wrong' for every problem. Was it the wrong medicine? An allergy? The hospital ran out of beds? You can't tell. Good error handling is like a properly itemised hospital discharge summary — what happened, why, what to do next, and a code so the system can route it correctly.",
+        lessonMarkdown: `
+### 🚨 Why Error Contracts Matter
+
+*💡 Analogy: Imagine driving and the dashboard shows only a single "something is wrong" light. You'd have no idea whether to top up oil, fix the engine, or pull over. Error contracts are the labelled dashboard lights — each error has a code, a description, and tells you exactly what to do next.*
+
+When an API fails, the **shape of the error response** matters as much as the success response. A well-designed error helps:
+
+- **Developers** show useful messages to users
+- **QAs** assert specific failure modes
+- **Monitoring** systems route alerts correctly
+- **Clients** decide whether to retry or give up
+
+A bad error response is just "500 Internal Server Error" with an HTML page. A great error response tells you exactly what went wrong, in machine-readable form.
+
+---
+
+### 📋 The Standard: RFC 7807 — \`application/problem+json\`
+
+There's an actual internet standard for error formats. It's called **Problem Details**.
+
+\`\`\`json
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/problem+json
+
+{
+  "type":     "https://api.shop.com/errors/insufficient-stock",
+  "title":    "Insufficient stock",
+  "status":   422,
+  "detail":   "Only 3 units of SKU-501 available; you requested 10.",
+  "instance": "/orders/12345/items/abc",
+  "available_quantity": 3,
+  "requested_quantity": 10
+}
+\`\`\`
+
+**Required fields:**
+- \`type\` — URI identifying the error class (often a docs link)
+- \`title\` — short human summary, doesn't change between occurrences
+- \`status\` — HTTP status code (matches the response status)
+- \`detail\` — specific explanation for THIS occurrence
+
+**Optional but encouraged:**
+- \`instance\` — URI of the specific resource that failed
+- Any custom fields relevant to debugging (like \`available_quantity\` above)
+
+**As a tester:** if the API claims to follow RFC 7807, verify the \`Content-Type: application/problem+json\` header AND that all four required fields are present.
+
+---
+
+### 🛠️ Common Alternative Shapes (You'll See These More Often)
+
+#### Style A: errors array (very common)
+
+\`\`\`json
+{
+  "errors": [
+    { "field": "email", "message": "Email is invalid", "code": "INVALID_EMAIL" },
+    { "field": "age",   "message": "Must be 18 or older", "code": "AGE_TOO_LOW" }
+  ]
+}
+\`\`\`
+
+Used when **multiple validation errors** can occur in one request (e.g., a form with several bad fields).
+
+#### Style B: simple message + code
+
+\`\`\`json
+{
+  "code": "USER_NOT_FOUND",
+  "message": "No user found with id 42"
+}
+\`\`\`
+
+Compact, easy to log, easy to switch on in client code.
+
+#### Style C: just a string (avoid)
+
+\`\`\`json
+{ "error": "Something went wrong" }
+\`\`\`
+
+This is the WORST format. It tells nobody anything. If you find this in your API, raise a ticket.
+
+---
+
+### 🔢 Three Categories of Errors
+
+| Category | HTTP Status | Example | Should client retry? |
+|----------|-------------|---------|----------------------|
+| **Validation** | 400 / 422 | "Email format invalid" | No — fix the request |
+| **Business rule** | 409 / 422 | "Insufficient stock", "Account locked" | Maybe (depends) |
+| **System** | 500 / 502 / 503 | "Database connection failed" | Yes (idempotent only) |
+
+**Tester rule:** every category needs different test cases. You can't catch validation bugs with system error tests, and vice versa.
+
+---
+
+### 🎯 Designing Good Error Codes
+
+Machine-readable codes (\`USER_NOT_FOUND\`, \`INVALID_EMAIL\`) are gold. They let clients:
+- Switch on a fixed value, not a translated string
+- Internationalize messages (English code, French message)
+- Log and graph errors by code
+
+**A tester's checklist for error codes:**
+- ✅ Each error has a stable code that doesn't change between releases
+- ✅ Codes are documented (clients should know what to expect)
+- ✅ Same error always returns the same code
+- ✅ New error codes are announced in the changelog
+
+---
+
+### 🧪 Testing Strategy — Every Error Path Deserves Coverage
+
+For each endpoint, write tests for:
+
+1. **Each validation error** — missing required field, wrong type, out of range
+2. **Each business rule violation** — duplicate, conflict, insufficient state
+3. **Auth failures** — 401 (no token), 403 (wrong permissions)
+4. **Not found** — 404 for non-existent resource
+5. **Method not allowed** — 405 for PATCH on a GET-only endpoint
+6. **Conflict** — 409 for duplicate creation
+7. **Rate limit** — 429 (covered in next module)
+
+**Sample assertion in Postman:**
+
+\`\`\`javascript
+pm.test("Missing email returns structured error", () => {
+  pm.response.to.have.status(422);
+  const body = pm.response.json();
+  pm.expect(body.errors).to.be.an("array");
+  pm.expect(body.errors[0].field).to.eql("email");
+  pm.expect(body.errors[0].code).to.eql("REQUIRED");
+});
+\`\`\`
+
+---
+
+### 🐛 Common Bugs Around Error Handling
+
+- ❌ Returning **500** for what should be **400/422** (validation errors)
+- ❌ Returning **200** with \`{ "success": false, "error": "..." }\` instead of using HTTP status codes
+- ❌ Leaking **stack traces** or **database errors** in production responses (security risk)
+- ❌ Inconsistent shapes across endpoints — \`/users\` returns one format, \`/orders\` another
+- ❌ Same error code used for different problems
+- ❌ Generic messages like "Something went wrong" with no code, no detail
+- ❌ Localised error messages that change wording between releases (breaks string-matching tests)
+- ❌ Returning **401 vs 403 inconsistently** — confusing the client (is it "log in" or "you can't do this")
+
+---
+
+### 💡 Tester's Pro-Tip
+
+When testing error paths, save the failing requests as separate Postman examples. Build a **negative-test collection** — one folder per endpoint, one request per error path. This makes regression testing trivial: re-run the collection, every error path verified in 30 seconds.
+        `
+      },
+
+      {
+        id: 'api-rate-limiting-throttling',
+        title: 'Intermediate: Rate Limiting & Throttling',
+        analogy: "Rate limiting is like a buffet with a 'one plate per visit' rule. The restaurant isn't broken — it's protecting itself from a single hungry guest eating everything. Good rate limiting tells you 'come back in 5 minutes' instead of just slamming the door in your face.",
+        lessonMarkdown: `
+### 🚦 Why APIs Throttle Their Users
+
+*💡 Analogy: Imagine a popular pizza shop with one phone line. If 1,000 people called at once, no one would get through. The shop installs a queue: each customer waits their turn. APIs do the same — rate limiting prevents one user (or a runaway script) from blocking everyone else.*
+
+**Three reasons APIs limit request rates:**
+
+1. **Cost protection** — every request costs the company money (CPU, database, bandwidth)
+2. **Fairness** — one heavy user shouldn't degrade others
+3. **Abuse prevention** — block scrapers, bots, and DoS attackers
+
+When the limit is hit, the server replies with **429 Too Many Requests**.
+
+---
+
+### ⚙️ Algorithms Used Under the Hood
+
+You may see these names in API docs — knowing them helps interpret limits.
+
+| Algorithm | How it works | Pros / Cons |
+|-----------|-------------|-------------|
+| **Fixed Window** | "100 requests per minute, resetting at the top of the minute" | Simple; can burst at boundary (200 in 2 seconds) |
+| **Sliding Window** | "100 requests in any rolling 60-second window" | Smoother; prevents burst exploit |
+| **Token Bucket** | Tokens drip in at a steady rate; each request takes one | Allows controlled bursts; common in cloud APIs |
+| **Leaky Bucket** | Requests queue and drain at a fixed rate | Smooth output; predictable load on the server |
+
+**Most APIs use token bucket or sliding window** — accept this as the default unless docs say otherwise.
+
+---
+
+### 📋 The Standard Headers
+
+A well-designed rate-limited API tells you everything you need:
+
+\`\`\`
+HTTP/1.1 200 OK
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 47
+X-RateLimit-Reset: 1716552000
+\`\`\`
+
+| Header | Meaning |
+|--------|---------|
+| \`X-RateLimit-Limit\` | Total allowed in current window |
+| \`X-RateLimit-Remaining\` | How many you have left |
+| \`X-RateLimit-Reset\` | Unix timestamp when the window resets |
+
+When you exceed the limit:
+
+\`\`\`
+HTTP/1.1 429 Too Many Requests
+Retry-After: 30
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1716552000
+
+{
+  "code": "RATE_LIMIT_EXCEEDED",
+  "message": "You've hit the rate limit. Retry in 30 seconds."
+}
+\`\`\`
+
+The \`Retry-After\` header is critical — it tells your code (or your test) exactly how long to wait.
+
+---
+
+### 🎯 Per-Whom? — The Quota Subject
+
+Rate limits don't apply to "everyone" — they apply to a **subject**. The most common are:
+
+| Subject | Example | When |
+|---------|---------|------|
+| **Per API key** | "100 req/min for key sk_abc..." | Most public APIs |
+| **Per user account** | "1,000 req/hour per logged-in user" | SaaS apps |
+| **Per IP address** | "60 req/min from any single IP" | Anti-bot defence |
+| **Per tenant/org** | "10,000 req/day per company workspace" | Enterprise SaaS |
+| **Per endpoint** | "Login: 5 attempts per minute; everything else: 100/min" | Login-heavy abuse protection |
+
+**As a tester:** confirm the subject. A "per-tenant" limit shared between two QA testers will produce baffling intermittent failures — nobody hit it alone, but together you did.
+
+---
+
+### 🧪 How to Test Rate Limits
+
+#### 1. Force a 429 — small loop
+
+\`\`\`bash
+for i in {1..200}; do
+  curl -s -o /dev/null -w "%{http_code}\\n" \\
+    -H "Authorization: Bearer abc123" \\
+    https://api.shop.com/users
+done | sort | uniq -c
+\`\`\`
+
+This prints how many 200s and how many 429s. If the limit is "100/min," you'd see roughly 100 × 200 then 100 × 429.
+
+#### 2. Verify Retry-After is honoured
+
+When a 429 is returned, sleep \`Retry-After\` seconds, retry — the next request must succeed.
+
+#### 3. Verify per-subject isolation
+
+User A hits the limit. User B (different API key) makes a request — must succeed. If User B is also blocked, the limit is shared incorrectly.
+
+#### 4. Verify the window resets
+
+After \`X-RateLimit-Reset\` time has passed, the counter must reset to the full limit.
+
+---
+
+### 🐛 Common Rate-Limiting Bugs
+
+- ❌ **Missing \`Retry-After\` header** — clients can't retry intelligently
+- ❌ **\`X-RateLimit-Remaining\` is wrong** — sends 5 requests, header still shows 100
+- ❌ **Returning 500 instead of 429** — server crashed under load
+- ❌ **Returning 200 with an error body** — client sees success, retries naively
+- ❌ **Shared quotas across tenants** — one customer's bot blocks all other customers
+- ❌ **No quota on auth endpoints** — credential stuffing attacks succeed
+- ❌ **Counter never resets** — once you hit the limit, you're stuck forever (until restart)
+- ❌ **Inconsistent quota** — same API key gets different limits on different requests
+
+---
+
+### 💡 The Soak Test
+
+A useful expert pattern: **slow soak** — fire a steady 80% of the limit for 24 hours. Verify:
+- ✅ No request fails unexpectedly
+- ✅ Counter rolls over correctly across midnight, week boundary, etc.
+- ✅ Memory doesn't leak on the server (the counter store grows forever)
+- ✅ A spike to 110% gets cleanly throttled, then recovers
+
+This catches "the rate limiter has a memory leak" bugs that a 30-second test never hits.
+
+---
+
+### 🔍 Tester's Quick Checklist
+
+- ✅ Confirm the limit by reading docs or hitting the \`X-RateLimit-Limit\` header
+- ✅ Force a 429 and read every header in the response
+- ✅ Verify Retry-After is honoured by waiting and retrying
+- ✅ Test that a different user/API key isn't affected
+- ✅ Test the reset behaviour at the window boundary
+- ✅ Confirm error body has a clear, machine-readable code (not just "rate limited")
         `
       },
 
@@ -11046,6 +11441,219 @@ pm.test("No stack trace in response",      () => {
       },
 
       {
+        id: 'api-pagination-filtering-sorting',
+        title: 'Intermediate: Pagination, Filtering & Sorting',
+        analogy: "A list endpoint without pagination is like a library that hands you all 1 million books when you ask for any. Pagination is the librarian saying 'here are pages 1-20; ask again for the next batch.' Filtering is asking 'just the cookbooks please.' Sorting is asking 'in alphabetical order.' Together they turn a firehose into a sip.",
+        lessonMarkdown: `
+### 📚 Why List Endpoints Need These Three
+
+*💡 Analogy: An e-commerce site has 500,000 products. If \`GET /products\` returned all of them, your phone would die loading the page. Pagination means "send me 20 at a time." Filtering means "only the electronics." Sorting means "cheapest first." This is how every real list endpoint works.*
+
+Three patterns dominate every list-style API:
+
+1. **Pagination** — splitting results into pages
+2. **Filtering** — narrowing the results to what you want
+3. **Sorting** — choosing the order
+
+These are the three highest-bug-density features in most APIs because edge cases are everywhere — empty pages, off-by-one indexes, multi-field sorts.
+
+---
+
+### 📖 Pagination Style 1: Offset / Limit (Classic)
+
+The simplest. "Skip N items, then return the next M."
+
+\`\`\`
+GET /products?offset=40&limit=20
+→ Returns items 41-60
+\`\`\`
+
+**Pros:** dead simple, easy to "jump to page 5."
+**Cons:** if data changes between pages (someone deletes an item), you may skip or duplicate items. Performance degrades on huge offsets (database has to count all the skipped rows).
+
+---
+
+### 📖 Pagination Style 2: Page / Per-Page (Friendlier)
+
+Same idea, just expressed differently:
+
+\`\`\`
+GET /products?page=3&per_page=20
+→ Returns items 41-60
+\`\`\`
+
+The server computes \`offset = (page - 1) * per_page\` internally. Easier for humans (page 1, page 2, ...).
+
+**Common bug:** "page 0" — does it return the same as page 1, or is it an error? Test both.
+
+---
+
+### 📖 Pagination Style 3: Cursor-Based (Modern, Scalable)
+
+Instead of "skip 40," the server gives you a **cursor** — an opaque token marking where to continue.
+
+\`\`\`
+GET /products?limit=20
+→ Returns 20 items + { "next_cursor": "eyJpZCI6MTIzfQ==" }
+
+GET /products?limit=20&cursor=eyJpZCI6MTIzfQ==
+→ Returns the next 20 items
+\`\`\`
+
+**Pros:** no skipping/duplication on changing data, fast even at item #1,000,000.
+**Cons:** you can't "jump to page 50" — only forward (or sometimes backward).
+
+**Where you'll meet it:** Twitter/X, Stripe, GitHub, Slack — basically every modern, scalable API.
+
+---
+
+### 🔢 Total Count — A Tricky Trade-off
+
+Many APIs return:
+
+\`\`\`json
+{
+  "data": [ ... 20 items ... ],
+  "total": 12483,
+  "page": 3,
+  "per_page": 20
+}
+\`\`\`
+
+The \`total\` is convenient ("Page 3 of 625") but **expensive to compute** — the database has to count every row matching the filter. Some APIs deliberately omit it for performance.
+
+**As a tester:**
+- ✅ Verify \`total\` matches the actual count when filters are applied (not just unfiltered)
+- ✅ Verify \`total\` updates after creates and deletes
+- ✅ If the API uses cursor pagination without \`total\`, that's intentional — don't raise it as a bug
+
+---
+
+### 🔍 Filtering Patterns
+
+#### Single value
+
+\`\`\`
+GET /products?category=electronics
+GET /users?status=active
+\`\`\`
+
+#### Multiple values (OR)
+
+\`\`\`
+GET /products?category=electronics&category=appliances
+   or
+GET /products?category[]=electronics&category[]=appliances
+   or
+GET /products?category=electronics,appliances
+\`\`\`
+
+Three different syntaxes — each API picks one. **Always check the docs** for which style your API uses.
+
+#### Range filters
+
+\`\`\`
+GET /products?price_min=100&price_max=500
+GET /events?start_date=2026-01-01&end_date=2026-12-31
+\`\`\`
+
+#### Search / fuzzy match
+
+\`\`\`
+GET /products?q=laptop
+GET /users?name_like=priya
+\`\`\`
+
+#### Advanced filter languages (rarer)
+
+Some APIs accept a JSON filter expression:
+
+\`\`\`
+GET /products?filter={"price":{"$gte":100,"$lte":500},"category":"electronics"}
+\`\`\`
+
+This adds power but also complexity — and is a security review nightmare.
+
+---
+
+### 📊 Sorting
+
+#### Single field
+
+\`\`\`
+GET /products?sort=price          → ascending (default)
+GET /products?sort=-price         → descending (minus sign)
+GET /products?sort=price&order=desc
+\`\`\`
+
+#### Multi-field
+
+\`\`\`
+GET /products?sort=category,-price
+   → first by category ascending, then by price descending within each category
+\`\`\`
+
+**Common bug:** sorting works on numbers but not strings (or vice versa). Try sorting by \`name\` (string), \`price\` (number), and \`createdAt\` (date) — all should work.
+
+---
+
+### 🎯 The Combined Test — All Three at Once
+
+Real list endpoints support all three simultaneously:
+
+\`\`\`
+GET /products?
+  category=electronics&
+  price_min=1000&
+  sort=-price&
+  page=2&
+  per_page=20
+\`\`\`
+
+Translation: "Electronics over Rs.1,000, sorted by price descending, page 2 with 20 per page."
+
+---
+
+### 🧪 Tester's Checklist for List APIs
+
+#### Pagination
+- ✅ Page 1 returns the first N items
+- ✅ Last page returns the remaining items (may be < per_page)
+- ✅ Page beyond range returns empty array (not 404, not 500)
+- ✅ Negative page (\`?page=-1\`) returns 400
+- ✅ Huge page size (\`?per_page=10000\`) — does the server cap it or hand back 10,000 rows?
+- ✅ \`total\` matches the actual count
+- ✅ For cursor pagination: stale cursor returns a clean error, not 500
+
+#### Filtering
+- ✅ Each filter alone returns the expected subset
+- ✅ Multiple filters combine with AND (most APIs) — verify
+- ✅ Unknown filter (\`?status=banana\`) — server should return 400, not 500
+- ✅ Empty filter value (\`?status=\`) — predictable behaviour
+- ✅ SQL/NoSQL injection in filters (\`?status=' OR 1=1\`) — server must reject safely
+
+#### Sorting
+- ✅ Sort by every supported field, ascending and descending
+- ✅ Invalid sort field — 400, not 500
+- ✅ Multi-field sort respects the order specified
+- ✅ NULLs sort consistently (NULL FIRST or NULL LAST — but consistent)
+
+---
+
+### 🐛 Classic Bugs to Hunt
+
+- ❌ **Off-by-one**: page 1 starts at index 0 in the URL but item #2 in the response
+- ❌ **Inconsistent total**: filter changes the data but \`total\` keeps showing the unfiltered count
+- ❌ **Filter applied to display but not count**: you see 20 results but \`total\` says 12,000
+- ❌ **Sort+filter conflict**: sorting only works without filters, or vice versa
+- ❌ **No max limit**: \`?per_page=999999\` returns the entire dataset (DoS vector)
+- ❌ **Cursor leak**: cursors expose internal database IDs that should be hidden
+- ❌ **Sort on a non-indexed column** silently slow — feels broken on big datasets
+- ❌ **Default sort changes between releases** — clients break unexpectedly
+        `
+      },
+
+      {
         id: 'api-chaining',
         title: 'Intermediate: Request Chaining & Environment Variables',
         analogy: "Request chaining is like a relay race. Runner 1 (the login request) passes the baton (the auth token) to Runner 2 (get-profile), who passes the user ID to Runner 3 (update profile). Each leg of the race depends on what the previous runner handed over. Environment variables are the baton.",
@@ -11282,6 +11890,340 @@ If your error responses don't follow a consistent structure — log that as a bu
       },
 
       {
+        id: 'api-file-upload-download',
+        title: 'Intermediate: File Upload & Download',
+        analogy: "Sending JSON is like passing a postcard — short, simple, single piece. Uploading a file is like shipping a parcel — boxes, padding, weight limits, customs forms, fragile labels. Different rules apply, and a lot more can go wrong: wrong size, wrong type, missing label, broken in transit. Most APIs handle JSON well; uploads are where bugs hide.",
+        lessonMarkdown: `
+### 📦 Why Files Are a Different Beast
+
+*💡 Analogy: Imagine the postal service. Sending a JSON request is like a postcard — text on a small card. Uploading a file is like shipping a furniture box: it needs special packaging, weight checks, fragile stickers, customs forms, and the courier may refuse it for many reasons. Both go through the post office, but the rules are different.*
+
+JSON requests are small and structured. **File uploads are big, binary, and full of edge cases**: oversize files, sneaky extensions, malicious content, broken connections mid-upload, etc.
+
+A QA who skips file-upload testing skips a huge bug hotspot.
+
+---
+
+### 📋 Format 1: \`multipart/form-data\` (Classic Direct Upload)
+
+When an HTML \`<form>\` includes \`<input type="file">\`, the browser sends a multipart/form-data request. APIs accept the same shape.
+
+\`\`\`
+POST /upload HTTP/1.1
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryABC123
+
+------WebKitFormBoundaryABC123
+Content-Disposition: form-data; name="title"
+
+My profile picture
+------WebKitFormBoundaryABC123
+Content-Disposition: form-data; name="file"; filename="me.jpg"
+Content-Type: image/jpeg
+
+<binary bytes of the JPEG file>
+------WebKitFormBoundaryABC123--
+\`\`\`
+
+The \`boundary\` is a random string that separates parts. Each part has its own headers and body.
+
+**In Postman:** Body tab → form-data → select File from the dropdown → choose your file.
+
+**In cURL:**
+\`\`\`bash
+curl -X POST https://api.shop.com/upload \\
+  -F "title=My profile picture" \\
+  -F "file=@/Users/qa/me.jpg"
+\`\`\`
+
+The \`@\` tells cURL to read the file from disk.
+
+---
+
+### ☁️ Format 2: Pre-signed URL (Modern Cloud Pattern)
+
+For large files (videos, datasets), APIs increasingly use **pre-signed URLs**:
+
+\`\`\`
+1. Client → API:    POST /uploads/init { "filename": "movie.mp4", "size_mb": 250 }
+2. API → Client:    { "upload_url": "https://s3.amazonaws.com/bucket/abc?X-Amz-Signature=...", "expires_in": 600 }
+3. Client → S3:     PUT <upload_url>  (direct upload to S3, bypassing the API)
+4. Client → API:    POST /uploads/finalize { "upload_id": "abc" }
+\`\`\`
+
+**Why teams love this:** the API server never holds the big file — S3 (or GCS, Azure Blob) does the heavy lifting. Faster, cheaper, scales infinitely.
+
+**As a tester:** you now have to test the API endpoints AND the cloud storage upload AND the finalize step. Three places for bugs.
+
+---
+
+### 🔻 Downloads — \`Content-Type\` and \`Content-Disposition\`
+
+When the API returns a file, two headers matter most:
+
+\`\`\`
+HTTP/1.1 200 OK
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="invoice-2026-001.pdf"
+Content-Length: 245678
+\`\`\`
+
+| Header | Effect |
+|--------|--------|
+| \`Content-Type\` | Tells the browser what kind of file this is |
+| \`Content-Disposition: attachment\` | Browser downloads the file |
+| \`Content-Disposition: inline\` | Browser tries to show it (PDF in viewer, image in tab) |
+
+**Common bug:** \`Content-Type: text/html\` on a PDF — browser tries to render PDF bytes as HTML, user sees gibberish.
+
+---
+
+### 📡 Range Requests — Resumable Downloads
+
+For large files, clients can request just a chunk:
+
+\`\`\`
+GET /downloads/movie.mp4
+Range: bytes=0-999999
+\`\`\`
+
+\`\`\`
+HTTP/1.1 206 Partial Content
+Content-Range: bytes 0-999999/250000000
+Content-Length: 1000000
+\`\`\`
+
+This enables **resumable downloads** — if the connection drops at 30%, the client requests bytes from 30% onward, no re-download from zero.
+
+**As a tester:** request a Range, verify the response is **206 Partial Content** (not 200), check \`Content-Range\` header, and confirm the bytes are exactly the requested chunk.
+
+---
+
+### 🧪 Tester's Checklist for File Upload
+
+- ✅ **Happy path:** small valid file → 200/201 with the file's metadata
+- ✅ **Size limits:** upload right at the limit (\`max-1\`, \`max\`, \`max+1\`)
+- ✅ **MIME type validation:** upload a \`.exe\` renamed as \`.jpg\` — server should reject by content, not just extension
+- ✅ **Empty file:** zero-byte upload — accepted or 400?
+- ✅ **Filename injection:** filename with spaces, special chars, \`../etc/passwd\`
+- ✅ **Missing file part:** form-data without the file part → 400
+- ✅ **Concurrent upload of the same filename** — does it overwrite? Append? Reject?
+- ✅ **Connection drop mid-upload** — does the server cleanup partial data?
+- ✅ **Virus scan flow** — if the API claims to scan, upload an EICAR test virus and verify rejection
+- ✅ **Auth on upload endpoint** — unauthenticated upload must be rejected
+
+### 🧪 Tester's Checklist for File Download
+
+- ✅ **Correct \`Content-Type\`** for the file format
+- ✅ **\`Content-Disposition: attachment\`** when expected (forces download)
+- ✅ **\`Content-Length\`** matches actual bytes returned
+- ✅ **Hash check** — re-download the same file twice, hashes match
+- ✅ **Range request** returns 206 with correct \`Content-Range\`
+- ✅ **Authorization required** — unauthenticated download blocked for private files
+- ✅ **404 for non-existent file** — never 500
+
+---
+
+### 🐛 Classic Bugs in File Endpoints
+
+- ❌ **No size limit** — uploading a 10 GB file fills the disk (DoS)
+- ❌ **MIME type sniffing bypass** — server checks extension, not content
+- ❌ **Path traversal in filename** — \`../../etc/passwd\` reads system files
+- ❌ **Stored filename collision** — second upload silently overwrites first
+- ❌ **Wrong \`Content-Type\` on download** — browser misrenders
+- ❌ **Filename in download contains user input unescaped** — header injection
+- ❌ **Large download not streamed** — server holds the whole file in RAM, crashes
+- ❌ **Chunked upload doesn't resume** — connection drop forces full restart
+- ❌ **Public URLs on private files** — leaked links accessed by attackers
+- ❌ **Pre-signed URL too long-lived** — expires in 7 days when 5 minutes was the spec
+
+---
+
+### 💡 The "Tiny GIF" Test Pattern
+
+Keep one tiny known-good file (e.g., a 1-pixel GIF, 35 bytes) in your test data folder. It uploads fast, downloads fast, has predictable hashes. Use it for happy-path smoke tests in CI. Save the big files for nightly/staging tests.
+        `
+      },
+
+      {
+        id: 'api-webhooks-callbacks',
+        title: 'Intermediate: Webhooks & Callbacks',
+        analogy: "Polling an API is like calling your delivery guy every minute asking 'are you here yet?' — annoying for everyone. A webhook is the delivery guy ringing YOUR doorbell when they arrive. Your app gives the API a 'doorbell URL,' and the API rings it when something interesting happens. Same information, far less effort.",
+        lessonMarkdown: `
+### 🔔 Webhooks vs Polling
+
+*💡 Analogy: Imagine waiting for a parcel. Option A: call the courier every minute — "Is it here? Is it here? Is it here?" That's polling. Option B: the courier rings your doorbell when they arrive. That's a webhook. One wastes everyone's time; the other is efficient and instant.*
+
+| Pattern | How it works | Pros / Cons |
+|---------|-------------|-------------|
+| **Polling** | Client repeatedly asks the API "anything new?" | Simple to build, but wastes calls and is always slightly delayed |
+| **Webhooks** | Server pushes events to a URL the client provides | Real-time, efficient, but requires you to host an HTTP endpoint |
+
+**When you'll see webhooks in QA work:**
+- Stripe sending payment confirmations
+- GitHub notifying about pushes
+- Slack receiving incoming messages
+- Twilio reporting SMS delivery
+- Your own services notifying each other in a microservice architecture
+
+---
+
+### 🔄 The Webhook Lifecycle
+
+\`\`\`
+1. Client subscribes:  POST /webhooks { url: "https://my-app.com/hooks/payments", events: ["payment.success"] }
+2. Event happens:      Customer pays
+3. API sends webhook:  POST https://my-app.com/hooks/payments  { event: "payment.success", ... }
+4. Client acks:        Returns 2xx
+5. (If ack fails:      API retries with backoff)
+\`\`\`
+
+**The contract:** the API expects your endpoint to return **any 2xx within ~10 seconds**. If it returns 4xx/5xx or times out, the API will **retry** — usually with exponential backoff (5 minutes, 30 minutes, 2 hours, 6 hours...).
+
+---
+
+### 🔏 Signature Validation — The Most Important Part
+
+A webhook URL is, by design, **publicly reachable**. Anyone could send a fake POST to your handler.
+
+The protection: **HMAC signatures**. The webhook provider signs the body with a shared secret; you verify the signature before trusting the request.
+
+**Stripe's pattern:**
+
+\`\`\`
+POST /hooks/payments HTTP/1.1
+Stripe-Signature: t=1716552000,v1=abc123...
+Content-Type: application/json
+
+{ "event": "payment.success", "amount": 9999 }
+\`\`\`
+
+**Your handler verifies:**
+
+\`\`\`javascript
+const expected = hmacSHA256(\`\${timestamp}.\${rawBody}\`, secret);
+if (expected !== signatureHeader.v1) {
+  return res.status(401).send("Invalid signature");
+}
+// Also check timestamp is recent (e.g., within 5 minutes)
+\`\`\`
+
+**As a tester, you must verify:**
+- ✅ A request with **wrong signature** is rejected (401)
+- ✅ A request with **no signature** is rejected
+- ✅ A request signed correctly but with a **stale timestamp** (older than 5 mins) is rejected — replay attack defence
+- ✅ A request **signed with a previous secret** (after rotation) — confirm rotation behaviour
+- ✅ The handler doesn't process duplicate events (see idempotency below)
+
+---
+
+### 🔁 Retries — They Will Happen
+
+Webhook providers retry aggressively. Your handler will receive the **same event multiple times** if:
+- It's the first delivery and the network blipped
+- Your server returned 500 once and is now fine
+- A retry crossed paths with the original
+
+**The defence: idempotency.** Every webhook event has a unique ID:
+
+\`\`\`json
+{
+  "id": "evt_abc123",
+  "type": "payment.success",
+  "data": { ... }
+}
+\`\`\`
+
+Your handler stores processed event IDs (e.g., in a database) and ignores duplicates:
+
+\`\`\`javascript
+if (await alreadyProcessed(event.id)) return res.status(200).send("ok");
+await processEvent(event);
+await markProcessed(event.id);
+\`\`\`
+
+**As a tester:**
+- ✅ Send the same event twice → handler must NOT process it twice (e.g., wallet credited only once)
+- ✅ Send with the same event ID but different body — handler must reject (potential tampering)
+
+---
+
+### 💀 Dead-Letter Queue (DLQ) — When Retries Give Up
+
+After N failed retries (often 6-10), the webhook provider stops trying and moves the event to a **dead-letter queue** — a list of permanently failed deliveries.
+
+**As a tester:**
+- ✅ Verify what happens when your handler is down for hours — does the API give up gracefully?
+- ✅ Confirm DLQ items are visible in admin UI / logs
+- ✅ Confirm there's a manual replay mechanism for DLQ items
+
+---
+
+### 🛠️ Local Testing — How to Receive Webhooks On Your Laptop
+
+Webhooks need a **public URL** — the provider has to reach your endpoint. Your laptop's \`localhost\` won't work.
+
+**Solution 1: ngrok** (most common)
+
+\`\`\`bash
+ngrok http 3000
+→ Forwarding: https://abc123.ngrok.io → http://localhost:3000
+\`\`\`
+
+Now use \`https://abc123.ngrok.io/hooks/payments\` as the webhook URL during testing. Every POST hits ngrok which forwards to your local server.
+
+**Solution 2: webhook.site**
+
+A free service that gives you a unique URL to receive webhooks. Open the page, watch requests arrive in real-time. Good for sniffing the exact payload shape — no code needed.
+
+**Solution 3: Postman Mock Server**
+
+Postman lets you create a mock URL. Configure the webhook source to point at the mock URL. Postman shows every request received.
+
+---
+
+### 🧪 Webhook Test Scenarios
+
+| Scenario | What to verify |
+|----------|----------------|
+| Happy path | Correct event triggers POST to your URL within 10s; valid signature; you return 200 |
+| Slow handler | Your handler takes 30s — does the provider time out and retry? |
+| Handler errors | Return 500 — does the provider retry with backoff? |
+| Duplicate event | Same event ID arrives twice — handled idempotently |
+| Tampered payload | Edit one byte → signature invalid → reject |
+| Replay attack | Resend a 1-hour-old request → reject (stale timestamp) |
+| Wrong content-type | Webhook with \`Content-Type: text/plain\` — handler rejects |
+| Subscribe / unsubscribe | After unsubscribing, no more events should arrive |
+| Event filter | Subscribe to \`payment.success\` only — \`payment.failed\` should NOT trigger |
+
+---
+
+### 🐛 Common Webhook Bugs
+
+- ❌ **No signature validation** — anyone on the internet can post fake events (huge security hole)
+- ❌ **Returning 500 instead of 200** for already-processed events — triggers retry loops
+- ❌ **No idempotency** — wallet credited twice when retry crosses original
+- ❌ **Synchronous heavy work in handler** — handler exceeds 10s, gets retried
+- ❌ **Logging the full body** including secrets
+- ❌ **Replay attacks accepted** — no timestamp check
+- ❌ **No DLQ** — failed events vanish silently
+- ❌ **Subscriber-only events leak across tenants** — Customer A's webhook fires for Customer B's event
+
+---
+
+### 💡 The Async Test Pattern
+
+Webhook testing is async — the test sends a request, then **waits** for the webhook to arrive. Pattern:
+
+1. Test sends a request that should trigger a webhook
+2. Test polls a known location (database, log, mock URL) for up to N seconds
+3. Once the webhook arrives, assert on its contents
+4. Fail the test if no webhook arrives in time
+
+Don't hard-code \`sleep(5)\` — use a polling loop with a deadline, otherwise CI gets flaky on slow days.
+        `
+      },
+
+      {
         id: 'api-mock-servers',
         title: 'Intermediate: Mock Servers & API Stubs',
         analogy: "A mock server is like a stunt double on a movie set. The real actor (the actual API) isn't available yet — maybe still being written. The stunt double (mock server) looks and behaves exactly like the real actor for all the scenes you need to rehearse right now, without the real actor having to show up.",
@@ -11397,6 +12339,144 @@ WireMock supports request matching, response templating, and fault injection.
 | False confidence | All mock tests pass, real API has critical bug |
 
 **Golden rule:** Mocks are for early development and isolated unit tests. Always run tests against the real API before release.
+
+---
+
+### 🛠️ Beyond Postman — The Major Mocking Tools
+
+Postman Mock Server is great for quick mocks, but real teams reach for purpose-built tools for serious mocking work. The big three:
+
+#### A. WireMock — the heavyweight champion
+
+Java-based, runs as a server or library. The de facto standard in Java/Kotlin shops, Spring Boot integration tests, and big enterprises.
+
+\`\`\`json
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/users/42"
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": { "id": 42, "name": "Priya" }
+  }
+}
+\`\`\`
+
+**Strengths:** record-and-replay (capture real traffic, replay as a mock), state machines (different responses based on prior calls), priority rules, latency simulation.
+
+**Best for:** large enterprise systems, contract-driven development, recording prod traffic for replay.
+
+#### B. Mockoon — friendly desktop app
+
+Free, open-source, GUI-driven. Drop-in replacement for Postman Mock Server when you want a real local server you can run from a terminal or Docker.
+
+**Strengths:** zero-setup GUI, templating (Faker.js for fake data), responses with rules (return 200 for some inputs, 404 for others), CLI for CI runs.
+
+**Best for:** small teams, frontend developers who need a fake API in 5 minutes, demos.
+
+#### C. MSW (Mock Service Worker) — for the browser
+
+JavaScript-based, intercepts requests at the **browser network layer** using Service Workers. The frontend testing community loves this.
+
+\`\`\`javascript
+import { rest } from 'msw';
+
+const handlers = [
+  rest.get('/users/:id', (req, res, ctx) => {
+    return res(
+      ctx.status(200),
+      ctx.json({ id: req.params.id, name: 'Priya' })
+    );
+  }),
+];
+\`\`\`
+
+**Strengths:** runs **inside** the app's runtime — no separate server. Same handlers work in browser tests AND Node.js (Jest, Vitest, Playwright tests).
+
+**Best for:** frontend test suites, Storybook, React/Vue/Svelte apps.
+
+#### Quick chooser
+
+| You're testing... | Reach for |
+|-------------------|-----------|
+| Java/Kotlin backend | WireMock |
+| Need a quick GUI mock for the team | Mockoon |
+| Frontend (React/Vue/etc.) tests | MSW |
+| Already in Postman, simple stub | Postman Mock Server |
+
+---
+
+### 🎯 Stubbing Strategies — Beyond "Always Return X"
+
+#### Request matching beyond the URL
+
+Real APIs respond differently based on inputs. Good mocks can match on:
+
+\`\`\`
+✅ Method + URL                  → most basic
+✅ Headers                       → auth-token-based responses
+✅ Query parameters              → ?status=active vs ?status=banned
+✅ Request body content          → match a specific JSON shape
+✅ Cookie values                 → simulate session-based logic
+\`\`\`
+
+#### Dynamic responses
+
+Mocks can return data computed at request time:
+
+\`\`\`
+{
+  "id": "{{ randomUUID }}",
+  "createdAt": "{{ now }}",
+  "echo": "{{ request.body.message }}"
+}
+\`\`\`
+
+**Why this matters:** static mocks return the same data forever; dynamic mocks let one mock support many test scenarios.
+
+#### Latency / failure injection
+
+\`\`\`
+Stub: GET /payments/{id}
+  → return 200 after 5 second delay
+  → return 503 on every 5th request
+  → return 429 if X-User-Id header is "stress-test"
+\`\`\`
+
+This is gold for testing **resilience**: how does the client behave when the API is slow, fails intermittently, or is overloaded? You can't test this against the real API without crashing it.
+
+#### Stateful mocks
+
+Some mocks remember prior calls:
+
+\`\`\`
+1st call to POST /orders          → 201, returns id=1
+2nd call to POST /orders          → 201, returns id=2
+GET /orders                       → returns [id=1, id=2]
+DELETE /orders/1                  → 204
+GET /orders                       → returns [id=2]
+\`\`\`
+
+**Use case:** end-to-end test flows where mock data evolves like a real database.
+
+---
+
+### 🤝 Contract-Driven Mocks — Mocks That Stay Honest
+
+The biggest mock-server problem: **drift**. The real API changes; the mock doesn't. Tests pass against the mock, fail against production.
+
+**The fix: contract-driven mocks.**
+
+Generate the mock **directly from the OpenAPI / Swagger spec** that the real API publishes. Tools like:
+- **Prism** (from Stoplight) — mock from OpenAPI
+- **WireMock OpenAPI extension**
+- **Postman** — import OpenAPI → instant mock
+
+Now whenever the real API publishes a new spec version, regenerate the mock. The mock can never drift more than one version behind, by construction.
+
+This converts mocking from "manual maintenance burden" to "free, always-up-to-date."
         `
       },
 
