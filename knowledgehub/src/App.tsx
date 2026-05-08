@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { BadgeToast } from './components/BadgeToast';
 import { RankLadderModal } from './components/RankLadderModal';
 import { RankUpWatcher } from './components/RankUpWatcher';
+import Footer from './components/Footer';
 import { useQuestStore } from './store/useQuestStore';
 import { useAuthStore } from './store/useAuthStore';
 import { ZONES, ZONE_TIERS, getLevel, getTotalModuleCount } from './data/zones';
@@ -810,14 +811,19 @@ export default function App() {
       <SyncToCloud />
       <BadgeToast badgesMap={badgesMap} />
       <RankUpWatcher />
-      <Suspense fallback={<AuthSpinner />}>
-        <Routes>
-          <Route path="/login" element={<LoginRoute />} />
-          <Route path="/" element={<ProtectedRoute><HubMap /></ProtectedRoute>} />
-          <Route path="/zone/:id" element={<ProtectedRoute><ZoneView /></ProtectedRoute>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+      <div className="min-h-screen flex flex-col">
+        <div className="flex-1">
+          <Suspense fallback={<AuthSpinner />}>
+            <Routes>
+              <Route path="/login" element={<LoginRoute />} />
+              <Route path="/" element={<ProtectedRoute><HubMap /></ProtectedRoute>} />
+              <Route path="/zone/:id" element={<ProtectedRoute><ZoneView /></ProtectedRoute>} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </div>
+        <Footer />
+      </div>
     </Router>
   );
 }
