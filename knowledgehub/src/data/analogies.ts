@@ -7447,7 +7447,7 @@ SELECT
 FROM orders;
 \`\`\`
 
-⚠️ LAST_VALUE needs `ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING` — without it, the default frame only looks up to the current row, not the whole partition.
+⚠️ LAST_VALUE needs \`ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING\` — without it, the default frame only looks up to the current row, not the whole partition.
 
 ---
 
@@ -7871,7 +7871,7 @@ WHERE src.id IS NULL; -- in target but not in source (phantom records)
 
 *💡 Analogy: An ANTI JOIN is the "no-show list" at an event. You have a guest list (expected) and an attendance sheet (actual). An ANTI JOIN gives you everyone on the guest list who didn't show up — the gap between what should exist and what does.*
 
-The ANTI JOIN pattern is: `LEFT JOIN + WHERE right_side IS NULL`
+The ANTI JOIN pattern is: \`LEFT JOIN + WHERE right_side IS NULL\`
 
 \`\`\`sql
 -- Users who have NEVER placed an order (classic ANTI JOIN)
@@ -7895,7 +7895,7 @@ LEFT JOIN order_items oi ON p.id = oi.product_id
 WHERE oi.id IS NULL;
 \`\`\`
 
-ANTI JOIN via LEFT JOIN + WHERE IS NULL is preferred over `NOT IN` for large tables — NOT IN with NULLs in the subquery returns no rows, which is a common trap.
+ANTI JOIN via LEFT JOIN + WHERE IS NULL is preferred over \`NOT IN\` for large tables — NOT IN with NULLs in the subquery returns no rows, which is a common trap.
 
 ---
 
