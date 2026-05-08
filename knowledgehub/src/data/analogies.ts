@@ -5733,6 +5733,60 @@ WHERE u.id = 42;
 
 ---
 
+### 6. CROSS JOIN — Every Possible Combination
+
+*💡 Analogy: CROSS JOIN is the round-robin tournament scheduler. If you have 3 teams and 4 venues, CROSS JOIN gives you every team–venue pairing: 3 × 4 = 12 rows. No conditions, no matches — just every combination.*
+
+\`\`\`sql
+-- 3 sizes × 4 colours = 12 product variant combinations
+SELECT s.size_name, c.colour_name
+FROM sizes s
+CROSS JOIN colours c;
+-- Returns: Small/Red, Small/Blue, Small/Green, Small/Black,
+--          Medium/Red, ... Large/Black — 12 rows total
+
+-- Generate a full test matrix: every plan × every payment method
+SELECT p.plan_name, pm.method_name
+FROM plans p
+CROSS JOIN payment_methods pm;
+-- If 3 plans × 5 payment methods = 15 test cases to cover ✅
+\`\`\`
+
+⚠️ Use CROSS JOIN carefully — 1,000 rows × 1,000 rows = 1,000,000 result rows. Always LIMIT or add a WHERE clause for large tables.
+
+---
+
+### 7. SELF JOIN — A Table Joining Itself
+
+*💡 Analogy: A SELF JOIN is a family tree lookup. The same employees table contains both the worker and their manager (who is also an employee). You join the table to itself using two different aliases — like asking the same actor to play two roles in one scene.*
+
+\`\`\`sql
+-- employees: id | name | manager_id (NULL for the top of the org)
+SELECT
+  e.name  AS employee,
+  m.name  AS manager
+FROM employees e
+LEFT JOIN employees m ON e.manager_id = m.id
+ORDER BY m.name;
+
+-- | employee | manager  |
+-- |----------|----------|
+-- | Priya    | Rohan    |
+-- | Sneha    | Rohan    |
+-- | Rohan    | NULL     | ← top of hierarchy
+\`\`\`
+
+\`\`\`sql
+-- Find duplicate users (same email, different ids) — a data integrity check
+SELECT a.id AS id_1, b.id AS id_2, a.email
+FROM users a
+INNER JOIN users b ON a.email = b.email
+  AND a.id < b.id;  -- prevents showing (1,2) AND (2,1) as separate rows
+-- Any rows here = duplicate accounts — a data bug that needs a bug report
+\`\`\`
+
+---
+
 ### 🧪 QA Validation Queries for JOINs
 \`\`\`sql
 -- 1. Orphaned orders (user_id references a deleted user)
@@ -5745,6 +5799,10 @@ SELECT email, COUNT(*) FROM users GROUP BY email HAVING COUNT(*) > 1;
 SELECT o.id FROM orders o
 LEFT JOIN payments p ON o.id = p.order_id
 WHERE p.id IS NULL;
+
+-- 4. Generate full test matrix for checkout (CROSS JOIN)
+SELECT plan_name, payment_method
+FROM plans CROSS JOIN payment_methods;
 \`\`\`
         `
       },
@@ -5850,6 +5908,58 @@ GROUP BY category;
 
 ---
 
+### 6. GROUP BY Multiple Columns
+
+*💡 Analogy: Single-column GROUP BY sorts laundry into piles by colour. Multi-column GROUP BY sorts by colour AND size at the same time — Red/Small, Red/Large, Blue/Small are three separate piles. Each unique combination of all the GROUP BY columns forms its own group.*
+
+\`\`\`sql
+-- Group by city AND role — each city+role combo is one group
+SELECT city, role, COUNT(*) AS user_count
+FROM users
+GROUP BY city, role
+ORDER BY city, role;
+
+-- | city      | role  | user_count |
+-- |-----------|-------|------------|
+-- | Bangalore | admin | 3          |
+-- | Bangalore | user  | 47         |
+-- | Mumbai    | admin | 2          |
+-- | Mumbai    | user  | 89         |
+\`\`\`
+
+\`\`\`sql
+-- Monthly revenue breakdown: group by year AND month
+SELECT
+  YEAR(created_at)  AS yr,
+  MONTH(created_at) AS mo,
+  COUNT(*)          AS orders,
+  SUM(amount)       AS revenue
+FROM orders
+GROUP BY YEAR(created_at), MONTH(created_at)
+ORDER BY yr, mo;
+
+-- Product + status breakdown — spot which products get cancelled most
+SELECT product_id, status, COUNT(*) AS count
+FROM order_items
+GROUP BY product_id, status
+HAVING COUNT(*) > 10
+ORDER BY product_id, status;
+\`\`\`
+
+\`\`\`sql
+-- QA: Find city+plan combos with suspiciously low average order value
+SELECT city, plan_type, AVG(amount) AS avg_value, COUNT(*) AS orders
+FROM orders o
+JOIN users u ON o.user_id = u.id
+WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+GROUP BY city, plan_type
+HAVING AVG(amount) < 300 AND COUNT(*) > 5
+ORDER BY avg_value ASC;
+-- Low average + high volume in a specific city/plan = possible pricing bug
+\`\`\`
+
+---
+
 ### 🧪 QA Validation Queries Using GROUP BY
 \`\`\`sql
 -- 1. Find duplicate usernames (should be 0 rows in a healthy DB)
@@ -5868,6 +5978,12 @@ SELECT order_id, COUNT(*) AS payment_count
 FROM payments
 GROUP BY order_id
 HAVING COUNT(*) <> 1;
+
+-- 4. Status breakdown per user (multi-column GROUP BY)
+SELECT user_id, status, COUNT(*) AS cnt
+FROM orders
+GROUP BY user_id, status
+ORDER BY user_id;
 \`\`\`
         `
       },
@@ -5972,6 +6088,54 @@ ORDER BY total_revenue DESC;
 
 ---
 
+### 6. ANY and ALL Operators
+
+*💡 Analogy: ANY is the "at least one" gate — "is this score higher than ANY score from last week?" passes if it beats even the lowest one. ALL is the "must beat everyone" gate — "is this score higher than ALL scores from last year?" must beat every single one without exception.*
+
+\`\`\`sql
+-- ANY: returns rows where the value is greater than at least ONE value in the subquery
+SELECT name, salary FROM employees
+WHERE salary > ANY (
+  SELECT salary FROM employees WHERE department = 'Junior'
+);
+-- Returns everyone who earns more than the LOWEST junior salary
+-- (= ANY is equivalent to IN)
+
+-- ALL: returns rows where the value is greater than EVERY value in the subquery
+SELECT name, salary FROM employees
+WHERE salary > ALL (
+  SELECT salary FROM employees WHERE department = 'Senior'
+);
+-- Returns only those who earn more than the HIGHEST senior salary
+-- (very strict filter — often returns few or no rows)
+\`\`\`
+
+\`\`\`sql
+-- Practical equivalences:
+-- = ANY is the same as IN
+WHERE id = ANY (SELECT user_id FROM orders)
+-- same as:
+WHERE id IN (SELECT user_id FROM orders)
+
+-- != ALL is the same as NOT IN (but safer with NULLs — use NOT EXISTS for NULL safety)
+WHERE id != ALL (SELECT user_id FROM orders WHERE user_id IS NOT NULL)
+-- same as:
+WHERE id NOT IN (SELECT user_id FROM orders WHERE user_id IS NOT NULL)
+\`\`\`
+
+\`\`\`sql
+-- QA Use Case: Find orders with an amount higher than ANY refunded order
+-- (these completed orders had a refund issued for a smaller amount — a QA edge case)
+SELECT id, amount, status
+FROM orders
+WHERE status = 'completed'
+  AND amount > ANY (
+    SELECT amount FROM refunds WHERE reason = 'customer_complaint'
+  );
+\`\`\`
+
+---
+
 ### 🧪 QA Validation Queries Using Subqueries
 \`\`\`sql
 -- 1. Find orders whose status was never updated after creation
@@ -5993,6 +6157,11 @@ SELECT order_id, COUNT(*) AS charge_count
 FROM payments
 GROUP BY order_id
 HAVING COUNT(*) > 1;
+
+-- 4. ANY: find users who placed an order larger than any cancelled order
+SELECT DISTINCT user_id FROM orders
+WHERE status = 'completed'
+  AND amount > ANY (SELECT amount FROM orders WHERE status = 'cancelled');
 \`\`\`
         `
       },
@@ -6102,6 +6271,70 @@ REFRESH MATERIALIZED VIEW monthly_revenue;
 
 ---
 
+### 6. Updatable Views — When You Can Write Through Them
+
+*💡 Analogy: A transparent sticky note on a window lets you write on the note and have it appear as if written on the glass behind it — the update passes through. But a printed photograph of the view? You can't write on the photo and expect the real view to change.*
+
+A view is **updatable** (allows INSERT/UPDATE/DELETE) only when:
+- It references exactly **one** base table
+- It has **no** aggregate functions (SUM, COUNT, AVG, etc.)
+- It has **no** DISTINCT, GROUP BY, HAVING, UNION, or subqueries
+
+\`\`\`sql
+-- ✅ Updatable view — single table, no aggregates
+CREATE VIEW active_users AS
+SELECT id, name, email FROM users WHERE is_active = 1;
+
+UPDATE active_users SET name = 'Priya S.' WHERE id = 42;
+-- Works! The underlying users table row is updated.
+
+INSERT INTO active_users (name, email) VALUES ('Ravi', 'ravi@test.com');
+-- Works too — inserts into the users table.
+
+-- ❌ NOT updatable — has GROUP BY and COUNT
+CREATE VIEW user_order_counts AS
+SELECT user_id, COUNT(*) AS order_count FROM orders GROUP BY user_id;
+
+UPDATE user_order_counts SET order_count = 5 WHERE user_id = 1;
+-- ERROR: The target table 'user_order_counts' of the UPDATE is not insertable-into
+\`\`\`
+
+---
+
+### 7. When NOT to Use Views
+
+*💡 Analogy: A View is a great reading window. But a view that is a summary of a summary of another view is like reading a transcript of a recording of a photocopy of the original document — the database unwinds every layer every single time you query it.*
+
+\`\`\`sql
+-- ❌ Avoid: views calling other views (nested views)
+CREATE VIEW order_totals AS
+  SELECT user_id, SUM(amount) AS total FROM orders GROUP BY user_id;
+CREATE VIEW high_value_customers AS
+  SELECT * FROM order_totals WHERE total > 100000;
+-- Every query on high_value_customers unwinds two SQL layers — hard to optimise
+
+-- ❌ Avoid: using a complex view in a WHERE subquery on large tables
+SELECT * FROM orders WHERE user_id IN (SELECT user_id FROM high_value_customers);
+-- The view re-executes its full GROUP BY for every evaluation
+
+-- ✅ Better: materialise when you need repeated fast access
+CREATE TABLE high_value_customer_cache AS
+  SELECT user_id FROM order_totals WHERE total > 100000;
+-- Refresh after each batch process or on a schedule
+\`\`\`
+
+**Reach for a View when:**
+- Multiple people repeat the same complex JOIN and you want one source of truth
+- You want to expose data without revealing sensitive columns (passwords, PII)
+- The data is read-only and freshness matters (live feed is fine)
+
+**Avoid a View when:**
+- Performance is critical — consider a materialized view or summary table
+- The view is nested inside other views (debug and optimise nightmares)
+- The underlying query changes frequently (every change needs CREATE OR REPLACE)
+
+---
+
 ### 🧪 QA Validation Queries Using Views
 \`\`\`sql
 -- Create a reusable QA validation view
@@ -6117,7 +6350,7 @@ FROM orders o
 LEFT JOIN users u ON o.user_id = u.id
 LEFT JOIN payments p ON o.id = p.order_id;
 
--- Now run quick checks
+-- Now run quick checks against the view
 SELECT * FROM qa_order_health WHERE payment_id IS NULL;
 SELECT * FROM qa_order_health WHERE status = 'delivered' AND payment_status != 'completed';
 SELECT * FROM qa_order_health WHERE amount <= 0;
@@ -6215,6 +6448,46 @@ CREATE INDEX idx_orders_status_date ON orders(status, created_at);
 
 ---
 
+### 5. Composite Index Column Order — The Leftmost Rule
+
+*💡 Analogy: A phone book is sorted by (LastName, FirstName). You can look up "Sharma, Priya" instantly. You can find everyone named "Sharma" instantly. But you CANNOT look up everyone named "Priya" efficiently — you'd have to scan every last name. The first column is the fast lane; skipping it defeats the index.*
+
+\`\`\`sql
+-- Composite index on (status, created_at)
+CREATE INDEX idx_orders_status_date ON orders(status, created_at);
+
+-- ✅ Uses the index — starts with the leftmost column
+SELECT * FROM orders WHERE status = 'pending';
+SELECT * FROM orders WHERE status = 'pending' AND created_at > '2025-01-01';
+
+-- ❌ Does NOT use the composite index — skips the leftmost column (status)
+SELECT * FROM orders WHERE created_at > '2025-01-01';
+-- MySQL falls back to a full table scan for this query
+\`\`\`
+
+**Column order strategy:**
+1. Put **equality** columns first (\`=\` comparisons), range columns (\`>\`, \`BETWEEN\`) last
+2. Put the **most selective** column first (fewest duplicates = most useful filter)
+3. Columns used in **ORDER BY** can be added at the end to avoid a sort step
+
+\`\`\`sql
+-- For a query: WHERE user_id = ? AND status = ? ORDER BY created_at DESC
+-- Ideal composite index:
+CREATE INDEX idx_orders_user_status_date ON orders(user_id, status, created_at);
+-- user_id: equality + high cardinality → first
+-- status: equality → second
+-- created_at: range/order → last
+
+-- Verify EXPLAIN shows the index being used
+EXPLAIN SELECT * FROM orders
+WHERE user_id = 42 AND status = 'pending'
+ORDER BY created_at DESC;
+-- key should show 'idx_orders_user_status_date' ✅
+-- Extra should NOT say 'Using filesort' ✅
+\`\`\`
+
+---
+
 ### 🧪 QA Index Validation Queries
 \`\`\`sql
 -- 1. Check which indexes exist on a table (MySQL)
@@ -6223,13 +6496,19 @@ SHOW INDEX FROM orders;
 -- 2. Find slow queries (check if an index is missing)
 EXPLAIN SELECT * FROM orders WHERE status = 'pending' AND created_at > NOW() - INTERVAL 7 DAY;
 
--- 3. After adding an index, verify query uses it
+-- 3. After adding an index, verify the query uses it
 EXPLAIN SELECT * FROM orders WHERE user_id = 42;
--- Look for key = 'idx_orders_user' in the result ✅
+-- Look for key = 'idx_orders_user' ✅ and type = 'ref' (not 'ALL')
 
--- 4. Count rows to estimate if an index is worth it
+-- 4. Count cardinality to judge if an index is worth it
 SELECT COUNT(DISTINCT status) AS cardinality FROM orders;
--- If cardinality is very low (like 3), index may not help much
+-- If cardinality = 3, a regular index barely helps (few unique values)
+-- If cardinality = 500000, an index is extremely valuable
+
+-- 5. Verify composite index uses leftmost column first
+EXPLAIN SELECT * FROM orders WHERE status = 'pending' AND user_id = 42;
+EXPLAIN SELECT * FROM orders WHERE user_id = 42;  -- should still use index
+EXPLAIN SELECT * FROM orders WHERE status = 'pending';  -- check if this still uses it
 \`\`\`
         `
       },
@@ -6648,6 +6927,391 @@ WHERE old_value IS NULL AND new_value IS NOT NULL
         `
       },
 
+      {
+        id: 'sql-delete-truncate-drop',
+        title: 'Intermediate: DELETE, TRUNCATE & DROP',
+        analogy: "DELETE is a scalpel — precise, targeted, and reversible inside a transaction. TRUNCATE is a pressure washer — it blasts every row instantly with no undo option. DROP is a demolition crew — the table, its data, its structure, and all its constraints are gone permanently. As a QA, picking the wrong tool mid-test can corrupt your entire environment for hours.",
+        lessonMarkdown: `
+## DELETE, TRUNCATE & DROP — The Three Ways to Remove Data
+
+Every QA needs to clean up after tests. But there are three very different commands for removing data — and choosing the wrong one is one of the most dangerous mistakes in database work.
+
+---
+
+### 1. The Difference at a Glance
+
+*💡 Analogy: Imagine a whiteboard full of notes. DELETE erases specific words with precision. TRUNCATE wipes the whole board in one stroke. DROP smashes the board itself.*
+
+| Feature | DELETE | TRUNCATE | DROP |
+|---------|--------|----------|------|
+| Removes rows | ✅ specific or all | ✅ all rows | ✅ all rows + structure |
+| Removes table structure | ❌ | ❌ | ✅ |
+| WHERE clause allowed | ✅ | ❌ | ❌ |
+| Rollback possible | ✅ inside transaction | ❌ in MySQL | ❌ |
+| Fires DELETE triggers | ✅ | ❌ | ❌ |
+| Resets AUTO_INCREMENT | ❌ | ✅ | N/A |
+| Speed on large tables | Slower (row-by-row) | Very fast | Instant |
+
+---
+
+### 2. DELETE — Surgical, Reversible Removal
+
+*💡 Analogy: DELETE is a surgeon removing specific tumours. It reads each row, checks the condition, removes matching ones, logs every deletion, and can be fully reversed if something goes wrong during the operation.*
+
+\`\`\`sql
+-- Delete a specific row
+DELETE FROM users WHERE id = 42;
+
+-- Delete all test accounts created today
+DELETE FROM users
+WHERE email LIKE '%@test.%'
+  AND created_at >= CURDATE();
+
+-- Delete with a JOIN (remove orders for soft-deleted users)
+DELETE orders FROM orders
+INNER JOIN users ON orders.user_id = users.id
+WHERE users.is_deleted = 1;
+\`\`\`
+
+\`\`\`sql
+-- Safe DELETE inside a transaction — the QA way
+BEGIN;
+
+DELETE FROM test_orders WHERE created_at < '2024-01-01';
+
+SELECT ROW_COUNT() AS rows_deleted;  -- check how many rows were removed
+-- If the count looks right:
+COMMIT;
+-- If something looks wrong:
+ROLLBACK;  -- all deleted rows come back!
+\`\`\`
+
+\`ROW_COUNT()\` after a DELETE tells you exactly how many rows were removed — critical for verifying your cleanup query did what you expected.
+
+---
+
+### 3. TRUNCATE — Fast Full Reset
+
+*💡 Analogy: TRUNCATE is like flipping a "Factory Reset" button on a device. Everything inside is instantly wiped, the counter resets to zero, and the device (table) is ready for fresh use. There's no "undo" once you press it.*
+
+\`\`\`sql
+-- Wipe ALL rows from a staging table (no WHERE clause possible)
+TRUNCATE TABLE test_orders;
+
+-- Much faster than DELETE for large tables:
+-- DELETE scans row-by-row and logs each deletion
+-- TRUNCATE deallocates the data pages directly — near-instant
+
+-- Verify it worked
+SELECT COUNT(*) FROM test_orders;  -- should return 0
+\`\`\`
+
+**Critical differences from DELETE:**
+
+\`\`\`sql
+-- TRUNCATE resets AUTO_INCREMENT counter to 1
+INSERT INTO products (name) VALUES ('Widget');  -- id = 5001
+TRUNCATE TABLE products;
+INSERT INTO products (name) VALUES ('Fresh Start');  -- id = 1 ← reset!
+
+-- DELETE does NOT reset the counter
+DELETE FROM products;
+INSERT INTO products (name) VALUES ('Still Counts');  -- id = 5002
+\`\`\`
+
+⚠️ In MySQL, TRUNCATE **cannot be rolled back** — it implicitly commits any open transaction. It also **ignores foreign key checks** (will fail if child rows exist unless FKs are disabled).
+
+---
+
+### 4. DROP — The Nuclear Option
+
+*💡 Analogy: DROP is calling a demolition crew. Not only does your data vanish — the walls, floors, plumbing, and wiring of the table disappear too. Every foreign key pointing at this table will immediately complain.*
+
+\`\`\`sql
+-- Drop a table — GONE with no undo
+DROP TABLE temp_calculations;
+
+-- Safe version — won't throw an error if table doesn't exist
+DROP TABLE IF EXISTS temp_calculations;
+
+-- Drop multiple tables at once (useful for full test teardown)
+DROP TABLE IF EXISTS test_orders, test_payments, test_sessions, test_users;
+
+-- Always check what exists before dropping
+SHOW TABLES LIKE 'test_%';
+-- Review the list, THEN run the DROP
+\`\`\`
+
+**What DROP removes completely:**
+- All rows of data
+- The column definitions and data types
+- All indexes, triggers, and constraints on the table
+- Foreign key relationships (may need to drop child tables first if FKs are RESTRICT)
+
+---
+
+### 5. Cascading DELETE — Removing Parent and Children
+
+\`\`\`sql
+-- With ON DELETE CASCADE: parent delete auto-removes all children
+DELETE FROM customers WHERE id = 999;
+-- Also removes all orders, payments, sessions for customer 999
+-- Only works if FK was defined with ON DELETE CASCADE
+
+-- Without CASCADE: you must delete in correct order (children first)
+DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE customer_id = 999);
+DELETE FROM payments     WHERE order_id IN (SELECT id FROM orders WHERE customer_id = 999);
+DELETE FROM orders       WHERE customer_id = 999;
+DELETE FROM customers    WHERE id = 999;
+-- Wrong order → FK constraint error
+\`\`\`
+
+---
+
+### 6. QA Test Data Cleanup Patterns
+
+\`\`\`sql
+-- Pattern 1: Dry run first — see what WOULD be deleted
+SELECT COUNT(*) FROM orders WHERE created_at < '2024-01-01';
+-- Confirm the count looks right, THEN run:
+-- DELETE FROM orders WHERE created_at < '2024-01-01';
+
+-- Pattern 2: Archive before delete (safety net)
+INSERT INTO orders_archive SELECT * FROM orders WHERE created_at < '2024-01-01';
+DELETE FROM orders WHERE created_at < '2024-01-01';
+-- Now you have a backup if needed
+
+-- Pattern 3: TRUNCATE staging tables between test runs
+TRUNCATE TABLE staging_imports;
+TRUNCATE TABLE temp_calculations;
+-- Fast reset, AUTO_INCREMENT resets too — predictable IDs in next run
+
+-- Pattern 4: Full test environment teardown
+BEGIN;
+DELETE FROM users WHERE email LIKE '%@qa-automation.%';
+SELECT ROW_COUNT() AS removed;
+COMMIT;
+
+-- Pattern 5: Verify referential integrity after DELETE
+SELECT COUNT(*) FROM order_items oi
+LEFT JOIN orders o ON oi.order_id = o.id
+WHERE o.id IS NULL;
+-- Must be 0 — any rows here = orphaned order_items = data bug
+\`\`\`
+
+> **The QA Rule Before Any DELETE or TRUNCATE:**
+> 1. Run \`SELECT COUNT(*)\` with the same WHERE clause first — know the blast radius
+> 2. Wrap DELETEs in a transaction so you can ROLLBACK if counts look wrong
+> 3. Never TRUNCATE a table mid-test-run if other parallel tests read from it
+> 4. Never DROP without checking \`SHOW TABLES\` and confirming nothing else references it
+        `
+      },
+
+      {
+        id: 'sql-insert-advanced',
+        title: 'Intermediate: Advanced INSERT & Test Data Setup',
+        analogy: "INSERT INTO SELECT is a photocopier for database rows. You describe what to copy and where to put it, and the database reproduces it instantly — no manual typing, no CSV export, no waiting. For QAs, this is how you clone production-like data into a test environment in seconds.",
+        lessonMarkdown: `
+## Advanced INSERT — Seeding and Managing Test Data
+
+You know how to INSERT a single row. Now let's level up: bulk inserts, copying entire result sets, handling conflicts gracefully, and building repeatable test data setups.
+
+---
+
+### 1. Multi-Row INSERT — One Trip, Many Rows
+
+*💡 Analogy: Single INSERT is mailing one letter per trip to the post office. Multi-row INSERT is a mail merge — one trip, 500 envelopes sent. Fewer round trips = dramatically faster.*
+
+\`\`\`sql
+-- Single row (one database round trip)
+INSERT INTO users (name, email) VALUES ('Priya', 'priya@test.com');
+
+-- Multiple rows in ONE statement (one round trip, much faster)
+INSERT INTO users (name, email, role) VALUES
+  ('Priya',  'priya@test.com',  'admin'),
+  ('Rohan',  'rohan@test.com',  'user'),
+  ('Sneha',  'sneha@test.com',  'user'),
+  ('Vikram', 'vikram@test.com', 'moderator');
+-- 4 rows inserted, 1 network round trip to the database
+\`\`\`
+
+For bulk seed data, multi-row INSERT is 5–10× faster than individual INSERTs because each INSERT has overhead: connection, parsing, execution, and response.
+
+---
+
+### 2. INSERT INTO SELECT — Copy Rows Between Tables
+
+*💡 Analogy: INSERT INTO SELECT is a scanner-and-printer combo. You scan one table (SELECT), filter what you want, and print copies straight into another table. The originals stay completely untouched.*
+
+\`\`\`sql
+-- Copy completed orders from production into a test table
+INSERT INTO test_orders (user_id, product_id, amount, status, created_at)
+SELECT user_id, product_id, amount, status, created_at
+FROM prod_orders
+WHERE status IN ('completed', 'cancelled')
+  AND created_at >= '2025-01-01';
+
+-- Seed a test table with a random sample of 500 real orders
+INSERT INTO test_orders (user_id, product_id, amount, status)
+SELECT user_id, product_id, amount, status
+FROM orders
+ORDER BY RAND()   -- shuffle randomly
+LIMIT 500;        -- take only 500 rows
+\`\`\`
+
+\`\`\`sql
+-- Copy users and transform data as you go
+INSERT INTO test_users (name, email, role, created_at)
+SELECT
+  name,
+  CONCAT('masked_', id, '@test.com') AS email,  -- anonymise PII
+  role,
+  NOW() AS created_at
+FROM users
+WHERE is_active = 1;
+\`\`\`
+
+The column list in INSERT must match the SELECT list exactly in count and compatible types.
+
+---
+
+### 3. CREATE TABLE AS SELECT — Clone a Table
+
+*💡 Analogy: CREATE TABLE AS SELECT is "photocopy the report AND bind it into a new notebook". You get a brand-new table with all the data already inside — perfect for creating test snapshots you can safely destroy.*
+
+\`\`\`sql
+-- Clone structure + data from orders for this test sprint
+CREATE TABLE orders_sprint_42_backup AS
+SELECT * FROM orders
+WHERE created_at >= '2025-04-01';
+
+-- Create a summary table from a complex query
+CREATE TABLE monthly_revenue_snapshot AS
+SELECT
+  DATE_FORMAT(created_at, '%Y-%m') AS month,
+  SUM(amount) AS revenue,
+  COUNT(*) AS order_count
+FROM orders
+GROUP BY DATE_FORMAT(created_at, '%Y-%m');
+
+-- Verify the clone
+SELECT COUNT(*) FROM orders_sprint_42_backup;
+\`\`\`
+
+⚠️ **Gotcha:** CREATE TABLE AS SELECT copies column types and data but does **NOT** copy PRIMARY KEY, UNIQUE constraints, indexes, or AUTO_INCREMENT. Add them manually if needed:
+\`\`\`sql
+ALTER TABLE orders_sprint_42_backup ADD PRIMARY KEY (id);
+CREATE INDEX idx_backup_user ON orders_sprint_42_backup(user_id);
+\`\`\`
+
+---
+
+### 4. INSERT IGNORE — Skip Duplicates Silently
+
+*💡 Analogy: INSERT IGNORE is the polite bouncer. If a guest is already on the list (UNIQUE constraint violation), they're quietly turned away — no argument, no crashed party, no error message.*
+
+\`\`\`sql
+-- Normal INSERT fails on duplicate email
+INSERT INTO users (email, name) VALUES ('priya@test.com', 'Priya V.');
+-- ERROR: Duplicate entry 'priya@test.com' for key 'email'
+
+-- INSERT IGNORE skips duplicates silently
+INSERT IGNORE INTO users (email, name) VALUES ('priya@test.com', 'Priya V.');
+-- Query OK, 0 rows affected (the row was skipped)
+
+-- Useful for seed scripts that may run multiple times
+INSERT IGNORE INTO test_categories (id, name) VALUES
+  (1, 'Electronics'),
+  (2, 'Clothing'),
+  (3, 'Books');
+-- Second run: all skipped, no errors — idempotent seed script ✅
+\`\`\`
+
+---
+
+### 5. ON DUPLICATE KEY UPDATE — Upsert
+
+*💡 Analogy: Upsert is the "create or update" pattern. If the guest is already checked in, update their room. If they're new, add them to the register. One operation handles both cases.*
+
+\`\`\`sql
+-- If user exists (same email), update last_login; if new, insert them
+INSERT INTO users (email, name, last_login)
+VALUES ('priya@test.com', 'Priya', NOW())
+ON DUPLICATE KEY UPDATE
+  last_login = NOW(),
+  name = VALUES(name);
+
+-- Track daily page view counts — increment if exists, create if new
+INSERT INTO page_views (page_slug, view_date, view_count)
+VALUES ('home', CURDATE(), 1)
+ON DUPLICATE KEY UPDATE
+  view_count = view_count + 1;
+\`\`\`
+
+---
+
+### 6. Generating Test Data with SQL
+
+*💡 Analogy: Instead of manually creating 50 test users in Postman one by one, let the database generate them from a number sequence — fast, consistent, and repeatable every single time.*
+
+\`\`\`sql
+-- Generate 10 test users using a number sequence
+INSERT INTO users (name, email, role, created_at)
+SELECT
+  CONCAT('TestUser_', n)             AS name,
+  CONCAT('testuser_', n, '@qa.test') AS email,
+  'user'                             AS role,
+  NOW()                              AS created_at
+FROM (
+  SELECT 1 AS n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5
+  UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10
+) AS seq;
+\`\`\`
+
+\`\`\`sql
+-- Seed orders for all test users at once
+INSERT INTO test_orders (user_id, amount, status, created_at)
+SELECT
+  id                                 AS user_id,
+  ROUND(RAND() * 5000 + 100, 2)     AS amount,   -- random ₹100–5100
+  ELT(FLOOR(RAND() * 3) + 1,
+      'pending','completed','cancelled') AS status, -- random status
+  DATE_SUB(NOW(), INTERVAL FLOOR(RAND() * 30) DAY) AS created_at
+FROM users
+WHERE email LIKE '%@qa.test';
+\`\`\`
+
+---
+
+### 7. QA Test Data Patterns
+
+\`\`\`sql
+-- Pattern 1: Idempotent seed — safe to run multiple times
+INSERT IGNORE INTO roles (id, name) VALUES
+  (1, 'admin'), (2, 'user'), (3, 'moderator'), (4, 'viewer');
+
+-- Pattern 2: Copy a specific production scenario into test
+INSERT INTO test_orders SELECT * FROM orders WHERE id IN (1001, 1002, 1003);
+
+-- Pattern 3: Verify seed data is complete before test run
+SELECT
+  (SELECT COUNT(*) FROM test_users)    AS user_count,
+  (SELECT COUNT(*) FROM test_orders)   AS order_count,
+  (SELECT COUNT(*) FROM test_products) AS product_count;
+-- Confirm all counts are non-zero before running tests
+
+-- Pattern 4: Clean + re-seed in one safe transaction
+BEGIN;
+TRUNCATE TABLE test_orders;
+INSERT INTO test_orders SELECT * FROM orders WHERE status = 'completed' LIMIT 100;
+SELECT COUNT(*) FROM test_orders;  -- verify exactly 100 rows
+COMMIT;
+\`\`\`
+
+The ability to write, clone, and manage test data in SQL turns 2-hour manual setup sessions into 30-second automated scripts — a superpower for any QA working with complex test data requirements.
+        `
+      },
+
       // ─── EXPERT ──────────────────────────────────────────────────────────────
       {
         id: 'sql-window-functions',
@@ -6760,6 +7424,90 @@ This tells you which test case is the slowest **per module** — much more actio
 
 ---
 
+### 6. FIRST_VALUE and LAST_VALUE
+
+*💡 Analogy: FIRST_VALUE is like checking who crossed the finish line first in a race. LAST_VALUE is who crossed last. Both functions look at all the rows in the window and pluck the value at the first or last position.*
+
+\`\`\`sql
+-- For each order, show the cheapest and most expensive order THIS user ever made
+SELECT
+  user_id,
+  order_id,
+  amount,
+  FIRST_VALUE(amount) OVER (
+    PARTITION BY user_id
+    ORDER BY amount ASC
+    ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+  ) AS users_min_order,
+  LAST_VALUE(amount) OVER (
+    PARTITION BY user_id
+    ORDER BY amount ASC
+    ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+  ) AS users_max_order
+FROM orders;
+\`\`\`
+
+⚠️ LAST_VALUE needs `ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING` — without it, the default frame only looks up to the current row, not the whole partition.
+
+---
+
+### 7. NTILE — Bucketing Rows into Percentile Groups
+
+*💡 Analogy: NTILE(4) is like dividing a class into 4 equal groups by grade: top 25%, second 25%, third 25%, bottom 25%. It numbers the buckets 1 to 4 — bucket 1 is the best, bucket 4 is the worst.*
+
+\`\`\`sql
+-- Divide test execution times into 4 quartiles (to find the slowest 25%)
+SELECT
+  test_name,
+  execution_ms,
+  NTILE(4) OVER (ORDER BY execution_ms DESC) AS quartile
+  -- quartile 1 = slowest 25%, quartile 4 = fastest 25%
+FROM test_results
+ORDER BY execution_ms DESC;
+
+-- Find only the slowest quartile (performance candidates for optimisation)
+SELECT * FROM (
+  SELECT
+    test_name,
+    execution_ms,
+    NTILE(4) OVER (ORDER BY execution_ms DESC) AS quartile
+  FROM test_results
+) t
+WHERE quartile = 1;
+\`\`\`
+
+---
+
+### 8. Frame Specification — ROWS BETWEEN
+
+*💡 Analogy: The frame is the window inside the window. ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW means "from the very first row in the partition up to and including me" — this is the running total frame. ROWS BETWEEN 2 PRECEDING AND CURRENT ROW means "look at the 2 rows before me plus myself" — this is a 3-row moving average.*
+
+\`\`\`sql
+-- Running total (all rows from start up to current row)
+SUM(amount) OVER (
+  ORDER BY order_date
+  ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+)
+
+-- 7-day moving average of daily revenue
+SELECT
+  order_date,
+  daily_revenue,
+  AVG(daily_revenue) OVER (
+    ORDER BY order_date
+    ROWS BETWEEN 6 PRECEDING AND CURRENT ROW  -- today + 6 days before = 7-day window
+  ) AS moving_avg_7d
+FROM daily_revenue_summary;
+
+-- Entire partition (needed for LAST_VALUE and % of total calculations)
+SUM(amount) OVER (
+  PARTITION BY user_id
+  ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+) AS user_total
+\`\`\`
+
+---
+
 ### 🧪 QA Validation Patterns Using Window Functions
 \`\`\`sql
 -- 1. Find the FIRST failed test in each test suite (detect earliest failure point)
@@ -6777,6 +7525,13 @@ SELECT test_name, status,
 FROM test_results
 WHERE status = 'FAIL'
   AND LAG(status) OVER (PARTITION BY test_name ORDER BY run_date) = 'PASS';
+
+-- 3. Find the slowest 25% of API endpoints (NTILE)
+SELECT endpoint, avg_ms FROM (
+  SELECT endpoint, avg_ms,
+    NTILE(4) OVER (ORDER BY avg_ms DESC) AS quartile
+  FROM endpoint_performance
+) t WHERE quartile = 1;
 \`\`\`
         `
       },
@@ -7072,6 +7827,78 @@ JOIN severity_thresholds s
 
 ---
 
+### 6. FULL OUTER JOIN — Keep Everything from Both Sides
+
+*💡 Analogy: FULL OUTER JOIN is "nobody gets left out". Every row from both tables appears — matched rows are joined, unmatched rows from either side appear with NULLs on the missing side. MySQL doesn't have a native FULL OUTER JOIN, but you can simulate it with UNION.*
+
+\`\`\`sql
+-- MySQL: simulate FULL OUTER JOIN with LEFT JOIN UNION RIGHT JOIN
+SELECT u.id AS user_id, u.name, o.id AS order_id, o.amount
+FROM users u
+LEFT JOIN orders o ON u.id = o.user_id
+
+UNION
+
+SELECT u.id AS user_id, u.name, o.id AS order_id, o.amount
+FROM users u
+RIGHT JOIN orders o ON u.id = o.user_id;
+
+-- Result includes:
+-- ✅ Users WITH orders (matched from both sides)
+-- ✅ Users WITHOUT orders (NULL order columns)
+-- ✅ Orders WITH no valid user (NULL user columns — orphaned data)
+\`\`\`
+
+**QA use case:** After a data migration, find anything that didn't match between the source and target:
+\`\`\`sql
+-- Find records that exist in source but not target, OR target but not source
+SELECT src.id AS source_id, tgt.id AS target_id, COALESCE(src.email, tgt.email) AS email
+FROM source_users src
+LEFT  JOIN target_users tgt ON src.email = tgt.email
+WHERE tgt.id IS NULL  -- in source but missing from target
+
+UNION
+
+SELECT src.id, tgt.id, COALESCE(src.email, tgt.email)
+FROM source_users src
+RIGHT JOIN target_users tgt ON src.email = tgt.email
+WHERE src.id IS NULL; -- in target but not in source (phantom records)
+\`\`\`
+
+---
+
+### 7. ANTI JOIN — Find What's Missing
+
+*💡 Analogy: An ANTI JOIN is the "no-show list" at an event. You have a guest list (expected) and an attendance sheet (actual). An ANTI JOIN gives you everyone on the guest list who didn't show up — the gap between what should exist and what does.*
+
+The ANTI JOIN pattern is: `LEFT JOIN + WHERE right_side IS NULL`
+
+\`\`\`sql
+-- Users who have NEVER placed an order (classic ANTI JOIN)
+SELECT u.id, u.name, u.email
+FROM users u
+LEFT JOIN orders o ON u.id = o.user_id
+WHERE o.id IS NULL;
+-- Returns only users with no matching order row
+
+-- Orders with no payment record (payment processing gap)
+SELECT o.id, o.amount, o.status
+FROM orders o
+LEFT JOIN payments p ON o.id = p.order_id
+WHERE p.id IS NULL
+  AND o.status = 'completed';  -- completed but no payment = critical bug
+
+-- Products never included in any order (dead inventory)
+SELECT p.id, p.name
+FROM products p
+LEFT JOIN order_items oi ON p.id = oi.product_id
+WHERE oi.id IS NULL;
+\`\`\`
+
+ANTI JOIN via LEFT JOIN + WHERE IS NULL is preferred over `NOT IN` for large tables — NOT IN with NULLs in the subquery returns no rows, which is a common trap.
+
+---
+
 ### 🧪 QA Patterns with Advanced JOINs
 \`\`\`sql
 -- 1. SELF JOIN: find test cases that are exact duplicates (same name AND same module)
@@ -7087,12 +7914,19 @@ FROM test_suites ts
 CROSS JOIN environments env
 ORDER BY ts.suite_name, env.environment_name;
 
--- 3. Chain: Orders that were refunded but the refund record is missing
-SELECT o.id, o.user_id, o.amount, t.status AS transaction_status
+-- 3. ANTI JOIN: orders marked 'completed' with no payment record
+SELECT o.id, o.user_id, o.amount
 FROM orders o
-INNER JOIN transactions t ON o.id = t.order_id
-LEFT  JOIN refunds r      ON o.id = r.order_id
-WHERE t.status = 'refunded' AND r.id IS NULL;
+LEFT JOIN payments p ON o.id = p.order_id
+WHERE p.id IS NULL AND o.status = 'completed';
+
+-- 4. FULL OUTER JOIN simulation: migration completeness check
+SELECT src.id AS source_id, tgt.id AS target_id
+FROM source_orders src
+LEFT JOIN target_orders tgt ON src.id = tgt.source_id WHERE tgt.id IS NULL
+UNION
+SELECT src.id, tgt.id FROM source_orders src
+RIGHT JOIN target_orders tgt ON src.id = tgt.source_id WHERE src.id IS NULL;
 \`\`\`
         `
       },
@@ -7241,7 +8075,75 @@ START TRANSACTION;
 ROLLBACK;  -- clean up — no permanent changes
 \`\`\`
 
-This pattern lets you run the procedure and observe results without leaving test data behind.
+---
+
+### 6. Error Handling Inside Procedures
+
+*💡 Analogy: A good procedure doesn't crash the plane when one engine fails — it has fallback procedures. DECLARE...HANDLER is the flight manual that specifies exactly what to do when each type of failure occurs.*
+
+\`\`\`sql
+-- Procedure with a comprehensive EXIT HANDLER
+CREATE PROCEDURE safe_process_refund(
+  IN  p_order_id INT,
+  IN  p_reason   VARCHAR(255),
+  OUT p_result   VARCHAR(200)
+)
+BEGIN
+  DECLARE v_errno INT;
+  DECLARE v_errmsg TEXT;
+
+  -- Catch any SQL exception: roll back and capture details
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    GET DIAGNOSTICS CONDITION 1
+      v_errno  = MYSQL_ERRNO,
+      v_errmsg = MESSAGE_TEXT;
+    ROLLBACK;
+    SET p_result = CONCAT('ERROR ', v_errno, ': ', v_errmsg);
+  END;
+
+  -- Business rule: validate input before doing anything
+  IF p_order_id IS NULL OR p_order_id <= 0 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Invalid order_id — must be a positive integer';
+  END IF;
+
+  START TRANSACTION;
+    UPDATE orders SET status = 'refunded' WHERE id = p_order_id AND status = 'completed';
+    IF ROW_COUNT() = 0 THEN
+      SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Order not found or not eligible for refund';
+    END IF;
+    INSERT INTO refunds (order_id, reason, created_at) VALUES (p_order_id, p_reason, NOW());
+  COMMIT;
+
+  SET p_result = 'SUCCESS';
+END;
+\`\`\`
+
+\`\`\`sql
+-- QA: test all error paths
+CALL safe_process_refund(NULL, 'test', @r);   SELECT @r;  -- 'Invalid order_id...'
+CALL safe_process_refund(0,    'test', @r);   SELECT @r;  -- 'Invalid order_id...'
+CALL safe_process_refund(9999, 'test', @r);   SELECT @r;  -- 'Order not found...'
+CALL safe_process_refund(1001, 'legit', @r);  SELECT @r;  -- 'SUCCESS'
+\`\`\`
+
+---
+
+### 🧪 QA Patterns for Stored Procedures & Functions
+
+\`\`\`sql
+-- Test happy path + verify all side effects
+START TRANSACTION;
+  INSERT INTO orders (id, user_id, amount, status) VALUES (8888, 1, 2500, 'completed');
+  CALL safe_process_refund(8888, 'QA test', @r);
+  SELECT @r AS result,
+         (SELECT status FROM orders WHERE id = 8888) AS order_status,
+         (SELECT COUNT(*) FROM refunds WHERE order_id = 8888) AS refund_created;
+  -- Expect: result='SUCCESS', order_status='refunded', refund_created=1
+ROLLBACK;
+\`\`\`
         `
       },
 
@@ -7518,6 +8420,90 @@ EXPLAIN SELECT * FROM orders WHERE user_id = 42 AND status = 'pending';
 
 ---
 
+### 5. Physical Join Algorithms in EXPLAIN
+
+*💡 Analogy: Three different strategies for pairing attendees at a networking event. Nested Loop: go through every person on list A and for each one, scan all of list B (slow for large lists). Hash Join: build a quick-lookup hash map of list B first, then scan list A once (fast for large lists). Merge Join: sort both lists alphabetically first, then walk through them in sync (fastest when both lists are already sorted).*
+
+| Algorithm | How it works | Best for |
+|-----------|-------------|---------|
+| **Nested Loop** | For each row in outer table, scan inner table | Small tables or when inner table uses an index |
+| **Hash Join** | Build a hash map of smaller table, probe it with larger table | Large unsorted tables with no useful index |
+| **Merge Join** | Sort both sides, then merge in one pass | Large tables that are already indexed/sorted |
+
+\`\`\`sql
+-- PostgreSQL EXPLAIN ANALYZE shows the algorithm explicitly:
+EXPLAIN ANALYZE
+SELECT u.name, o.amount
+FROM users u JOIN orders o ON u.id = o.user_id
+WHERE u.country = 'India';
+
+-- Example output:
+-- Hash Join  (cost=450..2100 rows=5000 actual time=12.3..45.6 rows=4823 loops=1)
+--   Hash Cond: (o.user_id = u.id)
+--   ->  Seq Scan on orders  (cost=0..1800 rows=50000 actual time=0.1..18.4 rows=50000 loops=1)
+--   ->  Hash  (cost=300..300 rows=1000 actual time=5.2..5.2 rows=1000 loops=1)
+--         ->  Seq Scan on users  (cost=0..300 rows=1000 actual time=0.1..3.7 rows=1000 loops=1)
+--               Filter: (country = 'India')
+
+-- Adding an index on users.country changes Hash Join → Nested Loop + Index Scan
+-- (fewer rows to join = nested loop becomes cheaper)
+\`\`\`
+
+---
+
+### 6. Keeping Statistics Fresh — ANALYZE
+
+*💡 Analogy: The query optimizer is like a GPS using a map. If the map is outdated (stale statistics), it might route you through a road that's been closed for months. ANALYZE updates the map — it re-samples the table and tells the optimizer the current state of the data.*
+
+\`\`\`sql
+-- MySQL: update table statistics so the optimizer makes better decisions
+ANALYZE TABLE orders;
+ANALYZE TABLE users;
+
+-- Check when statistics were last updated (MySQL)
+SELECT table_name, update_time
+FROM information_schema.tables
+WHERE table_schema = 'your_db'
+  AND table_name IN ('orders', 'users');
+
+-- PostgreSQL: update statistics
+ANALYZE orders;
+ANALYZE users;
+-- Or update everything:
+ANALYZE;
+\`\`\`
+
+Run ANALYZE after large data loads, bulk deletes, or any time EXPLAIN shows `rows=1` when you know the table has millions of rows (dead giveaway of stale stats).
+
+---
+
+### 7. Forcing an Index — When the Optimizer Gets It Wrong
+
+*💡 Analogy: Sometimes the GPS suggests a terrible route. You know a better one. USE INDEX / FORCE INDEX is you overriding the GPS with your local knowledge. Use sparingly — the optimizer is usually right.*
+
+\`\`\`sql
+-- Hint to the optimizer: USE this specific index if it's available
+SELECT * FROM orders USE INDEX (idx_orders_status_date)
+WHERE status = 'pending'
+  AND created_at > DATE_SUB(NOW(), INTERVAL 7 DAY);
+
+-- Force the index — optimizer MUST use it even if it thinks a scan is better
+SELECT * FROM orders FORCE INDEX (idx_orders_user_id)
+WHERE user_id = 42;
+
+-- Tell the optimizer to IGNORE a specific index
+SELECT * FROM orders IGNORE INDEX (idx_orders_created_at)
+WHERE created_at > '2025-01-01';
+
+-- When to force an index:
+-- ✅ You've verified the index exists and is correct
+-- ✅ EXPLAIN shows a Seq Scan but you know the indexed query is faster
+-- ✅ The table has very uneven data distribution (optimizer estimates are wrong)
+-- ❌ Don't use it as a permanent fix — investigate WHY the optimizer avoids the index
+\`\`\`
+
+---
+
 ### 5. Performance Testing Workflow for QA
 
 \`\`\`sql
@@ -7547,6 +8533,396 @@ LIMIT 20;
 
 -- Step 5: Document findings in your performance test report:
 -- "Query X: Before index — 1,240ms. After index — 38ms. 97% improvement."
+\`\`\`
+        `
+      },
+
+      {
+        id: 'sql-error-handling',
+        title: 'Expert: Error Handling in SQL & Stored Procedures',
+        analogy: "Error handling in SQL is like an emergency protocol card on a submarine. If a pipe bursts (a query fails), you don't let the whole vessel flood — you have pre-defined responses: seal compartment A, vent compartment B, surface immediately. DECLARE HANDLER is your emergency protocol. SIGNAL is the alarm you trigger yourself when you detect a problem before it gets worse.",
+        lessonMarkdown: `
+## Error Handling in SQL — Graceful Failures at the Database Layer
+
+When stored procedures run complex multi-step operations, individual steps can fail. Without error handling, the procedure crashes mid-way, leaving data in a half-updated, corrupt state. Proper error handling means you control what happens when things go wrong.
+
+---
+
+### 1. The Problem Without Error Handling
+
+*💡 Analogy: Imagine a bank transfer procedure that debits Account A, then credits Account B. If the credit step fails (network error, constraint violation), without error handling the debit already happened — ₹10,000 is gone with nowhere to go.*
+
+\`\`\`sql
+-- Without error handling — dangerous
+CREATE PROCEDURE transfer_funds(IN from_id INT, IN to_id INT, IN amount DECIMAL(10,2))
+BEGIN
+  UPDATE accounts SET balance = balance - amount WHERE id = from_id;
+  -- If this next line fails, money has already left from_id!
+  UPDATE accounts SET balance = balance + amount WHERE id = to_id;
+END;
+\`\`\`
+
+---
+
+### 2. DECLARE...HANDLER — Catching Errors
+
+*💡 Analogy: A DECLARE HANDLER is like a circuit breaker. You define in advance: "IF this type of failure occurs, trip the breaker and do THIS instead of crashing."*
+
+\`\`\`sql
+CREATE PROCEDURE transfer_funds(
+  IN  p_from_id INT,
+  IN  p_to_id   INT,
+  IN  p_amount  DECIMAL(10,2),
+  OUT p_status  VARCHAR(100)
+)
+BEGIN
+  -- Declare an exit handler: fires on ANY SQL error, rolls back and sets status
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    ROLLBACK;
+    SET p_status = 'ERROR: Transfer failed — rolled back';
+  END;
+
+  START TRANSACTION;
+
+    UPDATE accounts SET balance = balance - p_amount WHERE id = p_from_id;
+    UPDATE accounts SET balance = balance + p_amount WHERE id = p_to_id;
+
+  COMMIT;
+  SET p_status = 'SUCCESS';
+END;
+\`\`\`
+
+**Handler types:**
+
+| Handler | When it fires |
+|---------|--------------|
+| \`EXIT HANDLER\` | Fires and exits the BEGIN...END block |
+| \`CONTINUE HANDLER\` | Fires and continues execution after the error |
+| \`UNDO HANDLER\` | Fires and rolls back (not widely supported) |
+
+\`\`\`sql
+-- CONTINUE HANDLER: log the error but keep going
+DECLARE CONTINUE HANDLER FOR SQLEXCEPTION
+BEGIN
+  INSERT INTO error_log (message, logged_at) VALUES ('Step failed', NOW());
+  -- Execution continues after this block
+END;
+
+-- Handler for a specific error code (duplicate key = 1062)
+DECLARE CONTINUE HANDLER FOR 1062
+BEGIN
+  SET p_status = 'ERROR: Duplicate entry detected';
+END;
+\`\`\`
+
+---
+
+### 3. GET DIAGNOSTICS — Reading Error Details
+
+*💡 Analogy: After a car alarm goes off, GET DIAGNOSTICS is lifting the bonnet and reading the OBD error code — it tells you exactly what went wrong, not just "something failed".*
+
+\`\`\`sql
+CREATE PROCEDURE safe_insert_user(IN p_email VARCHAR(150), OUT p_result VARCHAR(200))
+BEGIN
+  DECLARE v_err_code INT;
+  DECLARE v_err_msg  TEXT;
+
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    GET DIAGNOSTICS CONDITION 1
+      v_err_code = MYSQL_ERRNO,
+      v_err_msg  = MESSAGE_TEXT;
+    SET p_result = CONCAT('ERROR ', v_err_code, ': ', v_err_msg);
+    ROLLBACK;
+  END;
+
+  START TRANSACTION;
+    INSERT INTO users (email) VALUES (p_email);
+  COMMIT;
+  SET p_result = 'SUCCESS';
+END;
+
+-- Test it:
+CALL safe_insert_user('duplicate@test.com', @r);
+SELECT @r;
+-- Returns: 'ERROR 1062: Duplicate entry 'duplicate@test.com' for key 'email''
+\`\`\`
+
+---
+
+### 4. SIGNAL — Throwing Your Own Errors
+
+*💡 Analogy: SIGNAL is the fire alarm you pull yourself when you spot a fire that the automatic sensors haven't detected yet. You're raising the alert on purpose because you've identified a business rule violation.*
+
+\`\`\`sql
+CREATE PROCEDURE place_order(IN p_user_id INT, IN p_amount DECIMAL(10,2))
+BEGIN
+  DECLARE v_balance DECIMAL(10,2);
+
+  -- Business rule check: user must have enough balance
+  SELECT balance INTO v_balance FROM accounts WHERE user_id = p_user_id;
+
+  IF v_balance < p_amount THEN
+    -- Raise a custom error with SIGNAL
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Insufficient balance for this order',
+          MYSQL_ERRNO  = 1001;
+  END IF;
+
+  INSERT INTO orders (user_id, amount) VALUES (p_user_id, p_amount);
+END;
+
+-- Test it:
+CALL place_order(42, 999999);
+-- ERROR 1001 (45000): Insufficient balance for this order
+\`\`\`
+
+SQLSTATE \`'45000'\` is the convention for "unhandled user-defined exception" — always use it for custom business rule violations.
+
+---
+
+### 5. RESIGNAL — Re-throwing Errors
+
+*💡 Analogy: RESIGNAL is catching someone else's fire alarm, reading it, logging it, then re-triggering it so the original emergency response still fires. You handled it AND let it propagate.*
+
+\`\`\`sql
+DECLARE EXIT HANDLER FOR SQLEXCEPTION
+BEGIN
+  -- Log it first
+  INSERT INTO error_log (procedure_name, logged_at)
+  VALUES ('process_payment', NOW());
+
+  -- Then re-throw the original error to the caller
+  RESIGNAL;
+END;
+\`\`\`
+
+---
+
+### 6. QA Testing Error Paths
+
+This is where error handling becomes directly relevant to QA work:
+
+\`\`\`sql
+-- Test 1: Happy path
+CALL transfer_funds(1, 2, 500.00, @status);
+SELECT @status;  -- expect: 'SUCCESS'
+SELECT balance FROM accounts WHERE id IN (1, 2);  -- verify balances updated
+
+-- Test 2: Insufficient funds (SIGNAL should fire)
+CALL transfer_funds(1, 2, 9999999.00, @status);
+SELECT @status;  -- expect: 'ERROR: Transfer failed — rolled back'
+-- Verify no money moved
+SELECT balance FROM accounts WHERE id = 1;  -- should be unchanged
+
+-- Test 3: Non-existent account (FK constraint violation)
+CALL transfer_funds(1, 99999, 100.00, @status);
+SELECT @status;  -- expect: 'ERROR: Transfer failed — rolled back'
+
+-- Test 4: Verify error log was populated
+SELECT * FROM error_log ORDER BY logged_at DESC LIMIT 5;
+
+-- Test 5: Verify atomicity — after any failure, balances sum should be same
+SELECT SUM(balance) AS total FROM accounts;
+-- Must equal the same total before and after any failed transfer
+\`\`\`
+
+**QA Checklist for Error Handling:**
+- ✅ Does the procedure return a meaningful error message (not just NULL)?
+- ✅ Does a failure roll back ALL partial changes?
+- ✅ Does the error log capture enough info to debug production issues?
+- ✅ Do business rule violations (SIGNAL) return the correct custom message?
+- ✅ Does the caller (application) receive a distinguishable error vs success?
+        `
+      },
+
+      {
+        id: 'sql-pivot-reporting',
+        title: 'Expert: Pivot Tables & Conditional Reporting',
+        analogy: "Pivoting is like rotating a spreadsheet 90 degrees. Rows of (product, month, revenue) become columns: (product, Jan_revenue, Feb_revenue, Mar_revenue). Same data, completely different shape — suddenly you can compare January vs February side by side in a single row, instead of hunting through thousands of rows.",
+        lessonMarkdown: `
+## Pivot Tables & Conditional Reporting — Reshaping Data for QA Analysis
+
+Raw data often comes out as long, vertical lists. Reports need it wide — one row per entity with multiple metric columns. SQL doesn't have a native PIVOT keyword in MySQL, but you can build powerful pivots with CASE and GROUP BY.
+
+---
+
+### 1. The Problem: Vertical Data You Need Horizontal
+
+*💡 Analogy: A factory's quality log records (product, defect_type, count) as separate rows. Your manager wants one row per product with columns for each defect type. You need to "rotate" the data.*
+
+**Before pivot (vertical — hard to compare):**
+\`\`\`
+| product  | status    | count |
+|----------|-----------|-------|
+| Widget   | passed    | 850   |
+| Widget   | failed    | 42    |
+| Widget   | skipped   | 8     |
+| Gadget   | passed    | 620   |
+| Gadget   | failed    | 15    |
+\`\`\`
+
+**After pivot (horizontal — easy to compare):**
+\`\`\`
+| product  | passed | failed | skipped |
+|----------|--------|--------|---------|
+| Widget   | 850    | 42     | 8       |
+| Gadget   | 620    | 15     | 0       |
+\`\`\`
+
+---
+
+### 2. Building a Pivot with CASE + GROUP BY
+
+*💡 Analogy: CASE inside an aggregate function is like a sorting hat that routes each row into the right column bucket. COUNT(CASE WHEN status = 'failed' THEN 1 END) only counts rows that land in the "failed" bucket.*
+
+\`\`\`sql
+-- Pivot: test results per product broken out by status
+SELECT
+  product_name,
+  COUNT(CASE WHEN status = 'passed'  THEN 1 END) AS passed,
+  COUNT(CASE WHEN status = 'failed'  THEN 1 END) AS failed,
+  COUNT(CASE WHEN status = 'skipped' THEN 1 END) AS skipped,
+  COUNT(*) AS total
+FROM test_results
+GROUP BY product_name
+ORDER BY failed DESC;  -- worst products first
+\`\`\`
+
+The magic: each CASE acts as a filter inside COUNT — only rows matching the condition are counted in that column. Non-matching rows return NULL, and COUNT ignores NULLs.
+
+---
+
+### 3. SUM-based Pivot for Numeric Data
+
+*💡 Analogy: Instead of counting items, you're summing money per bucket. SUM(CASE WHEN month = 'Jan' THEN revenue END) totals up all January revenue rows and puts them in the Jan column.*
+
+\`\`\`sql
+-- Monthly revenue pivot: one row per product, one column per month
+SELECT
+  product_name,
+  SUM(CASE WHEN MONTH(order_date) = 1  THEN amount ELSE 0 END) AS Jan,
+  SUM(CASE WHEN MONTH(order_date) = 2  THEN amount ELSE 0 END) AS Feb,
+  SUM(CASE WHEN MONTH(order_date) = 3  THEN amount ELSE 0 END) AS Mar,
+  SUM(CASE WHEN MONTH(order_date) = 4  THEN amount ELSE 0 END) AS Apr,
+  SUM(CASE WHEN MONTH(order_date) = 5  THEN amount ELSE 0 END) AS May,
+  SUM(CASE WHEN MONTH(order_date) = 6  THEN amount ELSE 0 END) AS Jun,
+  SUM(amount) AS total_ytd
+FROM orders
+WHERE YEAR(order_date) = 2025
+GROUP BY product_name
+ORDER BY total_ytd DESC;
+\`\`\`
+
+---
+
+### 4. Pivot with Percentages
+
+*💡 Analogy: Your QA dashboard shows not just raw counts but "42 failures out of 900 runs = 4.7% failure rate". Adding percentage columns turns a data table into an actionable report.*
+
+\`\`\`sql
+-- Test pass/fail rates per module
+SELECT
+  module_name,
+  COUNT(*) AS total_runs,
+  COUNT(CASE WHEN status = 'PASS' THEN 1 END) AS passed,
+  COUNT(CASE WHEN status = 'FAIL' THEN 1 END) AS failed,
+  ROUND(
+    COUNT(CASE WHEN status = 'PASS' THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0),
+    1
+  ) AS pass_rate_pct
+FROM test_results
+WHERE run_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+GROUP BY module_name
+HAVING COUNT(*) >= 5       -- only modules with enough data
+ORDER BY pass_rate_pct ASC; -- worst performers first
+\`\`\`
+
+\`NULLIF(COUNT(*), 0)\` prevents divide-by-zero when a module has no runs.
+
+---
+
+### 5. Reverse Pivot (UNPIVOT) with UNION ALL
+
+*💡 Analogy: UNPIVOT is the opposite rotation — you have a wide table with columns Jan, Feb, Mar and you want to normalise it back into rows. UNION ALL stacks the column reads on top of each other.*
+
+\`\`\`sql
+-- Wide table: products (id, name, q1_sales, q2_sales, q3_sales, q4_sales)
+-- Convert to: (product_name, quarter, sales)
+SELECT name, 'Q1' AS quarter, q1_sales AS sales FROM products
+UNION ALL
+SELECT name, 'Q2',            q2_sales           FROM products
+UNION ALL
+SELECT name, 'Q3',            q3_sales           FROM products
+UNION ALL
+SELECT name, 'Q4',            q4_sales           FROM products
+ORDER BY name, quarter;
+\`\`\`
+
+---
+
+### 6. Cross-Tab Comparison with CTEs + Pivot
+
+*💡 Analogy: The most powerful QA report: two builds side-by-side with a PASS/FAIL column for each, and a REGRESSION/FIXED/UNCHANGED verdict column.*
+
+\`\`\`sql
+-- Compare test pass rates between two releases side by side
+WITH release_stats AS (
+  SELECT
+    module_name,
+    release_tag,
+    COUNT(*) AS total,
+    COUNT(CASE WHEN status = 'PASS' THEN 1 END) AS passed
+  FROM test_results
+  WHERE release_tag IN ('v2.1.0', 'v2.2.0')
+  GROUP BY module_name, release_tag
+)
+SELECT
+  module_name,
+  MAX(CASE WHEN release_tag = 'v2.1.0' THEN ROUND(passed*100.0/NULLIF(total,0),1) END) AS v2_1_pass_pct,
+  MAX(CASE WHEN release_tag = 'v2.2.0' THEN ROUND(passed*100.0/NULLIF(total,0),1) END) AS v2_2_pass_pct,
+  CASE
+    WHEN MAX(CASE WHEN release_tag = 'v2.2.0' THEN passed*100.0/NULLIF(total,0) END)
+       < MAX(CASE WHEN release_tag = 'v2.1.0' THEN passed*100.0/NULLIF(total,0) END)
+    THEN '⚠️ REGRESSION'
+    ELSE '✅ OK'
+  END AS verdict
+FROM release_stats
+GROUP BY module_name
+ORDER BY verdict DESC, module_name;
+\`\`\`
+
+---
+
+### 7. QA Use Cases
+
+\`\`\`sql
+-- 1. Defect density per module per severity (pivot)
+SELECT
+  module_name,
+  COUNT(CASE WHEN severity = 'Critical' THEN 1 END) AS critical,
+  COUNT(CASE WHEN severity = 'High'     THEN 1 END) AS high,
+  COUNT(CASE WHEN severity = 'Medium'   THEN 1 END) AS medium,
+  COUNT(CASE WHEN severity = 'Low'      THEN 1 END) AS low,
+  COUNT(*) AS total_defects
+FROM bugs
+WHERE sprint_id = 42
+GROUP BY module_name
+ORDER BY critical DESC, high DESC;
+
+-- 2. API response time distribution per endpoint (percentile buckets)
+SELECT
+  endpoint,
+  COUNT(CASE WHEN response_ms < 100  THEN 1 END) AS under_100ms,
+  COUNT(CASE WHEN response_ms < 500  THEN 1 END) AS under_500ms,
+  COUNT(CASE WHEN response_ms >= 500 THEN 1 END) AS slow_500ms_plus,
+  ROUND(AVG(response_ms), 0) AS avg_ms,
+  MAX(response_ms) AS max_ms
+FROM api_logs
+WHERE logged_at >= DATE_SUB(NOW(), INTERVAL 1 DAY)
+GROUP BY endpoint
+ORDER BY slow_500ms_plus DESC;
 \`\`\`
         `
       }

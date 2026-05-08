@@ -141,8 +141,8 @@ export const ZONE_TIERS: Record<string, { id: string; label: string; color: stri
       id: 'beginner', label: 'Beginner', color: 'text-emerald-400',
       moduleIds: ['sql-what-is-db','sql-select','sql-where','sql-order-limit','sql-insert','sql-update-delete','sql-data-types','sql-aggregations','sql-foreign-keys','sql-constraints','sql-like-wildcards'],
     },
-    { id: 'intermediate', label: 'Intermediate', color: 'text-sky-400',   moduleIds: ['sql-joins','sql-group-by','sql-subqueries','sql-views','sql-indexes','sql-transactions','sql-string-date','sql-case-null'] },
-    { id: 'expert',       label: 'Expert',       color: 'text-amber-400', moduleIds: ['sql-window-functions','sql-cte','sql-advanced-joins','sql-stored-procedures','sql-triggers-constraints','sql-query-plan'] },
+    { id: 'intermediate', label: 'Intermediate', color: 'text-sky-400',   moduleIds: ['sql-joins','sql-group-by','sql-subqueries','sql-views','sql-indexes','sql-transactions','sql-string-date','sql-case-null','sql-delete-truncate-drop','sql-insert-advanced'] },
+    { id: 'expert',       label: 'Expert',       color: 'text-amber-400', moduleIds: ['sql-window-functions','sql-cte','sql-advanced-joins','sql-stored-procedures','sql-triggers-constraints','sql-query-plan','sql-error-handling','sql-pivot-reporting'] },
   ],
   api: [
     {
