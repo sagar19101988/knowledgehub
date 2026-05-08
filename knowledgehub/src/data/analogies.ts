@@ -8473,7 +8473,7 @@ ANALYZE users;
 ANALYZE;
 \`\`\`
 
-Run ANALYZE after large data loads, bulk deletes, or any time EXPLAIN shows `rows=1` when you know the table has millions of rows (dead giveaway of stale stats).
+Run ANALYZE after large data loads, bulk deletes, or any time EXPLAIN shows \`rows=1\` when you know the table has millions of rows (dead giveaway of stale stats).
 
 ---
 
