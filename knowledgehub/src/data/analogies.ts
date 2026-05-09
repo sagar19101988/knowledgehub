@@ -17029,6 +17029,311 @@ const value = "hello" as unknown as number;
       }
       ,
       {
+        id: 'ts-async-promises',
+        title: 'Async, Await & Promises with TypeScript',
+        analogy: "A regular function is like a vending machine — drop in coins, get a snack instantly. An async function is like ordering at a restaurant — you place the order, get a numbered ticket (the Promise), and the food arrives later. TypeScript labels every ticket with what's coming back: 'Promise<Pizza>' tells you a pizza will arrive, not a salad. Without that label, you'd open every package guessing.",
+        lessonMarkdown: `
+### 1. Why Async Code Needs Types More Than Sync Code
+
+*💡 Analogy: Sync code is like a face-to-face conversation — the answer comes back immediately. Async code is like sending a letter — you get the reply later, sometimes not at all. The further the answer is from the question (across a network, across a database), the more you need a written contract describing what's coming back.*
+
+In QA work, async code is everywhere:
+
+- Every \`await page.click()\` in Playwright
+- Every \`fetch()\` call to a test API
+- Every database query in test setup
+- Every retry-with-backoff helper
+- Every parallel API check
+
+Get the types right and your editor catches mistakes the second you type them. Get them wrong and you're debugging \`undefined.something\` in production at 2 AM.
+
+---
+
+### 2. The \`Promise<T>\` Generic — TypeScript's Receipt for Future Values
+
+A **Promise** represents a value that will be available later. The \`<T>\` is the eventual value's type.
+
+\`\`\`typescript
+// A promise that will resolve to a string
+const greeting: Promise<string> = Promise.resolve("hello");
+
+// A promise that will resolve to a User object
+const userPromise: Promise<User> = fetchUser(42);
+
+// A promise that resolves to nothing meaningful (just signals completion)
+const saved: Promise<void> = saveSettings();
+\`\`\`
+
+**Reading the type:**
+- \`Promise<string>\` — "I'll give you a string later"
+- \`Promise<User>\` — "I'll give you a User later"
+- \`Promise<void>\` — "I'll let you know when I'm done; no useful value"
+
+---
+
+### 3. \`async\` Functions Always Return a Promise
+
+When you mark a function \`async\`, TypeScript automatically wraps the return type in \`Promise<...>\`.
+
+\`\`\`typescript
+// You write:
+async function getUserName(id: number): Promise<string> {
+  return "Priya";
+}
+
+// Equivalent — no async, manual Promise:
+function getUserName(id: number): Promise<string> {
+  return Promise.resolve("Priya");
+}
+\`\`\`
+
+**The shortcut:** if you write \`async function\`, you only need to declare the inner type. TypeScript wraps it for you.
+
+\`\`\`typescript
+async function getUserCount(): Promise<number> {
+  return 42;          // ← TypeScript wraps this in Promise<number>
+}
+\`\`\`
+
+If you forget to write \`Promise<...>\` in the return type, TypeScript will infer it, but explicit is better — it documents the contract.
+
+---
+
+### 4. \`await\` — Opening the Receipt
+
+\`await\` waits for the Promise to resolve and gives you the inner value:
+
+\`\`\`typescript
+async function showUser(id: number): Promise<void> {
+  const user: Promise<User> = fetchUser(id);   // type: Promise<User>
+  const result: User = await user;             // type: User (unwrapped)
+  console.log(result.name);
+}
+\`\`\`
+
+**Three rules of thumb:**
+
+1. **\`await\` only works inside an \`async\` function.** Top-level await is allowed in modern modules, but inside functions, the function must be \`async\`.
+2. **Always \`await\`.** Forgetting an \`await\` is the #1 async bug in TypeScript. The Promise floats off and you compare a Promise object to a string.
+3. **\`await\`'s type is \`T\` where the input is \`Promise<T>\`.** TypeScript handles the unwrapping for you.
+
+---
+
+### 5. Typed Error Handling — \`try\` / \`catch\` with \`unknown\`
+
+In modern TypeScript (4.0+), the \`catch\` variable is \`unknown\` — you must narrow it before using.
+
+\`\`\`typescript
+async function safelyFetchUser(id: number): Promise<User | null> {
+  try {
+    const response = await fetch(\\\`/api/users/\\\${id}\\\`);
+    if (!response.ok) return null;
+    return await response.json() as User;
+  } catch (error) {
+    // error is unknown here
+    if (error instanceof Error) {
+      console.error("Fetch failed:", error.message);
+    } else {
+      console.error("Unknown error:", error);
+    }
+    return null;
+  }
+}
+\`\`\`
+
+**Why \`unknown\` in catch?** Anyone can \`throw\` anything in JavaScript — strings, numbers, objects, anything. TypeScript reflects that reality by typing \`error\` as \`unknown\` and forcing you to narrow.
+
+---
+
+### 6. \`Promise.all\` — Run Multiple Things in Parallel
+
+\`Promise.all\` accepts an array of Promises and returns a Promise of an array.
+
+\`\`\`typescript
+async function loadDashboard(userId: number) {
+  const [user, orders, notifications] = await Promise.all([
+    fetchUser(userId),         // Promise<User>
+    fetchOrders(userId),       // Promise<Order[]>
+    fetchNotifications(userId) // Promise<Notification[]>
+  ]);
+
+  // user, orders, notifications are correctly typed:
+  // user:          User
+  // orders:        Order[]
+  // notifications: Notification[]
+}
+\`\`\`
+
+**The big win:** if any of the three calls takes 200ms, the whole \`Promise.all\` finishes in 200ms — not 600ms. They run in parallel.
+
+**The catch:** if ANY of them rejects, the whole \`Promise.all\` rejects immediately. You don't get the partial results.
+
+---
+
+### 7. \`Promise.allSettled\` — When You Need Partial Results
+
+If you need every result regardless of which ones failed, use \`Promise.allSettled\`:
+
+\`\`\`typescript
+const results = await Promise.allSettled([
+  pingService('auth'),
+  pingService('payments'),
+  pingService('email'),
+]);
+
+// results: PromiseSettledResult<boolean>[]
+for (const r of results) {
+  if (r.status === 'fulfilled') {
+    console.log("✅ healthy:", r.value);
+  } else {
+    console.log("❌ failed:", r.reason);
+  }
+}
+\`\`\`
+
+Each entry is either \`{ status: 'fulfilled', value: ... }\` or \`{ status: 'rejected', reason: ... }\`. TypeScript narrows the type when you check \`status\`.
+
+**QA use case:** health-check sweeps, where one broken service shouldn't hide the status of others.
+
+---
+
+### 8. \`Promise.race\` — First to Finish Wins
+
+\`Promise.race\` returns the result of whichever Promise finishes first.
+
+\`\`\`typescript
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error(\\\`Timed out after \\\${ms}ms\\\`)), ms)
+  );
+  return Promise.race([promise, timeout]);
+}
+
+// Use it:
+const result = await withTimeout(slowApiCall(), 5000);
+\`\`\`
+
+**QA use case:** test timeouts, retries with deadlines, "fastest healthy server" routing.
+
+---
+
+### 9. Common Async Patterns in QA Tests
+
+#### Polling with timeout
+
+\`\`\`typescript
+async function waitFor<T>(
+  check: () => Promise<T | null>,
+  timeoutMs: number,
+  intervalMs: number = 200
+): Promise<T> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const result = await check();
+    if (result !== null) return result;
+    await new Promise(resolve => setTimeout(resolve, intervalMs));
+  }
+  throw new Error(\\\`Condition not met within \\\${timeoutMs}ms\\\`);
+}
+
+// Use it: wait for an async condition without a hard sleep
+const order = await waitFor(
+  async () => {
+    const r = await fetch('/api/orders/latest');
+    const data = await r.json() as Order | null;
+    return data?.status === 'completed' ? data : null;
+  },
+  10000
+);
+\`\`\`
+
+#### Retry with exponential backoff
+
+\`\`\`typescript
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxAttempts: number = 3
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastError = e;
+      const wait = 2 ** attempt * 100;     // 200ms, 400ms, 800ms...
+      await new Promise(resolve => setTimeout(resolve, wait));
+    }
+  }
+  throw lastError;
+}
+\`\`\`
+
+#### Concurrent test data setup
+
+\`\`\`typescript
+async function seedTestData(): Promise<TestData> {
+  const [user, product, order] = await Promise.all([
+    createUser({ email: \\\`test-\\\${Date.now()}@qa.com\\\` }),
+    createProduct({ name: 'Test SKU' }),
+    createOrder({ status: 'pending' }),
+  ]);
+  return { user, product, order };
+}
+\`\`\`
+
+---
+
+### 10. Async Iterators — \`for await...of\`
+
+When a function streams results, use async iterators:
+
+\`\`\`typescript
+async function* streamLogs(): AsyncGenerator<LogEntry> {
+  let cursor: string | undefined;
+  while (true) {
+    const page = await fetchLogPage(cursor);
+    for (const entry of page.entries) yield entry;
+    if (!page.nextCursor) break;
+    cursor = page.nextCursor;
+  }
+}
+
+// Consume it:
+for await (const entry of streamLogs()) {
+  if (entry.level === 'error') console.log(entry);
+}
+\`\`\`
+
+The \`AsyncGenerator<T>\` type tells TypeScript "this is an async iterable yielding T."
+
+**QA use case:** processing very large CSV exports, paginated APIs, log streams.
+
+---
+
+### 11. The 6 Most Common Async Bugs in TypeScript
+
+- ❌ **Forgetting \`await\`** — \`if (response.ok)\` instead of \`if ((await response).ok)\` → comparing a Promise to a status, always passes the truthiness check
+- ❌ **\`async\` callback for non-async API** — passing an async function to \`Array.forEach\` (which doesn't await) → fire-and-forget chaos
+- ❌ **Unhandled rejection** — top-level \`fetch()\` without \`await\` or \`.catch()\` → silently lost errors
+- ❌ **\`Promise.all\` with one bad call** — one rejection kills all results, even if you wanted partial
+- ❌ **Not narrowing \`error\` in \`catch\`** — \`error.message\` fails because TypeScript doesn't trust an \`unknown\` has \`.message\`
+- ❌ **Missing return type on async function** — TypeScript silently infers \`Promise<any>\` if the body uses \`as any\` or untyped JSON
+
+---
+
+### 12. The Tester's Async Checklist
+
+- ✅ Every async function has an explicit \`Promise<T>\` return type
+- ✅ Every \`await\` is inside an \`async\` function
+- ✅ \`Promise.all\` for parallel-safe calls; \`Promise.allSettled\` when partial results matter
+- ✅ \`catch\` blocks always narrow \`error\` with \`instanceof Error\`
+- ✅ Long-running awaits are wrapped in a timeout (\`Promise.race\`)
+- ✅ Polling loops have a deadline; no infinite loops
+- ✅ ESLint rule \`no-floating-promises\` enabled — catches missing \`await\`
+        `
+      }
+      ,
+      {
         id: 'ts-generics',
         title: 'Generics',
         analogy: "A generic is like a one-size-fits-all box that adapts to whatever you put in it. The box itself works the same way — open, close, label — but the *contents* type is decided fresh each time you use it. You write the box once, but it works for shoes, books, or test results.",
@@ -17297,6 +17602,833 @@ function firstItem<T>(arr: T[]): T { return arr[0]; }
 \`\`\`
         `
       },
+      {
+        id: 'ts-never-unknown',
+        title: 'The never & unknown Types',
+        analogy: "Imagine TypeScript's universe of types as a tower. At the top floor sits 'unknown' — the great-grandparent of every type, accepting absolutely anything but refusing to let you DO anything with it until you prove what it is. At the bottom floor sits 'never' — the void where impossible types live, the type that fits inside every other type but holds no values. Most TypeScript code lives in the middle floors. Master the top and bottom floors and you write code that's both safe AND honest about what it can't handle.",
+        lessonMarkdown: `
+### 1. Why Both Types Exist
+
+*💡 Analogy: A typical type like \`string\` or \`User\` is a defined room — it has shape and rules. \`unknown\` is "ANY room — but I don't know which yet" (you must check before entering). \`never\` is "a room that doesn't exist" (no value can ever be there). They sound abstract; in real code they're the cleanest way to say "I don't trust this input yet" and "this code path is unreachable."*
+
+These two types are TypeScript's "edges" — \`unknown\` is the top of the type system (everything fits into it) and \`never\` is the bottom (nothing fits into it). They're not exotic; they appear daily in real code.
+
+---
+
+### 2. \`unknown\` — The Type-Safe \`any\`
+
+\`\`\`typescript
+let value: unknown;
+
+value = "hello";
+value = 42;
+value = { id: 1 };
+value = null;
+// All allowed — unknown accepts everything
+\`\`\`
+
+So far it looks like \`any\`. The difference shows up when you try to USE the value:
+
+\`\`\`typescript
+let value: unknown = "hello";
+
+// ❌ TypeScript blocks all of these — you haven't proven what value is
+value.toUpperCase();      // Error: Object is of type 'unknown'
+value.length;             // Error
+value();                  // Error
+value.foo.bar;            // Error
+\`\`\`
+
+To use it, you must **narrow it first**:
+
+\`\`\`typescript
+if (typeof value === 'string') {
+  console.log(value.toUpperCase());   // ✅ value is now string
+}
+\`\`\`
+
+**The mental model:** \`unknown\` is a sealed envelope. You can hold it and pass it around, but you can't read it until you cut it open and verify what's inside.
+
+---
+
+### 3. \`unknown\` vs \`any\` — The Most Important TypeScript Choice
+
+| Operation | \`any\` | \`unknown\` |
+|-----------|-------|-----------|
+| Assign anything to it | ✅ | ✅ |
+| Assign it to anything | ✅ — even \`User\` | ❌ — only to \`unknown\` |
+| Call methods on it | ✅ — TypeScript shrugs | ❌ — must narrow first |
+| Access properties on it | ✅ | ❌ |
+| Catch programmer errors | ❌ | ✅ |
+| **Use this when…** | **never** (almost) | **untrusted input** |
+
+**The rule:** if you're tempted to write \`any\`, write \`unknown\` instead and narrow it. You'll thank yourself in two months.
+
+---
+
+### 4. Real-World \`unknown\` Use Cases
+
+#### Parsing JSON from an API
+
+\`\`\`typescript
+async function fetchUser(id: number): Promise<User> {
+  const res = await fetch(\\\`/api/users/\\\${id}\\\`);
+  const raw: unknown = await res.json();   // ✅ JSON.parse returns unknown by design
+
+  // Narrow before trusting
+  if (
+    typeof raw === 'object' &&
+    raw !== null &&
+    'id' in raw &&
+    'email' in raw &&
+    typeof (raw as { id: unknown }).id === 'number'
+  ) {
+    return raw as User;
+  }
+  throw new Error('Invalid user shape');
+}
+\`\`\`
+
+**The point:** the network gives you bytes. You don't *know* it's a User until you check. \`unknown\` forces the check.
+
+#### \`catch\` blocks (TypeScript 4.0+)
+
+\`\`\`typescript
+try {
+  await runTest();
+} catch (error) {
+  // error: unknown — anyone can throw anything
+  if (error instanceof Error) {
+    console.error(error.message);
+  } else {
+    console.error('Non-Error thrown:', error);
+  }
+}
+\`\`\`
+
+#### Generic library inputs
+
+When writing a library function that accepts data of unknown shape:
+
+\`\`\`typescript
+export function safeJsonParse(text: string): unknown {
+  try { return JSON.parse(text); }
+  catch { return null; }
+}
+\`\`\`
+
+You return \`unknown\` because YOU don't know what shape the user's JSON has — and you're forcing them to validate before using.
+
+---
+
+### 5. \`never\` — The Type That Holds No Values
+
+\`never\` represents "a value that can never exist." There's no concrete value of type \`never\`. You can never assign anything to a \`never\` variable.
+
+**Two main places \`never\` shows up:**
+
+#### A. Functions that never return
+
+\`\`\`typescript
+function fail(message: string): never {
+  throw new Error(message);
+  // Never reaches the next line
+}
+
+function infiniteLoop(): never {
+  while (true) {
+    // Never returns
+  }
+}
+\`\`\`
+
+The compiler uses \`never\` here as a signal: "this function does not produce a value to keep going with."
+
+#### B. Impossible types in conditional/narrowed unions
+
+\`\`\`typescript
+type FilterStrings<T> = T extends string ? T : never;
+
+type Result = FilterStrings<string | number | boolean>;
+// Result: string
+// (number → never, boolean → never, both filtered out)
+\`\`\`
+
+In a union, \`never\` is invisible — \`string | never\` is just \`string\`. This makes \`never\` perfect for filtering.
+
+---
+
+### 6. The \`never\` Exhaustiveness Check (Most Powerful Pattern)
+
+This is where \`never\` becomes magical for QA work.
+
+\`\`\`typescript
+type TestStatus = 'pass' | 'fail' | 'skipped';
+
+function describe(status: TestStatus): string {
+  switch (status) {
+    case 'pass':    return '✅ Passed';
+    case 'fail':    return '❌ Failed';
+    case 'skipped': return '⏭ Skipped';
+    default:
+      // status is 'never' here — all cases handled
+      const exhaustive: never = status;
+      return exhaustive;
+  }
+}
+\`\`\`
+
+**The magic:** if someone adds a new variant to \`TestStatus\` (say \`'flaky'\`), TypeScript instantly errors at \`const exhaustive: never = status\` because \`status\` is now \`'flaky'\` — not \`never\`. Your \`describe\` function fails to compile until you handle the new case.
+
+**This is one of TypeScript's strongest safety features.** Use it whenever you switch on a discriminated union.
+
+---
+
+### 7. Helper for Cleaner Exhaustiveness
+
+Many teams ship a helper:
+
+\`\`\`typescript
+function unreachable(value: never): never {
+  throw new Error(\\\`Unreachable code reached. Got: \\\${JSON.stringify(value)}\\\`);
+}
+\`\`\`
+
+Use it in switches:
+
+\`\`\`typescript
+switch (status) {
+  case 'pass':    return '✅';
+  case 'fail':    return '❌';
+  case 'skipped': return '⏭';
+  default:        return unreachable(status);
+}
+\`\`\`
+
+Now if \`status\` ever has an unhandled value at runtime, you get a clear error AND TypeScript catches it at compile time when a new variant is added.
+
+---
+
+### 8. \`never\` Inside Conditional Types
+
+\`never\` is what you return from a conditional type when "this case shouldn't happen":
+
+\`\`\`typescript
+type ExtractStringKeys<T> = {
+  [K in keyof T]: T[K] extends string ? K : never
+}[keyof T];
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  age: number;
+}
+
+type StringKeys = ExtractStringKeys<User>;
+// StringKeys: 'name' | 'email'
+\`\`\`
+
+Numeric properties produce \`never\`, which dissolves out of the union. Only string-typed keys remain.
+
+---
+
+### 9. \`never\` and \`unknown\` Side-by-Side
+
+\`\`\`typescript
+// Top of the tower — accepts any value
+let top: unknown = "anything";
+top = 42;
+top = { foo: 'bar' };
+
+// Bottom of the tower — accepts NO value
+let bottom: never;
+// bottom = "anything";   // ❌ Error: Type 'string' is not assignable to type 'never'
+// bottom = null;         // ❌ Error
+\`\`\`
+
+| Property | \`unknown\` | \`never\` |
+|----------|------------|---------|
+| What can be assigned TO it | Everything | Nothing |
+| What it can be assigned to | Only \`unknown\` and \`any\` | Everything |
+| Use case | Untrusted input | Impossible code paths, exhaustiveness |
+| In a union (\`X \| Y\`) | Often dominates | Disappears |
+
+---
+
+### 10. Common Mistakes With \`unknown\` and \`never\`
+
+- ❌ **Using \`any\` for "I don't know" inputs** — use \`unknown\` so the compiler forces narrowing
+- ❌ **Casting \`unknown\` directly to a complex type without runtime validation** — \`as User\` doesn't validate; the runtime data could still be wrong
+- ❌ **Skipping the exhaustiveness check** — \`switch\` without a \`default: unreachable(status)\` means new union variants slip through unnoticed
+- ❌ **Using \`never\` where \`void\` was meant** — \`void\` = "returns nothing useful" (function CAN return); \`never\` = "function CANNOT return"
+- ❌ **Assuming \`unknown\` is safe to log** — \`console.log\` works on it, but \`JSON.stringify\` may fail if \`unknown\` contains circular references
+
+---
+
+### 11. The Tester's \`unknown\`/\`never\` Checklist
+
+- ✅ Every API response is initially typed as \`unknown\`, then narrowed
+- ✅ \`catch (error)\` always narrows \`error\` before using
+- ✅ Discriminated-union switches end in a \`never\` exhaustiveness branch
+- ✅ Throw helpers and infinite loops typed as \`never\`
+- ✅ Reach for \`unknown\` instead of \`any\` every time you're tempted to widen
+- ✅ Document the runtime check that converts \`unknown\` → \`User\` (or use Zod / io-ts for declarative validation)
+        `
+      }
+      ,
+      {
+        id: 'ts-narrowing-exhaustive',
+        title: 'Type Narrowing & Exhaustive Checks',
+        analogy: "Type narrowing is like a customs officer at an airport. Travellers arrive holding many possible tickets — economy, business, first class, crew. The officer asks questions ('Are you crew?', 'Do you have a boarding pass?') and routes each person down the right aisle. By the time they reach the gate, the officer KNOWS exactly which type of traveller they are — and TypeScript knows the exact type of the variable. Exhaustive checks are the safety net at the end: if a new ticket class is invented and the officer hasn't been trained on it, the system raises an alarm.",
+        lessonMarkdown: `
+### 1. What Is Type Narrowing?
+
+*💡 Analogy: A locked safe contains either a diamond or a fake stone. Without opening it, you don't know which. \`if (isReal(stone))\` is the locksmith's verification — once you've checked, you know what's inside, and you can act on it. TypeScript watches your checks and updates what it 'knows' about the variable in each branch.*
+
+**Type narrowing** is when TypeScript reduces a broader type (e.g., \`string | number\`) to a more specific one (\`string\` OR \`number\`) based on runtime checks you write.
+
+\`\`\`typescript
+function describe(value: string | number): string {
+  // Inside this if, TypeScript knows value is string
+  if (typeof value === 'string') {
+    return value.toUpperCase();   // ✅ string method works
+  }
+  // Outside the if, TypeScript knows value is number
+  return value.toFixed(2);        // ✅ number method works
+}
+\`\`\`
+
+This isn't a feature you opt in to — it's automatic. **Every \`if\`/\`switch\`/\`else\` you write is a narrowing opportunity TypeScript watches.**
+
+---
+
+### 2. Truthiness Narrowing — \`if (x)\`
+
+\`\`\`typescript
+function getLength(s: string | null | undefined): number {
+  if (s) {
+    // s is now: string (non-empty)
+    return s.length;
+  }
+  return 0;
+}
+\`\`\`
+
+**Watch out:** truthiness coerces \`0\`, \`""\`, \`null\`, \`undefined\`, \`NaN\`, \`false\` to false. So \`if (s)\` excludes \`""\` from \`string\`. For numbers, \`if (n)\` would skip \`0\` — often a bug. Prefer explicit checks:
+
+\`\`\`typescript
+if (n !== undefined) { /* preserves 0 */ }
+if (s !== null && s !== '') { /* preserves all valid strings */ }
+\`\`\`
+
+---
+
+### 3. Equality Narrowing — \`===\`, \`!==\`
+
+\`\`\`typescript
+function process(input: string | number | null): void {
+  if (input === null) {
+    // input: null
+    return;
+  }
+  // input: string | number (null excluded)
+  if (input === 'admin') {
+    // input: 'admin' (literal type)
+    grantAdmin();
+  }
+}
+\`\`\`
+
+The compiler reads \`if (input === 'admin')\` and narrows to the literal \`'admin'\` inside the branch.
+
+---
+
+### 4. \`typeof\`, \`instanceof\`, \`in\` — Recap
+
+You've already met these in the type-guards module. Quick recap with narrowing focus:
+
+\`\`\`typescript
+// typeof — for primitives
+if (typeof v === 'string') { /* v: string */ }
+if (typeof v === 'number') { /* v: number */ }
+
+// instanceof — for class hierarchies
+if (err instanceof NetworkError) { /* err: NetworkError */ }
+
+// 'in' — for property existence
+if ('email' in user) { /* user has .email */ }
+\`\`\`
+
+**Key point:** narrowing is the COMMON mechanism. Type guards are SPECIFIC tools. Once you know all the tools, the goal is always the same: get a vague type to a specific one.
+
+---
+
+### 5. Discriminated Unions + Switch — The Pattern
+
+A **discriminated union** is a union of object types with a shared "tag" field:
+
+\`\`\`typescript
+type TestResult =
+  | { status: 'pass';    durationMs: number }
+  | { status: 'fail';    error: string }
+  | { status: 'skipped'; reason: string };
+
+function reportResult(r: TestResult): string {
+  switch (r.status) {
+    case 'pass':
+      return \\\`Passed in \\\${r.durationMs}ms\\\`;        // r: { status: 'pass'; durationMs: number }
+    case 'fail':
+      return \\\`Failed: \\\${r.error}\\\`;                  // r: { status: 'fail'; error: string }
+    case 'skipped':
+      return \\\`Skipped: \\\${r.reason}\\\`;                // r: { status: 'skipped'; reason: string }
+  }
+}
+\`\`\`
+
+Inside each \`case\`, TypeScript automatically narrows \`r\` to the right shape — you can access \`r.durationMs\` or \`r.error\` without checking again.
+
+**This pattern is the BACKBONE of safe TypeScript.** Whenever you have multiple "kinds of thing," use a tagged union.
+
+---
+
+### 6. Exhaustive Checks With \`never\` — The Safety Net
+
+What if someone adds a new variant?
+
+\`\`\`typescript
+type TestResult =
+  | { status: 'pass';    durationMs: number }
+  | { status: 'fail';    error: string }
+  | { status: 'skipped'; reason: string }
+  | { status: 'flaky';   retries: number };   // ← NEW
+\`\`\`
+
+Without a safety net, your \`reportResult\` function silently returns \`undefined\` for the new variant. The bug only surfaces in production.
+
+**The safety net:**
+
+\`\`\`typescript
+function reportResult(r: TestResult): string {
+  switch (r.status) {
+    case 'pass':    return \\\`Passed in \\\${r.durationMs}ms\\\`;
+    case 'fail':    return \\\`Failed: \\\${r.error}\\\`;
+    case 'skipped': return \\\`Skipped: \\\${r.reason}\\\`;
+    default:
+      // Compiler-enforced: r MUST be 'never' here
+      const _: never = r;
+      throw new Error(\\\`Unhandled status: \\\${JSON.stringify(r)}\\\`);
+  }
+}
+\`\`\`
+
+Now adding \`'flaky'\` to the union immediately breaks the build until you add a \`case 'flaky':\` branch.
+
+**This is one of TypeScript's most powerful features.** It turns a missed-case bug into a compile error.
+
+---
+
+### 7. The Reusable \`unreachable\` Helper
+
+Most teams keep this in a shared utils file:
+
+\`\`\`typescript
+export function unreachable(x: never): never {
+  throw new Error(\\\`Unreachable code reached: \\\${JSON.stringify(x)}\\\`);
+}
+\`\`\`
+
+Use it everywhere:
+
+\`\`\`typescript
+default: return unreachable(r);
+\`\`\`
+
+It does two jobs at once:
+1. Compile-time: forces exhaustiveness via the \`never\` parameter
+2. Runtime: throws a clear error if reached anyway (via type assertion bypass, etc.)
+
+---
+
+### 8. Assertion Functions — \`asserts x is T\`
+
+A lesser-known cousin of type predicates: an assertion function THROWS unless the input matches a type.
+
+\`\`\`typescript
+function assertIsUser(value: unknown): asserts value is User {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    typeof (value as { id: unknown }).id !== 'number' ||
+    typeof (value as { email: unknown }).email !== 'string'
+  ) {
+    throw new Error('Not a User');
+  }
+}
+
+// Usage
+function showEmail(input: unknown): void {
+  assertIsUser(input);
+  console.log(input.email);   // ✅ TypeScript knows input is User from here on
+}
+\`\`\`
+
+**Compared to type predicates (\`is\`):**
+- Type predicate: returns boolean → use in \`if\`
+- Assertion function: throws if false → narrows from this point on, no \`if\` needed
+
+**QA use case:** validating fixture data, parsing test config, asserting API response shapes in test setup.
+
+---
+
+### 9. Control-Flow Narrowing — Early Returns and Async Pitfalls
+
+TypeScript follows your code like a step-debugger:
+
+\`\`\`typescript
+function process(value: string | null): string {
+  if (value === null) return 'no input';
+  // value: string from here on
+  return value.trim();
+}
+\`\`\`
+
+**The pitfall:** narrowing can be LOST across an \`await\`.
+
+\`\`\`typescript
+async function loadAndProcess(idOrNull: number | null): Promise<string> {
+  if (idOrNull === null) return 'none';
+  // idOrNull: number ✅
+
+  await someAsyncOperation();
+  // idOrNull: number ✅ (still narrowed — local variable, no rebinding)
+
+  // BUT if the variable refers to a property of an object that COULD change,
+  // TypeScript may need you to re-narrow:
+  if (this.user.role === 'admin') {
+    await fetchSomething();
+    // this.user.role might no longer be 'admin' — re-check if needed
+  }
+}
+\`\`\`
+
+For local primitives the narrowing survives \`await\`. For object properties, re-check after async boundaries when in doubt.
+
+---
+
+### 10. Worked QA Example — Test Result Reporter
+
+\`\`\`typescript
+type RunOutcome =
+  | { kind: 'completed'; passed: number; failed: number }
+  | { kind: 'aborted';   reason: string; partial: { passed: number; failed: number } }
+  | { kind: 'timeout';   afterMs: number };
+
+function summarise(o: RunOutcome): string {
+  switch (o.kind) {
+    case 'completed':
+      return \\\`\\\${o.passed}/\\\${o.passed + o.failed} passed\\\`;
+    case 'aborted':
+      return \\\`Aborted (\\\${o.reason}) — \\\${o.partial.passed} passed before halt\\\`;
+    case 'timeout':
+      return \\\`Timed out after \\\${o.afterMs / 1000}s\\\`;
+    default:
+      return unreachable(o);
+  }
+}
+\`\`\`
+
+If an engineer adds a fourth variant (say \`{ kind: 'crashed'; signal: string }\`), the build breaks until \`summarise\` handles it. **No silent gaps.**
+
+---
+
+### 11. Common Narrowing Bugs to Hunt
+
+- ❌ **Truthiness with numbers** — \`if (count)\` skips \`0\`, often a bug. Use \`if (count !== undefined)\`.
+- ❌ **Forgetting to re-narrow after \`await\`** when accessing a possibly-mutated object property
+- ❌ **Switching without exhaustiveness** — silently broken when a new union variant is added
+- ❌ **Using \`as\` to skip narrowing** — bypasses the type system and reintroduces runtime bugs
+- ❌ **Narrowing with shallow object checks** — \`'foo' in obj\` works for own properties, but inherited ones can sneak in
+- ❌ **Type predicate that lies** — \`function isUser(x): x is User { return true; }\` — TypeScript trusts you blindly
+
+---
+
+### 12. The Tester's Narrowing Checklist
+
+- ✅ Every discriminated-union \`switch\` ends in \`default: unreachable(value)\`
+- ✅ \`unknown\` inputs are narrowed before use, not cast
+- ✅ Use assertion functions for parsing config/fixtures (\`asserts x is User\`)
+- ✅ Equality narrowing prefers explicit checks (\`!== null\`) over truthiness for falsy-valid types
+- ✅ Re-narrow object properties after \`await\` if the object could mutate
+- ✅ Type predicates (\`is\`) actually verify what they claim — review them like security code
+        `
+      }
+      ,
+      {
+        id: 'ts-satisfies-operator',
+        title: 'The satisfies Operator',
+        analogy: "Imagine you're a chef writing a menu. You want to guarantee every dish entry is well-formed (has a name, price, and category) AND you want to remember the EXACT dishes you offer (not lose 'pepperoni' to a generic 'string'). Without 'satisfies', you had to choose: validate OR remember. The 'satisfies' operator lets you do both — validate the shape AND keep the precise literal types. It's like a quality-checked stamp that doesn't smear the underlying paint.",
+        lessonMarkdown: `
+### 1. The Problem \`satisfies\` Solves
+
+*💡 Analogy: \`as\` is a security badge override — TypeScript stops asking questions. An explicit type annotation is a uniform — TypeScript treats you like you're wearing it, and you lose any specifics underneath. \`satisfies\` is a referee with a checklist — confirms you meet every requirement, then steps aside without re-labelling you.*
+
+Consider this config object:
+
+\`\`\`typescript
+const ENV_URLS = {
+  dev:        'https://dev.api.example.com',
+  staging:    'https://staging.api.example.com',
+  production: 'https://api.example.com',
+};
+\`\`\`
+
+You want two things:
+
+1. **Validation** — every value should be a string URL
+2. **Inference** — \`ENV_URLS.dev\` should be the literal type \`'https://dev.api.example.com'\`, not just \`string\`
+
+The classic options both fail one of those goals:
+
+#### Option A: explicit type annotation (loses literal types)
+
+\`\`\`typescript
+const ENV_URLS: Record<string, string> = {
+  dev:        'https://dev.api.example.com',
+  // ...
+};
+
+ENV_URLS.dev;        // type: string (lost the literal!)
+ENV_URLS.banana;     // ✅ no error — but 'banana' isn't a real key!
+\`\`\`
+
+#### Option B: no annotation (TypeScript infers freely)
+
+\`\`\`typescript
+const ENV_URLS = {
+  dev:        'https://dev.api.example.com',
+  staging:    'https://staging.api.example.com',
+  production: 'https://api.example.com',
+};
+
+ENV_URLS.dev;        // type: 'https://dev.api.example.com' ✅ literal preserved
+ENV_URLS.banana;     // ❌ correctly errors
+
+// BUT: no validation that VALUES are strings
+const BAD = { dev: 42 };   // accepted — no constraint
+\`\`\`
+
+**\`satisfies\` (TS 4.9+) gives you both.**
+
+---
+
+### 2. \`satisfies\` — Validate Without Widening
+
+\`\`\`typescript
+const ENV_URLS = {
+  dev:        'https://dev.api.example.com',
+  staging:    'https://staging.api.example.com',
+  production: 'https://api.example.com',
+} satisfies Record<string, string>;
+
+ENV_URLS.dev;        // type: 'https://dev.api.example.com' ✅ literal
+ENV_URLS.banana;     // ❌ error — not in the keys
+ENV_URLS.dev = 42;   // ❌ error — must be a string
+
+const BAD = { dev: 42 } satisfies Record<string, string>;
+//          ^^^^^^^^^^^^ ❌ error: 42 is not a string
+\`\`\`
+
+**The magic:** \`satisfies\` checks the value matches the constraint AND keeps the precise inferred type. No widening. No information lost.
+
+---
+
+### 3. Side-by-Side: \`as\` vs \`satisfies\` vs Annotation
+
+\`\`\`typescript
+type Color = { r: number; g: number; b: number };
+
+// Option 1: explicit annotation — widens
+const a: Color = { r: 255, g: 0, b: 0 };
+a;     // type: Color
+a.r;   // type: number  ← widened
+
+// Option 2: 'as' — bypasses checks, possibly unsafe
+const b = { r: 255, g: 0, b: 0 } as Color;
+const c = { r: 255, g: 0 } as Color;   // ❌ runtime missing 'b' — but compile is silent
+
+// Option 3: 'satisfies' — checks AND preserves literals
+const d = { r: 255, g: 0, b: 0 } satisfies Color;
+d;     // type: { r: 255; g: 0; b: 0 }   ← literal preserved!
+d.r;   // type: 255
+\`\`\`
+
+| Tool | Validates shape? | Preserves inference? | Catches missing fields? |
+|------|------------------|----------------------|-------------------------|
+| \`as\` | ❌ | ⚠️ partial | ❌ (silent) |
+| \`: Type\` annotation | ✅ | ❌ widens | ✅ |
+| \`satisfies\` | ✅ | ✅ keeps literals | ✅ |
+
+**The rule:** if you want both validation AND inference, reach for \`satisfies\`. \`as\` is for "I know better than you, TypeScript" (rare). Annotation is for "I want this widened on purpose" (also rare for objects).
+
+---
+
+### 4. Real-World QA Use Cases
+
+#### Test fixture catalog
+
+\`\`\`typescript
+const FIXTURES = {
+  validUser:   { email: 'a@b.com', age: 30 },
+  underage:    { email: 'kid@b.com', age: 16 },
+  invalidEmail:{ email: 'not-an-email', age: 25 },
+} satisfies Record<string, { email: string; age: number }>;
+
+// Each entry validated as { email: string; age: number }
+// AND keys are 'validUser' | 'underage' | 'invalidEmail' (not generic string)
+
+function getFixture(name: keyof typeof FIXTURES) {
+  return FIXTURES[name];
+}
+
+getFixture('validUser');     // ✅
+getFixture('typo');          // ❌ compile error
+\`\`\`
+
+#### Status code map
+
+\`\`\`typescript
+const STATUS_MESSAGES = {
+  200: 'OK',
+  201: 'Created',
+  400: 'Bad Request',
+  401: 'Unauthorized',
+  404: 'Not Found',
+  500: 'Internal Server Error',
+} satisfies Record<number, string>;
+
+type StatusCode = keyof typeof STATUS_MESSAGES;
+// type: 200 | 201 | 400 | 401 | 404 | 500   ← literals preserved
+
+function describeStatus(code: StatusCode): string {
+  return STATUS_MESSAGES[code];   // type: string (the message)
+}
+\`\`\`
+
+Without \`satisfies\`, \`StatusCode\` would be \`number\` — useless.
+
+#### Config object with mixed value types
+
+\`\`\`typescript
+const CONFIG = {
+  apiUrl:    'https://api.example.com',
+  retries:   3,
+  features:  { newCheckout: true, betaSearch: false },
+} satisfies {
+  apiUrl: string;
+  retries: number;
+  features: Record<string, boolean>;
+};
+
+CONFIG.features.newCheckout;   // type: true (literal!)
+CONFIG.retries;                // type: 3 (literal!)
+\`\`\`
+
+You get exact literal types AND validation in a single declaration.
+
+---
+
+### 5. \`satisfies\` Plus \`as const\` — The Power Combo
+
+\`as const\` makes everything readonly literal. \`satisfies\` validates shape. Together they're the strongest immutable+typed pattern:
+
+\`\`\`typescript
+const HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE'] as const satisfies readonly string[];
+
+type HttpMethod = (typeof HTTP_METHODS)[number];
+// type: 'GET' | 'POST' | 'PUT' | 'DELETE'   ← literal union, ready to use
+\`\`\`
+
+This is the modern way to derive a literal-union type from a runtime list, with full validation.
+
+---
+
+### 6. When NOT to Use \`satisfies\`
+
+\`satisfies\` is great when you want to KEEP literal types. Skip it when you want to WIDEN deliberately.
+
+\`\`\`typescript
+// You explicitly want to be able to assign a different string later
+let env: string = 'production';
+env = 'staging';   // ✅ this is fine — that's the whole point
+
+// satisfies would prevent reassignment by preserving the literal
+let env = 'production' satisfies string;   // env is now 'production' literal
+env = 'staging';   // ❌ error — 'staging' is not 'production'
+\`\`\`
+
+For mutable variables you want widened, plain \`: string\` is correct.
+
+Also: \`satisfies\` is **compile-time only**. It does not validate at runtime. If you need runtime validation for untrusted input (API responses, JSON files), reach for **Zod**, **io-ts**, or a hand-written predicate.
+
+---
+
+### 7. \`satisfies\` Cheat Sheet
+
+\`\`\`typescript
+// ✅ Use case 1: const config with literal preservation
+const cfg = { mode: 'dev', port: 3000 } satisfies { mode: string; port: number };
+
+// ✅ Use case 2: lookup tables / enums-as-objects
+const STATUS = { ok: 200, notFound: 404 } satisfies Record<string, number>;
+type StatusKey = keyof typeof STATUS;  // 'ok' | 'notFound'
+
+// ✅ Use case 3: ensuring an object matches an interface without widening
+interface Plugin { name: string; init: () => void }
+const myPlugin = {
+  name: 'reporter',
+  init: () => console.log('init'),
+  extra: 42,                          // ❌ error — not in Plugin
+} satisfies Plugin;
+
+// ✅ Use case 4: satisfies + as const for the cleanest literal unions
+const ROLES = ['admin', 'user', 'guest'] as const satisfies readonly string[];
+type Role = typeof ROLES[number];     // 'admin' | 'user' | 'guest'
+\`\`\`
+
+---
+
+### 8. Common \`satisfies\` Mistakes
+
+- ❌ **Treating it as a runtime check** — it's compile-only; for runtime use \`zod\` or a manual predicate
+- ❌ **Using it on \`let\` mutable variables you want to reassign** — \`satisfies\` preserves literals, blocking later assignments
+- ❌ **Skipping \`as const\` when you wanted readonly literal preservation** — \`satisfies\` alone keeps inference but doesn't make things readonly
+- ❌ **Old TypeScript versions** — \`satisfies\` is TS 4.9+. If your project targets older versions, you'll get a syntax error
+- ❌ **Confusion with \`as\`** — \`as\` overrides; \`satisfies\` validates. They are NOT interchangeable
+
+---
+
+### 9. TypeScript Version Note
+
+\`satisfies\` shipped in **TypeScript 4.9 (November 2022)**. Modern projects (Vite, Next.js, recent CRA replacements, Angular 15+) all use TS 4.9 or later. If your project uses an older version, upgrade — there's almost no reason to stay on TS pre-4.9 in 2026.
+
+Check your version:
+\`\`\`bash
+npx tsc --version
+\`\`\`
+
+---
+
+### 10. The Tester's \`satisfies\` Checklist
+
+- ✅ Use \`satisfies\` for any \`const\` config or fixture object you want both validated AND keyed precisely
+- ✅ Pair \`satisfies\` with \`as const\` for immutable literal-union derivation
+- ✅ Default to \`satisfies\` instead of \`as\` when validating shape — fewer escape hatches, more safety
+- ✅ Don't use \`satisfies\` for runtime validation — that's still Zod / io-ts / manual predicates
+- ✅ Keep \`: Type\` annotation for variables you genuinely want widened (e.g., mutable state)
+        `
+      }
+      ,
       {
         id: 'ts-utility-types',
         title: 'Built-in Utility Types',

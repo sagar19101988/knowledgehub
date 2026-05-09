@@ -107,13 +107,13 @@ export const ZONE_TIERS: Record<string, { id: string; label: string; color: stri
       id: 'beginner',
       label: 'Beginner',
       color: 'text-emerald-400',
-      moduleIds: ['ts-intro','ts-variables','ts-control-flow','ts-template-destructuring','ts-basic-types','ts-arrays-tuples','ts-objects-interfaces','ts-functions','ts-union-intersection','ts-enums','ts-type-aliases','ts-null-safety','ts-type-assertions'],
+      moduleIds: ['ts-intro','ts-variables','ts-control-flow','ts-template-destructuring','ts-basic-types','ts-arrays-tuples','ts-objects-interfaces','ts-functions','ts-union-intersection','ts-enums','ts-type-aliases','ts-null-safety','ts-type-assertions','ts-async-promises'],
     },
     {
       id: 'intermediate',
       label: 'Intermediate',
       color: 'text-sky-400',
-      moduleIds: ['ts-generics','ts-utility-types','ts-keyof-typeof','ts-mapped-types','ts-conditional-types','ts-template-literal-types','ts-indexed-access','ts-classes','ts-oop-principles','ts-modules-imports','ts-decorators'],
+      moduleIds: ['ts-generics','ts-never-unknown','ts-narrowing-exhaustive','ts-satisfies-operator','ts-utility-types','ts-keyof-typeof','ts-mapped-types','ts-conditional-types','ts-template-literal-types','ts-indexed-access','ts-classes','ts-oop-principles','ts-modules-imports','ts-decorators'],
     },
     {
       id: 'expert',

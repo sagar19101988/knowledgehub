@@ -6610,6 +6610,61 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ]
     },
     {
+      level: 'ts-async-promises',
+      questions: [
+        {
+          question: 'What is the return type of an async function that returns a string?',
+          options: [
+            { id: 'a', text: 'string', isCorrect: false },
+            { id: 'b', text: 'Promise<string>', isCorrect: true },
+            { id: 'c', text: 'Promise<void>', isCorrect: false },
+            { id: 'd', text: 'Awaited<string>', isCorrect: false },
+          ],
+          explanation: 'Marking a function async automatically wraps its return type in Promise<...>. async function getName(): Promise<string> { return "Priya" } returns Promise<string>, not just string.'
+        },
+        {
+          question: 'In modern TypeScript (4.0+), what is the type of the variable in catch (error) { ... }?',
+          options: [
+            { id: 'a', text: 'Error', isCorrect: false },
+            { id: 'b', text: 'unknown', isCorrect: true },
+            { id: 'c', text: 'any', isCorrect: false },
+            { id: 'd', text: 'never', isCorrect: false },
+          ],
+          explanation: 'TypeScript 4.0+ types the catch variable as unknown — anyone can throw anything in JavaScript. You must narrow before using: if (error instanceof Error) { console.log(error.message) }.'
+        },
+        {
+          question: 'You need to fetch user, orders, and notifications in parallel and need ALL three to succeed. Which is correct?',
+          options: [
+            { id: 'a', text: 'Promise.race([fetchUser(), fetchOrders(), fetchNotifications()])', isCorrect: false },
+            { id: 'b', text: 'Promise.all([fetchUser(), fetchOrders(), fetchNotifications()])', isCorrect: true },
+            { id: 'c', text: 'Promise.allSettled([fetchUser(), fetchOrders(), fetchNotifications()])', isCorrect: false },
+            { id: 'd', text: 'Three separate awaits in sequence', isCorrect: false },
+          ],
+          explanation: 'Promise.all runs them in parallel (fastest) and rejects if ANY fails — perfect for "all-or-nothing" parallel fetches. Promise.race returns just the first to finish. Promise.allSettled never rejects, useful when partial results matter. Sequential awaits would be slower.'
+        },
+        {
+          question: 'You want to call three health checks in parallel and report which ones succeeded — even if some failed. Best fit?',
+          options: [
+            { id: 'a', text: 'Promise.all', isCorrect: false },
+            { id: 'b', text: 'Promise.allSettled', isCorrect: true },
+            { id: 'c', text: 'Promise.race', isCorrect: false },
+            { id: 'd', text: 'A for-loop with sequential awaits', isCorrect: false },
+          ],
+          explanation: 'Promise.allSettled never rejects — it returns an array of { status: "fulfilled" | "rejected" } so you can inspect every outcome. Promise.all would reject the whole thing if any single check failed.'
+        },
+        {
+          question: 'Which is the most common async bug in TypeScript code?',
+          options: [
+            { id: 'a', text: 'Using too many type annotations', isCorrect: false },
+            { id: 'b', text: 'Forgetting to await a Promise — the code compares a Promise object instead of the resolved value', isCorrect: true },
+            { id: 'c', text: 'Using Promise.all instead of Promise.race', isCorrect: false },
+            { id: 'd', text: 'Marking too many functions as async', isCorrect: false },
+          ],
+          explanation: 'A missing await is the #1 async bug. Code like if (response.ok) {...} when response is a Promise (not the awaited result) silently misbehaves — a Promise is always truthy. Enable the no-floating-promises ESLint rule to catch these automatically.'
+        },
+      ]
+    },
+    {
       level: 'ts-generics',
       questions: [
         {
@@ -6661,6 +6716,171 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
             { id: 'd', text: 'K can be any string when T is an interface', isCorrect: false },
           ],
           explanation: 'function getProperty<T, K extends keyof T>(obj: T, key: K) means K must be a valid key of T. This lets TypeScript infer the exact return type T[K] — if T is User and K is "email", the return type is string. Passing an invalid key ("phonenumber" when it doesn\'t exist) is a compile error.'
+        },
+      ]
+    },
+    {
+      level: 'ts-never-unknown',
+      questions: [
+        {
+          question: 'Which statement about unknown vs any is correct?',
+          options: [
+            { id: 'a', text: 'They behave identically.', isCorrect: false },
+            { id: 'b', text: 'unknown forces you to narrow before use; any allows any operation without checking.', isCorrect: true },
+            { id: 'c', text: 'any is safer than unknown.', isCorrect: false },
+            { id: 'd', text: 'unknown is a deprecated form of any.', isCorrect: false },
+          ],
+          explanation: 'unknown accepts anything (like any) but forbids operations until you narrow it (typeof, instanceof, in, custom predicates). any silently allows any operation, defeating type safety. Modern TypeScript: prefer unknown over any whenever you mean "untrusted input".'
+        },
+        {
+          question: 'Which of these has type never?',
+          options: [
+            { id: 'a', text: 'A function declared as async function f(): Promise<void>', isCorrect: false },
+            { id: 'b', text: 'A function that always throws an error or runs an infinite loop and cannot return normally', isCorrect: true },
+            { id: 'c', text: 'A function that returns null', isCorrect: false },
+            { id: 'd', text: 'A variable assigned undefined', isCorrect: false },
+          ],
+          explanation: 'never represents "no possible value" — used as the return type of functions that always throw, run forever, or otherwise cannot complete. Examples: function fail(msg: string): never { throw new Error(msg) } and infinite-loop watchers.'
+        },
+        {
+          question: 'In the exhaustiveness check pattern, why does TypeScript catch the bug when a new union variant is added?',
+          options: [
+            { id: 'a', text: 'TypeScript reads the file modification time.', isCorrect: false },
+            { id: 'b', text: 'In the default branch, the variable is typed as never. If you add a new variant, the variable is no longer never — assigning it to a never-typed variable becomes a compile error.', isCorrect: true },
+            { id: 'c', text: 'The runtime detects the missing case.', isCorrect: false },
+            { id: 'd', text: 'Linting rules detect it.', isCorrect: false },
+          ],
+          explanation: 'When all cases are handled in a switch, the default branch sees the union narrowed to never. Adding a new variant means the default sees that new variant instead of never — and the compile-time assignment const _: never = value fails. This turns a missed-case bug into a build error.'
+        },
+        {
+          question: 'You receive untrusted JSON from an API. What is the safest type for the parsed value?',
+          options: [
+            { id: 'a', text: 'any', isCorrect: false },
+            { id: 'b', text: 'unknown', isCorrect: true },
+            { id: 'c', text: 'object', isCorrect: false },
+            { id: 'd', text: 'string', isCorrect: false },
+          ],
+          explanation: 'unknown forces you to narrow (typeof check, in operator, custom predicate, or a runtime validator like Zod) before accessing properties. any silently lets you write rawData.user.email — and crash at runtime if the actual JSON has a different shape.'
+        },
+        {
+          question: 'Which is NOT a real-world appearance of the never type?',
+          options: [
+            { id: 'a', text: 'Return type of throw helpers and infinite loops', isCorrect: false },
+            { id: 'b', text: 'Filtered-out members in conditional types: T extends string ? T : never', isCorrect: false },
+            { id: 'c', text: 'A union member that is impossible to reach in switch exhaustiveness', isCorrect: false },
+            { id: 'd', text: 'The default type of variables before assignment', isCorrect: true },
+          ],
+          explanation: 'Variables before assignment have type undefined (or T | undefined depending on flags) — not never. The other three are all places never legitimately appears in real-world TypeScript code.'
+        },
+      ]
+    },
+    {
+      level: 'ts-narrowing-exhaustive',
+      questions: [
+        {
+          question: 'What does TypeScript do automatically when you write if (typeof value === "string") { ... }?',
+          options: [
+            { id: 'a', text: 'Nothing — the check is for runtime only.', isCorrect: false },
+            { id: 'b', text: 'Inside the if block, TypeScript narrows the type of value to string.', isCorrect: true },
+            { id: 'c', text: 'It throws a compile error.', isCorrect: false },
+            { id: 'd', text: 'It re-runs the type checker on the entire file.', isCorrect: false },
+          ],
+          explanation: 'Type narrowing is automatic — every if/else, switch, and equality check narrows the variable type within each branch. TypeScript reads typeof, instanceof, in, and equality checks and updates what it knows about variables in each branch.'
+        },
+        {
+          question: 'In a function that processes a value of type number | undefined, why is if (count) often a bug?',
+          options: [
+            { id: 'a', text: 'The if statement does not work in TypeScript.', isCorrect: false },
+            { id: 'b', text: 'Truthiness coerces 0 to false, so if (count) skips both undefined AND 0 — but 0 may be a valid value.', isCorrect: true },
+            { id: 'c', text: 'TypeScript widens count to any.', isCorrect: false },
+            { id: 'd', text: 'TypeScript will always throw a compile error.', isCorrect: false },
+          ],
+          explanation: 'Falsy values include 0, "", null, undefined, NaN, false. If 0 is a valid input you want to handle, prefer an explicit check like if (count !== undefined). The same applies to empty string for "" and false for booleans — explicit checks preserve valid values.'
+        },
+        {
+          question: 'What is the signature pattern for an assertion function that proves a value is a User?',
+          options: [
+            { id: 'a', text: 'function isUser(value: unknown): value is User', isCorrect: false },
+            { id: 'b', text: 'function assertIsUser(value: unknown): asserts value is User', isCorrect: true },
+            { id: 'c', text: 'function checkUser(value: unknown): User', isCorrect: false },
+            { id: 'd', text: 'function validateUser(value: unknown): boolean', isCorrect: false },
+          ],
+          explanation: 'asserts value is User makes it an assertion function — it throws if the input is not a User, and from that line onwards TypeScript treats the variable as User. Use asserts X is T for "throw if invalid", value is T (predicate) for "return boolean to use in if".'
+        },
+        {
+          question: 'You have a discriminated union type Shape = Circle | Square | Triangle and a switch on shape.kind. To enforce that every variant is handled, what should the default case contain?',
+          options: [
+            { id: 'a', text: 'A console.warn statement', isCorrect: false },
+            { id: 'b', text: 'A line like const _: never = shape; throw new Error(...) — assigning the variable to a never-typed variable forces compile-time exhaustiveness', isCorrect: true },
+            { id: 'c', text: 'A return null statement', isCorrect: false },
+            { id: 'd', text: 'Skip the default — TypeScript handles it automatically.', isCorrect: false },
+          ],
+          explanation: 'Assigning the post-switch variable to a never-typed variable creates a compile error if any union variant is unhandled. This is the canonical exhaustiveness check pattern. Most teams ship a helper: function unreachable(x: never): never { throw new Error(...) }.'
+        },
+        {
+          question: 'When can type narrowing be LOST across asynchronous code?',
+          options: [
+            { id: 'a', text: 'Always — narrowing is reset after every await.', isCorrect: false },
+            { id: 'b', text: 'When the variable refers to a property of an object that could be mutated during the await — local primitives keep their narrowing.', isCorrect: true },
+            { id: 'c', text: 'Never — narrowing always survives async boundaries.', isCorrect: false },
+            { id: 'd', text: 'Only when using Promise.all.', isCorrect: false },
+          ],
+          explanation: 'Local primitives keep their narrowing across an await (TypeScript trusts they cannot be reassigned by the await). But for OBJECT PROPERTIES (this.user.role), TypeScript may need you to re-check after async boundaries because something else could have mutated the object during the wait.'
+        },
+      ]
+    },
+    {
+      level: 'ts-satisfies-operator',
+      questions: [
+        {
+          question: 'What is the main advantage of "satisfies" over a type annotation like ": Record<string, string>"?',
+          options: [
+            { id: 'a', text: 'satisfies runs at runtime; annotation does not.', isCorrect: false },
+            { id: 'b', text: 'satisfies validates the shape AND preserves the precise inferred (literal) types; annotation widens the type.', isCorrect: true },
+            { id: 'c', text: 'satisfies is faster to compile.', isCorrect: false },
+            { id: 'd', text: 'They are identical.', isCorrect: false },
+          ],
+          explanation: 'A type annotation widens the type — { dev: "url" } : Record<string, string> means dev is just string. satisfies validates the same shape but keeps "url" as a literal type. This makes typeof CONFIG.dev exactly "url", and keyof typeof CONFIG exactly the real key set — far more useful than widened versions.'
+        },
+        {
+          question: 'In which TypeScript version did satisfies first appear?',
+          options: [
+            { id: 'a', text: '3.0', isCorrect: false },
+            { id: 'b', text: '4.5', isCorrect: false },
+            { id: 'c', text: '4.9', isCorrect: true },
+            { id: 'd', text: '5.0', isCorrect: false },
+          ],
+          explanation: 'satisfies shipped in TypeScript 4.9 (November 2022). Older projects must upgrade to use it. Modern frameworks (Vite, Next.js, Angular 15+) ship with TS 4.9 or later.'
+        },
+        {
+          question: 'When should you NOT use satisfies?',
+          options: [
+            { id: 'a', text: 'When defining const objects.', isCorrect: false },
+            { id: 'b', text: 'When you intentionally want to widen a value to be reassignable later (e.g., a mutable variable that should accept any string).', isCorrect: true },
+            { id: 'c', text: 'When defining lookup tables.', isCorrect: false },
+            { id: 'd', text: 'When using as const.', isCorrect: false },
+          ],
+          explanation: 'satisfies preserves literal types — so const x = "production" satisfies string makes x literally "production", and assignments like x = "staging" become impossible. For mutable variables you want widened, use a plain : string annotation.'
+        },
+        {
+          question: 'satisfies vs as — what is the key safety difference?',
+          options: [
+            { id: 'a', text: 'They are the same operator with different syntax.', isCorrect: false },
+            { id: 'b', text: 'as silently overrides type checks (and can hide real bugs); satisfies validates the value against the constraint and fails if the shape does not match.', isCorrect: true },
+            { id: 'c', text: 'as runs at runtime; satisfies does not.', isCorrect: false },
+            { id: 'd', text: 'satisfies is only for arrays.', isCorrect: false },
+          ],
+          explanation: 'as is "trust me, I know better" — TypeScript stops checking. satisfies is "validate this matches the type AND keep the inferred specifics." For 90% of the cases where you reach for as, satisfies is the safer choice in modern TypeScript.'
+        },
+        {
+          question: 'Does satisfies provide RUNTIME validation of the value?',
+          options: [
+            { id: 'a', text: 'Yes — it throws an exception at runtime if the shape does not match.', isCorrect: false },
+            { id: 'b', text: 'No — satisfies is purely compile-time. For runtime validation of untrusted input, use Zod, io-ts, or a manual predicate.', isCorrect: true },
+            { id: 'c', text: 'Only when used with as const.', isCorrect: false },
+            { id: 'd', text: 'Only in test mode.', isCorrect: false },
+          ],
+          explanation: 'satisfies is a compile-time check only. It catches misshaped const definitions during build. For runtime validation of API responses, JSON files, or user input, you still need a runtime validator like Zod, io-ts, or hand-written type predicates.'
         },
       ]
     },
