@@ -23391,6 +23391,107 @@ git push
 \`\`\`
 
 This is the loop. Master these commands and the HTML report, and you've mastered the operational side of Playwright. The actual test writing — Modules 1–7 — combined with this running and debugging workflow is what makes a productive QA automation engineer.
+
+---
+
+### 🎛️ UI Mode — The Modern Way to Develop Tests
+
+*💡 Analogy: Writing tests in the terminal is like editing a film by reading the script. UI Mode is like watching the rough cut on a screen with a scrubber — you see every frame, jump to any moment, and edit live. Once you try it, you don't go back to the terminal for development.*
+
+UI Mode launched in 2023 and is now the recommended way to **write and debug tests interactively**.
+
+\`\`\`bash
+npx playwright test --ui
+\`\`\`
+
+This opens a dedicated Playwright app window with:
+
+- **A test tree** on the left — every test in your project, grouped by file and describe block
+- **A timeline** at the top — every action with screenshots, scrub through them like a video
+- **A live browser preview** — see the page state at any step
+- **A locator picker** — hover the page to get the suggested locator
+- **A console** — view network logs, errors, and any \`console.log\` from your tests
+
+#### Common UI Mode workflows
+
+**Workflow 1 — write a new test by exploration**
+1. Launch \`--ui\`
+2. Click "Pick locator" → hover the page → click the element
+3. Copy the suggested locator
+4. Paste into your test code → save
+5. UI Mode auto-reruns the test → see immediate result
+
+**Workflow 2 — debug a failing test**
+1. Open the failing test in the tree → click the red dot
+2. Scrub through the timeline backwards from the failure
+3. See the exact frame where the bug occurred
+4. Inspect the DOM at that frame using the locator picker
+5. Adjust the test, save, auto-rerun
+
+**Workflow 3 — develop assertions iteratively**
+1. Write an empty test with just \`page.goto(...)\`
+2. Run in UI Mode
+3. Use the "Locators" tab to explore the page
+4. Click "Copy locator" for each element you want to assert on
+5. Paste into the test, add \`expect()\`, save → instant feedback
+
+#### Why UI Mode beats the terminal for development
+
+| Concern | Terminal | UI Mode |
+|---------|----------|---------|
+| See what the browser is doing | Headed mode + slow-mo | Built-in timeline scrubber |
+| Find a good locator | Console.log, guess-and-check | Built-in locator picker |
+| Understand a failure | Read the report, re-run | Scrub the timeline frame-by-frame |
+| Iterate quickly | Re-run from scratch each time | Auto-rerun on save |
+
+UI Mode is for **development**. Terminal is for **CI**. Use both.
+
+---
+
+### 🐞 Debug Mode — \`--debug\` for Step-by-Step Inspection
+
+When a test still confuses you after UI Mode, fire up the inspector:
+
+\`\`\`bash
+# Debug a single test
+npx playwright test login.spec.ts --debug
+
+# Debug the test at a specific line
+npx playwright test login.spec.ts:42 --debug
+\`\`\`
+
+This opens **two windows**:
+
+1. **Playwright Inspector** — a control panel with Step Over, Resume, Record buttons
+2. **A real Chromium window** — paused at the start of the test
+
+You can:
+- Click **Step Over** to execute one Playwright command at a time
+- Watch the actual browser respond after each step
+- Pause anywhere with \`await page.pause()\` in your code — execution stops, the inspector takes over
+- **Record actions** — interact with the live browser, the inspector emits Playwright code for what you did
+
+\`\`\`typescript
+test('debugging session', async ({ page }) => {
+  await page.goto('/checkout');
+
+  // Pauses execution here when running with --debug
+  await page.pause();
+
+  await page.getByRole('button', { name: 'Confirm' }).click();
+});
+\`\`\`
+
+#### When to use which debugging tool
+
+| Tool | Best for |
+|------|----------|
+| **\`--ui\`** | Day-to-day test development, exploring the page, picking locators |
+| **\`--debug\`** | Stepping through one specific test to understand its exact behaviour |
+| **\`--headed\` + slow-mo** | Watching a test run in real time without an interactive UI |
+| **HTML report + trace viewer** | Diagnosing a failure that happened in CI |
+
+> **QA Productivity Tip:** Make \`--ui\` your default for writing new tests. The locator picker alone saves 10+ minutes per test compared to console-guessing. The auto-rerun on save tightens the feedback loop from minutes to seconds.
         `
       },
 
@@ -26159,6 +26260,352 @@ await expect(editModal).toBeHidden();
       },
 
       {
+        id: 'pw-mobile-device-emulation',
+        title: 'Mobile & Device Emulation',
+        analogy: "Testing only on a desktop browser is like a chef who tastes their cooking only at room temperature — and ignores how it'll feel hot, cold, or reheated in a microwave. More than half of real users open your site on a phone, in portrait, with their thumb hovering over a tiny tap target while standing on a noisy train with patchy 3G. Device emulation lets you cook in every condition, from your laptop, before a real customer ever does.",
+        lessonMarkdown: `
+## Mobile & Device Emulation
+
+Around 60% of all web traffic in 2026 comes from a phone. If your test suite runs only on a 1920×1080 desktop, you're testing the website *most users will never see*. Playwright ships with a built-in emulator for hundreds of real devices — phones, tablets, low-end Androids — without needing a single physical device.
+
+This module shows you exactly how to add mobile coverage to your test suite, and which mobile-specific bugs to hunt.
+
+---
+
+### 1. The \`devices\` Import — Your Phone Drawer
+
+*💡 Analogy: Imagine a drawer at a phone shop with display models of every popular phone — iPhone 14, Pixel 7, Galaxy S23, iPad Pro. You don't have to buy them; you just open the drawer and pick one. Playwright's \`devices\` is exactly that drawer in code form.*
+
+Playwright ships with **predefined device profiles** for over 100 real devices. Each profile bundles:
+
+- Viewport size (width × height)
+- User-Agent string
+- Device pixel ratio
+- Touch capability (\`hasTouch\`)
+- Whether it's a mobile device (\`isMobile\`)
+- Default orientation
+
+\`\`\`typescript
+import { devices } from '@playwright/test';
+
+console.log(devices['iPhone 14']);
+// {
+//   userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)...',
+//   viewport: { width: 390, height: 664 },
+//   deviceScaleFactor: 3,
+//   isMobile: true,
+//   hasTouch: true,
+//   defaultBrowserType: 'webkit'
+// }
+\`\`\`
+
+**The full list:** \`iPhone 14\`, \`iPhone 14 Pro Max\`, \`Pixel 7\`, \`Galaxy S9+\`, \`iPad Pro 11\`, \`iPad Mini\`, \`Galaxy Tab S4\`, and many more — including older devices for testing legacy browsers.
+
+---
+
+### 2. Running Tests Against a Mobile Device — Two Approaches
+
+#### Approach A: Project-level (recommended)
+
+In \`playwright.config.ts\`, define a project per device. Tests run against each project automatically.
+
+\`\`\`typescript
+import { defineConfig, devices } from '@playwright/test';
+
+export default defineConfig({
+  projects: [
+    { name: 'desktop-chrome', use: { ...devices['Desktop Chrome'] } },
+    { name: 'iphone-14',      use: { ...devices['iPhone 14'] } },
+    { name: 'pixel-7',        use: { ...devices['Pixel 7'] } },
+    { name: 'ipad-pro',       use: { ...devices['iPad Pro 11'] } },
+  ],
+});
+\`\`\`
+
+Run all projects:
+\`\`\`bash
+npx playwright test
+\`\`\`
+
+Run only the iPhone project:
+\`\`\`bash
+npx playwright test --project=iphone-14
+\`\`\`
+
+The same test file now runs four times — once per device. The HTML report shows results grouped by device.
+
+#### Approach B: Per-test override
+
+Need a single test to run on a specific device only?
+
+\`\`\`typescript
+import { test, devices } from '@playwright/test';
+
+test.use({ ...devices['iPhone 14'] });
+
+test('mobile checkout flow', async ({ page }) => {
+  await page.goto('https://shop.com');
+  // Runs as iPhone 14 — touch enabled, mobile UA, 390px wide viewport
+});
+\`\`\`
+
+**When to use which:** Project-level for cross-device coverage of the whole suite. Per-test for one-off mobile-only checks (e.g., testing a hamburger menu that doesn't appear on desktop).
+
+---
+
+### 3. Custom Device Profiles — When the Preset Doesn't Match
+
+If you're testing on an internal device or a niche profile (e.g., a specific tablet), define your own:
+
+\`\`\`typescript
+test.use({
+  viewport: { width: 414, height: 896 },
+  userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
+  deviceScaleFactor: 3,
+  isMobile: true,
+  hasTouch: true,
+});
+\`\`\`
+
+Each property does something specific:
+
+| Property | What it changes |
+|----------|----------------|
+| \`viewport\` | Browser window dimensions in CSS pixels |
+| \`userAgent\` | The User-Agent header sent on every request — server-side device detection sees this |
+| \`deviceScaleFactor\` | Pixel density (3 = retina). Affects how images and screenshots render |
+| \`isMobile\` | Tells the browser this is a mobile device — triggers \`@media (hover: none)\` queries |
+| \`hasTouch\` | Enables touch events; pointer events report as touch |
+
+---
+
+### 4. Touch Events — \`tap()\`, \`pinch\`, Swipes
+
+*💡 Analogy: A click is a single tap of a finger on a touchscreen. A swipe is dragging a finger. A pinch is two fingers zooming. Each requires a different motion — Playwright gives you the API for each.*
+
+#### Single tap
+
+\`\`\`typescript
+await page.getByRole('button', { name: 'Buy Now' }).tap();
+\`\`\`
+
+\`tap()\` works only when \`hasTouch: true\` is set. On non-touch contexts, use \`click()\`.
+
+#### Long press
+
+\`\`\`typescript
+await page.getByRole('button', { name: 'Delete' }).tap({ delay: 800 });
+\`\`\`
+
+Some apps trigger context menus on long press — verify yours does.
+
+#### Swipe (horizontal carousel)
+
+Playwright's \`touchscreen\` API gives you raw control:
+
+\`\`\`typescript
+test('swipe carousel', async ({ page }) => {
+  await page.goto('/products');
+  const carousel = page.getByTestId('product-carousel');
+  const box = await carousel.boundingBox();
+  if (!box) throw new Error('Carousel not found');
+
+  // Swipe left: start at right edge, end at left edge
+  await page.touchscreen.tap(box.x + box.width - 20, box.y + box.height / 2);
+  await page.mouse.move(box.x + box.width - 20, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 20, box.y + box.height / 2, { steps: 10 });
+  await page.mouse.up();
+
+  // Verify next item visible
+  await expect(page.getByText('Product 2')).toBeInViewport();
+});
+\`\`\`
+
+#### Pinch zoom
+
+For pinch-zoom (rare in tests but possible), use CDP directly:
+
+\`\`\`typescript
+const cdp = await page.context().newCDPSession(page);
+await cdp.send('Input.dispatchTouchEvent', {
+  type: 'touchStart',
+  touchPoints: [
+    { x: 100, y: 200 },
+    { x: 300, y: 200 },
+  ],
+});
+// then move fingers closer/further...
+\`\`\`
+
+---
+
+### 5. Mobile-Specific UI Patterns
+
+Some UI elements only appear on mobile. Here's how to test them.
+
+#### Hamburger / drawer menu
+
+\`\`\`typescript
+test('mobile drawer navigation', async ({ page }) => {
+  await page.goto('/');
+
+  // The hamburger only renders below 768px viewport
+  const hamburger = page.getByRole('button', { name: /menu/i });
+  await expect(hamburger).toBeVisible();
+
+  await hamburger.tap();
+  const drawer = page.getByRole('navigation', { name: 'Mobile menu' });
+  await expect(drawer).toBeVisible();
+
+  await drawer.getByRole('link', { name: 'Account' }).tap();
+  await expect(page).toHaveURL(/\\/account/);
+});
+\`\`\`
+
+#### Bottom sheet (modal that slides up from below)
+
+\`\`\`typescript
+const sheet = page.getByRole('dialog', { name: 'Filter products' });
+await page.getByRole('button', { name: 'Filter' }).tap();
+await expect(sheet).toBeVisible();
+
+await sheet.getByLabel('Price low to high').check();
+await sheet.getByRole('button', { name: 'Apply' }).tap();
+await expect(sheet).toBeHidden();
+\`\`\`
+
+#### Pull-to-refresh
+
+Often gesture-driven only. Verify the refresh triggers a network call:
+
+\`\`\`typescript
+const requestPromise = page.waitForRequest('**/api/feed');
+// simulate pull-down via touch
+await page.mouse.move(200, 50);
+await page.mouse.down();
+await page.mouse.move(200, 250, { steps: 10 });
+await page.mouse.up();
+await requestPromise;  // refresh fired
+\`\`\`
+
+---
+
+### 6. Geolocation, Locale, Timezone — Realistic Mobile Context
+
+Real users in different cities have different time zones, languages, and locations. All can be emulated.
+
+\`\`\`typescript
+test.use({
+  geolocation: { latitude: 12.9716, longitude: 77.5946 },  // Bangalore
+  permissions: ['geolocation'],
+  locale: 'en-IN',
+  timezoneId: 'Asia/Kolkata',
+});
+
+test('shows local store distance in km', async ({ page }) => {
+  await page.goto('/store-locator');
+  await page.getByRole('button', { name: 'Use my location' }).tap();
+  await expect(page.getByText(/\\d+ km away/)).toBeVisible();
+});
+\`\`\`
+
+This is gold for finding bugs like:
+- Currency stuck on USD when locale is \`en-IN\`
+- Distance shown in miles when locale uses km
+- Date format \`MM/DD/YYYY\` for users who expect \`DD/MM/YYYY\`
+- App breaking when timezone crosses midnight
+
+---
+
+### 7. Network Emulation — Slow 3G Reality Check
+
+A site that loads in 200 ms on your laptop's fibre connection might take 12 seconds on a real customer's phone. Emulate slow networks to catch these issues.
+
+\`\`\`typescript
+test('checkout works on slow 3G', async ({ page, context }) => {
+  // Throttle to slow 3G
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('Network.emulateNetworkConditions', {
+    offline: false,
+    downloadThroughput: 50 * 1024 / 8,   // 50 Kbps
+    uploadThroughput: 50 * 1024 / 8,
+    latency: 400,                         // 400ms latency
+  });
+
+  await page.goto('/checkout');
+  // Test still passes? Or does the user see broken layout because images haven't loaded?
+});
+\`\`\`
+
+**What this catches:**
+- Images that don't have \`loading="lazy"\` blocking the page
+- Spinners that get stuck because they fire too early
+- Layout shifts as content arrives
+- Timeouts on flows that assume fast networks
+
+---
+
+### 8. Tester's Checklist for Mobile Coverage
+
+- ✅ Run the suite on at least one iPhone profile and one Android profile
+- ✅ Pick the **smallest** common viewport in your user base (often iPhone SE: 375×667) — small screens hide more bugs
+- ✅ Verify the hamburger menu appears below 768px and disappears above
+- ✅ Use \`tap()\` not \`click()\` on mobile-emulated tests
+- ✅ Test in landscape AND portrait — many bugs show in only one orientation
+- ✅ Run a critical flow on emulated slow 3G — does it still work?
+- ✅ Test with \`isMobile: true\` for hover-state bugs (mobile has no hover)
+- ✅ Set realistic geolocation/locale/timezone for at least one project per market
+
+---
+
+### 9. Common Mobile Bugs to Hunt
+
+- ❌ **Tap target too small** — buttons under 44×44 px are hard to hit. Use \`boundingBox()\` to verify size.
+- ❌ **Text overflows** when locale changes (German is ~30% longer than English).
+- ❌ **Hover-only tooltips** invisible on touch (use focus events too).
+- ❌ **Form keyboard covers Submit button** — viewport shrinks when keyboard opens.
+- ❌ **Native pull-to-refresh fires on accidental scroll** at top of list.
+- ❌ **Address autofill** breaks because \`autocomplete\` attributes are missing.
+- ❌ **Map / payment SDKs** silently fail on iOS WebKit but work on Chromium.
+- ❌ **Date pickers** look correct but Apple's picker can't be scripted via standard input fills — needs a custom control flow.
+
+---
+
+### 10. Cross-Device Visual Regression — Bonus
+
+If you're already using visual regression (covered in the Expert tier), screenshot tests on each device profile catch *layout* bugs that aren't otherwise visible:
+
+\`\`\`typescript
+test('homepage layout', async ({ page }, testInfo) => {
+  await page.goto('/');
+  await expect(page).toHaveScreenshot(\`homepage-\${testInfo.project.name}.png\`);
+});
+\`\`\`
+
+Each project ( \`iphone-14\`, \`pixel-7\`, \`ipad-pro\`) writes its own baseline image. Layout shifts on any device fail their own test.
+
+---
+
+### 11. Beyond Emulation — When You Need a Real Device
+
+Emulation is **fast and 90% accurate**, but it doesn't perfectly mimic:
+
+- Real Safari (WebKit on macOS only — but very close)
+- Real touch latency
+- iOS-specific bugs (pull-to-refresh, swipe-back gestures, viewport meta quirks)
+
+For a final pre-release sweep, **run a smoke test on a real device** via:
+
+- **BrowserStack** / **Sauce Labs** — paid cloud farms with real iOS/Android
+- **Lambdatest** — similar
+- **Local USB-tethered phone** + Playwright (advanced — requires extra setup)
+
+The pattern: emulate in CI for speed, real devices for the release-day smoke.
+        `
+      },
+
+      {
         id: 'pw-dialogs-popups-iframes',
         title: 'Dialogs, Popups, iFrames & File Handling',
         analogy: "Handling dialogs, popups, and iframes in automation is like being an air traffic controller managing multiple runways simultaneously. Each new browser window is a new aircraft approaching. Each dialog is a priority alert that needs immediate acknowledgment. Each iframe is a plane from a different airline (different origin) that uses different radio frequencies. If you try to communicate on the wrong frequency, you get silence. The controller (your test) must switch channels deliberately for each.",
@@ -27091,6 +27538,111 @@ test('cancels order', async ({ page, seededDb }) => {
 \`\`\`
 
 > **QA Principle:** Use worker-scoped fixtures for read-only setup (auth state, reference data). Use test-scoped fixtures for anything that gets created, modified, or deleted during a test. This maximises speed without compromising isolation.
+
+---
+
+### 🏷️ Tagging Tests + Filtering by Tag at Runtime
+
+*💡 Analogy: A library uses coloured stickers to mark books — green for fiction, red for reference, gold for new releases. A patron asking "show me all gold-stickered books" gets a shelf in seconds. Test tags are exactly the same: stickers on tests so you can run a curated subset on demand.*
+
+#### Why tag tests?
+
+Real test suites grow to hundreds — sometimes thousands — of tests. You rarely want to run them all:
+
+- **On every PR** — fast smoke tests only
+- **Before release** — full regression
+- **In production** — only critical-path checks
+- **Investigating a bug** — only tests touching that area
+
+Tags let you slice the suite without restructuring files.
+
+#### Adding tags — three ways
+
+**Way 1: in the test title (simplest)**
+
+\`\`\`typescript
+test('user can add to cart @smoke @cart', async ({ page }) => {
+  // ...
+});
+
+test('admin can refund order @regression @admin', async ({ page }) => {
+  // ...
+});
+\`\`\`
+
+**Way 2: with the \`tag\` property (Playwright 1.42+, type-safe)**
+
+\`\`\`typescript
+test('checkout flow', { tag: ['@smoke', '@critical'] }, async ({ page }) => {
+  // ...
+});
+\`\`\`
+
+**Way 3: at the \`describe\` level (applies to all tests inside)**
+
+\`\`\`typescript
+test.describe('Checkout', { tag: '@critical' }, () => {
+  test('place order', async ({ page }) => { /* ... */ });
+  test('apply promo', async ({ page }) => { /* ... */ });
+  // both inherit @critical
+});
+\`\`\`
+
+#### Filtering with \`--grep\` and \`--grep-invert\`
+
+\`\`\`bash
+# Run only @smoke tests
+npx playwright test --grep "@smoke"
+
+# Run @smoke OR @critical (regex alternation)
+npx playwright test --grep "@smoke|@critical"
+
+# Run everything EXCEPT @slow
+npx playwright test --grep-invert "@slow"
+
+# Combine with project filter — smoke tests on iPhone only
+npx playwright test --grep "@smoke" --project="iphone-14"
+\`\`\`
+
+#### Common tag conventions
+
+| Tag | When to use |
+|-----|-------------|
+| \`@smoke\` | Fast, must-pass tests run on every PR |
+| \`@regression\` | Full coverage run nightly or pre-release |
+| \`@critical\` | Release-blocking tests — failure halts deploy |
+| \`@slow\` | Tests over 30 seconds — exclude from PR checks |
+| \`@flaky\` | Known unreliable — quarantined while being fixed |
+| \`@wip\` | Work in progress — excluded by default in CI |
+| \`@a11y\` | Accessibility tests — run separately for a11y reports |
+| \`@perf\` | Performance tests — run on dedicated infrastructure |
+| \`@auth\` / \`@checkout\` / etc. | Feature areas — for targeted runs during bug investigation |
+
+#### Project-level filtering — even more power
+
+In \`playwright.config.ts\`, give each project a default grep:
+
+\`\`\`typescript
+export default defineConfig({
+  projects: [
+    {
+      name: 'smoke',
+      grep: /@smoke/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'regression',
+      grepInvert: /@slow|@flaky/,
+      retries: 2,
+      use: { ...devices['Desktop Chrome'] },
+    },
+  ],
+});
+\`\`\`
+
+Now \`npx playwright test --project=smoke\` runs only smoke tests, even without \`--grep\`. Different projects = different test slices, defined once in config.
+
+> **QA Tip:** Don't over-tag. A test with 10 tags is impossible to filter usefully. Stick to 1-3 tags per test: typically one severity tag (\`@smoke\` / \`@regression\`) and one feature tag (\`@checkout\`).
         `
       },
 
@@ -27579,6 +28131,348 @@ you're using Playwright for UI tests.
 \`\`\`
 
 > **QA Principle:** The best test suite is the one your whole team can maintain. If half your team uses Postman daily and finds it effective, keep it. Add Playwright API calls where the UI+API hybrid pattern saves meaningful time and improves reliability — don't migrate for migration's sake.
+        `
+      },
+
+      {
+        id: 'pw-accessibility-testing',
+        title: 'Accessibility Testing with Playwright',
+        analogy: "Building a website without accessibility tests is like building a public library with stairs but no ramp. The library still 'works' for some people, but a wheelchair user, a blind user, or a parent with a stroller is locked out. Accessibility tests are like the architect's checklist before opening day — every entrance has a ramp, every sign has braille, every elevator announces floors. axe-core is that checklist, and Playwright runs it automatically against every page in your test suite.",
+        lessonMarkdown: `
+## Accessibility Testing with Playwright
+
+Around **15% of the world's population lives with a disability**. For many of them, web accessibility is the difference between using your product and being locked out entirely. In countries like the US, UK, EU, and India, accessibility is also a **legal requirement** — non-compliant sites face lawsuits, fines, and government audits.
+
+The good news: most accessibility bugs are catchable automatically. \`@axe-core/playwright\` integrates the industry-standard a11y rule engine directly into your Playwright suite, flagging WCAG violations on every page you visit.
+
+---
+
+### 1. Why Accessibility Belongs in Automated Tests
+
+*💡 Analogy: A spell-checker doesn't write good prose — but it reliably catches typos. Accessibility scanners don't replace human review — but they catch 30-50% of all WCAG bugs in seconds. Letting them run on every page in your suite is free coverage.*
+
+There are three categories of a11y bugs:
+
+| Category | Example | Caught by axe? |
+|----------|---------|----------------|
+| **Mechanical** | Image with no alt text, button with no accessible name, form input with no label | ✅ Yes |
+| **Structural** | Heading levels skipping (h1 → h4), regions without landmarks | ✅ Yes |
+| **Behavioural** | Focus order makes no sense, keyboard traps, modal doesn't return focus on close | ⚠️ Partly (axe catches some) |
+| **Subjective** | "The animation distracts low-attention users" | ❌ No (needs human review) |
+
+The 70% of bugs axe catches are **boring, repetitive, and high-volume** — exactly the kind humans miss in code review. Automation is a perfect fit.
+
+---
+
+### 2. Setup — \`@axe-core/playwright\`
+
+Install the package:
+
+\`\`\`bash
+npm install --save-dev @axe-core/playwright
+\`\`\`
+
+Use it in a test:
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+
+test('homepage has no a11y violations', async ({ page }) => {
+  await page.goto('/');
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+\`\`\`
+
+That's it. Three lines: load the page, run axe, assert no violations. Run this against every key page in your app and you've caught the bulk of accessibility bugs for free.
+
+---
+
+### 3. Understanding the Results
+
+When violations exist, the result looks like this:
+
+\`\`\`json
+{
+  "violations": [
+    {
+      "id": "image-alt",
+      "impact": "critical",
+      "description": "Ensures <img> elements have alternate text or a role of none or presentation",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.6/image-alt",
+      "nodes": [
+        {
+          "html": "<img src='/banner.jpg'>",
+          "target": ["#hero > img"],
+          "failureSummary": "Fix any of the following: Element does not have an alt attribute"
+        }
+      ]
+    }
+  ]
+}
+\`\`\`
+
+**Each violation has:**
+- \`id\` — the rule that failed (\`image-alt\`, \`color-contrast\`, \`label\`, etc.)
+- \`impact\` — \`minor\` / \`moderate\` / \`serious\` / \`critical\`
+- \`description\` — what's wrong, in plain English
+- \`helpUrl\` — link to the Deque docs explaining how to fix it
+- \`nodes\` — array of every element on the page that violates this rule
+
+---
+
+### 4. Filtering by WCAG Level — \`withTags()\`
+
+WCAG (Web Content Accessibility Guidelines) has three conformance levels:
+
+| Level | Strictness | Most teams aim for |
+|-------|------------|--------------------|
+| **A** | Bare minimum | Required by law in most countries |
+| **AA** | Standard | ⭐ Most companies target this |
+| **AAA** | Highest | Government / public-sector projects |
+
+Filter axe to check only the rules you care about:
+
+\`\`\`typescript
+const results = await new AxeBuilder({ page })
+  .withTags(['wcag2a', 'wcag2aa'])    // WCAG 2.x level A and AA
+  .analyze();
+\`\`\`
+
+Common tag combinations:
+- \`['wcag2a', 'wcag2aa']\` — modern WCAG 2.1, A and AA
+- \`['wcag21a', 'wcag21aa']\` — explicitly WCAG 2.1 (includes mobile rules)
+- \`['wcag22a', 'wcag22aa']\` — newest WCAG 2.2
+
+---
+
+### 5. Excluding Known Issues — Pragmatic Adoption
+
+Real-world apps inherit a11y debt. You can't fix everything in week one. Use exclusions strategically:
+
+#### Exclude a specific element
+
+\`\`\`typescript
+const results = await new AxeBuilder({ page })
+  .exclude('.legacy-banner')   // ignore this element and its children
+  .analyze();
+\`\`\`
+
+#### Exclude a specific rule
+
+\`\`\`typescript
+const results = await new AxeBuilder({ page })
+  .disableRules(['color-contrast'])   // ignore color-contrast violations
+  .analyze();
+\`\`\`
+
+**Document every exclusion with a comment + ticket number.** Excluding without tracking creates technical debt that compounds.
+
+\`\`\`typescript
+// TODO: TICKET-1234 — fix legacy banner contrast and remove this exclusion
+.exclude('.legacy-banner')
+\`\`\`
+
+---
+
+### 6. Scoping the Scan — \`include()\`
+
+Sometimes you want to scan only the part of the page that's your team's responsibility:
+
+\`\`\`typescript
+const results = await new AxeBuilder({ page })
+  .include('main')        // only the <main> element and its children
+  .analyze();
+\`\`\`
+
+This is useful when:
+- Third-party widgets (chat bubbles, analytics) are flagging issues you can't fix
+- You're testing a single component on a complex page
+- You want to baseline only the new code your team owns
+
+---
+
+### 7. Running axe Across Every Page — A Test Helper
+
+Don't copy-paste the same axe call into 50 tests. Build a helper:
+
+\`\`\`typescript
+// helpers/a11y.ts
+import { Page, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+
+export async function expectNoA11yViolations(page: Page, opts?: {
+  include?: string;
+  exclude?: string[];
+  disableRules?: string[];
+}) {
+  let builder = new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']);
+  if (opts?.include) builder = builder.include(opts.include);
+  if (opts?.exclude) for (const sel of opts.exclude) builder = builder.exclude(sel);
+  if (opts?.disableRules) builder = builder.disableRules(opts.disableRules);
+
+  const results = await builder.analyze();
+
+  // Pretty-print so failures are actionable, not a wall of JSON
+  if (results.violations.length > 0) {
+    const lines = results.violations.map(v =>
+      \`[\${v.impact}] \${v.id}: \${v.description}\\n   → \${v.helpUrl}\\n   Nodes: \${v.nodes.length}\`
+    );
+    expect(results.violations, lines.join('\\n\\n')).toEqual([]);
+  }
+}
+\`\`\`
+
+Now every test is one line:
+
+\`\`\`typescript
+test('product page accessibility', async ({ page }) => {
+  await page.goto('/products/42');
+  await expectNoA11yViolations(page);
+});
+\`\`\`
+
+---
+
+### 8. \`toMatchAriaSnapshot\` — Newer Built-in Approach
+
+Playwright 1.45+ ships with **ARIA snapshot testing** — a complementary technique to axe.
+
+\`\`\`typescript
+test('checkout page structure', async ({ page }) => {
+  await page.goto('/checkout');
+  await expect(page.getByRole('main')).toMatchAriaSnapshot();
+});
+\`\`\`
+
+First run, Playwright writes a YAML representation of the accessibility tree:
+
+\`\`\`yaml
+- main:
+  - heading "Complete Your Order" [level=1]
+  - region "Order Summary":
+    - text "Subtotal: $99.99"
+    - text "Shipping: $5.00"
+  - form:
+    - textbox "Email"
+    - textbox "Card number"
+    - button "Pay $104.99"
+\`\`\`
+
+Subsequent runs fail if the structure changes. **Why this matters:** the YAML mirrors what a screen reader user perceives. If the test fails, a screen reader user's experience just changed too.
+
+**axe vs ariaSnapshot:**
+- **axe** = "are there violations of WCAG rules?" — boolean per rule
+- **ariaSnapshot** = "did the structure change?" — diff against a baseline
+
+Run both. They catch different bugs.
+
+---
+
+### 9. Manual A11y Checks That Automation Can't Do
+
+Some checks need a human, but you can still automate parts:
+
+#### Keyboard navigation order
+
+\`\`\`typescript
+test('tab order on login form is sensible', async ({ page }) => {
+  await page.goto('/login');
+
+  await page.keyboard.press('Tab');
+  await expect(page.getByLabel('Email')).toBeFocused();
+
+  await page.keyboard.press('Tab');
+  await expect(page.getByLabel('Password')).toBeFocused();
+
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Sign in' })).toBeFocused();
+});
+\`\`\`
+
+#### Modal returns focus on close
+
+\`\`\`typescript
+test('modal returns focus to trigger on close', async ({ page }) => {
+  await page.goto('/');
+  const trigger = page.getByRole('button', { name: 'Open settings' });
+  await trigger.click();
+
+  const modal = page.getByRole('dialog');
+  await expect(modal).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(modal).toBeHidden();
+  await expect(trigger).toBeFocused();   // focus restored
+});
+\`\`\`
+
+#### Skip-to-content link works
+
+\`\`\`typescript
+test('skip-to-main-content link', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('Tab');                                  // focus first link
+  const skip = page.getByRole('link', { name: /skip to main/i });
+  await expect(skip).toBeFocused();
+  await skip.press('Enter');
+  await expect(page.locator('#main')).toBeFocused();
+});
+\`\`\`
+
+---
+
+### 10. The 10 Most Common Accessibility Bugs to Hunt
+
+- ❌ **Images with no alt text** (\`image-alt\`)
+- ❌ **Form inputs without labels** (\`label\`)
+- ❌ **Buttons with no accessible name** — empty \`<button>\` icon-only buttons (\`button-name\`)
+- ❌ **Insufficient colour contrast** (\`color-contrast\`)
+- ❌ **Heading levels skipping** (h1 → h4) (\`heading-order\`)
+- ❌ **Links with no text** — empty \`<a>\` icon-only links (\`link-name\`)
+- ❌ **Document missing \`<main>\`** (\`landmark-one-main\`)
+- ❌ **Page missing \`<title>\`** (\`document-title\`)
+- ❌ **\`<html>\` missing \`lang\` attribute** (\`html-has-lang\`)
+- ❌ **ARIA attributes on the wrong elements** (\`aria-allowed-attr\`)
+
+---
+
+### 11. Tester's Checklist for Adding A11y to Your Suite
+
+- ✅ Install \`@axe-core/playwright\` and run the basic check on the homepage
+- ✅ Build the \`expectNoA11yViolations\` helper and use it in every test that loads a key page
+- ✅ Filter by \`['wcag2a', 'wcag2aa']\` (target most teams)
+- ✅ Add \`toMatchAriaSnapshot()\` to one test per major page for structure regression
+- ✅ Document every \`exclude()\` with a TODO + ticket
+- ✅ Add a manual test for tab order on login + checkout (the highest-stakes flows)
+- ✅ Schedule a quarterly manual review with a screen-reader user — automation catches the easy 50%, not the hard 50%
+
+---
+
+### 12. Reporting A11y Violations in CI
+
+Add an HTML reporter showing violations grouped by impact:
+
+\`\`\`typescript
+// In your test, attach the axe report to the test result
+import { test } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+
+test('homepage', async ({ page }, testInfo) => {
+  await page.goto('/');
+  const results = await new AxeBuilder({ page }).analyze();
+  if (results.violations.length > 0) {
+    await testInfo.attach('axe-report.json', {
+      body: JSON.stringify(results, null, 2),
+      contentType: 'application/json',
+    });
+  }
+  expect(results.violations).toEqual([]);
+});
+\`\`\`
+
+The HTML report now contains a downloadable JSON of every violation per failed test. Devs and PMs can open it directly without re-running anything.
         `
       },
 
@@ -28640,6 +29534,340 @@ test('page logs expected analytics events', async ({ page }) => {
 | DOM structure audit | \`toMatchSnapshot()\` — HTML is too verbose for \`toEqual\` |
 
 > **QA Tip:** For JSON snapshots, pipe the output through a stable sort before snapping — object key order is not guaranteed in JavaScript and can cause spurious failures.
+        `
+      },
+
+      {
+        id: 'pw-performance-web-vitals',
+        title: 'Performance & Web Vitals Testing',
+        analogy: "A website that takes 8 seconds to load is like a restaurant where the food arrives an hour after you ordered. The food might be perfect — but you've already left, and you're telling everyone never to come back. Performance testing measures whether your app feels fast to real humans. Web Vitals are Google's three universal metrics for that feeling, baked into the browser itself. You can read them from a Playwright test — and fail the build when they regress.",
+        lessonMarkdown: `
+## Performance & Web Vitals Testing
+
+A 1-second delay in page load time costs **7% of conversions**. A 3-second delay costs **40% of mobile users**. Performance is no longer just an engineering concern — it directly drives revenue, SEO rankings, and customer retention. And QA increasingly owns it.
+
+Playwright lets you read browser performance metrics — including Google's official **Core Web Vitals** — straight from a test. This module shows you how, and how to gate the build on regressions.
+
+---
+
+### 1. The Three Core Web Vitals
+
+*💡 Analogy: Imagine timing a restaurant visit. LCP is "how long until your main dish arrives." INP is "how fast does the waiter respond when you wave for the bill." CLS is "how stable is the table — does it suddenly tilt and spill your drink?" Three different things, all important.*
+
+Google has standardised three metrics that every site is measured by:
+
+| Metric | What it measures | Good | Needs work | Poor |
+|--------|------------------|------|------------|------|
+| **LCP** (Largest Contentful Paint) | Time until the biggest visible element renders | < 2.5s | 2.5s–4.0s | > 4.0s |
+| **INP** (Interaction to Next Paint) | Latency between a user click and the next visual update | < 200ms | 200–500ms | > 500ms |
+| **CLS** (Cumulative Layout Shift) | How much the page jumps around as it loads | < 0.1 | 0.1–0.25 | > 0.25 |
+
+Note: **INP replaced FID** in March 2024 as Google's official responsiveness metric.
+
+These three together approximate "does this site feel fast and stable?"
+
+---
+
+### 2. Reading Web Vitals from a Playwright Test
+
+The cleanest approach: load the \`web-vitals\` library inside the page and capture metrics as they fire.
+
+\`\`\`bash
+npm install --save-dev web-vitals
+\`\`\`
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+test('homepage Web Vitals are within budget', async ({ page }) => {
+  await page.goto('/');
+
+  // Inject web-vitals into the page (it's a tiny library)
+  await page.addScriptTag({
+    url: 'https://unpkg.com/web-vitals@4/dist/web-vitals.iife.js',
+  });
+
+  // Trigger something so INP fires
+  await page.click('body');
+
+  // Wait briefly so all metrics report
+  await page.waitForTimeout(2000);
+
+  const vitals = await page.evaluate(() => {
+    return new Promise<{ lcp: number; cls: number; inp: number }>((resolve) => {
+      const result: any = {};
+      // @ts-ignore — webVitals is global after injection
+      webVitals.onLCP((m) => (result.lcp = m.value));
+      // @ts-ignore
+      webVitals.onCLS((m) => (result.cls = m.value));
+      // @ts-ignore
+      webVitals.onINP((m) => (result.inp = m.value));
+      setTimeout(() => resolve(result), 1500);
+    });
+  });
+
+  expect(vitals.lcp).toBeLessThan(2500);
+  expect(vitals.cls).toBeLessThan(0.1);
+  expect(vitals.inp ?? 0).toBeLessThan(200);
+});
+\`\`\`
+
+This is your first **performance budget** — a hard gate that fails the build if the page slows down.
+
+---
+
+### 3. Navigation Timing API — Detailed Page-Load Stages
+
+Web Vitals give you the high-level picture. The **Navigation Timing API** gives you a microscopic breakdown of every stage of a page load.
+
+\`\`\`typescript
+test('homepage page-load timings', async ({ page }) => {
+  await page.goto('/');
+
+  const timing = await page.evaluate(() => {
+    const t = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+    return {
+      dns:           t.domainLookupEnd - t.domainLookupStart,
+      tcp:           t.connectEnd - t.connectStart,
+      ttfb:          t.responseStart - t.requestStart,
+      htmlDownload:  t.responseEnd - t.responseStart,
+      domInteractive:t.domInteractive,
+      domComplete:   t.domComplete,
+      loadComplete:  t.loadEventEnd,
+    };
+  });
+
+  console.log(timing);
+  expect(timing.ttfb).toBeLessThan(800);
+  expect(timing.domInteractive).toBeLessThan(3000);
+});
+\`\`\`
+
+**Each metric tells you something different:**
+
+| Metric | Means | Slow when… |
+|--------|-------|------------|
+| \`dns\` | DNS resolution time | DNS provider is slow |
+| \`tcp\` | TCP handshake | Server is far from user (latency) |
+| \`ttfb\` | Time to first byte | Backend is slow generating the response |
+| \`htmlDownload\` | HTML download time | HTML is huge or bandwidth is low |
+| \`domInteractive\` | DOM is parsed and ready | Lots of inline scripts blocking parse |
+| \`domComplete\` | All resources loaded | Big images / unminified JS |
+
+When LCP is slow, drill into these to find which stage is the bottleneck.
+
+---
+
+### 4. Resource Timing — Per-Asset Performance
+
+Want to find the **slowest single asset** on your page? Use the Resource Timing API.
+
+\`\`\`typescript
+const slowResources = await page.evaluate(() => {
+  return performance.getEntriesByType('resource')
+    .map((r: any) => ({
+      name: r.name,
+      duration: r.duration,
+      size: r.transferSize,
+    }))
+    .sort((a, b) => b.duration - a.duration)
+    .slice(0, 10);   // top 10 slowest
+});
+console.log(slowResources);
+\`\`\`
+
+This is gold for catching:
+- A 3 MB hero image that should be 80 KB
+- A third-party tracking script taking 2 seconds to download
+- An unused font file blocking render
+- An API call that's slow only on this page
+
+---
+
+### 5. Network Throttling — Test Like Real Users
+
+Your laptop on fibre is **not** a representative user. Throttle the network to simulate slow 3G or weak Wi-Fi:
+
+\`\`\`typescript
+test('LCP under 4G simulation', async ({ page, context }) => {
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('Network.emulateNetworkConditions', {
+    offline: false,
+    downloadThroughput: (1.5 * 1024 * 1024) / 8,   // 1.5 Mbps (4G)
+    uploadThroughput: (750 * 1024) / 8,
+    latency: 100,
+  });
+
+  await page.goto('/');
+  // Now measure Web Vitals — you're seeing what a real 4G user sees
+});
+\`\`\`
+
+**Suggested profiles:**
+
+| Profile | Download | Upload | Latency |
+|---------|----------|--------|---------|
+| Slow 3G | 50 Kbps | 50 Kbps | 400ms |
+| Regular 3G | 750 Kbps | 250 Kbps | 100ms |
+| 4G | 1.5 Mbps | 750 Kbps | 100ms |
+| Fast 4G | 4 Mbps | 3 Mbps | 50ms |
+
+For real coverage, run perf tests against multiple profiles.
+
+---
+
+### 6. CPU Throttling — Simulate Cheap Phones
+
+A user on a $100 Android phone has roughly 4× less CPU than your dev MacBook. Throttle the CPU too:
+
+\`\`\`typescript
+const cdp = await context.newCDPSession(page);
+await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });   // 4× slowdown
+\`\`\`
+
+Combined with network throttling, this gives you a realistic low-end-device simulation.
+
+---
+
+### 7. Lighthouse Integration — \`playwright-lighthouse\`
+
+For a complete Lighthouse audit (performance, accessibility, best practices, SEO, PWA), use \`playwright-lighthouse\`:
+
+\`\`\`bash
+npm install --save-dev playwright-lighthouse
+\`\`\`
+
+\`\`\`typescript
+import { test } from '@playwright/test';
+import { playAudit } from 'playwright-lighthouse';
+
+test('homepage passes Lighthouse audit', async ({ page, browserName }, testInfo) => {
+  test.skip(browserName !== 'chromium', 'Lighthouse is Chromium-only');
+
+  await page.goto('/');
+  await playAudit({
+    page,
+    thresholds: {
+      performance: 80,
+      accessibility: 95,
+      'best-practices': 90,
+      seo: 85,
+    },
+    reports: {
+      formats: { html: true, json: false },
+      name: \`lighthouse-\${testInfo.title}\`,
+      directory: \`./lighthouse-reports\`,
+    },
+  });
+});
+\`\`\`
+
+The test fails if any score drops below the threshold and dumps a full HTML report.
+
+---
+
+### 8. Performance Budgets — The Quality Gate
+
+A **performance budget** is a contract: "this metric MUST stay below this value." Codify them once in your suite and the build fails on regression.
+
+\`\`\`typescript
+// helpers/perf-budget.ts
+export const PERF_BUDGETS = {
+  lcp: 2500,       // ms
+  cls: 0.1,
+  inp: 200,        // ms
+  ttfb: 800,       // ms
+  totalBytes: 1.5 * 1024 * 1024,   // 1.5 MB total page weight
+} as const;
+
+export async function expectWithinBudget(metrics: Record<string, number>) {
+  for (const [key, limit] of Object.entries(PERF_BUDGETS)) {
+    if (metrics[key] !== undefined) {
+      expect.soft(metrics[key], \`\${key} budget\`).toBeLessThanOrEqual(limit);
+    }
+  }
+}
+\`\`\`
+
+\`expect.soft\` collects all failures so you see every budget breach in one go, instead of stopping at the first.
+
+---
+
+### 9. Page Weight — Total Bytes Sent
+
+\`\`\`typescript
+test('page weight under budget', async ({ page }) => {
+  let totalBytes = 0;
+  page.on('response', async (res) => {
+    try {
+      const body = await res.body();
+      totalBytes += body.length;
+    } catch { /* response may have been navigated away */ }
+  });
+
+  await page.goto('/', { waitUntil: 'networkidle' });
+  expect(totalBytes).toBeLessThan(1.5 * 1024 * 1024);   // 1.5 MB budget
+});
+\`\`\`
+
+Why this matters: every byte costs the user real money on metered mobile data plans. Page-weight tests catch JS bloat before users do.
+
+---
+
+### 10. Tester's Checklist for Performance
+
+- ✅ One Playwright test per high-traffic page asserting LCP, CLS, INP within budget
+- ✅ A Lighthouse audit per release (Chromium project only)
+- ✅ Network throttling (4G profile) for at least one critical flow
+- ✅ Page-weight test (\`< 1.5 MB total bytes\`) to catch JS bloat
+- ✅ Resource-timing test surfacing top-10 slowest assets — review weekly
+- ✅ Performance budgets in code, not in a Slack message
+- ✅ Performance regression alerts in CI: any p95 increase > 20% week-over-week is investigated
+
+---
+
+### 11. Common Performance Bugs to Hunt
+
+- ❌ **Hero image not optimised** — original 5 MB JPEG instead of 200 KB WebP
+- ❌ **Render-blocking JS** in the \`<head>\` — moves LCP later
+- ❌ **Layout shift from missing image dimensions** — image arrives, content jumps (CLS)
+- ❌ **Font flash** — text invisible for 2 seconds while custom font loads
+- ❌ **Third-party tag delays** — chat widget, analytics, ad scripts can add seconds
+- ❌ **Long tasks blocking the main thread** — JS work over 50ms hurts INP
+- ❌ **Memory leaks** — performance OK on first load, terrible after 10 minutes
+- ❌ **Unused JS** — entire feature flags worth of code shipped on every page
+
+---
+
+### 12. Where to Run Performance Tests
+
+| Environment | Frequency | Why |
+|-------------|-----------|-----|
+| **Local dev** | On demand | Quick "is this PR slower?" check |
+| **CI on every PR** | Every commit | Block regressions before merge |
+| **Staging nightly** | Once per night | Track perf trends over time |
+| **Production synthetic** | Every 5 min | Catch real-world slowdowns instantly |
+
+The pattern: **fast, cheap budgets in CI**; full Lighthouse audits less often; production monitoring continuously.
+
+---
+
+### 13. Bonus — Visualising Trends Over Time
+
+Save metrics to JSON in CI and pipe them into a chart:
+
+\`\`\`typescript
+test.afterEach(async ({}, testInfo) => {
+  const metrics = (testInfo as any).perfMetrics;
+  if (metrics) {
+    fs.appendFileSync('perf-history.jsonl',
+      JSON.stringify({ commit: process.env.GITHUB_SHA, date: new Date().toISOString(), ...metrics }) + '\\n'
+    );
+  }
+});
+\`\`\`
+
+Now you have a time-series of every commit's perf. Plot it with Grafana, a simple HTML chart, or Datadog — sudden cliff = performance regression on a specific PR.
         `
       },
 
@@ -31203,6 +32431,355 @@ npx playwright show-report merged-report
 \`\`\`
 
 > **QA Tip:** CT tests are fast enough that sharding is rarely needed. A typical suite of 200 CT tests finishes in under 30 seconds on a single CI worker. Reserve sharding for your E2E suite where it makes a real impact on total pipeline time.
+        `
+      },
+
+      {
+        id: 'pw-bdd-cucumber-integration',
+        title: 'BDD with Cucumber + Playwright',
+        analogy: "A regular Playwright test is like a chef's recipe written in technical kitchen jargon — only chefs can read it. A BDD test is the same recipe rewritten as a customer-facing menu description: 'Given I'm hungry, when I order the pasta, then it arrives in 15 minutes.' The product owner, the support team, the new joiner — everyone can read it. Cucumber is the translator that lets product folks write the menu while engineers wire up the kitchen.",
+        lessonMarkdown: `
+## BDD with Cucumber + Playwright
+
+**BDD (Behaviour-Driven Development)** is a way of writing tests as plain-English scenarios that anyone — engineer, PM, customer support, sales — can read. Instead of \`await page.click('button.submit')\`, you write:
+
+\`\`\`gherkin
+Given I'm on the checkout page
+When I click "Place order"
+Then I see "Order confirmed"
+\`\`\`
+
+Cucumber is the most widely-used BDD tool. Pairing it with Playwright gives you the best of both: stakeholder-readable specs **and** Playwright's reliable browser automation.
+
+This module shows when BDD pays off, when it's overhead, and how to wire it up cleanly.
+
+---
+
+### 1. Why BDD Matters (and Why It's Sometimes a Trap)
+
+*💡 Analogy: BDD is a translator at a UN summit. When all delegates speak the same language, a translator is overhead. When delegates speak different languages — engineering, product, support, legal — a translator is essential. The decision rests on who's in the room.*
+
+#### When BDD shines
+
+- **Multi-stakeholder requirements** — PM writes the scenario, dev implements steps, QA reviews coverage. Same artifact, three audiences.
+- **Regulated industries** — banks, insurance, healthcare. The scenario IS the audit trail.
+- **Living documentation** — the test file IS the spec. No drift between docs and code.
+- **Onboarding** — new joiners can read \`.feature\` files and instantly understand the product.
+
+#### When BDD is a trap
+
+- **One-team, all-engineers projects** — a translator nobody uses adds maintenance cost
+- **Rapidly-evolving UI** — every UI change requires updating both Gherkin AND step definitions
+- **Tests written ONLY by engineers** — if no PM reads them, the abstraction has no payoff
+
+**The honest rule:** if your PM, support team, or business analyst will actually read the \`.feature\` files, BDD is worth it. If only engineers ever touch them, plain Playwright tests are simpler.
+
+---
+
+### 2. The Setup — \`@cucumber/cucumber\` + Playwright
+
+Install:
+
+\`\`\`bash
+npm install --save-dev @cucumber/cucumber @playwright/test
+\`\`\`
+
+Project structure:
+
+\`\`\`
+project/
+├── features/
+│   ├── login.feature              ← Gherkin scenarios
+│   └── checkout.feature
+├── features/step-definitions/
+│   ├── login.steps.ts             ← TypeScript step implementations
+│   └── checkout.steps.ts
+├── features/support/
+│   ├── world.ts                   ← shared browser/page across steps
+│   └── hooks.ts                   ← Before/After lifecycle
+├── cucumber.cjs                   ← Cucumber config
+└── tsconfig.json
+\`\`\`
+
+---
+
+### 3. Writing a Feature File
+
+A \`.feature\` file is plain Gherkin — readable by humans, structured enough for parsing.
+
+\`\`\`gherkin
+# features/login.feature
+Feature: User login
+
+  As a registered user
+  I want to log in to my account
+  So that I can access my dashboard
+
+  Background:
+    Given I am on the login page
+
+  @smoke
+  Scenario: Successful login with valid credentials
+    When I enter "priya@test.com" as my email
+    And I enter "Secret123!" as my password
+    And I click the "Sign in" button
+    Then I see the dashboard
+    And I see "Welcome back, Priya"
+
+  Scenario: Login fails with wrong password
+    When I enter "priya@test.com" as my email
+    And I enter "wrong-password" as my password
+    And I click the "Sign in" button
+    Then I see the error "Invalid email or password"
+    And I remain on the login page
+
+  Scenario Outline: Login is rate-limited after 5 failures
+    When I attempt login with invalid password <attempts> times
+    Then I see "Too many attempts. Try again in 5 minutes."
+
+    Examples:
+      | attempts |
+      | 5        |
+      | 6        |
+      | 10       |
+\`\`\`
+
+**Notice three patterns:**
+- \`Background\` — runs before every scenario in the feature
+- \`Scenario Outline\` + \`Examples\` — data-driven tests in BDD form
+- \`@smoke\` — a tag for filtering at run time
+
+---
+
+### 4. Step Definitions — Connecting Gherkin to Playwright
+
+Each \`Given\`/\`When\`/\`Then\` line maps to a function:
+
+\`\`\`typescript
+// features/step-definitions/login.steps.ts
+import { Given, When, Then } from '@cucumber/cucumber';
+import { expect } from '@playwright/test';
+import { CustomWorld } from '../support/world';
+
+Given('I am on the login page', async function (this: CustomWorld) {
+  await this.page.goto('/login');
+});
+
+When('I enter {string} as my email', async function (this: CustomWorld, email: string) {
+  await this.page.getByLabel('Email').fill(email);
+});
+
+When('I enter {string} as my password', async function (this: CustomWorld, password: string) {
+  await this.page.getByLabel('Password').fill(password);
+});
+
+When('I click the {string} button', async function (this: CustomWorld, name: string) {
+  await this.page.getByRole('button', { name }).click();
+});
+
+Then('I see the dashboard', async function (this: CustomWorld) {
+  await expect(this.page).toHaveURL(/.*\\/dashboard/);
+});
+
+Then('I see {string}', async function (this: CustomWorld, text: string) {
+  await expect(this.page.getByText(text)).toBeVisible();
+});
+
+Then('I see the error {string}', async function (this: CustomWorld, error: string) {
+  await expect(this.page.getByRole('alert')).toContainText(error);
+});
+
+Then('I remain on the login page', async function (this: CustomWorld) {
+  await expect(this.page).toHaveURL(/.*\\/login/);
+});
+\`\`\`
+
+**Notice:** \`{string}\` is a Cucumber expression — it captures the quoted text into the function parameter. So \`I enter "priya@test.com" as my email\` calls \`fill('priya@test.com')\`.
+
+---
+
+### 5. The World Object — Sharing Browser State Between Steps
+
+Each scenario needs a fresh browser. The **World** is where you store the \`browser\`, \`context\`, and \`page\` so every step can access them.
+
+\`\`\`typescript
+// features/support/world.ts
+import { setWorldConstructor, World, IWorldOptions } from '@cucumber/cucumber';
+import { Browser, BrowserContext, Page, chromium } from '@playwright/test';
+
+export class CustomWorld extends World {
+  browser!: Browser;
+  context!: BrowserContext;
+  page!: Page;
+
+  constructor(options: IWorldOptions) {
+    super(options);
+  }
+
+  async openBrowser() {
+    this.browser = await chromium.launch({ headless: !!process.env.CI });
+    this.context = await this.browser.newContext();
+    this.page = await this.context.newPage();
+  }
+
+  async closeBrowser() {
+    await this.context.close();
+    await this.browser.close();
+  }
+}
+
+setWorldConstructor(CustomWorld);
+\`\`\`
+
+---
+
+### 6. Hooks — Open and Close Per Scenario
+
+\`\`\`typescript
+// features/support/hooks.ts
+import { Before, After, Status } from '@cucumber/cucumber';
+import { CustomWorld } from './world';
+
+Before(async function (this: CustomWorld) {
+  await this.openBrowser();
+});
+
+After(async function (this: CustomWorld, scenario) {
+  // Screenshot on failure
+  if (scenario.result?.status === Status.FAILED) {
+    const screenshot = await this.page.screenshot();
+    this.attach(screenshot, 'image/png');
+  }
+  await this.closeBrowser();
+});
+\`\`\`
+
+The \`this.attach()\` adds the screenshot to the Cucumber HTML report — devs see the exact UI state at the moment of failure.
+
+---
+
+### 7. Configuring Cucumber
+
+\`\`\`javascript
+// cucumber.cjs
+module.exports = {
+  default: {
+    paths: ['features/**/*.feature'],
+    require: ['features/**/*.ts'],
+    requireModule: ['ts-node/register'],
+    format: [
+      'progress-bar',
+      'html:reports/cucumber-report.html',
+      'json:reports/cucumber-report.json',
+    ],
+    parallel: 4,
+  },
+};
+\`\`\`
+
+Run with:
+
+\`\`\`bash
+npx cucumber-js
+\`\`\`
+
+The HTML report shows every scenario with steps, screenshots on failure, and timings. Send it to your PM — they'll actually read it.
+
+---
+
+### 8. Tag-Based Filtering — Running a Subset
+
+Add tags above scenarios:
+
+\`\`\`gherkin
+@smoke @critical
+Scenario: Place order
+
+@regression
+Scenario: Apply 10% promo code
+\`\`\`
+
+Run by tag:
+
+\`\`\`bash
+npx cucumber-js --tags "@smoke"                    # smoke only
+npx cucumber-js --tags "@regression and not @slow" # combined
+npx cucumber-js --tags "@smoke or @critical"       # union
+\`\`\`
+
+**Common tag patterns:**
+- \`@smoke\` — runs in every CI build
+- \`@regression\` — runs nightly
+- \`@critical\` — must-pass for release
+- \`@slow\` — exclude from PR checks
+- \`@wip\` (work in progress) — excluded by default
+
+---
+
+### 9. When to Use Plain Playwright vs BDD
+
+| Situation | Choice |
+|-----------|--------|
+| One team, all engineers | Plain Playwright |
+| Multi-stakeholder requirements | BDD |
+| Highly regulated (audit trail required) | BDD |
+| Tests evolve with weekly UI changes | Plain Playwright (avoids step churn) |
+| Need stakeholder review of test coverage | BDD |
+| Need raw speed in CI | Plain Playwright (Cucumber adds overhead) |
+| Need data-driven testing (50+ rows) | Either — both support it |
+
+---
+
+### 10. Tester's Checklist for Cucumber + Playwright
+
+- ✅ One feature file per user-facing capability (not per technical area)
+- ✅ Scenarios are user-readable — avoid \`Given the database has the following rows...\` in feature files
+- ✅ Step definitions are reusable — \`I click the "X" button\` should work for ANY button
+- ✅ Use \`Background\` for shared setup; don't repeat \`Given I am on the login page\` in every scenario
+- ✅ Tag every scenario (\`@smoke\`, \`@regression\`, etc.)
+- ✅ Hooks always close the browser, even on failure
+- ✅ Screenshots attached on failure for HTML report
+- ✅ Get feedback from PMs — if they're not reading the features, you don't need BDD
+
+---
+
+### 11. Common BDD Anti-Patterns to Avoid
+
+- ❌ **Imperative language in features** — \`I click the button with id #submit\` (sounds technical, breaks the abstraction)
+- ❌ **Database setup in Gherkin** — \`Given the users table has 5 rows\` (move this to a Before hook)
+- ❌ **Brittle locators in step definitions** — couple Gherkin to UI structure → every UI change breaks tests
+- ❌ **One-step-per-line tests** — defeats the purpose of natural language
+- ❌ **Step definitions that aren't reusable** — only used by one scenario means BDD has zero leverage
+- ❌ **Skipping hooks** — leaks browser instances, slows down the suite over time
+- ❌ **Writing scenarios solo as a QA** — if a PM doesn't review them, you've built BDD overhead with no benefit
+- ❌ **Mixing \`Given/When/Then\` randomly** — Given = setup, When = action, Then = assertion. Stay disciplined.
+
+---
+
+### 12. Reporting — \`@cucumber/html-formatter\` and Allure
+
+The default HTML report shows scenarios, steps, and durations.
+
+For **multi-team dashboards**, integrate **Allure**:
+
+\`\`\`bash
+npm install --save-dev allure-cucumberjs
+\`\`\`
+
+Allure produces a beautiful, browseable report with trends, history, attached screenshots, and grouping by feature/tag — gold standard for QA-stakeholder communication.
+
+---
+
+### 13. The Pragmatic Recipe
+
+For a team adopting BDD for the first time:
+
+1. **Start tiny.** Pick ONE high-stakes flow (login, checkout). Write it in BDD, the rest in plain Playwright.
+2. **Get a non-engineer to read the feature file.** If they understand it, BDD is paying off. If not, fix the language.
+3. **Build a library of reusable steps** (\`I click {string}\`, \`I see {string}\`, \`I enter {string} as my {string}\`). 80% of new features will compose from these.
+4. **Tag aggressively.** Without tags, your suite becomes one giant block.
+5. **Review feature files in PRs** like any other code. Stakeholders should sign off on changed scenarios.
+6. **Re-evaluate quarterly.** Is anyone outside engineering reading these files? If no — keep them as plain Playwright next quarter.
         `
       },
 

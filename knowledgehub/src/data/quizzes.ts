@@ -8436,7 +8436,61 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
         },
       ]
     },
-
+    {
+      level: 'pw-mobile-device-emulation',
+      questions: [
+        {
+          question: 'Which Playwright import gives you predefined profiles for hundreds of real devices (iPhone, Pixel, iPad, etc.)?',
+          options: [
+            { id: 'a', text: 'import { devices } from \'@playwright/test\'', isCorrect: true },
+            { id: 'b', text: 'import { phones } from \'@playwright/devices\'', isCorrect: false },
+            { id: 'c', text: 'import { mobile } from \'playwright-mobile\'', isCorrect: false },
+            { id: 'd', text: 'You must define every device profile manually', isCorrect: false },
+          ],
+          explanation: 'The devices export from @playwright/test ships hundreds of preset profiles (viewport, userAgent, deviceScaleFactor, isMobile, hasTouch). Use them via test.use({ ...devices[\'iPhone 14\'] }) or in a project config.'
+        },
+        {
+          question: 'Setting hasTouch: true and isMobile: true in a project config is most needed because:',
+          options: [
+            { id: 'a', text: 'Playwright cannot type into inputs without these flags', isCorrect: false },
+            { id: 'b', text: 'tap() requires hasTouch: true; @media (hover: none) and other mobile-only CSS rules require isMobile: true', isCorrect: true },
+            { id: 'c', text: 'These flags speed up the browser', isCorrect: false },
+            { id: 'd', text: 'They enable network requests to mobile servers', isCorrect: false },
+          ],
+          explanation: 'tap() throws an error without hasTouch: true. isMobile: true triggers media queries like @media (hover: none) so mobile-only CSS rules apply — without it you may see desktop styles even at a mobile viewport.'
+        },
+        {
+          question: 'Why is testing on emulated slow 3G important even when your office Wi-Fi is fast?',
+          options: [
+            { id: 'a', text: 'It is a Playwright requirement.', isCorrect: false },
+            { id: 'b', text: 'Real users on slow networks see broken layouts (images late), stuck spinners, and timeouts that fast networks hide entirely.', isCorrect: true },
+            { id: 'c', text: 'Slow networks make tests deterministic.', isCorrect: false },
+            { id: 'd', text: 'Tests run faster on slow networks.', isCorrect: false },
+          ],
+          explanation: 'A site that looks fine on fibre can fail spectacularly on real-world 3G — images arriving late cause layout shifts, premature spinners, or timeouts. Network throttling reveals these issues before customers report them.'
+        },
+        {
+          question: 'You set geolocation: { latitude: 12.97, longitude: 77.59 } and locale: \'en-IN\' on a project. The site shows the price in USD instead of INR. What kind of bug is this?',
+          options: [
+            { id: 'a', text: 'A Playwright bug.', isCorrect: false },
+            { id: 'b', text: 'Localization bug — the app is not respecting the locale to format currency for Indian users.', isCorrect: true },
+            { id: 'c', text: 'A network issue.', isCorrect: false },
+            { id: 'd', text: 'Expected behaviour — Playwright always shows USD.', isCorrect: false },
+          ],
+          explanation: 'Setting locale should switch currency, date format, and number separators. If the app still shows USD when locale is en-IN, the localization layer is broken — common bug, easy to catch with realistic locale emulation.'
+        },
+        {
+          question: 'A test on iPhone 14 emulation finds a hamburger menu button that is 30×30 pixels. What accessibility/UX issue should you flag?',
+          options: [
+            { id: 'a', text: 'No issue — 30×30 is fine.', isCorrect: false },
+            { id: 'b', text: 'Tap target too small — Apple HIG and Material Design recommend at least 44×44 px for reliable touch.', isCorrect: true },
+            { id: 'c', text: 'The colour is wrong.', isCorrect: false },
+            { id: 'd', text: 'Hamburger menus are forbidden.', isCorrect: false },
+          ],
+          explanation: 'Apple Human Interface Guidelines and Google Material Design both recommend a minimum tap target of 44×44 px. Smaller targets are physically hard to hit accurately, especially for users with motor impairments. Use boundingBox() to assert size.'
+        },
+      ]
+    },
     {
       level: 'pw-dialogs-popups-iframes',
       questions: [
@@ -8603,6 +8657,61 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ]
     },
     {
+      level: 'pw-accessibility-testing',
+      questions: [
+        {
+          question: 'Which package integrates the industry-standard axe-core engine with Playwright?',
+          options: [
+            { id: 'a', text: '@playwright/a11y', isCorrect: false },
+            { id: 'b', text: '@axe-core/playwright', isCorrect: true },
+            { id: 'c', text: 'playwright-wcag', isCorrect: false },
+            { id: 'd', text: 'lighthouse-axe', isCorrect: false },
+          ],
+          explanation: '@axe-core/playwright is the official package from Deque (axe-core authors). It exposes an AxeBuilder class that you instantiate with a Playwright page and run via .analyze().'
+        },
+        {
+          question: 'Which WCAG level is the standard target most companies aim for?',
+          options: [
+            { id: 'a', text: 'A (bare minimum)', isCorrect: false },
+            { id: 'b', text: 'AA (standard)', isCorrect: true },
+            { id: 'c', text: 'AAA (highest)', isCorrect: false },
+            { id: 'd', text: 'AAAA (web 4.0 standard)', isCorrect: false },
+          ],
+          explanation: 'WCAG has three levels: A, AA, AAA. Most companies target AA — strict enough for legal compliance in most jurisdictions, achievable on real-world apps. AAA is rarely fully achievable. There is no AAAA.'
+        },
+        {
+          question: 'What does .toMatchAriaSnapshot() (Playwright 1.45+) capture and assert against?',
+          options: [
+            { id: 'a', text: 'A pixel-perfect screenshot of the page.', isCorrect: false },
+            { id: 'b', text: 'A YAML/text representation of the accessibility tree — what a screen-reader user perceives.', isCorrect: true },
+            { id: 'c', text: 'A JSON dump of every CSS rule.', isCorrect: false },
+            { id: 'd', text: 'The page\'s HTML source.', isCorrect: false },
+          ],
+          explanation: 'toMatchAriaSnapshot() captures the accessibility tree (roles, names, states) as a structured snapshot. If the structure changes — heading levels reorder, a button loses its name, a region disappears — the test fails. It catches "screen-reader experience changed" bugs.'
+        },
+        {
+          question: 'You exclude a problematic element with new AxeBuilder({ page }).exclude(\'.legacy-banner\'). What is the most important thing to do alongside this?',
+          options: [
+            { id: 'a', text: 'Nothing — exclusions are silent and permanent.', isCorrect: false },
+            { id: 'b', text: 'Document the exclusion with a TODO and a ticket number, otherwise it accumulates as silent technical debt.', isCorrect: true },
+            { id: 'c', text: 'Delete the element from the page.', isCorrect: false },
+            { id: 'd', text: 'Run the test in headless mode.', isCorrect: false },
+          ],
+          explanation: 'Exclusions are pragmatic — you cannot fix everything in week one. But undocumented exclusions become silent debt. Always pair an exclude() with a // TODO TICKET-XXX comment so the team can track and remove them.'
+        },
+        {
+          question: 'Which automated check is axe-core LEAST able to verify?',
+          options: [
+            { id: 'a', text: 'Images missing alt text.', isCorrect: false },
+            { id: 'b', text: 'Form inputs without labels.', isCorrect: false },
+            { id: 'c', text: 'Insufficient colour contrast.', isCorrect: false },
+            { id: 'd', text: 'Whether the focus order makes sense to a real keyboard user.', isCorrect: true },
+          ],
+          explanation: 'axe-core catches mechanical violations (missing alt, missing labels, contrast). It cannot judge SUBJECTIVE quality — does the focus order feel logical, do animations distract attention, are interactions discoverable. These need human review or scripted keyboard-navigation tests.'
+        },
+      ]
+    },
+    {
       level: 'pw-auth-at-scale',
       questions: [
         {
@@ -8709,6 +8818,61 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
             { id: 'd', text: 'Test only the default state automatically and rely on human review for the other states', isCorrect: false },
           ],
           explanation: 'Playwright CT mounts components directly in a browser shell without a full application stack, making each test 10–50x faster than an equivalent E2E test. 800 CT visual tests typically finish in under 2 minutes. Running them as E2E tests would require full app startup, routing, and auth for every test, making the suite prohibitively slow.',
+        },
+      ]
+    },
+    {
+      level: 'pw-performance-web-vitals',
+      questions: [
+        {
+          question: 'Which three metrics are Google\'s Core Web Vitals (as of 2024)?',
+          options: [
+            { id: 'a', text: 'TTFB, FCP, FID', isCorrect: false },
+            { id: 'b', text: 'LCP, INP, CLS', isCorrect: true },
+            { id: 'c', text: 'Page weight, request count, latency', isCorrect: false },
+            { id: 'd', text: 'CPU, memory, network', isCorrect: false },
+          ],
+          explanation: 'Largest Contentful Paint, Interaction to Next Paint, Cumulative Layout Shift. INP replaced FID as Google\'s official responsiveness metric in March 2024.'
+        },
+        {
+          question: 'A "good" LCP target is generally:',
+          options: [
+            { id: 'a', text: 'Under 500ms', isCorrect: false },
+            { id: 'b', text: 'Under 2.5 seconds', isCorrect: true },
+            { id: 'c', text: 'Under 10 seconds', isCorrect: false },
+            { id: 'd', text: 'There is no LCP target', isCorrect: false },
+          ],
+          explanation: 'Google\'s official threshold: LCP < 2.5s is good, 2.5–4.0s needs work, > 4.0s is poor. This affects SEO ranking and conversion rates directly.'
+        },
+        {
+          question: 'You measure LCP at 1.8s on your dev MacBook on fibre. Why might real users still complain about slowness?',
+          options: [
+            { id: 'a', text: 'They are wrong; LCP is the only metric that matters.', isCorrect: false },
+            { id: 'b', text: 'Real users are on slower CPUs (cheap phones) and slower networks (3G/4G). Throttle CPU and network in tests to match real conditions.', isCorrect: true },
+            { id: 'c', text: 'LCP measurements are random.', isCorrect: false },
+            { id: 'd', text: 'Real users can disable performance monitoring.', isCorrect: false },
+          ],
+          explanation: 'Dev hardware is much faster than real-world average. A user on a low-end Android with weak Wi-Fi may see 3-4× slower LCP than your laptop. Always emulate slow CPU and slow network in performance tests.'
+        },
+        {
+          question: 'Cumulative Layout Shift (CLS) measures:',
+          options: [
+            { id: 'a', text: 'How much the page jumps around as it loads — content suddenly shifting under the user\'s cursor.', isCorrect: true },
+            { id: 'b', text: 'The total time the page takes to load.', isCorrect: false },
+            { id: 'c', text: 'How much memory the page uses.', isCorrect: false },
+            { id: 'd', text: 'The number of CSS files on the page.', isCorrect: false },
+          ],
+          explanation: 'CLS captures unexpected layout shifts — usually caused by images without dimensions, late-loading ads pushing content down, or fonts swapping. The most user-frustrating perf issue: clicking the wrong button because content jumped at the last millisecond.'
+        },
+        {
+          question: 'What is a "performance budget" in the context of Playwright tests?',
+          options: [
+            { id: 'a', text: 'A monetary cap on cloud testing costs.', isCorrect: false },
+            { id: 'b', text: 'A codified contract — e.g., expect(lcp).toBeLessThan(2500) — that fails the build when a metric regresses past a threshold.', isCorrect: true },
+            { id: 'c', text: 'A schedule for running performance tests.', isCorrect: false },
+            { id: 'd', text: 'The number of concurrent VUs in a load test.', isCorrect: false },
+          ],
+          explanation: 'A performance budget is a hard quality gate: "LCP must stay under 2.5s." Codifying budgets in Playwright tests with toBeLessThan() turns every PR into an opportunity to catch performance regressions before they ship.'
         },
       ]
     },
@@ -8929,6 +9093,61 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
             { id: 'd', text: 'Migrating to CT requires rewriting tests from scratch — the time saved is offset by migration cost', isCorrect: false },
           ],
           explanation: 'CT tests mount a single component without a full application stack, auth flow, or backend. Each CT test typically runs in 0.1–0.5 seconds vs 3–10 seconds for an equivalent E2E test. 300 tests × 3s average = ~15 minutes saved from the E2E suite. The CT run adds ~2–3 minutes. Net saving: 12–13 minutes, reducing a 45-minute suite to ~30 minutes. Tests are also easier to migrate than rewrite — most E2E test bodies convert directly to CT with a mount() call replacing page.goto().',
+        },
+      ]
+    },
+    {
+      level: 'pw-bdd-cucumber-integration',
+      questions: [
+        {
+          question: 'In a Cucumber feature file, what is the purpose of the Given keyword?',
+          options: [
+            { id: 'a', text: 'It performs the action being tested.', isCorrect: false },
+            { id: 'b', text: 'It establishes the precondition or initial state for the scenario.', isCorrect: true },
+            { id: 'c', text: 'It is the assertion at the end of the scenario.', isCorrect: false },
+            { id: 'd', text: 'It is a synonym for When.', isCorrect: false },
+          ],
+          explanation: 'Given = setup / precondition (\'I am on the login page\'). When = action (\'I click sign in\'). Then = assertion (\'I see the dashboard\'). Mixing them up makes feature files confusing — discipline matters.'
+        },
+        {
+          question: 'Why is the World object essential when integrating Cucumber with Playwright?',
+          options: [
+            { id: 'a', text: 'It speeds up step execution.', isCorrect: false },
+            { id: 'b', text: 'It carries the shared browser/context/page across all step definitions in a single scenario, so steps can interact with the same browser session.', isCorrect: true },
+            { id: 'c', text: 'It stores Cucumber tags.', isCorrect: false },
+            { id: 'd', text: 'It is required for hooks to run.', isCorrect: false },
+          ],
+          explanation: 'Each scenario needs its own browser session. The World holds browser, context, page so every step (Given/When/Then in the same scenario) operates on the same Playwright objects. Without it, steps would have nothing to interact with.'
+        },
+        {
+          question: 'A team has only engineers — no PMs or QA analysts read the feature files. The team is debating BDD adoption. Best advice?',
+          options: [
+            { id: 'a', text: 'Always adopt BDD; it is industry standard.', isCorrect: false },
+            { id: 'b', text: 'Skip BDD — without non-engineer readers, the abstraction adds maintenance cost without payoff. Plain Playwright is simpler.', isCorrect: true },
+            { id: 'c', text: 'Adopt BDD only if using TypeScript.', isCorrect: false },
+            { id: 'd', text: 'BDD is mandatory for accessibility compliance.', isCorrect: false },
+          ],
+          explanation: 'BDD\'s value comes from stakeholder readability. If only engineers ever look at feature files, you are writing tests in two layers (Gherkin + step defs) instead of one — pure overhead. Use BDD when product/support/business actually consume the features.'
+        },
+        {
+          question: 'You want to run only smoke tests during CI. How do you tag and filter them in Cucumber?',
+          options: [
+            { id: 'a', text: 'Tag scenarios with @smoke; run with npx cucumber-js --tags "@smoke"', isCorrect: true },
+            { id: 'b', text: 'Rename feature files to *.smoke.feature', isCorrect: false },
+            { id: 'c', text: 'Cucumber does not support filtering; you must split feature files manually', isCorrect: false },
+            { id: 'd', text: 'Set environment variable CUCUMBER_SMOKE=true', isCorrect: false },
+          ],
+          explanation: 'Tags are the standard filtering mechanism. Add @smoke above scenarios, then --tags "@smoke" runs only those. Combine tags with logical operators: --tags "@smoke and not @slow", --tags "@regression or @critical".'
+        },
+        {
+          question: 'Which is a BDD anti-pattern that defeats the purpose of using Cucumber?',
+          options: [
+            { id: 'a', text: 'Writing scenarios with Background sections.', isCorrect: false },
+            { id: 'b', text: 'Writing imperative, technical scenarios like \'Given the database row users.id=42 has email_verified=true\' that no PM can read.', isCorrect: true },
+            { id: 'c', text: 'Adding tags to scenarios.', isCorrect: false },
+            { id: 'd', text: 'Reusing step definitions across scenarios.', isCorrect: false },
+          ],
+          explanation: 'BDD is about user-facing, stakeholder-readable behaviour. Imperative technical detail in feature files defeats the abstraction — at that point you are just writing tests in YAML/Gherkin instead of TypeScript, with extra layers of indirection. Move technical setup into step definitions or hooks.'
         },
       ]
     },
