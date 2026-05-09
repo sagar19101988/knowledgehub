@@ -1,7 +1,7 @@
 # QA Quest – KnowledgeHub  ·  Project Handoff Document
 
 > **Purpose:** Pass full project context from one Claude Code session/profile to the next.  
-> **Last updated:** 2026-05-07  
+> **Last updated:** 2026-05-09 (significant updates — see Section 8 work log and Section 18 open ideas)  
 > **Read this file first**, then `CLAUDE.md` (also at the project root) before doing any work.
 
 ---
@@ -16,7 +16,9 @@
 - **Local path:** `C:\AITestingMaster\AI-Projects\knowledgehub` (Windows). Run dev with `npm run dev` from this directory.
 - **Required local env:** `.env.local` with `VITE_FIREBASE_*` keys must exist; otherwise auth breaks.
 - **User working style:** Plan first, confirm before implementing, **never push without explicit "commit and push" instruction**.
-- **Current state:** All recent feature work shipped to production. Latest commit on main: `a595274 feat(manual): enrich Expert with 10 new modules`. No pending work in flight.
+- **Current state (2026-05-09):** All recent work shipped to production. Latest commit on main: `ad17ad4 feat(typescript): 4 new modules covering modern TS gaps`. The user is **handing off to a different Claude account for some days**.
+- **Important paused work:** A "Gauntlet" final-exam feature is fully designed but paused. **The full plan is at [`knowledgehub/Gauntlet_Plan.md`](Gauntlet_Plan.md)** (now committed). Read it before resuming. Six open questions are pinned at the bottom.
+- **Active idea (not yet acted on):** User wants to migrate from `knowledgehub-indol.vercel.app` to a custom `.com` domain. Brand-name brainstorming was done; user has NOT bought a domain yet. See Section 18.
 
 ---
 
@@ -336,6 +338,29 @@ The login/signup form disables name/email/password inputs while `actionLoading` 
 - **`a483105` feat(manual)** — enrich Manual Testing Intermediate tier with 10 new modules.
 - **`a595274` feat(manual)** — enrich Manual Testing Expert tier with 10 new modules.
 
+### May 8–9, 2026 (this session block)
+
+#### Bug fixes & infra
+- **`71ed08d` / `66333cb` fix(sql)** — escape raw backticks in Expert SQL module template literals (Vite parse error). The pattern: any inline backtick inside a `lessonMarkdown: \`...\`` template literal MUST be escaped as `\\\``. Three locations were caught by Vite at run time. After this, a `Grep` for `^[^`\\\\]*\`[^\`]*\`[^\`]*$` in `analogies.ts` should return no matches — that's the canonical scan to rule out unescaped pairs after content edits.
+- **`11bf5ff` fix(sync)** — **CRITICAL data-loss bug fix.** The previous `SyncToCloud` effect in `App.tsx` fired an immediate `syncToFirestore(uid)` on login. On a fresh browser (empty localStorage), this race could write `{xp:0, completedLevels:[]}` to Firestore *before* the Firestore read returned the user's real progress, wiping it. Fix: added `hydrated: boolean` flag to `useAuthStore`, set to `true` only after a confirmed Firestore read (existing progress loaded OR confirmed no-doc). `SyncToCloud` now gates on `hydrated`. Removed the "fire once immediately" line that was the actual destroyer. On Firestore read error, `hydrated` stays `false` — better to lose new in-session progress than to nuke the cloud copy. Files: `src/App.tsx`, `src/store/useAuthStore.ts`. The user confirmed their personal-laptop progress was intact (Firestore had it); the office laptop showed empty due to a separate corporate-network blocking issue, not this bug — but the bug was real and affected first-time multi-device logins.
+- **`100b8dd` feat(ui)** — global Footer component with `© 2026 QA Quest · Built for testers who break things on purpose.` and three modal links: Privacy, Terms, Contact (`mailto:connect_qaquest@gmail.com`). New file `src/components/Footer.tsx`. Wrapped `<Routes>` in a flexbox so footer sticks to viewport bottom on short pages and scrolls naturally on long ones. Renders on every route including `/login`. Brand will become a domain name once the user buys one — see Section 18.
+
+#### Content enrichment — SQL Sorcery
+- **`e5b9b16`** (rough — see git log for exact hash) — SQL Beginner enrichment: 3 new modules (`sql-foreign-keys`, `sql-constraints`, `sql-like-wildcards`).
+- **`ec...` / similar** — SQL Intermediate enrichment: 2 new (`sql-delete-truncate-drop`, `sql-insert-advanced`) + 5 enrichments to existing modules.
+- **`01cc696`** feat(sql) — SQL Expert enrichment: 2 new (`sql-error-handling`, `sql-pivot-reporting`) + 4 enrichments to existing modules. SQL zone module count: 22 → 29.
+
+#### Content enrichment — API Testing (3-phase)
+- **`bdc67e9` feat(api)** — Phase 1 (Beginner): 3 new modules (`api-rest-vs-soap-vs-graphql`, `api-curl-basics`, `api-versioning-basics`) + 5 enrichments (HEAD/OPTIONS/idempotency, 429/502/503/504, path/query/body comparison, nested JSON+escaping, Postman workspaces/collections/imports).
+- **`bab252c` feat(api)** — Phase 2 (Intermediate): 5 new modules (`api-error-handling`, `api-rate-limiting-throttling`, `api-pagination-filtering-sorting`, `api-file-upload-download`, `api-webhooks-callbacks`) + 2 enrichments (OAuth flows + refresh tokens + HMAC + mTLS in `api-auth-types`; WireMock/Mockoon/MSW + advanced stubbing in `api-mock-servers`).
+- **`2441381` feat(api)** — Phase 3 (Expert): 4 new modules (`api-test-data-strategies`, `api-graphql-testing`, `api-load-testing-tools`, `api-monitoring-observability`) + 4 enrichments (data-driven tests + reporting in automation; full OWASP API Top 10 walkthrough in security; perf test patterns in performance; Newman/secrets/env-gates in ci-cd). API zone module count: 19 → 31.
+
+#### Content enrichment — Playwright
+- **`2d5bbf6` feat(playwright)** — 4 new modules + 2 enrichments. New: `pw-mobile-device-emulation` (touch events, geolocation, network throttling), `pw-accessibility-testing` (`@axe-core/playwright`, WCAG levels, `toMatchAriaSnapshot`), `pw-performance-web-vitals` (LCP/INP/CLS, Lighthouse, performance budgets), `pw-bdd-cucumber-integration` (when BDD pays off, World object, hooks, anti-patterns). Enrichments: tag-based filtering in `pw-test-organisation`, UI Mode + Debug Mode in `pw-running-tests`. Playwright zone module count: 25 → 29.
+
+#### Content enrichment — TypeScript
+- **`ad17ad4` feat(typescript)** — 4 new modules covering modern TS gaps. New: `ts-async-promises` (Beginner; `Promise<T>`, async/await rules, `Promise.all/allSettled/race`, retry+timeout patterns), `ts-never-unknown` (Intermediate; the "top" and "bottom" types, exhaustiveness check), `ts-narrowing-exhaustive` (Intermediate; control-flow narrowing, discriminated-union switches, `asserts x is T`), `ts-satisfies-operator` (Intermediate; the modern alternative to `as`). TypeScript zone module count: 32 → 36.
+
 All commits are pushed and live on production via Vercel.
 
 ---
@@ -436,15 +461,23 @@ Even though they live inside zone-scoped tiers, the unlock-key format `${zoneId}
 This file uses backtick template literals containing example YAML/code that includes `${...}`. Any GitHub Actions snippet must escape `${{ ... }}` as `\${{ ... }}` or it will be parsed as JS template expression — TypeScript will fail. Watch for this when editing.
 
 ### Gotcha 8: Always trust the code over any doc for module counts
-CLAUDE.md zone counts have historically drifted. As of `a595274` (latest main):
+CLAUDE.md zone counts have historically drifted. As of `ad17ad4` (latest main, 2026-05-09):
 - Manual Testing: 15 Beginner + 16 Intermediate + 16 Expert = **47 modules**
-- Playwright: 8 Beginner + 9 Intermediate + 8 Expert = **25 modules**
+- Playwright: 8 Beginner + 11 Intermediate + 10 Expert = **29 modules**
 - AI for QA: 13 Beginner + 14 Intermediate + 13 Expert = **40 modules**
-- SQL Sorcery: 8 Beginner + 8 Intermediate + 6 Expert = **22 modules**
-- API Testing: **19 modules**
-- TypeScript: **17 modules**
+- SQL Sorcery: 11 Beginner + 10 Intermediate + 8 Expert = **29 modules**
+- API Testing: 11 Beginner + 11 Intermediate + 9 Expert = **31 modules**
+- TypeScript: 14 Beginner + 14 Intermediate + 8 Expert = **36 modules**
+- **Grand total: 212 modules**
 
 When any doc and the actual code disagree, **trust the code**. Always grep `zones.tsx` (`moduleIds` arrays) for authoritative counts before quoting numbers.
+
+### Gotcha 11: Template-literal closing backtick errors
+When inserting a new module into `analogies.ts`, the closing `\`` of `lessonMarkdown` must be a **raw backtick** (`` ` ``), not an escaped one (`\\\``). It's an easy slip when ending a content block — and Vite parse-errors loudly when wrong. The canonical scan after content edits:
+```bash
+grep -nE "^[^\`\\\\]*\`[^\`]*\`[^\`]*$" src/data/analogies.ts
+```
+Should return zero matches if every inline backtick is escaped and every fence is `\\\`\\\`\\\``.
 
 ### Gotcha 9: Sanity-check protocol (from CLAUDE.md)
 Before claiming anything about content completeness or module counts:
@@ -532,16 +565,23 @@ git pull origin main
 
 ---
 
-## 15. Known State at Handoff
+## 15. Known State at Handoff (2026-05-09)
 
 - **Branch:** `main`
-- **Latest commit:** `a595274 feat(manual): enrich Expert with 10 new modules`
+- **Latest commit:** `ad17ad4 feat(typescript): 4 new modules covering modern TS gaps`
 - **Working tree:** clean (only untracked utility scripts left over from earlier content authoring; safely ignored)
 - **Remote:** in sync with `origin/main`
 - **Vercel:** auto-deployed from latest commit
 - **TypeScript:** clean (`npx tsc --noEmit` passes)
-- **Vite build:** clean (`npx vite build` passes)
+- **Module totals:** Manual 47 · Playwright 29 · AI for QA 40 · SQL 29 · API 31 · TypeScript 36 = **212 modules**
 - **No uncommitted user-facing changes**
+
+### Files specifically worth knowing about for the new agent
+- **`Gauntlet_Plan.md`** — full design for the paused final-exam feature. Read before resuming Gauntlet work.
+- **`AI_for_QA_Plan.md`** / **`QA_Quest_Tracker.md`** — older user-authored reference docs.
+- **`src/components/Footer.tsx`** — global footer (Privacy/Terms/Contact modals). Brand string `© 2026 QA Quest` will need updating once a domain/brand is finalised.
+- **`src/store/useAuthStore.ts`** — added `hydrated: boolean` flag (May 8). Critical for the data-loss fix. Don't remove.
+- **`src/App.tsx`** `SyncToCloud` — gated on `hydrated`. Removing the gate reintroduces the data-loss race condition.
 
 ---
 
@@ -565,16 +605,62 @@ Repeat after me:
 ## 17. Where This File Lives
 
 **Path:** `C:\AITestingMaster\AI-Projects\knowledgehub\PROJECT_HANDOFF.md`  
-**Status:** Untracked (not committed). Decide whether to commit it or keep it local-only.
+**Status:** Tracked + committed (since the original handoff). Stays on GitHub for future Claude sessions to read.
 
-If you want to commit it for future reference:
-```bash
-git add PROJECT_HANDOFF.md
-git commit -m "docs: add project handoff document for session continuity"
-git push origin main
-```
+---
 
-If you'd rather keep it local (so it doesn't appear publicly on GitHub), leave it untracked. You can also add it to `.gitignore`.
+## 18. Open Ideas & Decisions Pending (read before resuming work)
+
+This section captures ideas that have been **discussed but not implemented**. The new agent should not act on these without the user's explicit confirmation — they're parked for the user's own decision.
+
+### A. The Gauntlet (final-exam feature) — paused
+- **Status:** Fully designed. Plan saved at `Gauntlet_Plan.md` (committed alongside this handoff).
+- **What it is:** A 100-question final exam per zone, unlocked only after all three tiers (Beginner / Intermediate / Expert) of that zone are complete. Each attempt serves a randomized 30-question subset, time-limited, with a report card at the end. 4 question types (single MCQ, multi-MCQ, true/false, code-MCQ).
+- **Why paused:** The user wanted to focus on content enrichment first ("the exam is meaningless without enough modules to test on"). With the recent enrichments, every zone except AI for QA now has substantial coverage — the Gauntlet is now realistically buildable.
+- **Six open questions** are pinned at the bottom of `Gauntlet_Plan.md`. Get the user's answers before writing any code.
+
+### B. Custom domain migration (`.com`)
+- **Status:** Not yet bought. User wants to move off `knowledgehub-indol.vercel.app` to a real `.com` domain.
+- **Brand-name brainstorming done:** The user wants something that fuses the **game theme** with the **QA learning theme**. Top suggestions discussed: `bugforge.com`, `debugdungeon.com`, `qadojo.com`, `bugcodex.com`, `qaquest.com`. User's expressed preference: keep `QA Quest` branding for now, decide on actual domain later.
+- **What needs to happen when a domain is bought:**
+  1. User purchases (Cloudflare Registrar recommended, ~$10/yr)
+  2. Add custom domain in Vercel → project Settings → Domains
+  3. Configure DNS at registrar (CNAME to `cname.vercel-dns.com` or A record `76.76.21.21`)
+  4. **Update Firebase Console → Authentication → Authorized domains** with the new domain (otherwise Google sign-in breaks silently)
+  5. Update `knowledgehub/src/components/Footer.tsx` brand string (`© 2026 QA Quest`)
+  6. Update `CLAUDE.md` and this `PROJECT_HANDOFF.md` with new URL
+
+### C. Skipped on purpose (low-priority for now)
+These were considered but deliberately skipped — don't propose them again unless the user asks:
+
+- **AI/MCP Playwright integration module** — bleeding-edge May 2026 feature, will likely shift fast. Add later when stable.
+- **JSX/React types module in TypeScript zone** — useful but most QAs writing TS for Playwright don't touch JSX.
+- **Setting up TypeScript for Jest/Playwright tooling module** — scattered coverage already exists across modules.
+- **A11y a deeper dive across other zones** — Manual zone has it, Playwright now has a full module; further coverage isn't critical.
+- **AI for QA zone enrichment** — already at 40 modules. The user has not asked for enrichment here yet.
+
+### D. User-flagged future tasks (general)
+- Track which utility scripts at the project root (`fix_*.cjs`, `splice_*.cjs`, `pw_*.txt`, `ts_*.txt`) should be `.gitignore`d or deleted. The user is aware but hasn't decided.
+- Decide if Footer's contact email (`connect_qaquest@gmail.com`) should later become a contact form or HelpScout-style ticketing.
+- Phone number `967519533` was originally given for Contact then replaced with email — the phone number should NOT be reintroduced to the codebase.
+
+---
+
+## 19. Quick Resume Checklist for the New Agent
+
+When the user reopens this project in a fresh Claude Code session, here's the recommended onboarding sequence:
+
+1. **Pull latest:** `git fetch origin && git pull origin main`
+2. **Read** `PROJECT_HANDOFF.md` (this file) → `CLAUDE.md` → `Gauntlet_Plan.md`
+3. **Confirm** `.env.local` exists with `VITE_FIREBASE_*` keys (if missing: `npx vercel env pull .env.local`)
+4. **Verify** typecheck passes: `npx tsc --noEmit`
+5. **Read** the user's first message carefully — they will tell you which thread to pick up:
+   - "Resume Gauntlet" → read `Gauntlet_Plan.md`, get answers to the six open questions
+   - "I bought a domain" → walk through Section 18.B steps
+   - "Continue content enrichment" → ask which zone, follow the same pattern used for SQL/API/Playwright/TypeScript (scan → propose plan with insertion points → user confirms → write → typecheck → user says commit)
+   - Anything else → plan-first protocol applies (Section 11)
+
+6. **Don't push anything** until the user explicitly says "commit and push." Even trivial fixes wait.
 
 ---
 

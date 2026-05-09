@@ -58,18 +58,19 @@ Key data files (all content lives here):
 - `knowledgehub/src/data/quizzes.ts` — quiz questions per module
 - `knowledgehub/src/store/useQuestStore.ts` — Zustand state (XP, progress, badges, localStorage)
 
-## Zone Content Status (May 2026, origin/main)
+## Zone Content Status (2026-05-09, origin/main, commit ad17ad4)
 
 | Zone | Modules | Breakdown | Status |
 |------|---------|-----------|--------|
 | Manual Testing | 47 | 15 Beginner, 16 Intermediate, 16 Expert | ✅ Complete |
-| SQL Sorcery | 22 | 8 Beginner, 8 Intermediate, 6 Expert | ✅ Complete |
-| API Testing | 19 | 8 Beginner, 6 Intermediate, 5 Expert | ✅ Complete |
-| TypeScript | 17 | ✅ Complete |
-| Playwright | 25 | 8 Beginner, 9 Intermediate, 8 Expert | ✅ Complete |
+| SQL Sorcery | 29 | 11 Beginner, 10 Intermediate, 8 Expert | ✅ Complete |
+| API Testing | 31 | 11 Beginner, 11 Intermediate, 9 Expert | ✅ Complete |
+| TypeScript | 36 | 14 Beginner, 14 Intermediate, 8 Expert | ✅ Complete |
+| Playwright | 29 | 8 Beginner, 11 Intermediate, 10 Expert | ✅ Complete |
 | AI for QA | 40 | 13 Beginner, 14 Intermediate, 13 Expert | ✅ Complete |
+| **Grand total** | **212** | | |
 
-**Note:** All zones are now substantially populated. TypeScript questions are 3/module vs 5/module for other zones — could be upgraded for consistency.
+**Note:** All zones are substantially populated. TypeScript quizzes are 3 questions/module vs 5/module elsewhere — could be upgraded for consistency. PROJECT_HANDOFF.md Section 18 has the full list of open ideas (Gauntlet feature, domain migration, etc.).
 
 ## Sanity Check Protocol
 
