@@ -62,6 +62,14 @@ export function getPrerequisiteHint(zoneId: string, moduleId: string): string {
   return all[idx - 1].moduleId;
 }
 
+export function isZoneFullyComplete(zoneId: string, completedLevels: string[]): boolean {
+  const tiers = ZONE_TIERS[zoneId] ?? [];
+  return tiers.every(tier =>
+    tier.moduleIds.length > 0 &&
+    tier.moduleIds.every(m => completedLevels.includes(`${zoneId}::${m}`))
+  );
+}
+
 export function getFirstUnlockedModule(zoneId: string, completedLevels: string[]): string | null {
   if (!isProgressiveZone(zoneId)) {
     const all = flatModules(zoneId);

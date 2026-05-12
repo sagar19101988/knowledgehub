@@ -156,6 +156,8 @@ export const useAuthStore = create<AuthState>((set, get) => {
             completedLevels: s.completedLevels,
             lastBountyDate: s.lastBountyDate,
             theme:          s.theme,
+            masteryBadges:  s.masteryBadges,
+            masteryScores:  s.masteryScores,
           }).catch((err) => {
             console.error('[logout] final Firestore save failed:', err);
           });

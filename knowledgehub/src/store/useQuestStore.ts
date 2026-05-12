@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { saveUserProgress, type UserProgress } from '../lib/firebase';
+import { saveUserProgress, type UserProgress, type MasteryScore } from '../lib/firebase';
 
 export interface QuestState {
   playerName: string | null;
@@ -11,6 +11,8 @@ export interface QuestState {
   lastBountyDate: string | null;
   theme: 'dark' | 'light';
   isGuest: boolean;
+  masteryBadges: Record<string, boolean>;
+  masteryScores: Record<string, MasteryScore>;
 
   // Actions
   setPlayerName: (name: string) => void;
@@ -22,6 +24,7 @@ export interface QuestState {
   claimDailyBounty: () => void;
   toggleTheme: () => void;
   enterGuestMode: () => void;
+  recordMasteryResult: (zoneId: string, score: number, passed: boolean) => void;
 
   // Firebase sync
   hydrateFromFirestore: (progress: UserProgress, displayName: string) => void;
@@ -55,6 +58,8 @@ export const useQuestStore = create<QuestState>()(
       completedLevels: [],
       lastBountyDate: null,
       isGuest: false,
+      masteryBadges: {},
+      masteryScores: {},
 
       setPlayerName: (name) => set({ playerName: name.trim() }),
       clearPlayerName: () => set({ playerName: null }),
@@ -93,6 +98,20 @@ export const useQuestStore = create<QuestState>()(
 
       enterGuestMode: () => set({ isGuest: true, playerName: 'Guest' }),
 
+      recordMasteryResult: (zoneId, score, passed) => set((state) => {
+        const existing = state.masteryScores[zoneId];
+        const updatedScore: MasteryScore = {
+          bestScore: existing ? Math.max(existing.bestScore, score) : score,
+          attempts: (existing?.attempts ?? 0) + 1,
+          lastAttemptAt: new Date().toISOString(),
+        };
+        const earnBadge = passed && !state.masteryBadges[zoneId];
+        return {
+          masteryScores: { ...state.masteryScores, [zoneId]: updatedScore },
+          ...(earnBadge ? { masteryBadges: { ...state.masteryBadges, [zoneId]: true } } : {}),
+        };
+      }),
+
       // ── Called by useAuthStore when user logs in ────────────
       hydrateFromFirestore: (progress, displayName) => {
         // Theme is intentionally NOT hydrated — it's a device-local preference
@@ -105,7 +124,9 @@ export const useQuestStore = create<QuestState>()(
           unlockedBadges: progress.unlockedBadges,
           completedLevels:progress.completedLevels,
           lastBountyDate: progress.lastBountyDate,
-          isGuest:        false, // real login clears guest mode
+          isGuest:        false,
+          masteryBadges:  progress.masteryBadges  ?? {},
+          masteryScores:  progress.masteryScores  ?? {},
         });
       },
 
@@ -120,7 +141,9 @@ export const useQuestStore = create<QuestState>()(
           unlockedBadges: [],
           completedLevels:[],
           lastBountyDate: null,
-          isGuest:        false, // clear guest mode on any reset/logout
+          isGuest:        false,
+          masteryBadges:  {},
+          masteryScores:  {},
         });
         // CRITICAL: the set() above triggers SyncToCloud's subscription,
         // which calls syncToFirestore → schedules a NEW debounced save
@@ -139,6 +162,8 @@ export const useQuestStore = create<QuestState>()(
           unlockedBadges: s.unlockedBadges,
           completedLevels:s.completedLevels,
           lastBountyDate: s.lastBountyDate,
+          masteryBadges:  s.masteryBadges,
+          masteryScores:  s.masteryScores,
         });
       },
     }),
@@ -151,7 +176,9 @@ export const useQuestStore = create<QuestState>()(
         completedLevels:state.completedLevels,
         lastBountyDate: state.lastBountyDate,
         theme:          state.theme,
-        isGuest:        state.isGuest, // persist so guest survives refresh
+        isGuest:        state.isGuest,
+        masteryBadges:  state.masteryBadges,
+        masteryScores:  state.masteryScores,
         // playerName intentionally excluded — always comes from Firebase auth or enterGuestMode
       }),
       // After rehydrating from localStorage, restore the guest display name.

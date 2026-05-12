@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'r
 import { BookOpen, LogOut, Sun, Moon, Loader2, Map, LayoutGrid, ChevronDown, Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BadgeToast } from './components/BadgeToast';
+import { MASTERY_BADGES } from './data/questionBank';
 import { RankLadderModal } from './components/RankLadderModal';
 import { RankUpWatcher } from './components/RankUpWatcher';
 import Footer from './components/Footer';
@@ -11,8 +12,9 @@ import { useAuthStore } from './store/useAuthStore';
 import { ZONES, ZONE_TIERS, getLevel, getTotalModuleCount } from './data/zones';
 
 // ── Lazy-loaded routes (excluded from initial bundle) ─────────
-const ZoneView  = React.lazy(() => import('./components/ZoneView'));
-const AuthPage  = React.lazy(() => import('./components/AuthPage').then(m => ({ default: m.AuthPage })));
+const ZoneView         = React.lazy(() => import('./components/ZoneView'));
+const MasteryTrialPage = React.lazy(() => import('./components/MasteryTrialPage'));
+const AuthPage         = React.lazy(() => import('./components/AuthPage').then(m => ({ default: m.AuthPage })));
 
 // ─────────────────────────────────────────────────────────────
 //  🗺️  ZONE PROGRESS MAP
@@ -38,6 +40,7 @@ const MAP_PATHS: [string, string][] = [
 
 function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
   const completedLevels = useQuestStore(s => s.completedLevels);
+  const masteryBadges = useQuestStore(s => s.masteryBadges);
   const getZoneProg = (zoneId: string) => {
     const total = (ZONE_TIERS[zoneId] ?? []).reduce((s, t) => s + t.moduleIds.length, 0);
     return total ? Math.round(completedLevels.filter(k => k.startsWith(zoneId + '::')).length / total * 100) : 0;
@@ -231,6 +234,11 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
               <p className={`text-[10px] mt-0.5 font-semibold ${isUnstarted ? 'text-slate-600' : 'text-slate-500'}`}>
                 {isMastered ? '⭐ Mastered' : prog > 0 ? `${prog}%` : 'Click to explore'}
               </p>
+              {masteryBadges[zone.id] && (
+                <p className="text-[10px] mt-0.5 font-black text-violet-500 dark:text-violet-400">
+                  {MASTERY_BADGES[zone.id]?.icon} {MASTERY_BADGES[zone.id]?.name}
+                </p>
+              )}
             </div>
           </motion.div>
           </div>
@@ -286,6 +294,7 @@ function HubMap() {
     : next.requiresFullCompletion
       ? `${xp.toLocaleString()} / ${next.min.toLocaleString()} XP · ${completedLevels.length} / ${totalModules} modules`
       : `${xp.toLocaleString()} / ${next.min.toLocaleString()} XP`;
+  const masteryBadges = useQuestStore((state) => state.masteryBadges);
   const earnedCount = unlockedBadges.length;
 
   // Rank ladder modal (rank-up celebration is now handled globally by RankUpWatcher in App)
@@ -624,6 +633,11 @@ function HubMap() {
                       ⭐ {zone.badge}
                     </div>
                   )}
+                  {masteryBadges[zone.id] && MASTERY_BADGES[zone.id] && (
+                    <div className="absolute top-0 left-0 bg-violet-600 text-white text-[10px] font-black px-2.5 py-1 rounded-br-lg z-10 flex items-center gap-1">
+                      {MASTERY_BADGES[zone.id].icon} {MASTERY_BADGES[zone.id].name}
+                    </div>
+                  )}
                   {progress === 0 && (
                     <div className="absolute inset-0 dark:bg-slate-950/40 dark:backdrop-blur-[1px] z-0 transition-opacity group-hover:opacity-0" />
                   )}
@@ -818,6 +832,7 @@ export default function App() {
               <Route path="/login" element={<LoginRoute />} />
               <Route path="/" element={<ProtectedRoute><HubMap /></ProtectedRoute>} />
               <Route path="/zone/:id" element={<ProtectedRoute><ZoneView /></ProtectedRoute>} />
+              <Route path="/zone/:id/mastery" element={<ProtectedRoute><MasteryTrialPage /></ProtectedRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>

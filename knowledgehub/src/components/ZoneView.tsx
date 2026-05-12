@@ -9,8 +9,9 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { ArrowLeft, BookOpen, Swords, Sun, Moon, ChevronDown, CheckCircle2, Lock, LogOut, Menu, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, Swords, Sun, Moon, ChevronDown, CheckCircle2, Lock, LogOut, Menu, X, Trophy } from 'lucide-react';
 import { ZONES_CONTENT } from '../data/analogies';
+import { MASTERY_BADGES, QUESTION_BANK } from '../data/questionBank';
 import { ZONES, ZONE_TIERS, getLevel, getTotalModuleCount } from '../data/zones';
 import { QuizEngine } from './QuizEngine';
 import { useQuestStore } from '../store/useQuestStore';
@@ -39,6 +40,8 @@ export default function ZoneView() {
   const zoneMeta = ZONES.find(z => z.id === id);
   const contentData = ZONES_CONTENT[id || ''];
   const completedLevels = useQuestStore((state) => state.completedLevels);
+  const masteryBadges = useQuestStore((state) => state.masteryBadges);
+  const masteryScores = useQuestStore((state) => state.masteryScores);
   const theme = useQuestStore((state) => state.theme);
   const toggleTheme = useQuestStore((state) => state.toggleTheme);
   const isGuest = useQuestStore((state) => state.isGuest);
@@ -129,7 +132,7 @@ export default function ZoneView() {
         {/* ── LEFT: Back + Hamburger (mobile) + Breadcrumb ── */}
         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
           <button
-            onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/')}
+            onClick={() => navigate('/')}
             aria-label="Go back"
             className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-fuchsia-500 dark:hover:text-fuchsia-400 hover:border-fuchsia-300 dark:hover:border-fuchsia-700 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 transition-all duration-200 group flex-shrink-0"
           >
@@ -178,8 +181,32 @@ export default function ZoneView() {
           </button>
         </div>
 
-        {/* ── RIGHT: Avatar dropdown ── */}
-        <div className="flex-1 flex justify-end">
+        {/* ── RIGHT: Mastery Trial + Avatar dropdown ── */}
+        <div className="flex-1 flex justify-end items-center gap-2 sm:gap-3">
+          {(QUESTION_BANK[id || ''] ?? []).length > 0 && (() => {
+            const earned = masteryBadges[id || ''] === true;
+            const badge = MASTERY_BADGES[id || ''];
+            return (
+              <button
+                onClick={() => navigate(`/zone/${id}/mastery`)}
+                aria-label="Open Mastery Trial"
+                title={earned && badge ? `${badge.name} earned — Mastery Trial` : 'Mastery Trial'}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 transition-all duration-200 group flex-shrink-0 hover:scale-[1.03] active:scale-[0.98]
+                  ${earned
+                    ? 'bg-gradient-to-r from-violet-500/15 to-fuchsia-500/15 dark:from-violet-500/20 dark:to-fuchsia-500/20 border-violet-400 dark:border-violet-500/60 text-violet-700 dark:text-violet-200 shadow-[0_0_14px_rgba(139,92,246,0.35)] dark:shadow-[0_0_16px_rgba(139,92,246,0.45)] hover:shadow-[0_0_20px_rgba(139,92,246,0.5)]'
+                    : `${zoneMeta.bgColor} ${zoneMeta.borderColor} ${zoneMeta.colorText} shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_14px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_0_14px_rgba(168,85,247,0.25)]`}`}
+              >
+                <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-sm flex-shrink-0 border ${earned ? 'bg-white/80 dark:bg-slate-900/80 border-violet-300 dark:border-violet-500/40' : `bg-white/80 dark:bg-slate-900/80 ${zoneMeta.borderColor}`}`}>
+                  {earned && badge
+                    ? <span className="leading-none">{badge.icon}</span>
+                    : <Trophy size={13} className={`${zoneMeta.colorText} group-hover:rotate-[8deg] transition-transform duration-200`} />}
+                </span>
+                <span className="hidden md:inline text-xs font-black uppercase tracking-[0.08em]">
+                  {earned ? badge?.name ?? 'Mastery Trial' : 'Mastery Trial'}
+                </span>
+              </button>
+            );
+          })()}
           <div className="relative" ref={avatarRef}>
             {/* Avatar trigger button */}
             <button
@@ -538,7 +565,71 @@ export default function ZoneView() {
                 })}
               </div>
             )}
+
+            {/* ── Mastery Trial tile ── */}
+            {(() => {
+              const hasQuestions = (QUESTION_BANK[id || ''] ?? []).length > 0;
+              const badge = MASTERY_BADGES[id || ''];
+              const earned = masteryBadges[id || ''] === true;
+              const score = masteryScores[id || ''];
+              return (
+                <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  onClick={() => navigate(`/zone/${id}/mastery`)}
+                  className={`w-full text-left rounded-2xl border-2 p-4 transition-all duration-200 group
+                    ${earned
+                      ? 'border-violet-500/60 bg-violet-500/8 dark:bg-violet-500/5 hover:border-violet-500 hover:bg-violet-500/12'
+                      : hasQuestions
+                      ? `${zoneMeta?.borderColor ?? 'border-slate-300'} ${zoneMeta?.bgColor ?? 'bg-slate-50'} hover:border-opacity-80 hover:scale-[1.01]`
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/30 opacity-70 cursor-not-allowed'
+                    }`}
+                  disabled={!hasQuestions}
+                  title={!hasQuestions ? 'Questions coming soon' : undefined}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 border
+                      ${earned ? 'bg-violet-500/15 border-violet-500/40 text-violet-600 dark:text-violet-400' : 'bg-white/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-700 text-slate-500'}`}>
+                      <Trophy size={18} className={earned ? 'text-violet-500' : ''} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-black leading-tight ${earned ? 'text-violet-700 dark:text-violet-300' : 'text-slate-700 dark:text-slate-200'}`}>
+                        Mastery Trial
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {hasQuestions ? '30 questions · 30 min' : 'Coming soon'}
+                      </p>
+                    </div>
+                    {earned && badge && (
+                      <span className="text-lg flex-shrink-0" title={badge.name}>{badge.icon}</span>
+                    )}
+                  </div>
+                  {/* Badge name if earned */}
+                  {earned && badge && (
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="text-xs font-black text-violet-600 dark:text-violet-400">{badge.icon} {badge.name}</span>
+                    </div>
+                  )}
+                  {/* Score stats */}
+                  {score && (
+                    <div className="flex gap-3 mt-2 text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                      <span>Best: {score.bestScore}/30</span>
+                      <span>·</span>
+                      <span>{score.attempts} attempt{score.attempts !== 1 ? 's' : ''}</span>
+                    </div>
+                  )}
+                  {/* CTA */}
+                  {hasQuestions && (
+                    <div className={`mt-2.5 text-xs font-black flex items-center gap-1 group-hover:gap-2 transition-all
+                      ${earned ? 'text-violet-600 dark:text-violet-400' : (zoneMeta?.colorText ?? 'text-slate-600')}`}>
+                      ⚔️ {score ? 'Retake Trial' : 'Enter the Trial'} →
+                    </div>
+                  )}
+                  </button>
+                </div>
+              );
+            })()}
           </div>
+
           {/* Fade gradient — signals more content below without a scrollbar */}
           <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#f4f3ff] dark:from-[#07050f] to-transparent" />
         </aside>

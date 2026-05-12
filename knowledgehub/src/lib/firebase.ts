@@ -36,6 +36,12 @@ const googleProvider = new GoogleAuthProvider();
 // ─── Types ────────────────────────────────────────────────────
 export type { User };
 
+export interface MasteryScore {
+  bestScore: number;
+  attempts: number;
+  lastAttemptAt: string;
+}
+
 export interface UserProgress {
   xp: number;
   zoneProgress: Record<string, number>;
@@ -45,6 +51,9 @@ export interface UserProgress {
   // theme is no longer synced (device-local preference); kept optional
   // because legacy Firestore docs may still have it written.
   theme?: 'dark' | 'light';
+  // Mastery Trial — optional so legacy Firestore docs are safe
+  masteryBadges?: Record<string, boolean>;
+  masteryScores?: Record<string, MasteryScore>;
 }
 
 export interface FirestoreUser {
