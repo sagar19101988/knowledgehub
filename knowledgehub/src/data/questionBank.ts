@@ -1437,6 +1437,732 @@ Week 52:  0 regression defects, 6 production escapes`,
     },
   ],
 
+  playwright: [
+    // ── BEGINNER ──────────────────────────────────────────────────
+    {
+      id: 'pw-q001',
+      type: 'mcq',
+      difficulty: 'beginner',
+      question: 'Which best describes what end-to-end (E2E) tests verify that unit and integration tests do not?',
+      options: [
+        'They prove individual functions work correctly in isolation',
+        'They verify that all layers of the application — UI, API, database — work together exactly as a real user would experience them',
+        'They are required by every modern programming language',
+        'They are faster than unit tests because they skip the build step',
+      ],
+      correct: 1,
+      explanation:
+        'Unit tests check a single function or class in isolation. Integration tests check that a small group of components work together. E2E tests drive the real application end-to-end through a browser, asserting that the user-facing flow works. They are slower but catch defects no lower layer can detect — like a CSS regression that hides a button.',
+    },
+    {
+      id: 'pw-q002',
+      type: 'fill-blank',
+      difficulty: 'beginner',
+      question: 'The standard command to bootstrap a new Playwright project (scaffolding config, example test, and the test runner) is `npm init ___@latest`.',
+      blank: 'Bootstrap a Playwright project with `npm init ___@latest`.',
+      chips: ['playwright', 'pw', 'e2e', 'browser'],
+      correct: 'playwright',
+      explanation:
+        '`npm init playwright@latest` scaffolds the whole project — `playwright.config.ts`, a `tests/` folder, example specs, and the GitHub Action template. It also downloads the browser binaries (Chromium, Firefox, WebKit) so tests can run cross-browser out of the box.',
+    },
+    {
+      id: 'pw-q003',
+      type: 'mcq',
+      difficulty: 'beginner',
+      question: 'A Playwright test starts with `test("user can log in", async ({ page }) => { ... })`. What is `page`?',
+      options: [
+        'A reference to the test file on disk',
+        'A Playwright-provided fixture representing an isolated browser tab; every test gets its own fresh `page`',
+        'A constant set in the playwright.config.ts',
+        'The DOM document loaded into Node — there is no real browser',
+      ],
+      correct: 1,
+      explanation:
+        '`page` is a built-in fixture — Playwright injects a brand-new browser tab into every test by default, ensuring isolation. Tests do not bleed cookies, storage, or auth state across each other unless you explicitly share state via `storageState` or fixtures.',
+    },
+    {
+      id: 'pw-q004',
+      type: 'mcq',
+      difficulty: 'beginner',
+      question: 'Which locator strategy does Playwright recommend as the most stable and accessibility-friendly?',
+      options: [
+        'CSS selectors using class names like `.btn-primary`',
+        'XPath expressions targeting the DOM structure',
+        '`getByRole` — locates by ARIA role and accessible name, exactly how assistive tech finds elements',
+        '`page.locator("button:nth-child(3)")` — positional CSS',
+      ],
+      correct: 2,
+      explanation:
+        'Playwright\'s priority list is: getByRole > getByLabel > getByPlaceholder > getByText > getByTestId > CSS/XPath. Role-based locators survive class renames and layout reshuffles, and they double as accessibility audits — if a button has no accessible name, the test catches it.',
+    },
+    {
+      id: 'pw-q005',
+      type: 'code-mcq',
+      difficulty: 'beginner',
+      question: 'Which of these locators for the "Submit" button is the most stable across UI refactors?',
+      code: `// All four target the same button.
+A: page.locator('.btn.btn-primary.submit-btn')
+B: page.locator('div:nth-child(3) > form > button')
+C: page.getByRole('button', { name: 'Submit' })
+D: page.locator('#root > div > div > form > button')`,
+      codeLanguage: 'typescript',
+      options: [
+        'A — CSS classes are the canonical hook',
+        'B — positional selectors are the most precise',
+        'C — role + accessible name survives class renames, restructures, and CSS framework changes',
+        'D — full path from the root guarantees uniqueness',
+      ],
+      correct: 2,
+      explanation:
+        'Class names change with redesigns; positional selectors break the moment a wrapper div is added. Role-based locators survive both. The only thing that breaks `getByRole` is removing the button or changing its label — both of which are intentional changes, not refactors.',
+    },
+    {
+      id: 'pw-q006',
+      type: 'tf',
+      difficulty: 'beginner',
+      question: 'A locator like `page.locator("div.card > .row:nth-child(3) > button")` is just as resilient as `page.getByRole("button", { name: "Add to cart" })`.',
+      correct: false,
+      explanation:
+        'Deeply nested CSS with positional selectors is the textbook brittle locator: it breaks the day someone wraps the section in an extra `<div>`, swaps `card` for `panel`, or rearranges the rows. Role-based locators describe what the element *is*, not where it sits — they survive almost every cosmetic change.',
+    },
+    {
+      id: 'pw-q007',
+      type: 'mcq',
+      difficulty: 'beginner',
+      question: 'Why does `getByRole(\'button\', { name: \'Save\' })` need both the role AND the name?',
+      options: [
+        'The name is decorative — only the role matters',
+        'A page often has many buttons; the accessible name (text or aria-label) disambiguates *which* button you mean, while the role narrows the search to interactive controls',
+        'Playwright requires three arguments by API design',
+        'It only works inside iframes',
+      ],
+      correct: 1,
+      explanation:
+        'Role alone returns every button on the page. Name alone might match a heading or link with the same text. Combining role + name targets exactly one element — the same way a screen reader user identifies controls. This is also why locators that work for tests usually expose accessibility issues at the same time.',
+    },
+    {
+      id: 'pw-q008',
+      type: 'tf',
+      difficulty: 'beginner',
+      question: '`page.locator(input).fill("hello")` first clears the input field, while `page.locator(input).pressSequentially("hello")` appends characters one by one without clearing.',
+      correct: true,
+      explanation:
+        '`fill` replaces the entire value in one shot — equivalent to focusing, clearing, and pasting. `pressSequentially` (formerly `type`) simulates key-by-key typing, useful when you need to trigger character-by-character handlers (autocomplete dropdowns, masked inputs). Choose `fill` whenever you can — it is faster and more reliable.',
+    },
+    {
+      id: 'pw-q009',
+      type: 'code-mcq',
+      difficulty: 'beginner',
+      question: 'Which method is appropriate for selecting an option from a native `<select>` dropdown?',
+      code: `await page.locator('select#country').____('US');`,
+      codeLanguage: 'typescript',
+      options: [
+        '`click()` — then click the option element',
+        '`fill("US")` — type into the dropdown',
+        '`selectOption("US")` — Playwright\'s built-in helper for native select elements',
+        '`check()` — toggle the dropdown state',
+      ],
+      correct: 2,
+      explanation:
+        '`selectOption()` is the dedicated API for native `<select>` elements — it accepts a value, label, or index and handles all the focus/blur/change events natively. For custom dropdowns (a wrapped `<div>` masquerading as one), you usually need `click()` + a second `click()` on the option.',
+    },
+    {
+      id: 'pw-q010',
+      type: 'mcq',
+      difficulty: 'beginner',
+      question: 'A test fails with `Element is not visible`. The element is hidden behind a CSS overlay. Reaching for `.click({ force: true })` is:',
+      options: [
+        'The correct fix — always pass `force: true` when in doubt',
+        'A red flag — it bypasses Playwright\'s actionability checks and almost always indicates the test is interacting with an element a real user could not. Investigate the overlay instead',
+        'Required for performance reasons',
+        'Equivalent to using a different locator',
+      ],
+      correct: 1,
+      explanation:
+        '`{ force: true }` skips all actionability checks: visibility, stability, enabled state. If the user genuinely cannot click the element (it is hidden, covered, or disabled), the test should fail loudly rather than fake the click. The fix is usually closing the overlay first, scrolling into view, or waiting for the right state.',
+    },
+    {
+      id: 'pw-q011',
+      type: 'tf',
+      difficulty: 'beginner',
+      question: '`expect(locator).toHaveText("Welcome")` automatically retries until the text appears or the timeout elapses.',
+      correct: true,
+      explanation:
+        'Web-first assertions (the `expect(locator)...` family) retry under the hood until the assertion passes or the configured timeout elapses. This eliminates manual `waitFor*` calls for typical UI checks. Plain `expect(value)` (for primitives) does not retry — assert immediate values, not locator state.',
+    },
+    {
+      id: 'pw-q012',
+      type: 'code-mcq',
+      difficulty: 'beginner',
+      question: 'What does this assertion check?',
+      code: `await expect(page).toHaveURL(/\\/dashboard\\?welcome=true$/);`,
+      codeLanguage: 'typescript',
+      options: [
+        'That the page contains the text "dashboard"',
+        'That the current URL matches the regex — ending with `/dashboard?welcome=true` — retrying until it does or the timeout elapses',
+        'That the page object has a property `URL`',
+        'That a request was made to `/dashboard`',
+      ],
+      correct: 1,
+      explanation:
+        '`toHaveURL` accepts a string or regex. Combined with the auto-retry behaviour, it is the standard way to assert a redirect or navigation completed correctly. The regex `\\/dashboard\\?welcome=true$` anchors to the end of the URL.',
+    },
+    {
+      id: 'pw-q013',
+      type: 'mcq',
+      difficulty: 'beginner',
+      question: 'A test clicks "Buy" and then ends. The click did trigger a 500 error, but the test passes. What is wrong?',
+      options: [
+        'The test is correctly designed — clicks always succeed if the element exists',
+        'The test has no assertion — without an `expect(...)` after the click, success is not verified. A test without assertions is not a test',
+        'The framework should auto-detect 500 errors',
+        'The test needs more retries',
+      ],
+      correct: 1,
+      explanation:
+        'A click that fires a request is half the test; verifying the *outcome* is the other half. Every meaningful test should end (or interleave) with at least one assertion: status text, URL change, network response, persisted data. Click-only tests pass even when the app is broken.',
+    },
+    {
+      id: 'pw-q014',
+      type: 'code-mcq',
+      difficulty: 'beginner',
+      question: 'What does this config block do?',
+      code: `// playwright.config.ts
+export default defineConfig({
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox',  use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit',   use: { ...devices['Desktop Safari'] } },
+  ],
+});`,
+      codeLanguage: 'typescript',
+      options: [
+        'Runs only on Chromium — the other two are ignored',
+        'Defines three projects so every test runs three times — once on each browser engine — letting you catch browser-specific bugs in one command',
+        'Selects whichever browser is installed first',
+        'Causes a configuration error — only one project is allowed',
+      ],
+      correct: 1,
+      explanation:
+        '`projects` is Playwright\'s parallelism + matrix mechanism. Each project applies its own settings (browser, viewport, baseURL, storageState). `npx playwright test` runs the suite against every project; `--project=chromium` narrows to one. This is the cleanest cross-browser setup.',
+    },
+    {
+      id: 'pw-q015',
+      type: 'fill-blank',
+      difficulty: 'beginner',
+      question: 'The configuration option that controls the default upper bound on how long a single assertion (e.g. `expect(locator).toHaveText(...)`) keeps retrying before failing is called `expect.___`.',
+      blank: 'The default assertion retry budget is set via `expect.___` in playwright.config.ts.',
+      chips: ['timeout', 'retries', 'deadline', 'limit'],
+      correct: 'timeout',
+      explanation:
+        '`expect: { timeout: 5000 }` sets a 5-second budget for retrying web-first assertions. `use: { timeout: ... }` controls the per-action timeout. The top-level `timeout` controls the per-test deadline. Tuning these three thresholds is the most common config adjustment.',
+    },
+    {
+      id: 'pw-q016',
+      type: 'mcq',
+      difficulty: 'beginner',
+      question: 'After a failing test, the HTML report shows trace.zip. What does the trace contain that a plain video does not?',
+      options: [
+        'Only screenshots — the same information as the video',
+        'A timeline of every Playwright action with DOM snapshots, network log, console output, and screenshots — letting you scrub through and inspect state at every step',
+        'The compiled JavaScript of the page',
+        'Source code from the application under test',
+      ],
+      correct: 1,
+      explanation:
+        'The trace viewer is Playwright\'s killer feature for debugging failures. You scroll a timeline, jump to any action, see the DOM as it was at that moment, view the network/console panel, and inspect the locator that was used. Far more informative than just a video. Enable with `trace: "on-first-retry"` in config.',
+    },
+    {
+      id: 'pw-q017',
+      type: 'tf',
+      difficulty: 'beginner',
+      question: 'By default, `npx playwright test` runs in *headless* mode — no browser window is shown.',
+      correct: true,
+      explanation:
+        'Headless by default — fast, suitable for CI. To watch the browser, pass `--headed`. Even better for debugging: `--ui` opens the watch-mode UI runner where you can scrub through traces interactively, re-run individual tests, and edit code on the fly.',
+    },
+
+    // ── INTERMEDIATE ──────────────────────────────────────────────
+    {
+      id: 'pw-q018',
+      type: 'mcq',
+      difficulty: 'intermediate',
+      question: 'Why is `await page.waitForTimeout(2000)` considered an anti-pattern in modern Playwright?',
+      options: [
+        'It is deprecated and will be removed',
+        'It pauses for a fixed duration regardless of app state — slowing fast runs and still failing on slow ones. Playwright\'s auto-waiting + web-first assertions cover almost every case better',
+        'It only works on Chromium',
+        'It triggers an HTTP request',
+      ],
+      correct: 1,
+      explanation:
+        'Hard sleeps are the #1 source of flakiness AND slowness. They wait too long when the app is fast, and not long enough when the app is slow. Replace with auto-waiting actions (`click`, `fill`) and web-first assertions (`expect(locator).toBeVisible()`) which wait *exactly* as long as needed.',
+    },
+    {
+      id: 'pw-q019',
+      type: 'tf',
+      difficulty: 'intermediate',
+      question: 'When you call `await page.click(\'button\')`, Playwright first waits for the element to be attached, visible, stable (not animating), and enabled before performing the click.',
+      correct: true,
+      explanation:
+        'Auto-waiting is built into every action. Playwright runs an actionability checklist before clicking, filling, or selecting — eliminating the manual `waitForSelector` + `isVisible` + `isEnabled` choreography that older tools required. This single feature is the main reason Playwright tests are dramatically less flaky.',
+    },
+    {
+      id: 'pw-q020',
+      type: 'mcq',
+      difficulty: 'intermediate',
+      question: 'What is the practical difference between `beforeAll` and `beforeEach`?',
+      options: [
+        'They are synonyms with different naming',
+        '`beforeAll` runs once before any test in the describe/file (good for expensive shared setup); `beforeEach` runs before *every* test (good for isolated per-test setup)',
+        '`beforeAll` only runs on Chromium',
+        '`beforeEach` cannot use async/await',
+      ],
+      correct: 1,
+      explanation:
+        'Use `beforeAll` for expensive one-time setup that all tests can share (DB seed, auth token). Use `beforeEach` for per-test setup that gives each test a clean slate. Pair them with `afterAll`/`afterEach` for teardown. Custom fixtures often beat both for reusability.',
+    },
+    {
+      id: 'pw-q021',
+      type: 'code-mcq',
+      difficulty: 'intermediate',
+      question: 'In what order do these hooks run for a file with 2 tests?',
+      code: `test.beforeAll(...);      // A
+test.beforeEach(...);     // B
+test("first", ...);       // 1
+test("second", ...);      // 2
+test.afterEach(...);      // C
+test.afterAll(...);       // D`,
+      codeLanguage: 'typescript',
+      options: [
+        'A → 1 → 2 → D',
+        'A → B → 1 → C → B → 2 → C → D',
+        'B → A → 1 → 2 → C → D',
+        'A → B → C → 1 → 2 → D',
+      ],
+      correct: 1,
+      explanation:
+        '`beforeAll` runs once. Then for each test: `beforeEach` → test → `afterEach`. Finally `afterAll` runs once. The pattern guarantees isolation per test while keeping expensive shared setup amortised. Sequence: A → B → 1 → C → B → 2 → C → D.',
+    },
+    {
+      id: 'pw-q022',
+      type: 'mcq',
+      difficulty: 'intermediate',
+      question: 'A team has 50 tests that all click the "Login" button. The dev team renames it to "Sign in". Without Page Object Model, how many test files must change?',
+      options: [
+        'One — Playwright auto-updates locators',
+        'All 50 — each test references the button text directly',
+        'Zero — locators are resolved at runtime, so the rename is transparent',
+        'Just the config file',
+      ],
+      correct: 1,
+      explanation:
+        'Without POM, each test holds its own copy of the locator. With POM, the locator lives in one place (`LoginPage.ts`) and every test uses the page object\'s methods. The rename becomes a one-line change. This is the central scaling argument for POM in any non-trivial suite.',
+    },
+    {
+      id: 'pw-q023',
+      type: 'fill-blank',
+      difficulty: 'intermediate',
+      question: 'The design pattern that centralises every page\'s locators and actions in a dedicated class — so a UI change touches one file, not fifty — is called the Page ___ Model.',
+      blank: 'The pattern that centralises locators and actions per page is called the Page ___ Model.',
+      chips: ['Object', 'Action', 'Container', 'Locator'],
+      correct: 'Object',
+      explanation:
+        'Page Object Model (POM) is the canonical Playwright/Selenium scaling pattern. Each page (or significant section) gets a class with: a constructor that captures `page`, named locators as private fields, and high-level methods (`login(email, password)`, `addToCart(productId)`) that orchestrate the locators.',
+    },
+    {
+      id: 'pw-q024',
+      type: 'mcq',
+      difficulty: 'intermediate',
+      question: 'A test needs to verify the UI when the `/api/users` endpoint returns an error. What is the cleanest way?',
+      options: [
+        'Manually break the backend before the test',
+        'Use `page.route(\'**/api/users\', route => route.fulfill({ status: 500, body: \'{}\' }))` — intercept the network call and return a controlled mock response, no backend changes required',
+        'Wait for a flaky production failure to reproduce it',
+        'Skip the test — error states cannot be tested',
+      ],
+      correct: 1,
+      explanation:
+        '`page.route` intercepts matching network calls. `route.fulfill(...)` replaces the response with whatever you choose — perfect for error states, slow responses, empty payloads, and edge cases that are painful to reproduce live. The real backend is never touched.',
+    },
+    {
+      id: 'pw-q025',
+      type: 'code-mcq',
+      difficulty: 'intermediate',
+      question: 'What does this route handler do?',
+      code: `await page.route('**/api/products', async (route) => {
+  const response = await route.fetch();
+  const json = await response.json();
+  json.items = json.items.map(p => ({ ...p, price: 9.99 }));
+  await route.fulfill({ response, json });
+});`,
+      codeLanguage: 'typescript',
+      options: [
+        'Aborts every product request',
+        'Lets the real request through, captures the response, mutates every item\'s price to 9.99, and fulfils the page with the modified body — the UI sees fake prices while the backend stays untouched',
+        'Caches the response forever',
+        'Logs the response without modifying it',
+      ],
+      correct: 1,
+      explanation:
+        'This is the "modify in flight" pattern — call `route.fetch()` to get the real response, transform it, and pass the modified body to `route.fulfill`. Useful for testing UI behaviour with extreme values (e.g. very long product names, prices of zero) without coordinating with the backend team.',
+    },
+    {
+      id: 'pw-q026',
+      type: 'tf',
+      difficulty: 'intermediate',
+      question: 'When a Playwright test uses `route.fulfill` to mock a `/api/orders` response, the real backend at `/api/orders` receives the request and stores an order.',
+      correct: false,
+      explanation:
+        'The mock intercepts the request *before* it leaves the browser. The real backend never sees it. This is the central appeal of network interception for testing: zero side effects on real systems, full control over the response, fast and deterministic. To hit the real backend, use `route.continue()` or no route at all.',
+    },
+    {
+      id: 'pw-q027',
+      type: 'code-mcq',
+      difficulty: 'intermediate',
+      question: 'A page has multiple `.card` elements. Which locator targets only the card that contains the text "Premium"?',
+      code: `// Cards in DOM:
+// <div class="card"><h3>Basic</h3>...</div>
+// <div class="card"><h3>Premium</h3>...</div>
+// <div class="card"><h3>Pro</h3>...</div>`,
+      codeLanguage: 'typescript',
+      options: [
+        'page.locator(\'.card\').first()',
+        'page.locator(\'.card\').filter({ hasText: \'Premium\' })',
+        'page.locator(\'.card.Premium\')',
+        'page.locator(\'.card\').nth(0)',
+      ],
+      correct: 1,
+      explanation:
+        '`.filter({ hasText })` narrows a multi-element locator to those containing matching text. Other useful filter forms: `.filter({ has: locator })` (contains a child matching another locator), `.filter({ hasNot: ... })` (negative). Locator chaining is the antidote to fragile CSS selectors.',
+    },
+    {
+      id: 'pw-q028',
+      type: 'mcq',
+      difficulty: 'intermediate',
+      question: 'Which API performs a drag-and-drop in Playwright?',
+      options: [
+        '`page.locator(source).drag(target)` — no such method exists',
+        '`await page.locator(source).dragTo(page.locator(target))` — a single high-level call handling press, move, release',
+        '`page.mouse.click(...)` repeated three times',
+        'Drag-and-drop must be tested manually',
+      ],
+      correct: 1,
+      explanation:
+        '`dragTo()` is the high-level API. For more granular control (HTML5 drag events, hover deltas), use `page.mouse.down() / move() / up()`. Some applications use synthetic drag-and-drop libraries that need their own custom handlers — when in doubt, inspect the DOM events being dispatched.',
+    },
+    {
+      id: 'pw-q029',
+      type: 'mcq',
+      difficulty: 'intermediate',
+      question: 'How do you run a test as if it were on an iPhone 13?',
+      options: [
+        'Run the test on a real iPhone',
+        'Use a project in playwright.config.ts: `{ name: "iPhone 13", use: { ...devices["iPhone 13"] } }` — Playwright applies the matching viewport, user agent, and touch settings',
+        'Set a custom CSS media query',
+        'Install Safari on the CI machine',
+      ],
+      correct: 1,
+      explanation:
+        'Playwright bundles a `devices` registry with realistic profiles (viewport, user agent, device scale, touch support) for hundreds of devices. Mobile testing this way is *emulation* — not a real iOS engine — but catches the vast majority of responsive and touch-event bugs.',
+    },
+    {
+      id: 'pw-q030',
+      type: 'fill-blank',
+      difficulty: 'intermediate',
+      question: 'To find a button inside an `<iframe>`, you cannot use `page.locator(...)` directly — instead chain `page.___("#payment-frame").getByRole("button")`.',
+      blank: 'To target an element inside an iframe, use `page.___("#frame-id")`.',
+      chips: ['frameLocator', 'iframe', 'subframe', 'contentLocator'],
+      correct: 'frameLocator',
+      explanation:
+        '`frameLocator` enters a frame\'s DOM context — anything chained after it searches inside the iframe rather than the main document. iframes have their own origin and DOM tree, so `page.getByRole(...)` will never find elements inside one without entering the frame first.',
+    },
+    {
+      id: 'pw-q031',
+      type: 'tf',
+      difficulty: 'intermediate',
+      question: 'By default, tests in different files run in parallel — but tests within the same file run sequentially.',
+      correct: true,
+      explanation:
+        'Playwright\'s default: file-level parallelism, intra-file serialism. To parallelise within a file, use `test.describe.configure({ mode: \'parallel\' })`. To force serial across an entire file, `test.describe.serial(...)`. Choose based on whether tests share state — most well-designed tests can safely run in parallel.',
+    },
+    {
+      id: 'pw-q032',
+      type: 'mcq',
+      difficulty: 'intermediate',
+      question: 'A test needs to verify a "10 items" badge on the cart page. What is the fastest reliable approach?',
+      options: [
+        'Click 10 times through the Add-to-Cart UI before each test',
+        'Use Playwright\'s API request context (`request.newContext()`) to POST 10 items into the cart, then load the cart UI and assert the badge — hybrid API+UI',
+        'Modify the database directly via SSH',
+        'Skip the test — setup is too expensive',
+      ],
+      correct: 1,
+      explanation:
+        'Hybrid testing — API for setup, UI for verification — is the most efficient pattern. API calls are 10-50× faster than UI clicks. Use UI only where the UI matters; use API for everything else. This combination delivers comprehensive coverage at a fraction of the runtime.',
+    },
+    {
+      id: 'pw-q033',
+      type: 'code-mcq',
+      difficulty: 'intermediate',
+      question: 'What does this hybrid test do?',
+      code: `const api = await request.newContext({
+  baseURL: 'https://api.example.com',
+  extraHTTPHeaders: { Authorization: \`Bearer \${token}\` },
+});
+
+await api.post('/orders', { data: { product_id: 42, qty: 2 } });
+
+await page.goto('/cart');
+await expect(page.getByText('1 item')).toBeVisible();`,
+      codeLanguage: 'typescript',
+      options: [
+        'Pure UI test — the API context is decorative',
+        'Hybrid test — uses an authenticated API context to create the order via POST, then verifies the UI reflects it. Faster than clicking through the UI to create the order',
+        'Pure API test — no UI is involved',
+        'A configuration error — the two contexts cannot coexist',
+      ],
+      correct: 1,
+      explanation:
+        'A dedicated `request` context is the standard way to mix API and UI in one test — it shares cookies and auth with the page if needed but can also be fully independent. The API call sets up state in seconds; the UI assertion validates the actual user experience.',
+    },
+    {
+      id: 'pw-q034',
+      type: 'tf',
+      difficulty: 'intermediate',
+      question: 'Running `axe-core` against every page automatically catches every possible accessibility issue, including colour contrast, keyboard navigation, and screen-reader experience.',
+      correct: false,
+      explanation:
+        'axe-core catches roughly 30-50% of WCAG issues — the deterministic ones (missing alt text, missing labels, ARIA violations). Many issues need human judgement: tab order, focus management, error message clarity, screen reader narrative quality. Automated a11y is the floor; manual review of keyboard nav and a screen-reader pass is still essential.',
+    },
+
+    // ── EXPERT ────────────────────────────────────────────────────
+    {
+      id: 'pw-q035',
+      type: 'mcq',
+      difficulty: 'expert',
+      question: 'A test suite has 200 tests and every test logs in via the UI before running. What is the standard fix?',
+      options: [
+        'Reduce the number of tests',
+        'Run a global-setup script that logs in once, saves the session via `context.storageState({ path: \'auth.json\' })`, and have every test load that file via `use: { storageState: \'auth.json\' }` — tests skip login entirely and start authenticated',
+        'Move login into a `beforeEach` hook',
+        'Make every test reuse the same browser tab',
+      ],
+      correct: 1,
+      explanation:
+        '`storageState` serialises cookies + localStorage to a JSON file. Loading it in `use:` injects that session into every test\'s isolated browser context — they all start logged in instantly, with zero network round-trips per test. Cuts auth time from 200 × 3s = 10 minutes down to a single 3-second global setup.',
+    },
+    {
+      id: 'pw-q036',
+      type: 'fill-blank',
+      difficulty: 'expert',
+      question: 'The Playwright config key that points each test\'s browser context at a pre-authenticated session file is `___`.',
+      blank: 'Each test loads the saved session via `use: { ___: "auth.json" }`.',
+      chips: ['storageState', 'session', 'authState', 'cookieJar'],
+      correct: 'storageState',
+      explanation:
+        '`storageState` is the official key. It can be a path to a JSON file or the literal object. Combined with a global-setup script that logs in and writes the file, it is the idiomatic Playwright auth pattern. Multi-user tests typically run a setup per user role and assign different `storageState` files per project.',
+    },
+    {
+      id: 'pw-q037',
+      type: 'mcq',
+      difficulty: 'expert',
+      question: 'A visual regression test using `toHaveScreenshot()` flakes because a real-time clock in the page shifts between runs. The cleanest fix?',
+      options: [
+        'Lower the screenshot threshold so small diffs pass',
+        'Use the `mask` option: `await expect(page).toHaveScreenshot({ mask: [page.locator(\'.clock\')] })` — Playwright covers the masked area with solid pink before comparison, so changes inside it are ignored',
+        'Disable visual regression for the page',
+        'Run the test only at midnight when the clock is stable',
+      ],
+      correct: 1,
+      explanation:
+        '`mask` covers dynamic regions with a solid colour at compare time, so legitimate UI changes are still caught everywhere else. Lowering the threshold globally hides real regressions. Other techniques: stub the system time, mock `Date.now()`, or render a fixed avatar in test mode.',
+    },
+    {
+      id: 'pw-q038',
+      type: 'code-mcq',
+      difficulty: 'expert',
+      question: 'On the first run, no baseline image exists. What happens here?',
+      code: `await expect(page).toHaveScreenshot('checkout.png');`,
+      codeLanguage: 'typescript',
+      options: [
+        'The test fails immediately because the baseline is missing',
+        'On the first run, Playwright generates the baseline and the test "fails" with a notice; subsequent runs compare against that baseline. Re-run with `--update-snapshots` to refresh baselines deliberately',
+        'The test is skipped silently',
+        'Playwright crashes',
+      ],
+      correct: 1,
+      explanation:
+        'First run: baseline generated, test flagged so you know to inspect it. Subsequent runs: image compared pixel-by-pixel (with the configured tolerance). When intentional UI changes are made, run `npx playwright test --update-snapshots` to refresh baselines. Always commit the snapshots so the whole team shares the same baselines.',
+    },
+    {
+      id: 'pw-q039',
+      type: 'mcq',
+      difficulty: 'expert',
+      question: 'Web Vitals are Google\'s three universal metrics for user-perceived performance. They are:',
+      options: [
+        'CPU, Memory, Disk',
+        'LCP (Largest Contentful Paint), FID/INP (Interaction responsiveness), CLS (Cumulative Layout Shift) — measuring loading, interactivity, and visual stability respectively',
+        'TTFB, FCP, DOMContentLoaded',
+        'Latency, Throughput, Errors',
+      ],
+      correct: 1,
+      explanation:
+        'LCP = "how fast did the main content appear?". FID/INP = "how quickly does the page respond when I click?". CLS = "did the layout jump around as it loaded?". Each has a "good" threshold (LCP < 2.5s, INP < 200ms, CLS < 0.1). Read them in a Playwright test via `performance.getEntriesByType("largest-contentful-paint")`.',
+    },
+    {
+      id: 'pw-q040',
+      type: 'fill-blank',
+      difficulty: 'expert',
+      question: 'The Web Vital that measures how quickly the largest visible element finishes rendering — capturing perceived load speed — is abbreviated ___.',
+      blank: 'The "perceived load speed" Web Vital is the ___ metric (largest element rendered).',
+      chips: ['LCP', 'CLS', 'FID', 'TTFB'],
+      correct: 'LCP',
+      explanation:
+        'LCP (Largest Contentful Paint) — when the largest content block (image, text block, video poster) becomes visible. CLS (Cumulative Layout Shift) measures unexpected layout jumps. FID/INP measure interaction responsiveness. TTFB (Time to First Byte) is a sub-metric, not one of the Core Web Vitals.',
+    },
+    {
+      id: 'pw-q041',
+      type: 'mcq',
+      difficulty: 'expert',
+      question: 'You configure CI to run with `--shard=2/4`. What does that mean?',
+      options: [
+        'Run the second test in a group of four',
+        'Split the entire test suite into 4 equal chunks; this CI agent runs chunk 2. Combined with 3 other agents running shards 1, 3, 4, the whole suite finishes in roughly a quarter of the wall-clock time',
+        'Only run tests tagged with `@shard2`',
+        'Repeat the suite 4 times for reliability',
+      ],
+      correct: 1,
+      explanation:
+        'Sharding partitions the test list deterministically. Each CI agent (matrix job) runs a subset; reports are merged at the end. Going from 1 to 4 shards typically gives ~3.5× speedup (some overhead per agent). The bigger the suite, the bigger the sharding win.',
+    },
+    {
+      id: 'pw-q042',
+      type: 'tf',
+      difficulty: 'expert',
+      question: 'When you run sharded CI, Playwright merges the per-shard reports into a single unified HTML report automatically — no extra step needed.',
+      correct: false,
+      explanation:
+        'Each shard produces its own report. To get a unified view you use `npx playwright merge-reports` (or the `blob` reporter + merge step) — usually as a final job in the CI matrix. Many teams skip the merge and just upload each shard\'s report as a separate artifact, which is also valid.',
+    },
+    {
+      id: 'pw-q043',
+      type: 'mcq',
+      difficulty: 'expert',
+      question: 'Chrome DevTools Protocol (CDP) sessions in Playwright unlock capabilities that the standard API does not expose. Which is a typical CDP use case?',
+      options: [
+        'Writing assertions',
+        'Capturing detailed network throttling profiles, JS code coverage, performance timelines, or memory heap snapshots — anything the Chrome DevTools panel itself uses',
+        'Selecting a CSS locator',
+        'Setting up fixtures',
+      ],
+      correct: 1,
+      explanation:
+        'CDP is the underlying protocol that Chrome\'s DevTools speak — Playwright sits on top. Most everyday testing uses the standard Playwright API. Reach for `page.context().newCDPSession()` only when you need low-level data: JS coverage for dead-code detection, custom network throttling profiles, heap snapshots, or precise performance traces.',
+    },
+    {
+      id: 'pw-q044',
+      type: 'code-mcq',
+      difficulty: 'expert',
+      question: 'Why is this factory pattern better than hard-coded fixtures for test data?',
+      code: `function createUser(overrides = {}) {
+  return {
+    email: \`user-\${faker.string.uuid()}@test.com\`,
+    name:  faker.person.fullName(),
+    role:  'viewer',
+    ...overrides,
+  };
+}
+
+const adminUser = createUser({ role: 'admin' });
+const newUser   = createUser();`,
+      codeLanguage: 'typescript',
+      options: [
+        'Hard-coded fixtures are always better',
+        'Every call yields fresh, unique data — no UNIQUE-constraint clashes when tests run in parallel, no leftover state from yesterday\'s runs, and the `overrides` parameter lets each test customise only what matters for it',
+        'It only works in TypeScript',
+        'Factories are slower than fixtures',
+      ],
+      correct: 1,
+      explanation:
+        'Factories are the gold-standard for parallel-safe test data: each test gets unique inputs (no UNIQUE collisions), tests can override just the fields that matter (clear intent), and there is no shared mutable seed dataset to corrupt. Pair with a per-test cleanup hook (or worker-scoped data) to keep the environment tidy.',
+    },
+    {
+      id: 'pw-q045',
+      type: 'tf',
+      difficulty: 'expert',
+      question: 'Sharing a single pre-seeded database state across all parallel test workers is a safe and recommended pattern for Playwright suites.',
+      correct: false,
+      explanation:
+        'Shared mutable state across parallel workers is the recipe for flake. Worker A creates an order with id 42; Worker B reads orders and gets a count that includes A\'s row. Tests pass locally, fail randomly in CI. The fix: every test owns its own data (factory pattern + unique identifiers) OR each worker has its own database (truncate-and-seed per worker).',
+    },
+    {
+      id: 'pw-q046',
+      type: 'mcq',
+      difficulty: 'expert',
+      question: 'A team is debating: component tests (CT) for every UI piece, vs E2E tests for full flows. Which guidance fits a mature suite?',
+      options: [
+        'Use only E2E — they cover everything',
+        'Use only CT — they are faster',
+        'Use both: CT for fast, isolated checks on individual components (props, edge cases, accessibility) and E2E for fewer-but-richer flows that prove the whole system works together — the classic pyramid shape',
+        'Component testing is deprecated',
+      ],
+      correct: 2,
+      explanation:
+        'CT and E2E are complementary, not competing. CT runs each component in a sandbox in milliseconds — perfect for rare states and prop combinations. E2E exercises real flows across services in seconds — perfect for proving the assembled system works. A healthy suite has many CT tests and a smaller, curated set of E2E tests.',
+    },
+    {
+      id: 'pw-q047',
+      type: 'fill-blank',
+      difficulty: 'expert',
+      question: 'BDD with Playwright lets non-technical stakeholders read scenarios written in the Given/When/Then syntax of the ___ language.',
+      blank: 'BDD scenarios are written in the ___ language using Given/When/Then.',
+      chips: ['Gherkin', 'Markdown', 'YAML', 'TypeScript'],
+      correct: 'Gherkin',
+      explanation:
+        'Gherkin is the plain-English DSL used by Cucumber and similar BDD frameworks. Scenarios become living documentation — product owners and analysts can read them without engineering background. The trade-off: an extra layer (step definitions) between the scenario and the actual Playwright code, and slower test authoring.',
+    },
+    {
+      id: 'pw-q048',
+      type: 'tf',
+      difficulty: 'expert',
+      question: 'Adopting BDD (Cucumber + Playwright) typically makes test execution faster.',
+      correct: false,
+      explanation:
+        'BDD optimises for *human readability and collaboration*, not execution speed. Each Gherkin step is wired to a TypeScript step definition that eventually calls Playwright — adding an indirection. Adopt BDD when product/QA collaboration matters; skip it when the audience is engineers only.',
+    },
+    {
+      id: 'pw-q049',
+      type: 'mcq',
+      difficulty: 'expert',
+      question: 'A team wants test results to appear in Slack within seconds of a CI run failing. The cleanest Playwright solution is:',
+      options: [
+        'Manually copy the report into Slack after every run',
+        'Implement a custom reporter that hooks into Playwright\'s test lifecycle (`onTestEnd`, `onEnd`) and posts a webhook payload to Slack — runs automatically as part of the suite',
+        'Email the HTML report nightly',
+        'Slack integration is not possible with Playwright',
+      ],
+      correct: 1,
+      explanation:
+        'Custom reporters implement Playwright\'s `Reporter` interface (`onBegin`, `onTestEnd`, `onEnd`, etc.). For Slack/JIRA/Datadog integration, write a thin custom reporter that translates lifecycle events into the right webhook calls. Multiple reporters can be active simultaneously — keep the HTML one and add your custom one.',
+    },
+    {
+      id: 'pw-q050',
+      type: 'mcq',
+      difficulty: 'expert',
+      question: 'A 1,000-test suite is becoming hard to maintain — locators duplicated, helpers scattered, tests coupled to specific data. The first architectural step is:',
+      options: [
+        'Delete half the tests at random',
+        'Apply layering: Page Objects own locators and page-level actions, helpers own cross-cutting utilities (auth, factories), test files own scenarios. Each test reads top-down and changes ripple through one layer at a time',
+        'Move everything into one giant file',
+        'Switch to a different framework',
+      ],
+      correct: 1,
+      explanation:
+        'Large-scale test suites need the same architectural rigour as production code: clear layers, single responsibility, no coupling between siblings. Page Objects hide locator details, helpers hide cross-cutting plumbing, tests describe scenarios. A change in the UI ripples through one page object; a change to auth ripples through one helper.',
+    },
+  ],
+
   typescript: [
     // ── BEGINNER ──────────────────────────────────────────────────
     {
