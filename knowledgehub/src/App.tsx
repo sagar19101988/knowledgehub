@@ -539,10 +539,10 @@ function HubMap() {
             </button>
           </div>
 
-          {/* Mastery Badges */}
+          {/* Completion Badges (earned by finishing every module in a zone) */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Mastery Badges</h2>
+              <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Completion Badges</h2>
               <span className="text-xs text-slate-500 dark:text-slate-600">{earnedCount}/{ZONES.length}</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -568,6 +568,45 @@ function HubMap() {
               })}
             </div>
           </div>
+
+          {/* Mastery Trial Badges (earned by passing the trial — harder) */}
+          {(() => {
+            const trialEarnedCount = ZONES.filter(z => masteryBadges[z.id] === true).length;
+            return (
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Mastery Trial Badges</h2>
+                  <span className="text-xs text-slate-500 dark:text-slate-600">{trialEarnedCount}/{ZONES.length}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {ZONES.map((zone) => {
+                    const trialBadge = MASTERY_BADGES[zone.id];
+                    const earned = masteryBadges[zone.id] === true;
+                    if (!trialBadge) return null;
+                    return (
+                      <div
+                        key={zone.id}
+                        className={`relative flex flex-col items-center text-center p-3 rounded-xl border transition-all ${
+                          earned
+                            ? 'bg-gradient-to-br from-violet-500/15 to-fuchsia-500/15 dark:from-violet-500/20 dark:to-fuchsia-500/20 border-violet-400 dark:border-violet-500/60 shadow-[0_0_14px_rgba(139,92,246,0.35)]'
+                            : 'bg-slate-100 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/50'
+                        }`}
+                      >
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-1.5 text-xl ${earned ? 'bg-white/80 dark:bg-slate-900/80' : 'bg-slate-200 dark:bg-slate-700/50'}`}>
+                          {earned
+                            ? <span className="leading-none">{trialBadge.icon}</span>
+                            : <span className="text-slate-400 dark:text-slate-500 text-sm">🔒</span>}
+                        </div>
+                        <p className={`text-xs font-bold leading-tight ${earned ? 'text-violet-700 dark:text-violet-300' : 'text-slate-400 dark:text-slate-500'}`}>{trialBadge.name}</p>
+                        <p className="text-slate-400 dark:text-slate-500 text-xs mt-0.5 truncate w-full">{zone.title}</p>
+                        {earned && <span className="absolute top-1.5 right-1.5 text-xs">🏆</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
         </aside>
 
         {/* ── Main: zone cards ── */}

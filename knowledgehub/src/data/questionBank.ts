@@ -1436,4 +1436,738 @@ Week 52:  0 regression defects, 6 production escapes`,
         "Robust tests own their data: they set up what they need (and tear it down) rather than relying on snapshots of a shared database. Test data management — fixtures, factories, isolation — prevents this whole class of brittleness.",
     },
   ],
+
+  api: [
+    // ── BEGINNER ──────────────────────────────────────────────────
+    {
+      id: 'api-q001',
+      type: 'mcq',
+      difficulty: 'beginner',
+      question: 'Which best describes what an API really is?',
+      options: [
+        'A user interface that lets non-technical users browse a database',
+        'A contract between a client and a server defining what requests are accepted and what responses are returned',
+        'A specific protocol that only works over HTTPS',
+        'A user-facing application screen rendered by the browser',
+      ],
+      correct: 1,
+      explanation:
+        'An API is the formal contract between two pieces of software. The client sends requests in an agreed shape; the server responds in an agreed shape. The protocol (HTTP, gRPC, etc.) is the transport — the API itself is the contract.',
+    },
+    {
+      id: 'api-q002',
+      type: 'mcq',
+      difficulty: 'beginner',
+      question: 'Which statement best captures the fundamental difference between REST and SOAP?',
+      options: [
+        'SOAP is older and uses XML envelopes with a strict standard; REST is leaner, uses standard HTTP verbs against resource URLs, and typically returns JSON',
+        'SOAP only supports GET and POST; REST supports every HTTP method',
+        'REST cannot transport binary data; SOAP can',
+        'They are the same protocol with different vendor names',
+      ],
+      correct: 0,
+      explanation:
+        'SOAP is a heavyweight, XML-based standard with strict envelope structure and WS-* extensions. REST is an architectural style on top of plain HTTP — verbs (GET/POST/PUT/DELETE) act on resource URLs and usually carry JSON. REST has won most modern public APIs because it is simpler and easier to consume.',
+    },
+    {
+      id: 'api-q003',
+      type: 'tf',
+      difficulty: 'beginner',
+      question: 'PUT is idempotent — running the same PUT request multiple times has the same final effect as running it once.',
+      correct: true,
+      explanation:
+        'Idempotency: repeated identical calls leave the system in the same state. PUT replaces a resource with the same body each time → idempotent. POST creates a new resource each call → not idempotent. DELETE is idempotent (resource is gone after the first call). GET is idempotent (and safe — no side effects).',
+    },
+    {
+      id: 'api-q004',
+      type: 'code-mcq',
+      difficulty: 'beginner',
+      question: 'Looking at the request line, what is happening here?',
+      code: `POST /api/orders HTTP/1.1
+Host: shop.example.com
+Content-Type: application/json
+Authorization: Bearer eyJhbGc...
+
+{
+  "product_id": 42,
+  "quantity": 2
+}`,
+      codeLanguage: 'text',
+      options: [
+        'Reading an existing order with id 42 from the server',
+        'Creating a new order resource — POST means create, the body carries the new order details',
+        'Replacing an entire orders collection with the supplied body',
+        'Deleting all orders that match product_id 42',
+      ],
+      correct: 1,
+      explanation:
+        'POST to a collection URL (/api/orders) means "create a new item in this collection". The JSON body describes the new resource. The server typically responds 201 Created with the new resource\'s URL in the Location header.',
+    },
+    {
+      id: 'api-q005',
+      type: 'tf',
+      difficulty: 'beginner',
+      question: 'A GET request must never carry a request body — sending one is forbidden by the HTTP specification.',
+      correct: false,
+      explanation:
+        'The HTTP spec does not forbid GET with a body, but it explicitly says servers should not use it semantically — many proxies, caches, and frameworks strip or ignore it. Always carry GET parameters in the URL (query string), not in a body.',
+    },
+    {
+      id: 'api-q006',
+      type: 'mcq',
+      difficulty: 'beginner',
+      question: 'When you receive an API response, what is the FIRST thing you should inspect to decide if the call succeeded?',
+      options: [
+        'The body — parse the JSON and check for an "error" field',
+        'The response headers — look at Content-Type first',
+        'The HTTP status code — the single number that tells you the result class',
+        'The response time — anything over 200ms means failure',
+      ],
+      correct: 2,
+      explanation:
+        'The HTTP status code is the canonical success/failure signal. 2xx means success regardless of what the body contains; 4xx/5xx means failure even if the body looks healthy. Always assert on the status first, then drill into the body.',
+    },
+    {
+      id: 'api-q007',
+      type: 'fill-blank',
+      difficulty: 'beginner',
+      question: 'A POST that successfully creates a new resource should return status code ___.',
+      blank: 'A successful POST that creates a new resource should return status ___.',
+      chips: ['201', '200', '204', '202'],
+      correct: '201',
+      explanation:
+        '201 Created is the precise code for "resource created successfully" and typically comes with a Location header pointing to the new resource. 200 OK is a generic success (often for reads); 204 No Content for successful operations with no body; 202 Accepted for queued/async operations.',
+    },
+    {
+      id: 'api-q008',
+      type: 'mcq',
+      difficulty: 'beginner',
+      question: 'What is the practical difference between 401 Unauthorized and 403 Forbidden?',
+      options: [
+        'They are interchangeable — pick whichever name reads better',
+        '401 = "we don\'t know who you are — authenticate"; 403 = "we know who you are but you cannot access this resource"',
+        '401 only applies to expired tokens; 403 only applies to revoked tokens',
+        '401 is for users; 403 is for service accounts',
+      ],
+      correct: 1,
+      explanation:
+        '401 is an authentication failure — credentials are missing, invalid, or expired. 403 is an authorisation failure — credentials are valid but the user lacks permission. Mixing these up makes debugging painful and is a common API design bug.',
+    },
+    {
+      id: 'api-q009',
+      type: 'tf',
+      difficulty: 'beginner',
+      question: '5xx status codes indicate the client made a mistake in the request.',
+      correct: false,
+      explanation:
+        '5xx codes mean the server failed (500 generic, 502 bad gateway, 503 unavailable, 504 timeout). 4xx codes mean the client erred (400 bad request, 401/403 auth, 404 not found, 422 validation). Confusing the two leads to bug reports filed against the wrong team.',
+    },
+    {
+      id: 'api-q010',
+      type: 'code-mcq',
+      difficulty: 'beginner',
+      question: 'A DELETE request returns this response. What does the empty body indicate?',
+      code: `HTTP/1.1 204 No Content
+Date: Mon, 12 May 2026 10:30:00 GMT
+Content-Length: 0`,
+      codeLanguage: 'text',
+      options: [
+        'A bug — every successful response must include a JSON body',
+        'A 204 indicates success with intentionally no body — common for DELETE and some PUT/PATCH operations',
+        'The server is returning an error in headers only',
+        'The client should retry — empty body means processing is still in progress',
+      ],
+      correct: 1,
+      explanation:
+        '204 No Content is a contract: "I succeeded and have nothing further to say". Standard for DELETE and frequently used for PUT/PATCH when the client already has the latest state. Asserting "200 with a body" against a 204 endpoint is a common false-failure in test suites.',
+    },
+    {
+      id: 'api-q011',
+      type: 'fill-blank',
+      difficulty: 'beginner',
+      question: 'In JSON, the value `true` is of type ___.',
+      blank: 'In JSON, `true` and `false` are values of the ___ type.',
+      chips: ['boolean', 'string', 'number', 'null'],
+      correct: 'boolean',
+      explanation:
+        'JSON has exactly six types: string, number, boolean (true/false), null, object, array. Note that `"true"` (with quotes) is a string — a common bug in clients that stringify booleans before sending.',
+    },
+    {
+      id: 'api-q012',
+      type: 'mcq',
+      difficulty: 'beginner',
+      question: 'What is the primary purpose of an Environment in Postman?',
+      options: [
+        'To store the OS and browser version of the test machine',
+        'To hold a set of variables (e.g. base URL, auth token, user ID) so the same collection can run against dev, staging, and prod without editing requests',
+        'To enable parallel execution across multiple test machines',
+        'To group requests by HTTP method (GET vs POST)',
+      ],
+      correct: 1,
+      explanation:
+        "Environments parameterise the collection: `{{base_url}}/users` resolves differently when you switch from \"Dev\" to \"Prod\". This is what makes Postman collections portable and the same tests usable across deployment targets.",
+    },
+    {
+      id: 'api-q013',
+      type: 'fill-blank',
+      difficulty: 'beginner',
+      question: 'The cURL flag used to specify the HTTP method (e.g. PUT or DELETE) is ___.',
+      blank: 'To specify the HTTP method in cURL, use the ___ flag.',
+      chips: ['-X', '-d', '-H', '-i'],
+      correct: '-X',
+      explanation:
+        '`-X METHOD` sets the verb (default is GET if omitted, or POST when `-d` is used). `-d` adds a body; `-H` adds a header; `-i` includes response headers in the output. These four flags cover most everyday API debugging.',
+    },
+    {
+      id: 'api-q014',
+      type: 'mcq',
+      difficulty: 'beginner',
+      question: 'Where should each piece typically go: an auth token, a search term, and a specific user ID?',
+      options: [
+        'All three in the URL path',
+        'Auth token in header · search term in query string · user ID in path',
+        'All three in headers',
+        'Auth token in body · search term in path · user ID in query',
+      ],
+      correct: 1,
+      explanation:
+        'Auth tokens belong in headers (out of URLs to keep them out of logs and browser history). Search filters are query params (?q=…). Resource identifiers are path params (/users/42). Misplacing any of these leaks secrets, hurts cacheability, or breaks REST conventions.',
+    },
+    {
+      id: 'api-q015',
+      type: 'code-mcq',
+      difficulty: 'beginner',
+      question: 'In the URL `GET /api/users/42?status=active&limit=10`, which parts are path params and which are query params?',
+      code: `GET /api/users/42?status=active&limit=10
+HTTP/1.1`,
+      codeLanguage: 'text',
+      options: [
+        'Path param: 42 · Query params: status=active, limit=10',
+        'Path params: 42, status · Query params: active, limit',
+        'Path params: users, 42 · Query params: everything after the ?',
+        'Path params: everything before the ? · Query param: only "limit"',
+      ],
+      correct: 0,
+      explanation:
+        'Path params are the segments embedded in the URL path itself — here, `42` identifies the user. Query params come after the `?` as key=value pairs separated by `&` — `status=active` and `limit=10` filter or modify the request. Path = identity; query = options.',
+    },
+    {
+      id: 'api-q016',
+      type: 'mcq',
+      difficulty: 'beginner',
+      question: 'A team is choosing between URL-path versioning (`/v1/users`) and header versioning (`Accept: application/vnd.app.v1+json`). Which best captures the trade-off?',
+      options: [
+        'URL versioning is universally faster — always pick it',
+        'URL versioning is more visible and easier to test in a browser; header versioning keeps the URL clean and is technically more "RESTful" but harder to inspect at a glance',
+        'Header versioning is deprecated by HTTP/2',
+        'They are functionally identical — pick by team preference only',
+      ],
+      correct: 1,
+      explanation:
+        "URL versioning is pragmatic and discoverable — easy to test, easy to document. Header versioning is purist (URLs identify resources, not versions) but harder to debug and not browser-friendly. Most public APIs choose URL versioning; some enterprise APIs prefer headers.",
+    },
+    {
+      id: 'api-q017',
+      type: 'tf',
+      difficulty: 'beginner',
+      question: 'Adding a new OPTIONAL field to an API response is considered a breaking change that requires a new API version.',
+      correct: false,
+      explanation:
+        "Adding optional fields is *non-breaking* — clients that ignore unknown fields continue to work. Breaking changes include: removing fields, renaming fields, changing field types, changing status code semantics, making a previously-optional field required. Always know which side of this line a change falls on.",
+    },
+
+    // ── INTERMEDIATE ──────────────────────────────────────────────
+    {
+      id: 'api-q018',
+      type: 'mcq',
+      difficulty: 'intermediate',
+      question: 'A QA tester needs to call a protected endpoint that issues short-lived access tokens after login. Which authentication scheme fits best?',
+      options: [
+        'Basic Auth — username and password sent on every request',
+        'Bearer Token — login once, server returns a token, client sends `Authorization: Bearer <token>` on subsequent calls',
+        'API Key — a single long-lived static key embedded in the URL',
+        'No authentication — tokens are unnecessary for read-only endpoints',
+      ],
+      correct: 1,
+      explanation:
+        'Bearer Token is the standard short-lived-credential pattern. It avoids sending raw passwords on every call (Basic Auth) and supports expiry/rotation (unlike static API keys). Tokens are usually JWTs but can be opaque strings.',
+    },
+    {
+      id: 'api-q019',
+      type: 'code-mcq',
+      difficulty: 'intermediate',
+      question: 'A JWT looks like this. What does the `.` separate?',
+      code: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+.eyJzdWIiOiI0MiIsIm5hbWUiOiJQcml5YSIsImV4cCI6MTcwMDAwMDAwMH0
+.fL5Wn3xJ8c9q7DTfgD2nMHkLrPbY0nO_yQRsX-3p6mE`,
+      codeLanguage: 'text',
+      options: [
+        'header.payload.signature — three base64url-encoded segments',
+        'username.password.session — credentials and a session ID',
+        'algorithm.expiry.subject — three claim values',
+        'request.response.timestamp — protocol metadata',
+      ],
+      correct: 0,
+      explanation:
+        'A JWT has three parts joined by dots: the **header** (algorithm + token type), the **payload** (claims like sub, exp, name), and the **signature** (HMAC or RSA over the first two parts). The first two are base64url — *encoded but not encrypted* — anyone can decode them. The signature is what proves integrity.',
+    },
+    {
+      id: 'api-q020',
+      type: 'fill-blank',
+      difficulty: 'intermediate',
+      question: 'A token-based API expects the auth header value to start with the keyword ___.',
+      blank: 'For token auth, the header value typically reads `Authorization: ___ <token>`.',
+      chips: ['Bearer', 'Basic', 'Token', 'JWT'],
+      correct: 'Bearer',
+      explanation:
+        '`Authorization: Bearer <token>` is the RFC 6750 standard for OAuth 2.0 token auth and the most widely adopted convention. `Basic` is the HTTP Basic Auth scheme (base64 of user:password). `Token` and `JWT` are non-standard variants seen in some legacy APIs.',
+    },
+    {
+      id: 'api-q021',
+      type: 'code-mcq',
+      difficulty: 'intermediate',
+      question: 'Two error responses for the same failure are shown. Which is the better API design?',
+      code: `── Option A ──
+HTTP/1.1 400 Bad Request
+{"error": "something went wrong"}
+
+── Option B ──
+HTTP/1.1 400 Bad Request
+{
+  "code":    "VALIDATION_FAILED",
+  "message": "Email field is required and must be a valid email address",
+  "field":   "email",
+  "trace_id":"a1b2c3d4"
+}`,
+      codeLanguage: 'text',
+      options: [
+        'Option A — short, simple, easy for clients to handle',
+        'Option B — structured with a stable code, human message, the offending field, and a trace_id for support — clients can react programmatically, humans can debug',
+        'Both are equivalent in quality',
+        'Option A is preferred because it does not leak server internals',
+      ],
+      correct: 1,
+      explanation:
+        'A good error contract has a *stable machine-readable code*, a *human-readable message*, and *enough context to debug* (field, trace_id). Option A forces clients to parse free-form text — fragile and bad UX. Option B is the pattern used by Stripe, GitHub, and most well-designed public APIs.',
+    },
+    {
+      id: 'api-q022',
+      type: 'mcq',
+      difficulty: 'intermediate',
+      question: 'A client makes too many requests and gets back a 429. Which header should the client read to know when it is safe to retry?',
+      options: [
+        'Content-Length',
+        'Retry-After — gives seconds to wait (or an HTTP date)',
+        'X-RateLimit-Remaining — gives the count of requests left',
+        'Authorization — re-auth before retrying',
+      ],
+      correct: 1,
+      explanation:
+        '`Retry-After` is the standard header for 429 (and 503) responses telling the client when to retry. Backing off blindly leads to thundering herds; respecting Retry-After is the polite and effective pattern. `X-RateLimit-Remaining` is informational — sent on every response, not the retry signal.',
+    },
+    {
+      id: 'api-q023',
+      type: 'mcq',
+      difficulty: 'intermediate',
+      question: 'When designing test scenarios for a "create user" endpoint, which set of buckets gives the broadest coverage?',
+      options: [
+        'Only the happy path — focus on what users actually do',
+        'Positive · negative · boundary · security — covering valid input, invalid input, edge values, and adversarial input',
+        'Only failure paths — happy paths are obvious',
+        'Only payload tests — ignore headers and auth',
+      ],
+      correct: 1,
+      explanation:
+        'A robust API test plan covers four buckets: positive (happy path works), negative (bad input is rejected cleanly), boundary (edges like empty strings, max length, zero, negative numbers), and security (SQL injection, oversized payloads, missing auth, role-bypass attempts).',
+    },
+    {
+      id: 'api-q024',
+      type: 'mcq',
+      difficulty: 'intermediate',
+      question: 'In Postman, the most reliable assertion to confirm an API call succeeded is:',
+      options: [
+        '`pm.expect(pm.response.responseTime).to.be.below(500)` — response time is the success signal',
+        '`pm.expect(pm.response.code).to.eql(200)` — assert the exact status code',
+        '`pm.expect(pm.response.text()).to.include("success")` — assert the body contains a success string',
+        '`pm.expect(pm.cookies.has("session"))` — assert a cookie is set',
+      ],
+      correct: 1,
+      explanation:
+        'Status code is the canonical success signal. Body strings vary (locale, future format changes); response time depends on network; cookies may or may not be set. Always assert status first; then layer in body/schema assertions as supporting checks.',
+    },
+    {
+      id: 'api-q025',
+      type: 'code-mcq',
+      difficulty: 'intermediate',
+      question: 'What does this Postman test verify?',
+      code: `pm.test("user has a valid email and is active", function () {
+  const data = pm.response.json();
+  pm.expect(data.email).to.match(/^[^@]+@[^@]+\\.[^@]+$/);
+  pm.expect(data.status).to.eql("active");
+});`,
+      codeLanguage: 'javascript',
+      options: [
+        'That the response status code is 200',
+        'That the response body parses as JSON, the `email` field looks like an email, and the `status` field equals "active"',
+        'That the response time is under 200ms',
+        'That a session cookie was set',
+      ],
+      correct: 1,
+      explanation:
+        'This is a body-level contract test: parse the JSON, regex-check the email shape, and assert the status string. Note it does *not* check the HTTP status code — a complete test would add `pm.response.to.have.status(200)` first. Layered assertions catch more failure modes.',
+    },
+    {
+      id: 'api-q026',
+      type: 'code-mcq',
+      difficulty: 'intermediate',
+      question: 'Two list endpoints page differently. Which is offset-based and which is cursor-based?',
+      code: `── Endpoint A ──
+GET /api/orders?page=3&limit=20
+
+── Endpoint B ──
+GET /api/orders?cursor=eyJpZCI6MTIzNH0&limit=20`,
+      codeLanguage: 'text',
+      options: [
+        'Both are offset-based',
+        'A is offset-based (page number); B is cursor-based (opaque token pointing at a position)',
+        'A is cursor-based; B is offset-based',
+        'Both are cursor-based',
+      ],
+      correct: 1,
+      explanation:
+        'Offset pagination uses `page` or `offset` — simple but unstable if rows are inserted/deleted while paging. Cursor pagination uses an opaque token (typically encoding the last-seen row\'s sort key) — stable under writes and more efficient on large tables. Most modern public APIs (GitHub, Stripe) use cursors.',
+    },
+    {
+      id: 'api-q027',
+      type: 'fill-blank',
+      difficulty: 'intermediate',
+      question: 'The common query parameter used to control the maximum number of items returned per page is ___.',
+      blank: 'A common query parameter that caps page size is `?___=20`.',
+      chips: ['limit', 'count', 'size', 'max'],
+      correct: 'limit',
+      explanation:
+        '`limit` is by far the most common convention (GitHub, Stripe, Twitter). Some APIs use `per_page` or `size`, but `limit` is what most clients expect. Always document the maximum allowed value so callers cannot accidentally fetch millions of rows.',
+    },
+    {
+      id: 'api-q028',
+      type: 'tf',
+      difficulty: 'intermediate',
+      question: 'In a chained test suite (login → get-profile → update-profile), the tests must run in order — running them in parallel or out of sequence breaks them.',
+      correct: true,
+      explanation:
+        'Chained tests share state via captured variables (token, user_id). Parallel or out-of-order execution leaves the variables empty when downstream tests need them. Either keep chained suites sequential, or refactor to independent tests that each set up their own state.',
+    },
+    {
+      id: 'api-q029',
+      type: 'mcq',
+      difficulty: 'intermediate',
+      question: 'What does schema validation primarily catch that simple key-existence checks do not?',
+      options: [
+        'Performance regressions in the API',
+        'Type and structural mismatches — a string where a number was expected, a missing nested object, or an array element of the wrong shape',
+        'Authentication failures',
+        'Network latency between client and server',
+      ],
+      correct: 1,
+      explanation:
+        'Schema validation (JSON Schema, OpenAPI) catches *shape* drift: a field that used to be a number is now a string, a required nested object disappears, an array element is missing a property. Manual `expect(data.id).to.exist` only checks presence — it misses type changes that silently break downstream consumers.',
+    },
+    {
+      id: 'api-q030',
+      type: 'tf',
+      difficulty: 'intermediate',
+      question: 'Schema validation catches business-rule violations such as "total must equal sum of line items".',
+      correct: false,
+      explanation:
+        'Schema validation only checks *structure and types*. Business rules (cross-field invariants, value ranges, computed totals) require separate assertions. A response can be schema-valid yet semantically wrong — schema validation is a floor, not a ceiling.',
+    },
+    {
+      id: 'api-q031',
+      type: 'fill-blank',
+      difficulty: 'intermediate',
+      question: 'When uploading a file via HTTP, the request Content-Type is typically ___.',
+      blank: 'File uploads typically use Content-Type: `___/form-data`.',
+      chips: ['multipart', 'application', 'binary', 'text'],
+      correct: 'multipart',
+      explanation:
+        '`multipart/form-data` allows mixed content (file binaries + text fields) in one request, separated by boundary markers. `application/json` cannot carry raw file bytes. Tests must explicitly set this header and use the right body construction — most clients have a `form()` helper.',
+    },
+    {
+      id: 'api-q032',
+      type: 'mcq',
+      difficulty: 'intermediate',
+      question: 'A system needs to know within seconds when a payment is confirmed. Why is a webhook better than polling the payments API every minute?',
+      options: [
+        'Webhooks are easier to debug than polling',
+        'Webhooks push events the moment they happen — lower latency, less wasted traffic, no polling cap',
+        'Polling cannot return JSON',
+        'Webhooks are encrypted; polling is not',
+      ],
+      correct: 1,
+      explanation:
+        'Polling = constant traffic regardless of activity, plus latency equal to half the polling interval on average. Webhooks = the API calls you the instant something happens — near-zero latency, near-zero idle traffic. The trade-off is needing a public callback endpoint and handling delivery retries.',
+    },
+    {
+      id: 'api-q033',
+      type: 'tf',
+      difficulty: 'intermediate',
+      question: 'A webhook always reaches the receiver exactly once.',
+      correct: false,
+      explanation:
+        'Webhook delivery is best-effort with retries. Receivers must handle *at-least-once* delivery — the same event may arrive twice (network glitch, ack lost). The fix is idempotent processing: include a unique event ID, dedupe on it. Treating webhooks as exactly-once will eventually corrupt data.',
+    },
+    {
+      id: 'api-q034',
+      type: 'mcq',
+      difficulty: 'intermediate',
+      question: 'When is using a mock server most valuable?',
+      options: [
+        'Only after the real API is fully stable',
+        'When the real API is not yet built, is unreliable, costs money per call, or is hard to reproduce edge cases against — a mock lets tests proceed in parallel with the real implementation',
+        'Only to test load on production systems',
+        'Never — mock data hides real bugs',
+      ],
+      correct: 1,
+      explanation:
+        'Mocks unblock parallel work (frontend can develop before backend is done), make tests deterministic (no flaky network), enable cheap testing of rare edge cases (force a 500, force a timeout), and protect against rate-limited or expensive third-party APIs. The risk: mocks drift from reality — pair them with contract tests.',
+    },
+
+    // ── EXPERT ────────────────────────────────────────────────────
+    {
+      id: 'api-q035',
+      type: 'mcq',
+      difficulty: 'expert',
+      question: 'Why do most teams eventually move from Postman GUI tests to code-based API automation?',
+      options: [
+        'Postman is being deprecated',
+        'Code-based tests version-control cleanly with the app, run in CI, integrate with reporting and test data factories, and support reuse and refactoring at scale',
+        'Code-based tests are always faster',
+        'Postman cannot test authenticated endpoints',
+      ],
+      correct: 1,
+      explanation:
+        'Postman is excellent for exploration and small-suite regression. At scale it becomes hard to version, share helpers, factor out duplication, and integrate with CI gates. Code (Playwright, REST Assured, supertest, Pact) lives next to the app, leverages developer tooling, and scales with the team.',
+    },
+    {
+      id: 'api-q036',
+      type: 'code-mcq',
+      difficulty: 'expert',
+      question: 'What does this automated API test verify?',
+      code: `test('rejects negative quantity', async () => {
+  const res = await request(app)
+    .post('/api/orders')
+    .set('Authorization', \`Bearer \${token}\`)
+    .send({ product_id: 42, quantity: -1 });
+
+  expect(res.status).toBe(422);
+  expect(res.body.code).toBe('VALIDATION_FAILED');
+  expect(res.body.field).toBe('quantity');
+});`,
+      codeLanguage: 'javascript',
+      options: [
+        'That a negative quantity creates a refund order',
+        'That a negative quantity is rejected with 422, a stable error code "VALIDATION_FAILED", and the offending field name',
+        'That orders can be deleted when quantity is negative',
+        'That the auth token is valid',
+      ],
+      correct: 1,
+      explanation:
+        'A negative-case test: the contract is "negative quantity → 422 + structured error". It asserts the *machine-readable code* (stable across UI copy changes) and the *field* (so the frontend can highlight the right input). This is the rhythm of strong API contract tests.',
+    },
+    {
+      id: 'api-q037',
+      type: 'tf',
+      difficulty: 'expert',
+      question: 'In test-data terminology, factories generate fresh data on each call (often randomised), while fixtures are static pre-existing records loaded the same way every run.',
+      correct: true,
+      explanation:
+        'Factories (`createUser({ email: faker.email() })`) eliminate cross-test coupling — each test gets unique data. Fixtures (a seed dataset loaded once) are simpler but introduce shared state and order dependencies. Modern test suites lean toward factories for resilience.',
+    },
+    {
+      id: 'api-q038',
+      type: 'tf',
+      difficulty: 'expert',
+      question: 'Cloning production data into a test environment is always safe as long as the test environment is private.',
+      correct: false,
+      explanation:
+        'Production data carries real PII, real payment details, real auth tokens. Cloning it without sanitisation is a compliance breach (GDPR, HIPAA) waiting to happen — even on "private" environments, access is broader than prod, logs are looser, backups proliferate. Always anonymise/mask before cloning.',
+    },
+    {
+      id: 'api-q039',
+      type: 'mcq',
+      difficulty: 'expert',
+      question: 'A user passes `GET /api/orders/9999` and sees another user\'s order details. What class of vulnerability is this?',
+      options: [
+        'SQL Injection',
+        'BOLA / IDOR — Broken Object Level Authorization, where the server returns objects the requester is authenticated for but not authorised to see',
+        'Cross-Site Scripting (XSS)',
+        'Denial of Service',
+      ],
+      correct: 1,
+      explanation:
+        'BOLA/IDOR (Insecure Direct Object Reference) is the #1 vulnerability in the OWASP API Security Top 10. The fix: every endpoint must verify *both* "is this user authenticated?" *and* "is this user authorised for this specific object?" Authentication alone is not enough.',
+    },
+    {
+      id: 'api-q040',
+      type: 'mcq',
+      difficulty: 'expert',
+      question: 'The most reliable defence against SQL injection in an API is:',
+      options: [
+        'Stripping single quotes from inputs',
+        'Using parameterised queries / prepared statements — the SQL parser is given the structure separately from the user data, so no user string can become SQL',
+        'A web application firewall (WAF) blocking common payloads',
+        'Rate limiting',
+      ],
+      correct: 1,
+      explanation:
+        'Parameterised queries are the gold standard — user input is bound as data, never as SQL syntax. Input sanitisation is brittle (always one bypass away). WAFs add defence in depth but should never be the only layer. Rate limiting addresses abuse, not injection.',
+    },
+    {
+      id: 'api-q041',
+      type: 'tf',
+      difficulty: 'expert',
+      question: 'Serving an API over HTTPS alone is sufficient to consider it secure.',
+      correct: false,
+      explanation:
+        'HTTPS only secures data in transit. It does nothing against weak auth, missing authorisation, injection, mass assignment, broken access control, rate-limit absence, or insecure direct object references. HTTPS is one of many layers — and the easy one. The rest of the OWASP API Top 10 is where most breaches actually happen.',
+    },
+    {
+      id: 'api-q042',
+      type: 'fill-blank',
+      difficulty: 'expert',
+      question: 'The non-profit foundation behind the well-known "API Security Top 10" risk list is called ___.',
+      blank: 'The foundation publishing the API Security Top 10 risk list is ___.',
+      chips: ['OWASP', 'NIST', 'IETF', 'ISO'],
+      correct: 'OWASP',
+      explanation:
+        'OWASP (Open Worldwide Application Security Project) maintains the OWASP API Security Top 10 — the de facto checklist for API security. Knowing the top categories (BOLA, broken auth, broken object property level auth, unrestricted resource consumption, etc.) is table stakes for API security work.',
+    },
+    {
+      id: 'api-q043',
+      type: 'mcq',
+      difficulty: 'expert',
+      question: 'In consumer-driven contract testing (Pact pattern), who defines what the API contract must satisfy?',
+      options: [
+        'The provider — the API owner publishes the spec and consumers must conform',
+        'The consumer — each client declares the response shape it depends on, and the provider verifies its API satisfies all those declared expectations',
+        'A neutral third-party auditor',
+        'The QA team writes the contract independently of both sides',
+      ],
+      correct: 1,
+      explanation:
+        'Consumer-driven contracts flip the usual direction: each consumer publishes "I depend on these fields and behaviours". The provider runs all consumer contracts as part of its build — preventing accidental breaking changes. This is the Pact pattern, the dominant approach in microservice ecosystems.',
+    },
+    {
+      id: 'api-q044',
+      type: 'tf',
+      difficulty: 'expert',
+      question: 'Contract tests fully replace the need for integration tests between services.',
+      correct: false,
+      explanation:
+        'Contract tests verify that two services agree on the message shape and basic semantics — they do not verify end-to-end business flows, real network behaviour, or third-party integrations. Both layers are needed: contract tests catch interface drift quickly and cheaply; integration tests catch wiring and state bugs.',
+    },
+    {
+      id: 'api-q045',
+      type: 'mcq',
+      difficulty: 'expert',
+      question: 'What is the practical distinction between latency and throughput?',
+      options: [
+        'They are the same thing measured in different units',
+        'Latency = how long one request takes (e.g. 80 ms p95); throughput = how many requests the system handles per unit time (e.g. 1200 rps)',
+        'Latency is for reads; throughput is for writes',
+        'Latency is measured client-side; throughput is measured server-side',
+      ],
+      correct: 1,
+      explanation:
+        'Latency is per-request — a user-experience metric. Throughput is per-second — a capacity metric. A system can have low latency at low traffic and unacceptable latency at high throughput. Real performance budgets always specify both: "p95 latency ≤ 200ms at 1000 rps".',
+    },
+    {
+      id: 'api-q046',
+      type: 'mcq',
+      difficulty: 'expert',
+      question: 'In k6 load testing terminology, what is a "VU"?',
+      options: [
+        'A Virtual User — a simulated concurrent client running through the script',
+        'A Validation Unit — a single assertion in the test',
+        'A Variable Update — a config change applied mid-run',
+        'A View Unit — a frontend render measurement',
+      ],
+      correct: 0,
+      explanation:
+        'A Virtual User is one simulated concurrent client. `--vus 100` runs 100 VUs in parallel, each looping through the script. VUs map roughly to "concurrent users", whereas requests-per-second is the resulting load on the server — they are related but not the same.',
+    },
+    {
+      id: 'api-q047',
+      type: 'code-mcq',
+      difficulty: 'expert',
+      question: 'This k6 script defines a load profile. What is happening?',
+      code: `import http from 'k6/http';
+import { check, sleep } from 'k6';
+
+export const options = {
+  stages: [
+    { duration: '2m', target: 100 },   // ramp up
+    { duration: '5m', target: 100 },   // hold
+    { duration: '2m', target: 0 },     // ramp down
+  ],
+};
+
+export default function () {
+  const res = http.get('https://api.example.com/users');
+  check(res, { 'status is 200': (r) => r.status === 200 });
+  sleep(1);
+}`,
+      codeLanguage: 'javascript',
+      options: [
+        'A spike test — instantly jumps to 1000 users',
+        'A staged load test — ramps to 100 VUs over 2 min, holds for 5 min at 100 VUs, then ramps down over 2 min. Each VU GETs /users with a 1s pause and asserts status 200',
+        'A soak test running for 24 hours',
+        'A smoke test with a single user',
+      ],
+      correct: 1,
+      explanation:
+        'The `stages` array defines a load profile over time. This script is a classic ramp-hold-ramp shape — useful for finding stable behaviour under sustained moderate load. Spike tests jump instantly; soak tests hold for hours; smoke tests use 1 VU briefly to confirm the script works.',
+    },
+    {
+      id: 'api-q048',
+      type: 'mcq',
+      difficulty: 'expert',
+      question: 'The "three pillars of observability" for an API are:',
+      options: [
+        'Tests, monitoring, alerting',
+        'Logs, metrics, traces',
+        'Latency, throughput, errors',
+        'CPU, memory, disk',
+      ],
+      correct: 1,
+      explanation:
+        'Logs answer "what happened?" (events). Metrics answer "how much / how often?" (aggregated numbers). Traces answer "why was this request slow?" (request flow across services). Together they cover detection, quantification, and root-cause — the trio every production API needs.',
+    },
+    {
+      id: 'api-q049',
+      type: 'fill-blank',
+      difficulty: 'expert',
+      question: 'A target you commit to — e.g. "99.9% of requests succeed in under 300ms" — is called a Service Level ___.',
+      blank: 'A target like "99.9% of requests under 300ms" is called a Service Level ___.',
+      chips: ['Objective', 'Indicator', 'Agreement', 'Standard'],
+      correct: 'Objective',
+      explanation:
+        "SLI = the measurement (e.g. p95 latency, error rate). SLO = the *target* on that measurement (the line you commit to internally). SLA = the externally-promised version, often with financial penalties. SLOs drive on-call escalation; SLAs drive contracts.",
+    },
+    {
+      id: 'api-q050',
+      type: 'mcq',
+      difficulty: 'expert',
+      question: 'When integrating API tests into a CI/CD pipeline, what is the most common pattern for handling flaky or low-priority tests?',
+      options: [
+        'Disable them entirely until they are stable',
+        'Run them in a non-blocking ("report only") stage — failures show up in the dashboard but do not block the deploy, while critical tests stay as blocking gates',
+        'Run them only on production after deploy',
+        'Move them to a manual QA step',
+      ],
+      correct: 1,
+      explanation:
+        "Blocking vs report-only is the standard CI lever. Critical contract and smoke tests block the pipeline; flaky, slow, or low-priority tests run alongside as a report — surfacing signal without halting deploys. Eventually flaky tests should be fixed or quarantined, not silently disabled.",
+    },
+  ],
 };
