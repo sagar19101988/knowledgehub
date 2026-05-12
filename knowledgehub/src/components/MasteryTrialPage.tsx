@@ -1049,7 +1049,7 @@ export default function MasteryTrialPage() {
                     className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border-2 transition-all duration-200 flex-shrink-0
                       ${flagged.has(current.id)
                         ? 'bg-amber-500/20 border-amber-500 text-amber-700 dark:text-amber-300 shadow-[0_0_0_1px_rgba(245,158,11,0.25)]'
-                        : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-amber-400 hover:text-amber-600 dark:hover:text-amber-400'}`}
+                        : 'bg-white dark:bg-slate-900 border-amber-400 dark:border-amber-500/50 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:border-amber-500'}`}
                   >
                     <Bookmark size={13} className={flagged.has(current.id) ? 'fill-amber-500 text-amber-600' : ''} />
                     {flagged.has(current.id) ? 'Marked for review' : 'Mark for review'}
