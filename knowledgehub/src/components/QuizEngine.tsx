@@ -110,6 +110,8 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
   const addXp              = useQuestStore((state) => state.addXp);
   const completedLevels    = useQuestStore((state) => state.completedLevels);
   const markLevelComplete  = useQuestStore((state) => state.markLevelComplete);
+  const pauseRankUp        = useQuestStore((state) => state.pauseRankUp);
+  const resumeRankUp       = useQuestStore((state) => state.resumeRankUp);
 
   const quizzes   = ZONES_QUIZZES[zoneId];
   const levelData = quizzes?.find((q) => q.level === level);
@@ -122,6 +124,14 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
 
   // ── Inject scoped CSS once ──
   useEffect(() => { ensureStyles(); }, []);
+
+  // ── Safety: if the engine unmounts while a rank-up is still queued
+  //    (e.g. user navigates away before clicking Claim Victory), release
+  //    the pause so the modal can fire instead of being stuck queued forever.
+  useEffect(() => {
+    return () => { resumeRankUp(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Reset when level / zone changes ──
   useEffect(() => {
@@ -216,6 +226,9 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
       const alreadyCompleted = completedLevels.includes(levelKey);
       updateZoneProgress(zoneId, progressIncrement);
       if (!alreadyCompleted) {
+        // Queue any rank-up so it waits for the Claim Victory XP float.
+        // RankUpWatcher will buffer the modal payload until resumeRankUp() fires.
+        pauseRankUp();
         addXp(100);
         markLevelComplete(levelKey);
         setWasFirstCompletion(true);
@@ -229,7 +242,11 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
     if (currentIndex < questions.length - 1) {
       advance();
     } else {
-      if (wasFirstCompletion) fireXpFloat(100);
+      if (wasFirstCompletion) {
+        fireXpFloat(100);
+        // Let the XP float finish, then let any queued rank-up modal fire.
+        setTimeout(() => resumeRankUp(), 3300);
+      }
       onComplete(wasFirstCompletion);
     }
   };

@@ -10,23 +10,28 @@ import { RankUpModal } from './RankUpModal';
  * First mount / Firestore hydration is silently absorbed so we never fire
  * on page load or login.
  */
+type RankUpPayload = {
+  fromTitle: string | null;
+  toTitle: string;
+  toLevel: number;
+  flavor: string;
+};
+
 /** Max XP that can be earned in a single tick (one module = 100 XP). */
 const MAX_NORMAL_XP_DELTA = 200;
 
 export function RankUpWatcher() {
   const xp = useQuestStore((s) => s.xp);
   const completedCount = useQuestStore((s) => s.completedLevels.length);
+  const rankUpPaused = useQuestStore((s) => s.rankUpPaused);
   const { current } = getLevel(xp, { completedModuleCount: completedCount });
 
   const lastXpRef = useRef<number | null>(null);
   const lastLevelRef = useRef<number | null>(null);
-  const [rankUp, setRankUp] = useState<{
-    fromTitle: string | null;
-    toTitle: string;
-    toLevel: number;
-    flavor: string;
-  } | null>(null);
+  const pendingRef = useRef<RankUpPayload | null>(null);
+  const [rankUp, setRankUp] = useState<RankUpPayload | null>(null);
 
+  // ── Detect level-ups; queue the modal if rank-up is paused ──
   useEffect(() => {
     // First mount: snapshot, no celebration.
     if (lastXpRef.current === null) {
@@ -48,17 +53,32 @@ export function RankUpWatcher() {
       && current.level > lastLevelRef.current
     ) {
       const fromEntry = XP_LEVELS.find((l) => l.level === lastLevelRef.current);
-      setRankUp({
+      const payload: RankUpPayload = {
         fromTitle: fromEntry?.title ?? null,
         toTitle: current.title,
         toLevel: current.level,
         flavor: current.flavor,
-      });
+      };
+
+      if (rankUpPaused) {
+        // Queue silently — will be released by the resumeRankUp effect below.
+        pendingRef.current = payload;
+      } else {
+        setRankUp(payload);
+      }
     }
 
     lastXpRef.current = xp;
     lastLevelRef.current = current.level;
-  }, [xp, current.level, current.title, current.flavor]);
+  }, [xp, current.level, current.title, current.flavor, rankUpPaused]);
+
+  // ── When rank-up is resumed, flush any queued payload ──
+  useEffect(() => {
+    if (!rankUpPaused && pendingRef.current) {
+      setRankUp(pendingRef.current);
+      pendingRef.current = null;
+    }
+  }, [rankUpPaused]);
 
   return (
     <RankUpModal

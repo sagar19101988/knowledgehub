@@ -14,6 +14,11 @@ export interface QuestState {
   masteryBadges: Record<string, boolean>;
   masteryScores: Record<string, MasteryScore>;
 
+  // Runtime UI flag — queues the rank-up modal so it doesn't fire mid-celebration
+  // (e.g. Boss Fight victory waits for the XP float to finish before popping the modal).
+  // NOT persisted; resets to false on every load.
+  rankUpPaused: boolean;
+
   // Actions
   setPlayerName: (name: string) => void;
   clearPlayerName: () => void;
@@ -25,6 +30,8 @@ export interface QuestState {
   toggleTheme: () => void;
   enterGuestMode: () => void;
   recordMasteryResult: (zoneId: string, score: number, passed: boolean) => void;
+  pauseRankUp: () => void;
+  resumeRankUp: () => void;
 
   // Firebase sync
   hydrateFromFirestore: (progress: UserProgress, displayName: string) => void;
@@ -60,6 +67,7 @@ export const useQuestStore = create<QuestState>()(
       isGuest: false,
       masteryBadges: {},
       masteryScores: {},
+      rankUpPaused: false,
 
       setPlayerName: (name) => set({ playerName: name.trim() }),
       clearPlayerName: () => set({ playerName: null }),
@@ -97,6 +105,9 @@ export const useQuestStore = create<QuestState>()(
       })),
 
       enterGuestMode: () => set({ isGuest: true, playerName: 'Guest' }),
+
+      pauseRankUp:  () => set({ rankUpPaused: true }),
+      resumeRankUp: () => set({ rankUpPaused: false }),
 
       recordMasteryResult: (zoneId, score, passed) => set((state) => {
         const existing = state.masteryScores[zoneId];
