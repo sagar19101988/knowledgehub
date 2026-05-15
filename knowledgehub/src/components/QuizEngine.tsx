@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, XCircle, ChevronRight, RefreshCw } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ShieldCheck, XCircle, ChevronRight, RefreshCw, Skull, Zap } from 'lucide-react';
 import { ZONES_QUIZZES } from '../data/quizzes';
+import { ZONES } from '../data/zones';
 import { useQuestStore } from '../store/useQuestStore';
 import confetti from 'canvas-confetti';
 
@@ -12,7 +13,87 @@ interface QuizEngineProps {
   onComplete: (firstTime: boolean) => void;
 }
 
-const AUTO_ADVANCE_MS = 2500; // ms before auto-advancing on correct answer
+const AUTO_ADVANCE_MS = 2500;
+const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+// Inject scoped CSS keyframes once
+const STYLE_ID = 'qe-boss-fight-anims';
+function ensureStyles() {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById(STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = STYLE_ID;
+  style.textContent = `
+    @keyframes qe-shake {
+      0%,100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(5px); }
+    }
+    @keyframes qe-correct-pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+      100% { transform: scale(1); }
+    }
+    @keyframes qe-hp-pulse {
+      0%,100% { box-shadow: 0 0 8px rgba(239,68,68,0.4); }
+      50% { box-shadow: 0 0 18px rgba(239,68,68,0.7); }
+    }
+    @keyframes qe-shimmer {
+      0% { transform: translateX(-120%) skewX(-14deg); }
+      100% { transform: translateX(900%) skewX(-14deg); }
+    }
+    @keyframes qe-xp-float {
+      0%   { transform: translate(-50%, 0) scale(0.85);   opacity: 0; }
+      12%  { transform: translate(-50%, -10vh) scale(1.1); opacity: 1; }
+      40%  { transform: translate(-50%, -40vh) scale(1.05); opacity: 1; }
+      82%  { transform: translate(-50%, -85vh) scale(1);   opacity: 1; }
+      100% { transform: translate(-50%, -95vh) scale(0.95); opacity: 0; }
+    }
+    .qe-anim-shake { animation: qe-shake 0.4s ease; }
+    .qe-anim-correct { animation: qe-correct-pulse 0.4s ease; }
+    .qe-hp-fill { animation: qe-hp-pulse 2s ease-in-out infinite; }
+    .qe-shimmer {
+      content: '';
+      position: absolute;
+      inset-block: 0;
+      width: 80px;
+      background: linear-gradient(105deg, transparent 0%, rgba(139,92,246,0.12) 50%, transparent 100%);
+      animation: qe-shimmer 4s ease-in-out infinite 1s;
+      pointer-events: none;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+// Imperatively fires an XP float that survives the engine's unmount.
+// Mounts a fixed-position element on <body>, animates bottom→top, then self-removes.
+function fireXpFloat(amount: number) {
+  if (typeof document === 'undefined') return;
+  ensureStyles();
+  const el = document.createElement('div');
+  el.textContent = `+${amount} XP ✨`;
+  el.style.cssText = [
+    'position: fixed',
+    'left: 50%',
+    'bottom: 6vh',
+    'z-index: 9999',
+    'pointer-events: none',
+    'user-select: none',
+    'font-weight: 900',
+    'font-size: clamp(56px, 12vw, 110px)',
+    'letter-spacing: -0.02em',
+    'background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d946ef 100%)',
+    '-webkit-background-clip: text',
+    'background-clip: text',
+    '-webkit-text-fill-color: transparent',
+    'filter: drop-shadow(0 0 18px rgba(251,191,36,0.6)) drop-shadow(0 0 36px rgba(217,70,239,0.4))',
+    'animation: qe-xp-float 3.3s cubic-bezier(0.22, 1, 0.36, 1) forwards',
+  ].join(';');
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
 
 export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: QuizEngineProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -20,46 +101,46 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
   const [showResult, setShowResult] = useState(false);
   const [wasFirstCompletion, setWasFirstCompletion] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [showXpFloat, setShowXpFloat] = useState(false);
 
-  const resultRef        = useRef<HTMLDivElement>(null);
-  const advanceTimer     = useRef<ReturnType<typeof setTimeout>  | null>(null);
-  const countdownTimer   = useRef<ReturnType<typeof setInterval> | null>(null);
+  const resultRef      = useRef<HTMLDivElement>(null);
+  const advanceTimer   = useRef<ReturnType<typeof setTimeout>  | null>(null);
+  const countdownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const updateZoneProgress = useQuestStore((state) => state.updateZoneProgress);
   const addXp              = useQuestStore((state) => state.addXp);
   const completedLevels    = useQuestStore((state) => state.completedLevels);
   const markLevelComplete  = useQuestStore((state) => state.markLevelComplete);
 
-  const quizzes    = ZONES_QUIZZES[zoneId];
-  const levelData  = quizzes?.find((q) => q.level === level);
-  const questions  = levelData?.questions || [];
-  const question   = questions[currentIndex];
+  const quizzes   = ZONES_QUIZZES[zoneId];
+  const levelData = quizzes?.find((q) => q.level === level);
+  const questions = levelData?.questions || [];
+  const question  = questions[currentIndex];
+  const zone      = ZONES.find(z => z.id === zoneId);
 
   const isCorrect      = selectedOption ? (question?.options.find(o => o.id === selectedOption)?.isCorrect ?? false) : false;
   const isLastQuestion = currentIndex === questions.length - 1;
 
-  // ── Reset when level / zone changes ───────────────────────
+  // ── Inject scoped CSS once ──
+  useEffect(() => { ensureStyles(); }, []);
+
+  // ── Reset when level / zone changes ──
   useEffect(() => {
     setCurrentIndex(0);
     setSelectedOption(null);
     setShowResult(false);
     setWasFirstCompletion(false);
     setCountdown(null);
-    setShowXpFloat(false);
     stopTimers();
   }, [level, zoneId]);
 
-  // ── Auto-scroll + auto-advance when result appears ────────
+  // ── Auto-scroll + auto-advance when result appears ──
   useEffect(() => {
     if (!showResult) return;
 
-    // Scroll result into view after animation starts
     const scrollTimer = setTimeout(() => {
       resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }, 120);
 
-    // Auto-advance only for correct, non-final answers
     if (isCorrect && !isLastQuestion) {
       const secs = Math.ceil(AUTO_ADVANCE_MS / 1000);
       setCountdown(secs);
@@ -78,8 +159,31 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
       clearTimeout(scrollTimer);
       stopTimers();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showResult]);
+
+  // ── Keyboard shortcuts: 1-4 to select, Enter to submit ──
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      if (showResult) return;
+      if (!question) return;
+
+      const num = parseInt(e.key, 10);
+      if (!isNaN(num) && num >= 1 && num <= question.options.length) {
+        e.preventDefault();
+        const opt = question.options[num - 1];
+        if (opt) setSelectedOption(opt.id);
+      } else if (e.key === 'Enter' && selectedOption) {
+        e.preventDefault();
+        handleSubmit();
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showResult, selectedOption, question]);
 
   function stopTimers() {
     if (advanceTimer.current)   { clearTimeout(advanceTimer.current);    advanceTimer.current   = null; }
@@ -91,9 +195,11 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
     setCurrentIndex(i => i + 1);
     setSelectedOption(null);
     setShowResult(false);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
 
-  // ── Handlers ───────────────────────────────────────────────
   const handleSelect = (optionId: string) => {
     if (showResult) return;
     setSelectedOption(optionId);
@@ -113,7 +219,6 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
         addXp(100);
         markLevelComplete(levelKey);
         setWasFirstCompletion(true);
-        setShowXpFloat(true);
       }
     }
   };
@@ -124,6 +229,7 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
     if (currentIndex < questions.length - 1) {
       advance();
     } else {
+      if (wasFirstCompletion) fireXpFloat(100);
       onComplete(wasFirstCompletion);
     }
   };
@@ -141,57 +247,147 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
     );
   }
 
+  // HP bar: depletes immediately on correct hit, then stays put through next phase
+  const damageDealt = currentIndex + (showResult && isCorrect ? 1 : 0);
+  const hpRemaining = questions.length - damageDealt;
+  const hpPct = (hpRemaining / questions.length) * 100;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="max-w-2xl mx-auto"
     >
-      <div className="bg-white/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-8 rounded-2xl shadow-xl">
+      {/* Zone-themed dark card with violet glow + shimmer sweep */}
+      <div
+        className="relative overflow-hidden rounded-2xl p-7 sm:p-8"
+        style={{
+          background: 'linear-gradient(135deg, rgba(12,9,28,0.96) 0%, rgba(20,10,40,0.96) 100%)',
+          border: '2px solid rgba(124,58,237,0.6)',
+          boxShadow: '0 0 0 1px rgba(124,58,237,0.15), 0 0 40px rgba(124,58,237,0.12), 0 20px 60px rgba(0,0,0,0.5)',
+        }}
+      >
+        {/* Shimmer sweep */}
+        <div className="qe-shimmer" aria-hidden="true" />
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 flex items-center gap-3">
-            <span className="bg-rose-500/20 text-rose-400 p-2 rounded-lg">⚔️ Boss Fight: {level}</span>
-          </h3>
-          <div className="text-sm font-bold text-slate-600 dark:text-slate-400">
-            Phase {currentIndex + 1} / {questions.length}
+        {/* Header: Boss Fight label + Phase counter */}
+        <div className="relative z-10 flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2.5">
+            <div
+              className="w-10 h-10 rounded-[10px] flex items-center justify-center text-lg"
+              style={{
+                background: 'linear-gradient(135deg, rgba(239,68,68,0.25), rgba(124,58,237,0.25))',
+                border: '1px solid rgba(239,68,68,0.4)',
+                boxShadow: '0 0 16px rgba(239,68,68,0.2)',
+              }}
+            >
+              ⚔️
+            </div>
+            <div className="flex flex-col leading-tight">
+              <span className="text-[20px] font-black text-red-400" style={{ letterSpacing: '-0.01em' }}>
+                Boss Fight
+              </span>
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.1em] mt-0.5">
+                {zone?.title ?? zoneId} · {level}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-end gap-0.5">
+            <span className="text-[10px] font-black uppercase tracking-[0.12em] text-violet-500">Phase</span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-[22px] font-black text-white leading-none">{currentIndex + 1}</span>
+              <span className="text-xs font-bold text-slate-500">/ {questions.length}</span>
+            </div>
           </div>
         </div>
 
-        {/* Progress bar */}
-        <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-8">
+        {/* Boss HP bar */}
+        <div className="relative z-10 mb-7">
+          <div className="flex justify-between items-center mb-1.5">
+            <span className="text-[10px] font-black uppercase tracking-[0.14em] text-red-500 flex items-center gap-1.5">
+              <Skull size={12} /> Boss HP
+            </span>
+            <span className="text-[11px] font-extrabold text-red-400">
+              {hpRemaining} / {questions.length}
+            </span>
+          </div>
           <div
-            className="h-full bg-rose-500 rounded-full transition-all duration-500"
-            style={{ width: `${(currentIndex / questions.length) * 100}%` }}
-          />
+            className="relative h-3.5 w-full rounded-md overflow-hidden"
+            style={{
+              background: 'rgba(239,68,68,0.1)',
+              border: '1px solid rgba(239,68,68,0.25)',
+            }}
+          >
+            <div
+              className="qe-hp-fill h-full relative transition-all duration-700"
+              style={{
+                width: `${hpPct}%`,
+                background: 'linear-gradient(90deg, #dc2626, #ef4444, #f87171)',
+                borderRadius: '5px',
+              }}
+            >
+              <div
+                className="absolute inset-0 rounded-md"
+                style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.2) 0%, transparent 60%)' }}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Question */}
-        <p className="text-lg text-slate-600 dark:text-slate-300 mb-8 leading-relaxed">
+        <p className="relative z-10 text-[17px] leading-[1.65] text-slate-100 font-medium mb-6">
           {question.question}
         </p>
 
-        {/* Options */}
-        <div className="space-y-4">
-          {question.options.map((opt) => {
+        {/* Options — A/B/C/D letter badges + key hints */}
+        <div className="relative z-10 flex flex-col gap-3">
+          {question.options.map((opt, idx) => {
             const isSelected = selectedOption === opt.id;
-            let btnClass = 'w-full text-left p-4 rounded-xl border transition-all ';
+            const letter = LETTERS[idx] ?? String(idx + 1);
+
+            let stateClass = '';
+            const inlineStyle: React.CSSProperties = {
+              transition: 'all 0.18s',
+              border: '1.5px solid rgba(255,255,255,0.06)',
+              background: 'rgba(255,255,255,0.03)',
+              color: '#cbd5e1',
+            };
 
             if (showResult) {
               if (opt.isCorrect) {
-                btnClass += 'bg-emerald-500/20 border-emerald-500/50 text-emerald-700 dark:text-emerald-200';
-              } else if (isSelected && !opt.isCorrect) {
-                btnClass += 'bg-rose-500/20 border-rose-500/50 text-rose-700 dark:text-rose-200';
+                inlineStyle.background    = 'rgba(16,185,129,0.15)';
+                inlineStyle.borderColor   = 'rgba(16,185,129,0.6)';
+                inlineStyle.color         = '#6ee7b7';
+                inlineStyle.boxShadow     = '0 0 20px rgba(16,185,129,0.2)';
+                stateClass = 'qe-anim-correct';
+              } else if (isSelected) {
+                inlineStyle.background    = 'rgba(239,68,68,0.12)';
+                inlineStyle.borderColor   = 'rgba(239,68,68,0.5)';
+                inlineStyle.color         = '#fca5a5';
+                stateClass = 'qe-anim-shake';
               } else {
-                btnClass += 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 opacity-50';
+                inlineStyle.opacity = 0.3;
               }
-            } else {
-              if (isSelected) {
-                btnClass += 'bg-indigo-500/20 border-indigo-500 text-indigo-700 dark:text-indigo-200 shadow-[0_0_15px_rgba(99,102,241,0.2)]';
-              } else {
-                btnClass += 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-500';
-              }
+            } else if (isSelected) {
+              inlineStyle.background  = 'rgba(124,58,237,0.15)';
+              inlineStyle.borderColor = 'rgba(124,58,237,0.6)';
+              inlineStyle.color       = '#c4b5fd';
+              inlineStyle.boxShadow   = '0 0 20px rgba(124,58,237,0.2), inset 0 0 20px rgba(124,58,237,0.05)';
+            }
+
+            // Letter badge styling per state
+            let badgeStyle: React.CSSProperties = {
+              background: 'rgba(255,255,255,0.06)',
+              color: '#64748b',
+              border: '1px solid rgba(255,255,255,0.08)',
+            };
+            if (showResult && opt.isCorrect) {
+              badgeStyle = { background: 'rgba(16,185,129,0.3)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.5)' };
+            } else if (showResult && isSelected) {
+              badgeStyle = { background: 'rgba(239,68,68,0.2)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.4)' };
+            } else if (isSelected) {
+              badgeStyle = { background: 'rgba(124,58,237,0.3)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.5)' };
             }
 
             return (
@@ -199,105 +395,152 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
                 key={opt.id}
                 onClick={() => handleSelect(opt.id)}
                 disabled={showResult}
-                className={btnClass}
+                className={`relative w-full text-left rounded-2xl flex items-center gap-3.5 overflow-hidden ${stateClass} ${!showResult ? 'hover:translate-x-[3px]' : ''}`}
+                style={{ padding: '14px 18px', fontSize: 15, fontWeight: 600, ...inlineStyle }}
               >
-                <div className="flex items-center gap-3">
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-indigo-500 dark:border-indigo-400' : 'border-slate-300 dark:border-slate-600'}`}>
-                    {isSelected && <div className="w-3 h-3 rounded-full bg-indigo-400" />}
-                  </div>
-                  <span className="font-medium">{opt.text}</span>
-                </div>
+                <span
+                  className="flex-shrink-0 flex items-center justify-center font-black text-xs rounded-lg"
+                  style={{ width: 30, height: 30, ...badgeStyle, transition: 'all 0.18s' }}
+                >
+                  {letter}
+                </span>
+                <span className="flex-1">{opt.text}</span>
+                <span
+                  className="hidden sm:inline-block flex-shrink-0 text-[10px] font-bold tracking-wider rounded px-1.5 py-0.5"
+                  style={{
+                    color: '#475569',
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                  }}
+                  aria-hidden="true"
+                >
+                  {idx + 1}
+                </span>
               </button>
             );
           })}
         </div>
 
-        {/* Submit button */}
+        {/* Submit — Launch Attack */}
         {!showResult && (
-          <div className="mt-8 flex justify-end">
+          <div className="relative z-10 mt-6 flex justify-end">
             <button
               onClick={handleSubmit}
               disabled={!selectedOption}
-              className="px-8 py-3 bg-rose-500 text-white font-bold rounded-lg hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-[0_0_20px_rgba(244,63,94,0.3)] flex items-center gap-2"
+              className="flex items-center gap-2 text-white font-extrabold rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:-translate-y-px"
+              style={{
+                padding: '13px 32px',
+                background: 'linear-gradient(135deg, #7c3aed, #c026d3)',
+                boxShadow: '0 0 24px rgba(124,58,237,0.45), 0 4px 12px rgba(0,0,0,0.3)',
+                fontSize: 13,
+                letterSpacing: '0.03em',
+                textTransform: 'uppercase',
+              }}
             >
-              Submit Attack <ChevronRight size={20} />
+              <Zap size={16} /> Launch Attack
             </button>
           </div>
         )}
 
-        {/* Result panel — ref used for auto-scroll */}
+        {/* Result panel — banner + body */}
         {showResult && (
           <motion.div
             ref={resultRef}
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className={`mt-8 p-6 rounded-xl border ${isCorrect ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-rose-500/10 border-rose-500/30'}`}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            className="relative z-10 mt-7"
           >
-            <div className="flex items-start gap-4">
-              {isCorrect
-                ? <ShieldCheck size={32} className="text-emerald-400 flex-shrink-0 mt-1" />
-                : <XCircle    size={32} className="text-rose-400    flex-shrink-0 mt-1" />
-              }
-              <div className="w-full">
-                <div className="relative">
-                  <h4 className={`text-lg font-bold mb-2 ${isCorrect ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    {isCorrect ? 'Direct Hit!' : 'Attack Blocked!'}
-                  </h4>
-                  <AnimatePresence>
-                    {showXpFloat && (
-                      <motion.div
-                        initial={{ opacity: 1, y: 0 }}
-                        animate={{ opacity: [1, 1, 0], y: [0, -30, -70] }}
-                        transition={{ duration: 2.4, times: [0, 0.5, 1], ease: 'easeOut' }}
-                        onAnimationComplete={() => setShowXpFloat(false)}
-                        className="absolute -top-1 left-28 pointer-events-none select-none font-extrabold text-amber-400 text-xl drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]"
-                      >
-                        +100 XP ✨
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+            {/* Banner */}
+            <div
+              className="flex items-center gap-3 px-5 py-3.5 rounded-t-2xl"
+              style={{
+                background: isCorrect
+                  ? 'linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.08))'
+                  : 'linear-gradient(135deg, rgba(239,68,68,0.2), rgba(239,68,68,0.08))',
+                border: `1.5px solid ${isCorrect ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'}`,
+                borderBottom: 'none',
+              }}
+            >
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: isCorrect ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)',
+                  boxShadow: isCorrect ? '0 0 16px rgba(16,185,129,0.3)' : '0 0 16px rgba(239,68,68,0.3)',
+                }}
+              >
+                {isCorrect
+                  ? <ShieldCheck size={22} className="text-emerald-400" />
+                  : <XCircle    size={22} className="text-red-400" />
+                }
+              </div>
+              <div className="flex-1 relative">
+                <div className={`text-xl font-black leading-none ${isCorrect ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {isCorrect ? 'Direct Hit!' : 'Attack Blocked!'}
                 </div>
-                <p className="text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
-                  {question.explanation}
-                </p>
+                <div
+                  className="text-[11px] uppercase tracking-[0.1em] mt-0.5"
+                  style={{ color: isCorrect ? 'rgba(52,211,153,0.7)' : 'rgba(248,113,113,0.7)' }}
+                >
+                  {isCorrect ? 'Boss takes damage' : 'Boss deflects your strike'}
+                </div>
+              </div>
+            </div>
 
-                <div className="flex items-center justify-between gap-4">
-                  {/* Auto-advance countdown hint */}
-                  {isCorrect && !isLastQuestion && countdown !== null && (
-                    <span className="text-xs text-slate-400 flex-shrink-0">
-                      Auto-advancing in {countdown}s…
-                    </span>
+            {/* Body */}
+            <div
+              className="px-5 py-5 rounded-b-2xl"
+              style={{
+                background: isCorrect ? 'rgba(16,185,129,0.06)' : 'rgba(239,68,68,0.04)',
+                border: `1.5px solid ${isCorrect ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'}`,
+                borderTop: 'none',
+              }}
+            >
+              <p className="text-sm text-slate-400 leading-relaxed mb-4">
+                {question.explanation}
+              </p>
+
+              <div className="flex items-center justify-between gap-4">
+                {isCorrect && !isLastQuestion && countdown !== null && (
+                  <span className="text-xs text-slate-500">
+                    Auto-advancing in {countdown}s…
+                  </span>
+                )}
+                <div className="ml-auto">
+                  {isCorrect ? (
+                    <button
+                      onClick={handleNext}
+                      className="flex items-center gap-2 px-6 py-2 text-white font-extrabold rounded-lg transition hover:opacity-90"
+                      style={{
+                        background: 'linear-gradient(135deg, #10b981, #059669)',
+                        boxShadow: '0 0 16px rgba(16,185,129,0.35)',
+                      }}
+                    >
+                      {isLastQuestion
+                        ? 'Claim Victory'
+                        : countdown !== null
+                          ? `Next Phase (${countdown}s)`
+                          : 'Next Phase'}
+                      <ChevronRight size={18} />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleRetry}
+                      className="flex items-center gap-2 px-6 py-2 font-bold rounded-lg transition"
+                      style={{
+                        background: 'rgba(255,255,255,0.05)',
+                        color: '#cbd5e1',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                      }}
+                    >
+                      <RefreshCw size={18} /> Try Again
+                    </button>
                   )}
-                  <div className="ml-auto">
-                    {isCorrect ? (
-                      <button
-                        onClick={handleNext}
-                        className="px-6 py-2 bg-emerald-500 text-white font-bold rounded-lg hover:bg-emerald-600 transition flex items-center gap-2"
-                      >
-                        {isLastQuestion
-                          ? 'Claim Victory'
-                          : countdown !== null
-                            ? `Next Phase (${countdown}s)`
-                            : 'Next Phase'
-                        }
-                        <ChevronRight size={18} />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={handleRetry}
-                        className="px-6 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold border border-slate-200 dark:border-slate-600 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center gap-2"
-                      >
-                        <RefreshCw size={18} /> Try Again
-                      </button>
-                    )}
-                  </div>
                 </div>
               </div>
             </div>
           </motion.div>
         )}
-
       </div>
     </motion.div>
   );
