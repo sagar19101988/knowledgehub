@@ -41,11 +41,11 @@ function formatTime(seconds: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-// ── Circular SVG timer gauge for exam header ─────────────────
+// ── Floating circular timer widget (fixed, bottom-right) ─────
 function CircularTimer({ timeLeft }: { timeLeft: number }) {
   const pct = Math.max(0, timeLeft / TOTAL_TIME);
-  const SIZE = 72;
-  const STROKE = 5;
+  const SIZE = 112;
+  const STROKE = 8;
   const RADIUS = (SIZE - STROKE) / 2;
   const CIRC = 2 * Math.PI * RADIUS;
   const dashOffset = CIRC * (1 - pct);
@@ -61,7 +61,10 @@ function CircularTimer({ timeLeft }: { timeLeft: number }) {
 
   return (
     <div
-      className={`relative flex-shrink-0 ${isRed ? 'animate-pulse' : ''}`}
+      className={`fixed top-24 right-4 lg:top-24 lg:right-8 z-[80] rounded-full
+        bg-white/92 dark:bg-[#0f0c20]/92 backdrop-blur-sm
+        shadow-[0_4px_28px_rgba(0,0,0,0.18),0_0_0_1px_rgba(139,92,246,0.16)]
+        ${isRed ? 'animate-pulse' : ''}`}
       style={{ width: SIZE, height: SIZE }}
       aria-label={`Time remaining: ${formatTime(timeLeft)}`}
     >
@@ -69,7 +72,7 @@ function CircularTimer({ timeLeft }: { timeLeft: number }) {
         <circle
           cx={SIZE / 2} cy={SIZE / 2} r={RADIUS}
           strokeWidth={STROKE} fill="none"
-          stroke="rgba(139,92,246,0.18)"
+          stroke="rgba(139,92,246,0.14)"
         />
         <circle
           cx={SIZE / 2} cy={SIZE / 2} r={RADIUS}
@@ -81,9 +84,12 @@ function CircularTimer({ timeLeft }: { timeLeft: number }) {
           style={{ transition: 'stroke 0.6s ease, stroke-dashoffset 0.98s linear' }}
         />
       </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className={`text-[11px] font-black tabular-nums leading-none tracking-tight ${textCls}`}>
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
+        <span className={`text-base font-black tabular-nums leading-none tracking-tight ${textCls}`}>
           {formatTime(timeLeft)}
+        </span>
+        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 leading-none">
+          left
         </span>
       </div>
     </div>
@@ -1547,6 +1553,9 @@ export default function MasteryTrialPage() {
         })()}
       </AnimatePresence>
 
+      {/* ── Floating circular timer (fixed bottom-right) ── */}
+      <CircularTimer timeLeft={timeLeft} />
+
       {/* ── Tab-blur warning toast ── */}
       <AnimatePresence>
         {blurWarning && (
@@ -1605,8 +1614,6 @@ export default function MasteryTrialPage() {
           </button>
         </div>
 
-        {/* Right: circular SVG timer gauge */}
-        <CircularTimer timeLeft={timeLeft} />
       </header>
 
       {/* ── Body: sidebar (question map) + main (question) ── */}
