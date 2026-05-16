@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, type ComponentType } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -40,6 +40,424 @@ function formatTime(seconds: number): string {
   const s = seconds % 60;
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
+
+// ── Floating particle canvas (intro hero backdrop) ────────────
+function ParticleCanvas() {
+  const ref = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const resize = () => {
+      const w = canvas.offsetWidth;
+      const h = canvas.offsetHeight;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    resize();
+
+    const particles = Array.from({ length: 38 }, () => ({
+      x: Math.random() * canvas.offsetWidth,
+      y: Math.random() * canvas.offsetHeight,
+      vx: (Math.random() - 0.5) * 0.35,
+      vy: (Math.random() - 0.5) * 0.35,
+      r: Math.random() * 2.2 + 0.8,
+      hue: Math.random() > 0.5 ? '139,92,246' : '217,70,239',
+      alpha: Math.random() * 0.55 + 0.25,
+    }));
+
+    let raf = 0;
+    const tick = () => {
+      const w = canvas.offsetWidth;
+      const h = canvas.offsetHeight;
+      ctx.clearRect(0, 0, w, h);
+      for (const p of particles) {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < -10) p.x = w + 10; if (p.x > w + 10) p.x = -10;
+        if (p.y < -10) p.y = h + 10; if (p.y > h + 10) p.y = -10;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${p.hue},${p.alpha})`;
+        ctx.shadowColor = `rgba(${p.hue},0.8)`;
+        ctx.shadowBlur = 12;
+        ctx.fill();
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    tick();
+
+    const onResize = () => resize();
+    window.addEventListener('resize', onResize);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', onResize);
+    };
+  }, []);
+
+  return <canvas ref={ref} className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true" />;
+}
+
+// ── Per-zone hero illustrations ───────────────────────────────
+// Inline SVG so each zone's Mastery Trial intro gets its own "boss portrait"
+// without external asset files. New zones can be added by registering here.
+
+function SqlSorceryIllustration({ size = 88 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 120 120" width={size} height={size} aria-hidden="true">
+      <defs>
+        <linearGradient id="sql-disk-top" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#ddd6fe" />
+          <stop offset="100%" stopColor="#7c3aed" />
+        </linearGradient>
+        <linearGradient id="sql-disk-mid" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#f0abfc" />
+          <stop offset="100%" stopColor="#a21caf" />
+        </linearGradient>
+        <linearGradient id="sql-disk-bot" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#6d28d9" />
+          <stop offset="100%" stopColor="#312e81" />
+        </linearGradient>
+        <radialGradient id="sql-halo" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0%"   stopColor="rgba(217,70,239,0.55)" />
+          <stop offset="60%"  stopColor="rgba(124,58,237,0.18)" />
+          <stop offset="100%" stopColor="rgba(124,58,237,0)" />
+        </radialGradient>
+      </defs>
+      <circle cx="60" cy="60" r="56" fill="url(#sql-halo)" />
+      <g opacity="0.75">
+        <line x1="60" y1="28" x2="60" y2="6"  stroke="#f0abfc" strokeWidth="1.4" strokeDasharray="2 3" strokeLinecap="round">
+          <animate attributeName="stroke-dashoffset" from="0" to="-12" dur="1.4s" repeatCount="indefinite" />
+        </line>
+        <line x1="48" y1="30" x2="42" y2="12" stroke="#c4b5fd" strokeWidth="1"   strokeDasharray="1.5 3" strokeLinecap="round" opacity="0.7">
+          <animate attributeName="stroke-dashoffset" from="0" to="-10" dur="1.8s" repeatCount="indefinite" />
+        </line>
+        <line x1="72" y1="30" x2="78" y2="12" stroke="#c4b5fd" strokeWidth="1"   strokeDasharray="1.5 3" strokeLinecap="round" opacity="0.7">
+          <animate attributeName="stroke-dashoffset" from="0" to="-10" dur="1.2s" repeatCount="indefinite" />
+        </line>
+      </g>
+      <g>
+        <path d="M 28 84 L 28 92 A 32 9 0 0 0 92 92 L 92 84 Z" fill="url(#sql-disk-bot)" stroke="#3b0764" strokeWidth="0.8" />
+        <ellipse cx="60" cy="84" rx="32" ry="9" fill="#4c1d95" stroke="#3b0764" strokeWidth="0.8" />
+      </g>
+      <g>
+        <path d="M 28 60 L 28 68 A 32 9 0 0 0 92 68 L 92 60 Z" fill="url(#sql-disk-mid)" stroke="#701a75" strokeWidth="0.8" />
+        <ellipse cx="60" cy="60" rx="32" ry="9" fill="url(#sql-disk-mid)" stroke="#701a75" strokeWidth="0.8" />
+      </g>
+      <g>
+        <path d="M 28 36 L 28 44 A 32 9 0 0 0 92 44 L 92 36 Z" fill="url(#sql-disk-top)" stroke="#5b21b6" strokeWidth="0.8" />
+        <ellipse cx="60" cy="36" rx="32" ry="9" fill="url(#sql-disk-top)" stroke="#5b21b6" strokeWidth="0.8">
+          <animate attributeName="opacity" values="0.85;1;0.85" dur="2.4s" repeatCount="indefinite" />
+        </ellipse>
+        <ellipse cx="60" cy="33.5" rx="20" ry="3" fill="#ffffff" opacity="0.35" />
+      </g>
+      <g fill="#fde047">
+        <path d="M 20 26 L 21 29.4 L 24.4 30 L 21 30.6 L 20 34 L 19 30.6 L 15.6 30 L 19 29.4 Z" opacity="0.9">
+          <animate attributeName="opacity" values="0.4;1;0.4" dur="1.8s" repeatCount="indefinite" />
+        </path>
+        <path d="M 100 50 L 100.8 52.4 L 103.2 53.2 L 100.8 54 L 100 56.4 L 99.2 54 L 96.8 53.2 L 99.2 52.4 Z" opacity="0.85">
+          <animate attributeName="opacity" values="0.3;0.9;0.3" dur="2.2s" begin="0.5s" repeatCount="indefinite" />
+        </path>
+        <path d="M 16 72 L 16.7 74 L 18.7 74.7 L 16.7 75.4 L 16 77.4 L 15.3 75.4 L 13.3 74.7 L 15.3 74 Z" opacity="0.7">
+          <animate attributeName="opacity" values="0.2;0.8;0.2" dur="2.6s" begin="0.8s" repeatCount="indefinite" />
+        </path>
+        <path d="M 102 92 L 102.6 93.7 L 104.3 94.3 L 102.6 94.9 L 102 96.6 L 101.4 94.9 L 99.7 94.3 L 101.4 93.7 Z" opacity="0.75">
+          <animate attributeName="opacity" values="0.3;0.85;0.3" dur="2s" begin="1.1s" repeatCount="indefinite" />
+        </path>
+      </g>
+    </svg>
+  );
+}
+
+function ManualTestingIllustration({ size = 88 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 120 120" width={size} height={size} aria-hidden="true">
+      <defs>
+        <radialGradient id="manual-lens" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0%"   stopColor="rgba(196,181,253,0.35)" />
+          <stop offset="70%"  stopColor="rgba(124,58,237,0.12)" />
+          <stop offset="100%" stopColor="rgba(124,58,237,0)" />
+        </radialGradient>
+        <radialGradient id="manual-halo" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0%"   stopColor="rgba(16,185,129,0.45)" />
+          <stop offset="100%" stopColor="rgba(16,185,129,0)" />
+        </radialGradient>
+      </defs>
+      <circle cx="60" cy="60" r="56" fill="url(#manual-halo)" />
+      <line x1="78" y1="78" x2="100" y2="100" stroke="#5b21b6" strokeWidth="8"   strokeLinecap="round" />
+      <line x1="78" y1="78" x2="100" y2="100" stroke="#a78bfa" strokeWidth="4"   strokeLinecap="round" />
+      <line x1="80" y1="80" x2="92"  y2="92"  stroke="#ddd6fe" strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
+      <circle cx="50" cy="50" r="32" fill="url(#manual-lens)" stroke="#7c3aed" strokeWidth="5" />
+      <circle cx="50" cy="50" r="32" fill="none"              stroke="#c4b5fd" strokeWidth="1.2" opacity="0.7" />
+      <path d="M 32 36 A 24 24 0 0 1 50 26" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" opacity="0.55" />
+      <g>
+        <ellipse cx="50" cy="52" rx="11" ry="8" fill="#10b981" stroke="#065f46" strokeWidth="1.2" />
+        <line    x1="50" y1="44" x2="50" y2="60"               stroke="#065f46" strokeWidth="1.2" />
+        <circle  cx="50" cy="42" r="3.5" fill="#10b981"         stroke="#065f46" strokeWidth="1.2" />
+        <path d="M 48 39 Q 45 35 43 32" fill="none" stroke="#065f46" strokeWidth="1.2" strokeLinecap="round" />
+        <path d="M 52 39 Q 55 35 57 32" fill="none" stroke="#065f46" strokeWidth="1.2" strokeLinecap="round" />
+        <circle cx="43" cy="32" r="1" fill="#065f46" />
+        <circle cx="57" cy="32" r="1" fill="#065f46" />
+        <line x1="40" y1="48" x2="34" y2="44" stroke="#065f46" strokeWidth="1.4" strokeLinecap="round" />
+        <line x1="40" y1="52" x2="33" y2="52" stroke="#065f46" strokeWidth="1.4" strokeLinecap="round" />
+        <line x1="40" y1="56" x2="34" y2="60" stroke="#065f46" strokeWidth="1.4" strokeLinecap="round" />
+        <line x1="60" y1="48" x2="66" y2="44" stroke="#065f46" strokeWidth="1.4" strokeLinecap="round" />
+        <line x1="60" y1="52" x2="67" y2="52" stroke="#065f46" strokeWidth="1.4" strokeLinecap="round" />
+        <line x1="60" y1="56" x2="66" y2="60" stroke="#065f46" strokeWidth="1.4" strokeLinecap="round" />
+      </g>
+      <g>
+        <path d="M 95 18 L 99 22 L 106 14" fill="none" stroke="#10b981" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" opacity="0.85">
+          <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite" />
+        </path>
+        <path d="M 8 96 L 12 100 L 19 92" fill="none" stroke="#10b981" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" opacity="0.7">
+          <animate attributeName="opacity" values="0.2;0.9;0.2" dur="2.3s" begin="0.7s" repeatCount="indefinite" />
+        </path>
+      </g>
+    </svg>
+  );
+}
+
+function ApiTestingIllustration({ size = 88 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 120 120" width={size} height={size} aria-hidden="true">
+      <defs>
+        <radialGradient id="api-halo" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0%"   stopColor="rgba(34,211,238,0.5)" />
+          <stop offset="100%" stopColor="rgba(34,211,238,0)" />
+        </radialGradient>
+        <linearGradient id="api-node" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%"   stopColor="#22d3ee" />
+          <stop offset="100%" stopColor="#7c3aed" />
+        </linearGradient>
+      </defs>
+      <circle cx="60" cy="60" r="56" fill="url(#api-halo)" />
+      <path d="M 30 60 Q 60 18 90 60" fill="none" stroke="#22d3ee" strokeWidth="2" strokeDasharray="3 4" opacity="0.6">
+        <animate attributeName="stroke-dashoffset" from="0" to="-14" dur="1.5s" repeatCount="indefinite" />
+      </path>
+      <path d="M 90 60 Q 60 102 30 60" fill="none" stroke="#d946ef" strokeWidth="2" strokeDasharray="3 4" opacity="0.6">
+        <animate attributeName="stroke-dashoffset" from="0" to="14"  dur="1.5s" repeatCount="indefinite" />
+      </path>
+      <g>
+        <circle cx="30" cy="60" r="15" fill="url(#api-node)"   stroke="#0e7490" strokeWidth="1.5" />
+        <circle cx="30" cy="60" r="15" fill="none"             stroke="#67e8f9" strokeWidth="1"   opacity="0.6" />
+        <line x1="23" y1="55" x2="37" y2="55" stroke="#fff" strokeWidth="1.3" strokeLinecap="round" />
+        <line x1="23" y1="60" x2="37" y2="60" stroke="#fff" strokeWidth="1.3" strokeLinecap="round" />
+        <line x1="23" y1="65" x2="37" y2="65" stroke="#fff" strokeWidth="1.3" strokeLinecap="round" />
+        <circle cx="34" cy="55" r="1" fill="#10b981" />
+      </g>
+      <g>
+        <circle cx="90" cy="60" r="15" fill="url(#api-node)"   stroke="#0e7490" strokeWidth="1.5" />
+        <circle cx="90" cy="60" r="15" fill="none"             stroke="#67e8f9" strokeWidth="1"   opacity="0.6" />
+        <line x1="83" y1="55" x2="97" y2="55" stroke="#fff" strokeWidth="1.3" strokeLinecap="round" />
+        <line x1="83" y1="60" x2="97" y2="60" stroke="#fff" strokeWidth="1.3" strokeLinecap="round" />
+        <line x1="83" y1="65" x2="97" y2="65" stroke="#fff" strokeWidth="1.3" strokeLinecap="round" />
+        <circle cx="94" cy="55" r="1" fill="#10b981" />
+      </g>
+      <rect x="-4" y="-3" width="8" height="6" rx="1.5" fill="#fde047" stroke="#f59e0b" strokeWidth="0.8" opacity="0.95">
+        <animateMotion path="M 30 60 Q 60 18 90 60" dur="1.5s" repeatCount="indefinite" rotate="auto" />
+      </rect>
+      <rect x="-4" y="-3" width="8" height="6" rx="1.5" fill="#86efac" stroke="#16a34a" strokeWidth="0.8" opacity="0.95">
+        <animateMotion path="M 90 60 Q 60 102 30 60" dur="1.5s" repeatCount="indefinite" rotate="auto" />
+      </rect>
+    </svg>
+  );
+}
+
+function TypeScriptIllustration({ size = 88 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 120 120" width={size} height={size} aria-hidden="true">
+      <defs>
+        <radialGradient id="ts-halo" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0%"   stopColor="rgba(59,130,246,0.55)" />
+          <stop offset="60%"  stopColor="rgba(59,130,246,0.18)" />
+          <stop offset="100%" stopColor="rgba(59,130,246,0)" />
+        </radialGradient>
+        <linearGradient id="ts-glyph" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%"   stopColor="#93c5fd" />
+          <stop offset="60%"  stopColor="#3b82f6" />
+          <stop offset="100%" stopColor="#1d4ed8" />
+        </linearGradient>
+      </defs>
+      <circle cx="60" cy="60" r="56" fill="url(#ts-halo)" />
+      <circle cx="60" cy="60" r="44" fill="none" stroke="#3b82f6" strokeWidth="0.6" strokeDasharray="2 4" opacity="0.35" />
+      <g style={{ filter: 'drop-shadow(0 0 8px rgba(59,130,246,0.55))' }}>
+        <text
+          x="60" y="75"
+          textAnchor="middle"
+          fontSize="42"
+          fontWeight="900"
+          fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
+          fill="url(#ts-glyph)"
+          letterSpacing="-2.5"
+        >&lt;T&gt;</text>
+        <text
+          x="60" y="75"
+          textAnchor="middle"
+          fontSize="42"
+          fontWeight="900"
+          fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
+          fill="#60a5fa"
+          letterSpacing="-2.5"
+          opacity="0"
+        >
+          &lt;T&gt;
+          <animate attributeName="opacity" values="0;0.4;0" dur="2.6s" repeatCount="indefinite" />
+        </text>
+      </g>
+      <g fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace" fontWeight="700">
+        <text x="98" y="32" textAnchor="middle" fontSize="13" fill="#7dd3fc">
+          &lt;U&gt;
+          <animate attributeName="opacity" values="0.4;0.95;0.4" dur="2.4s" repeatCount="indefinite" />
+        </text>
+        <text x="22" y="98" textAnchor="middle" fontSize="11" fill="#a5b4fc">
+          &lt;K&gt;
+          <animate attributeName="opacity" values="0.3;0.85;0.3" dur="2.8s" begin="0.5s" repeatCount="indefinite" />
+        </text>
+        <text x="22" y="32" textAnchor="middle" fontSize="10" fill="#c4b5fd">
+          &lt;V&gt;
+          <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2.2s" begin="0.8s" repeatCount="indefinite" />
+        </text>
+      </g>
+      <circle cx="98" cy="62" r="2.6" fill="#10b981">
+        <animate attributeName="opacity" values="0.45;1;0.45" dur="2s" repeatCount="indefinite" />
+      </circle>
+    </svg>
+  );
+}
+
+function PlaywrightIllustration({ size = 88 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 120 120" width={size} height={size} aria-hidden="true">
+      <defs>
+        <radialGradient id="pw-halo" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0%"   stopColor="rgba(16,185,129,0.5)" />
+          <stop offset="100%" stopColor="rgba(16,185,129,0)" />
+        </radialGradient>
+        <linearGradient id="pw-screen" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#1e293b" />
+          <stop offset="100%" stopColor="#0b1220" />
+        </linearGradient>
+      </defs>
+      <circle cx="60" cy="60" r="56" fill="url(#pw-halo)" />
+      <g>
+        <rect x="14" y="22" width="92" height="76" rx="6" fill="#0f172a" stroke="#475569" strokeWidth="1.5" />
+        <path d="M 14 28 Q 14 22 20 22 L 100 22 Q 106 22 106 28 L 106 38 L 14 38 Z" fill="#1e293b" />
+        <line x1="14" y1="38" x2="106" y2="38" stroke="#475569" strokeWidth="1" />
+        <circle cx="22" cy="30" r="2" fill="#ef4444" />
+        <circle cx="28" cy="30" r="2" fill="#f59e0b" />
+        <circle cx="34" cy="30" r="2" fill="#22c55e" />
+        <rect x="42" y="27" width="56" height="6" rx="3" fill="#334155" />
+        <circle cx="46" cy="30" r="1.2" fill="#94a3b8" />
+        <line x1="50" y1="30" x2="94" y2="30" stroke="#64748b" strokeWidth="0.8" />
+        <rect x="18" y="42" width="84" height="52" fill="url(#pw-screen)" />
+        <rect x="24" y="48" width="38" height="3" rx="1.5" fill="#475569" />
+        <rect x="24" y="55" width="60" height="2" rx="1"   fill="#334155" />
+        <rect x="24" y="60" width="48" height="2" rx="1"   fill="#334155" />
+        <rect x="56" y="72" width="30" height="11" rx="2.5" fill="#3b82f6" stroke="#1d4ed8" strokeWidth="0.8">
+          <animate attributeName="fill" values="#3b82f6;#60a5fa;#3b82f6" dur="1.8s" repeatCount="indefinite" />
+        </rect>
+        <text x="71" y="80" textAnchor="middle" fontFamily="ui-sans-serif, system-ui, sans-serif" fontSize="5.5" fontWeight="800" fill="#ffffff" letterSpacing="0.3">SUBMIT</text>
+      </g>
+      <g>
+        <circle cx="72" cy="78" r="3" fill="none" stroke="#22d3ee" strokeWidth="1.4">
+          <animate attributeName="r"       from="3"   to="16"  dur="1.8s" repeatCount="indefinite" />
+          <animate attributeName="opacity" from="0.9" to="0"   dur="1.8s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="72" cy="78" r="3" fill="none" stroke="#22d3ee" strokeWidth="1.4">
+          <animate attributeName="r"       from="3"   to="16"  dur="1.8s" begin="0.6s" repeatCount="indefinite" />
+          <animate attributeName="opacity" from="0.9" to="0"   dur="1.8s" begin="0.6s" repeatCount="indefinite" />
+        </circle>
+      </g>
+      <g>
+        <path d="M 70 71 L 70 84 L 73.2 80.8 L 76 86 L 78 85 L 75.2 79.8 L 79 78.8 Z" fill="#ffffff" stroke="#0f172a" strokeWidth="0.8" strokeLinejoin="round">
+          <animateTransform attributeName="transform" type="translate" values="-4 -3; 0 0; -4 -3" dur="3s" repeatCount="indefinite" />
+        </path>
+      </g>
+      <g>
+        <circle cx="100" cy="14" r="3" fill="#ef4444">
+          <animate attributeName="opacity" values="0.4;1;0.4" dur="1.1s" repeatCount="indefinite" />
+        </circle>
+        <text x="94" y="17" textAnchor="end" fontFamily="ui-sans-serif, system-ui, sans-serif" fontSize="6.5" fontWeight="900" fill="#ef4444" letterSpacing="0.4">REC</text>
+      </g>
+    </svg>
+  );
+}
+
+function AiForQaIllustration({ size = 88 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 120 120" width={size} height={size} aria-hidden="true">
+      <defs>
+        <radialGradient id="ai-halo" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0%"   stopColor="rgba(217,70,239,0.5)" />
+          <stop offset="100%" stopColor="rgba(217,70,239,0)" />
+        </radialGradient>
+        <linearGradient id="ai-brain" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%"   stopColor="#f0abfc" />
+          <stop offset="100%" stopColor="#7c3aed" />
+        </linearGradient>
+      </defs>
+      <circle cx="60" cy="60" r="56" fill="url(#ai-halo)" />
+      <g stroke="#a855f7" strokeWidth="2" fill="url(#ai-brain)" opacity="0.88">
+        <path d="M 56 30 Q 36 30 28 48 Q 22 60 30 76 Q 26 88 42 92 Q 50 94 56 88 L 56 30 Z" />
+        <path d="M 60 30 Q 80 30 88 48 Q 94 60 86 76 Q 90 88 74 92 Q 66 94 60 88 L 60 30 Z" />
+      </g>
+      <line x1="58" y1="32" x2="58" y2="88" stroke="#5b21b6" strokeWidth="1.2" opacity="0.7" />
+      <g>
+        <circle cx="40" cy="48" r="2.6" fill="#fde047">
+          <animate attributeName="opacity" values="0.35;1;0.35" dur="1.6s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="48" cy="62" r="2.6" fill="#fde047">
+          <animate attributeName="opacity" values="0.35;1;0.35" dur="1.6s" begin="0.4s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="38" cy="76" r="2.6" fill="#fde047">
+          <animate attributeName="opacity" values="0.35;1;0.35" dur="1.6s" begin="0.8s" repeatCount="indefinite" />
+        </circle>
+      </g>
+      <g>
+        <circle cx="74" cy="46" r="2.6" fill="#67e8f9">
+          <animate attributeName="opacity" values="0.35;1;0.35" dur="1.6s" begin="0.2s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="80" cy="64" r="2.6" fill="#67e8f9">
+          <animate attributeName="opacity" values="0.35;1;0.35" dur="1.6s" begin="0.6s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="72" cy="78" r="2.6" fill="#67e8f9">
+          <animate attributeName="opacity" values="0.35;1;0.35" dur="1.6s" begin="1s"   repeatCount="indefinite" />
+        </circle>
+      </g>
+      <g strokeWidth="0.8" fill="none" opacity="0.55">
+        <line x1="40" y1="48" x2="48" y2="62" stroke="#fde047" />
+        <line x1="48" y1="62" x2="38" y2="76" stroke="#fde047" />
+        <line x1="40" y1="48" x2="38" y2="76" stroke="#fde047" />
+        <line x1="74" y1="46" x2="80" y2="64" stroke="#67e8f9" />
+        <line x1="80" y1="64" x2="72" y2="78" stroke="#67e8f9" />
+        <line x1="74" y1="46" x2="72" y2="78" stroke="#67e8f9" />
+      </g>
+      <line x1="48" y1="62" x2="80" y2="64" stroke="#ffffff" strokeWidth="0.8" opacity="0.35" />
+      <g strokeLinecap="round">
+        <line x1="60" y1="14" x2="60" y2="24" stroke="#fde047" strokeWidth="2">
+          <animate attributeName="opacity" values="0.4;1;0.4" dur="1.2s" repeatCount="indefinite" />
+        </line>
+        <line x1="54" y1="18" x2="66" y2="18" stroke="#fde047" strokeWidth="2">
+          <animate attributeName="opacity" values="0.4;1;0.4" dur="1.2s" begin="0.3s" repeatCount="indefinite" />
+        </line>
+      </g>
+    </svg>
+  );
+}
+
+const ZONE_ILLUSTRATIONS: Record<string, ComponentType<{ size?: number }>> = {
+  sql:          SqlSorceryIllustration,
+  manual:       ManualTestingIllustration,
+  api:          ApiTestingIllustration,
+  typescript:   TypeScriptIllustration,
+  playwright:   PlaywrightIllustration,
+  'ai-qa':      AiForQaIllustration,
+};
+
 
 // ── Question type renderers ───────────────────────────────────
 
@@ -468,6 +886,7 @@ export default function MasteryTrialPage() {
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [flagged, setFlagged] = useState<Set<string>>(new Set());
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   const toggleFlag = (qid: string) => setFlagged(prev => {
     const next = new Set(prev);
@@ -512,6 +931,15 @@ export default function MasteryTrialPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentIdx]);
 
+  // ── Hard scroll to top when entering the exam phase (after countdown) ──
+  // Without this, if the user scrolled down on the intro to read the rules,
+  // the exam Q1 would render mid-page instead of at the top.
+  useEffect(() => {
+    if (phase === 'exam') {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+  }, [phase]);
+
   // ── Tab-blur warning ──
   useEffect(() => {
     if (phase !== 'exam') return;
@@ -540,9 +968,21 @@ export default function MasteryTrialPage() {
   };
 
   const handleBegin = () => {
-    setTimeLeft(TOTAL_TIME);
-    setPhase('exam');
+    setCountdown(3);
   };
+
+  // ── 3-2-1 countdown before the trial actually starts ──
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown === 0) {
+      setTimeLeft(TOTAL_TIME);
+      setPhase('exam');
+      setCountdown(null);
+      return;
+    }
+    const id = setTimeout(() => setCountdown(c => (c === null ? null : c - 1)), 900);
+    return () => clearTimeout(id);
+  }, [countdown]);
 
   if (!zoneMeta || pool.length === 0) {
     return (
@@ -584,58 +1024,201 @@ export default function MasteryTrialPage() {
       ? new Date(stats.lastAttemptAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
       : null;
 
-    const rules: { icon: string; title: string; body: string }[] = [
-      { icon: '⏱️', title: '30 minutes total',     body: 'One countdown — spend it however you like across the questions.' },
-      { icon: '📋', title: '30 questions',         body: 'A mix of single choice, true/false, code reading, and fill-in-the-blank.' },
-      { icon: '✅', title: '80% to pass',          body: 'You need 24 out of 30 correct. Failed attempts never lock you out.' },
-      { icon: '🔖', title: 'Mark for review',      body: 'Flag questions to revisit them before submitting. Jump freely between any question.' },
-      { icon: '⏸️', title: 'No pausing',           body: 'The timer keeps running if you switch tabs or refresh the browser.' },
-      { icon: '🏆', title: 'Badge on first pass',  body: `Pass once to earn the ${badge?.name ?? 'Mastery'} badge — kept forever, even if later attempts don't pass.` },
+    const rules: { icon: string; title: string; body: string; accent: string }[] = [
+      { icon: '⏱️', title: '30 minutes total',     body: 'One countdown — spend it however you like across the questions.',                                                              accent: '#8b5cf6' },
+      { icon: '📋', title: '30 questions',         body: 'A mix of single choice, true/false, code reading, and fill-in-the-blank.',                                                     accent: '#d946ef' },
+      { icon: '✅', title: '80% to pass',          body: 'You need 24 out of 30 correct. Failed attempts never lock you out.',                                                            accent: '#10b981' },
+      { icon: '🔖', title: 'Mark for review',      body: 'Flag questions to revisit them before submitting. Jump freely between any question.',                                          accent: '#f59e0b' },
+      { icon: '⏸️', title: 'No pausing',           body: 'The timer keeps running if you switch tabs or refresh the browser.',                                                            accent: '#f43f5e' },
+      { icon: '🏆', title: 'Badge on first pass',  body: `Pass once to earn the ${badge?.name ?? 'Mastery'} badge — kept forever, even if later attempts don't pass.`,                    accent: '#6366f1' },
     ];
 
     return (
-      <div className="min-h-screen bg-[#f4f3ff] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans">
-        <div className="max-w-3xl mx-auto px-4 py-10 space-y-6">
+      <div className="min-h-screen relative bg-[#f4f3ff] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans overflow-hidden">
 
-          {/* Header */}
+        {/* ── 3-2-1 countdown overlay (fires on Begin Trial) ── */}
+        <AnimatePresence>
+          {countdown !== null && countdown > 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[200] bg-black/85 backdrop-blur-md flex items-center justify-center"
+            >
+              <motion.div
+                key={countdown}
+                initial={{ scale: 0.4, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 1.6, opacity: 0 }}
+                transition={{ duration: 0.7, ease: [0.34, 1.56, 0.64, 1] }}
+                className="font-black tabular-nums leading-none"
+                style={{
+                  fontSize: 'clamp(180px, 30vw, 360px)',
+                  background: 'linear-gradient(135deg, #fbbf24 0%, #d946ef 50%, #7c3aed 100%)',
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  filter: 'drop-shadow(0 0 60px rgba(217,70,239,0.6)) drop-shadow(0 0 120px rgba(124,58,237,0.4))',
+                }}
+              >
+                {countdown}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Sticky top nav — back button matches ZoneView Library ── */}
+        <nav className="h-16 sticky top-0 z-40 bg-[#f4f3ff]/85 dark:bg-[#0a0715]/80 backdrop-blur border-b border-violet-200/60 dark:border-violet-900/30 px-3 sm:px-6 flex items-center">
+          <button
+            onClick={() => navigate(-1)}
+            aria-label="Back to Zone"
+            className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-fuchsia-500 dark:hover:text-fuchsia-400 hover:border-fuchsia-300 dark:hover:border-fuchsia-700 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 hover:shadow-[0_0_18px_rgba(192,38,211,0.35)] dark:hover:shadow-[0_0_22px_rgba(217,70,239,0.5)] transition-all duration-200 group flex-shrink-0"
+          >
+            <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
+            <span className="text-sm font-semibold hidden sm:inline">Back to Zone</span>
+          </button>
+        </nav>
+
+        <div className="max-w-3xl mx-auto px-4 py-10 space-y-6 relative z-10">
+
+          {/* ── A: Cinematic hero ── */}
           <motion.div
             initial={{ opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`rounded-2xl border-2 p-7 flex flex-col sm:flex-row items-center gap-5 ${zoneMeta.bgColor} ${zoneMeta.borderColor}`}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="relative overflow-hidden rounded-3xl border-2 border-violet-500/40 dark:border-violet-500/50"
+            style={{
+              background: 'linear-gradient(135deg, rgba(12,9,28,0.97) 0%, rgba(28,14,52,0.97) 50%, rgba(40,16,64,0.97) 100%)',
+              boxShadow: '0 0 60px rgba(124,58,237,0.25), 0 20px 60px rgba(0,0,0,0.4)',
+              minHeight: 340,
+            }}
           >
-            <div className={`w-20 h-20 rounded-2xl flex items-center justify-center text-5xl flex-shrink-0 bg-white/80 dark:bg-slate-900/80 border ${zoneMeta.borderColor}`}>
-              {earned && badge ? badge.icon : '⚔️'}
+            {/* Floating particles */}
+            <ParticleCanvas />
+
+            {/* Dual rotating glow rings */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden="true">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 26, repeat: Infinity, ease: 'linear' }}
+                className="absolute rounded-full"
+                style={{
+                  width: 360, height: 360,
+                  border: '1px solid rgba(139,92,246,0.28)',
+                  boxShadow: 'inset 0 0 60px rgba(139,92,246,0.16), 0 0 60px rgba(139,92,246,0.16)',
+                }}
+              />
+              <motion.div
+                animate={{ rotate: -360 }}
+                transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+                className="absolute rounded-full"
+                style={{
+                  width: 250, height: 250,
+                  border: '1px dashed rgba(217,70,239,0.38)',
+                  boxShadow: 'inset 0 0 40px rgba(217,70,239,0.14), 0 0 40px rgba(217,70,239,0.18)',
+                }}
+              />
             </div>
-            <div className="flex-1 text-center sm:text-left">
-              <p className={`text-[11px] font-black uppercase tracking-[0.2em] ${zoneMeta.colorText} mb-1`}>
+
+            {/* Hero content */}
+            <div className="relative z-10 px-7 sm:px-10 py-12 flex flex-col items-center text-center">
+              <motion.div
+                initial={{ scale: 0.55, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
+                className="w-24 h-24 rounded-3xl flex items-center justify-center text-6xl mb-6 leading-none"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(124,58,237,0.28), rgba(217,70,239,0.28))',
+                  border: '2px solid rgba(217,70,239,0.55)',
+                  boxShadow: '0 0 50px rgba(217,70,239,0.5), 0 0 100px rgba(124,58,237,0.4), inset 0 0 30px rgba(255,255,255,0.06)',
+                }}
+              >
+                {(() => {
+                  const Illustration = ZONE_ILLUSTRATIONS[zoneId];
+                  if (Illustration) return <Illustration size={88} />;
+                  if (earned && badge) return badge.icon;
+                  return '⚔️';
+                })()}
+              </motion.div>
+
+              <motion.p
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.22 }}
+                className="text-[11px] font-black uppercase tracking-[0.32em] text-violet-300 mb-2.5"
+              >
                 {zoneMeta.title} · Mastery Trial
-              </p>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white leading-tight mb-1.5">
+              </motion.p>
+              <motion.h1
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="text-3xl sm:text-4xl font-black leading-tight mb-3 max-w-xl"
+                style={{
+                  background: 'linear-gradient(135deg, #ffffff 0%, #e9d5ff 50%, #f5d0fe 100%)',
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  letterSpacing: '-0.02em',
+                }}
+              >
                 {earned ? `Defend your ${badge?.name ?? 'badge'}` : `Earn the ${badge?.name ?? 'Mastery'} badge`}
-              </h1>
-              <p className="text-sm text-slate-600 dark:text-slate-300 leading-snug">
+              </motion.h1>
+              <motion.p
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.38 }}
+                className="text-sm text-slate-300/85 leading-relaxed max-w-md"
+              >
                 A 30-question, 30-minute trial covering everything in this zone. Take it when you're ready.
-              </p>
+              </motion.p>
             </div>
           </motion.div>
 
-          {/* Rules grid */}
+          {/* ── C: Rules as 2×3 glow cards ── */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/50 p-6"
+            transition={{ delay: 0.14 }}
           >
-            <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-4">Trial Rules</h2>
-            <div className="grid sm:grid-cols-2 gap-4">
+            <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-3 px-1">Trial Rules</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {rules.map((r, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <span className="text-xl flex-shrink-0 leading-none mt-0.5">{r.icon}</span>
-                  <div>
-                    <p className="text-sm font-black text-slate-800 dark:text-slate-100 leading-snug">{r.title}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">{r.body}</p>
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 + i * 0.05 }}
+                  className="relative rounded-2xl p-4 bg-white/70 dark:bg-slate-900/50 cursor-default transition-all duration-300"
+                  style={{ border: `1.5px solid ${r.accent}33` }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = `${r.accent}99`;
+                    e.currentTarget.style.boxShadow = `0 0 24px ${r.accent}33, inset 0 0 18px ${r.accent}12`;
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = `${r.accent}33`;
+                    e.currentTarget.style.boxShadow = '';
+                    e.currentTarget.style.transform = '';
+                  }}
+                >
+                  <div className="flex items-start gap-3">
+                    <span
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 leading-none"
+                      style={{
+                        background: `${r.accent}1a`,
+                        border: `1px solid ${r.accent}40`,
+                        boxShadow: `0 0 14px ${r.accent}25`,
+                      }}
+                    >
+                      {r.icon}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-black text-slate-800 dark:text-slate-100 leading-snug">{r.title}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">{r.body}</p>
+                    </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           </motion.div>
@@ -666,23 +1249,16 @@ export default function MasteryTrialPage() {
             </motion.div>
           )}
 
-          {/* Actions */}
+          {/* Action — Begin Trial (Back button lives in the sticky top bar) */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.24 }}
-            className="flex flex-col sm:flex-row gap-3 pt-2"
+            className="pt-2"
           >
             <button
-              onClick={() => navigate(-1)}
-              className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-fuchsia-500 dark:hover:text-fuchsia-400 hover:border-fuchsia-300 dark:hover:border-fuchsia-700 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 transition-all duration-200 group text-sm font-semibold"
-            >
-              <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
-              Back to Zone
-            </button>
-            <button
               onClick={handleBegin}
-              className="flex-[2] flex items-center justify-center gap-2 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-[0_0_22px_rgba(5,150,105,0.35)] transition"
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-[0_0_22px_rgba(5,150,105,0.35)] transition"
             >
               <Trophy size={16} /> Begin Trial <ArrowRight size={15} />
             </button>
