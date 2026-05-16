@@ -38,9 +38,21 @@ const MAP_PATHS: [string, string][] = [
   ['playwright', 'ai-qa'],
 ];
 
+// ── Per-zone light-mode tints (used for earned Completion Badge tiles) ──
+const ZONE_LIGHT_TILE: Record<string, { bg: string; border: string; title: string; iconBg: string }> = {
+  manual:     { bg: 'bg-orange-50',  border: 'border-orange-200',  title: 'text-orange-800',  iconBg: 'bg-orange-100'  },
+  sql:        { bg: 'bg-blue-50',    border: 'border-blue-200',    title: 'text-blue-800',    iconBg: 'bg-blue-100'    },
+  api:        { bg: 'bg-violet-50',  border: 'border-violet-200',  title: 'text-violet-800',  iconBg: 'bg-violet-100'  },
+  typescript: { bg: 'bg-sky-50',     border: 'border-sky-200',     title: 'text-sky-800',     iconBg: 'bg-sky-100'     },
+  playwright: { bg: 'bg-emerald-50', border: 'border-emerald-200', title: 'text-emerald-800', iconBg: 'bg-emerald-100' },
+  'ai-qa':    { bg: 'bg-rose-50',    border: 'border-rose-200',    title: 'text-rose-800',    iconBg: 'bg-rose-100'    },
+};
+
 function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
   const completedLevels = useQuestStore(s => s.completedLevels);
   const masteryBadges = useQuestStore(s => s.masteryBadges);
+  const theme = useQuestStore(s => s.theme);
+  const isDark = theme === 'dark';
   const getZoneProg = (zoneId: string) => {
     const total = (ZONE_TIERS[zoneId] ?? []).reduce((s, t) => s + t.moduleIds.length, 0);
     return total ? Math.round(completedLevels.filter(k => k.startsWith(zoneId + '::')).length / total * 100) : 0;
@@ -63,7 +75,7 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
       <div className="relative" style={{ minHeight: 480, minWidth: 700 }}>
 
       {/* ── Clipped art layer (bg + particles) ── */}
-      <div className="absolute inset-0 rounded-2xl overflow-hidden border border-violet-400/40 dark:border-violet-900/30 shadow-[0_0_40px_rgba(139,92,246,0.08)] dark:shadow-none bg-[#05030f]">
+      <div className={`absolute inset-0 rounded-2xl overflow-hidden ${isDark ? 'border border-violet-900/30 bg-[#05030f] shadow-none' : 'border border-slate-300 bg-[#1e293b] shadow-sm'}`}>
         {/* dot grid */}
         <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle, rgba(148,163,184,0.07) 1px, transparent 1px)', backgroundSize: '26px 26px' }} />
         {/* per-zone region halos */}
@@ -132,9 +144,9 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
 
       {/* ── Map title + compass ── */}
       <div className="absolute top-4 left-5 pointer-events-none z-10">
-        <p className="text-slate-600 dark:text-slate-700 text-[10px] font-black uppercase tracking-widest select-none">🗺️ The QA Realm</p>
+        <p className={`text-[10px] font-semibold uppercase tracking-widest select-none ${isDark ? 'text-slate-700 font-black' : 'text-slate-300'}`}>🗺️ The QA Realm</p>
       </div>
-      <div className="absolute bottom-3 right-4 pointer-events-none z-10 text-slate-700 font-mono text-[10px] select-none opacity-40">N ↑</div>
+      <div className={`absolute bottom-3 right-4 pointer-events-none z-10 font-mono text-[10px] select-none ${isDark ? 'text-slate-700 opacity-40' : 'text-slate-400 opacity-70'}`}>N ↑</div>
 
       {/* ── Zone nodes (outside overflow-hidden so labels aren't clipped) ── */}
       {MAP_NODES.map((node, i) => {
@@ -299,30 +311,45 @@ function HubMap() {
 
   // Rank ladder modal (rank-up celebration is now handled globally by RankUpWatcher in App)
   const [ladderOpen, setLadderOpen] = useState(false);
+  const isDark = theme === 'dark';
+  const isFinalRank = current.level === 8;
 
   return (
-    <div className="min-h-screen bg-[#f4f3ff] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans flex flex-col">
+    <div className={`min-h-screen font-sans flex flex-col ${isDark ? 'bg-[#07050f] text-slate-200' : 'bg-[#eff4fb] text-slate-900'}`}>
 
-      {/* Top navbar — HUD Layout: Left | Center | Right */}
-      <header className="h-16 border-b border-violet-200/60 dark:border-violet-900/30 bg-white/85 dark:bg-[#0a0715]/80 backdrop-blur px-3 sm:px-6 flex items-center sticky top-0 z-50 gap-2">
+      {/* Top navbar */}
+      <header className={`h-16 backdrop-blur px-3 sm:px-6 flex items-center sticky top-0 z-50 gap-2 ${isDark ? 'border-b border-violet-900/30 bg-[#0a0715]/80' : 'border-b border-slate-200 bg-white/90'}`}>
 
         {/* ── LEFT: Logo + title ── */}
         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-          <BookOpen size={22} className="text-fuchsia-400 flex-shrink-0" />
-          <h1 className="text-base sm:text-xl font-black bg-gradient-to-r from-fuchsia-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent tracking-tight drop-shadow-[0_0_12px_rgba(192,38,211,0.3)] truncate">
-            <span className="sm:hidden">QA Quest</span>
-            <span className="hidden sm:inline">QA Quest: The Knowledge Hub</span>
-          </h1>
+          <BookOpen size={22} className={`flex-shrink-0 ${isDark ? 'text-fuchsia-400' : 'text-blue-600'}`} />
+          {isDark ? (
+            <h1 className="text-base sm:text-xl font-black bg-gradient-to-r from-fuchsia-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent tracking-tight drop-shadow-[0_0_12px_rgba(192,38,211,0.3)] truncate">
+              <span className="sm:hidden">QA Quest</span>
+              <span className="hidden sm:inline">QA Quest: The Knowledge Hub</span>
+            </h1>
+          ) : (
+            <h1 className="text-base sm:text-xl font-bold text-slate-900 tracking-tight truncate">
+              <span className="sm:hidden">QA Quest</span>
+              <span className="hidden sm:inline">QA Quest: The Knowledge Hub</span>
+            </h1>
+          )}
         </div>
 
         {/* ── CENTER: Welcome text (desktop only) ── */}
-        <h1 className="hidden md:block text-xl font-black text-slate-900 dark:text-white whitespace-nowrap">
-          Welcome back,{' '}
-          <span className="bg-gradient-to-r from-fuchsia-500 to-cyan-400 bg-clip-text text-transparent">
-            {playerName}
-          </span>{' '}
-          👋
-        </h1>
+        {isDark ? (
+          <h1 className="hidden md:block text-xl font-black text-white whitespace-nowrap">
+            Welcome back,{' '}
+            <span className="bg-gradient-to-r from-fuchsia-500 to-cyan-400 bg-clip-text text-transparent">
+              {playerName}
+            </span>{' '}
+            👋
+          </h1>
+        ) : (
+          <h1 className="hidden md:block text-lg font-bold text-slate-900 whitespace-nowrap">
+            Welcome back, <span className="font-bold text-blue-600">{playerName}</span>
+          </h1>
+        )}
 
         {/* ── RIGHT: Rank chip + Avatar dropdown ── */}
         <div className="flex-1 flex justify-end items-center gap-2">
@@ -330,19 +357,25 @@ function HubMap() {
           <button
             onClick={() => setLadderOpen(true)}
             aria-label={`Rank ${current.level} ${current.title} — open rank ladder`}
-            className="lg:hidden group relative flex items-center gap-1.5 pl-2 pr-2.5 py-1 rounded-xl border border-amber-400/40 bg-amber-500/5 hover:bg-amber-500/15 hover:border-amber-400/70 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 transition-all duration-200"
+            className={`lg:hidden group relative flex items-center gap-1.5 pl-2 pr-2.5 py-1 rounded-xl border transition-all duration-200 ${
+              isDark
+                ? 'border-amber-400/40 bg-amber-500/10 hover:bg-amber-500/20 hover:border-amber-400/70'
+                : isFinalRank
+                  ? 'border-amber-300 bg-amber-50 hover:bg-amber-100'
+                  : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
+            }`}
           >
-            <Trophy size={13} className="text-amber-500 flex-shrink-0" />
-            <span className="text-xs font-black text-amber-700 dark:text-amber-300 tracking-tight">
+            <Trophy size={13} className={`flex-shrink-0 ${isDark ? 'text-amber-500' : isFinalRank ? 'text-amber-600' : 'text-blue-600'}`} />
+            <span className={`text-xs tracking-tight ${isDark ? 'font-black text-amber-300' : isFinalRank ? 'font-bold text-amber-700' : 'font-bold text-blue-700'}`}>
               Lv.{current.level}
             </span>
-            <span className="hidden sm:inline text-xs font-bold text-slate-700 dark:text-slate-200 truncate max-w-[160px]">
+            <span className={`hidden sm:inline text-xs font-bold truncate max-w-[160px] ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
               · {current.title}
             </span>
             {/* progress underline */}
-            <span className="absolute left-2 right-2 -bottom-0.5 h-[2px] bg-slate-200/70 dark:bg-slate-800/80 rounded-full overflow-hidden">
+            <span className={`absolute left-2 right-2 -bottom-0.5 h-[2px] rounded-full overflow-hidden ${isDark ? 'bg-slate-800/80' : 'bg-slate-200'}`}>
               <span
-                className="block h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full"
+                className={`block h-full rounded-full ${isDark ? 'bg-gradient-to-r from-amber-500 to-yellow-400' : isFinalRank ? 'bg-amber-500' : 'bg-blue-600'}`}
                 style={{ width: `${progress}%` }}
               />
             </span>
@@ -351,14 +384,18 @@ function HubMap() {
           <div className="relative" ref={avatarRef}>
             <button
               onClick={() => setAvatarOpen(p => !p)}
-              className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-xl hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-all duration-200"
+              className={`flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-xl transition-all duration-200 ${isDark ? 'hover:bg-violet-900/20' : 'hover:bg-blue-50'}`}
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-white font-black text-sm shadow-[0_0_14px_rgba(192,38,211,0.5)] ring-2 ring-fuchsia-400/30 flex-shrink-0">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm flex-shrink-0 ${
+                isDark
+                  ? 'bg-gradient-to-br from-fuchsia-500 to-violet-600 font-black shadow-[0_0_14px_rgba(192,38,211,0.5)] ring-2 ring-fuchsia-400/30'
+                  : 'bg-slate-700 font-semibold'
+              }`}>
                 {playerName?.[0]?.toUpperCase() ?? '?'}
               </div>
               <ChevronDown
                 size={13}
-                className={`text-slate-400 dark:text-slate-500 transition-transform duration-200 ${avatarOpen ? 'rotate-180' : ''}`}
+                className={`transition-transform duration-200 ${avatarOpen ? 'rotate-180' : ''} ${isDark ? 'text-slate-500' : 'text-slate-400'}`}
               />
             </button>
 
@@ -367,29 +404,45 @@ function HubMap() {
                 initial={{ opacity: 0, y: -6, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.15, ease: 'easeOut' }}
-                className="absolute right-0 top-[calc(100%+8px)] w-56 bg-white dark:bg-[#0e0b1f] border border-slate-200 dark:border-violet-900/50 rounded-2xl shadow-2xl shadow-black/20 dark:shadow-black/60 overflow-hidden z-50"
+                className={`absolute right-0 top-[calc(100%+8px)] w-56 rounded-2xl overflow-hidden z-50 ${
+                  isDark
+                    ? 'bg-[#0e0b1f] border border-violet-900/50 shadow-2xl shadow-black/60'
+                    : 'bg-white border border-slate-200 shadow-xl'
+                }`}
               >
                 {/* Player header */}
-                <div className="px-4 py-3.5 bg-gradient-to-r from-violet-500/5 to-fuchsia-500/5 dark:from-violet-900/30 dark:to-fuchsia-900/20 border-b border-slate-100 dark:border-violet-900/30">
+                <div className={`px-4 py-3.5 ${
+                  isDark
+                    ? 'bg-gradient-to-r from-violet-900/30 to-fuchsia-900/20 border-b border-violet-900/30'
+                    : 'bg-slate-50 border-b border-slate-200'
+                }`}>
                   <div className="flex items-center gap-3 mb-2.5">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-white font-black text-base shadow-[0_0_12px_rgba(192,38,211,0.4)] flex-shrink-0">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-base flex-shrink-0 ${
+                      isDark
+                        ? 'bg-gradient-to-br from-fuchsia-500 to-violet-600 font-black shadow-[0_0_12px_rgba(192,38,211,0.4)]'
+                        : 'bg-slate-700 font-semibold'
+                    }`}>
                       {playerName?.[0]?.toUpperCase() ?? '?'}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{playerName}</p>
-                      <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400 truncate">
+                      <p className={`text-sm font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{playerName}</p>
+                      <p className={`text-[11px] font-bold truncate ${
+                        isDark ? 'text-amber-400' : isFinalRank ? 'text-amber-700' : 'text-slate-600'
+                      }`}>
                         Lv.{current.level} · {current.title}
                       </p>
                     </div>
                   </div>
                   {/* Rank progress */}
-                  <div className="h-1.5 w-full bg-slate-200/70 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
                     <div
-                      className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all"
+                      className={`h-full rounded-full transition-all ${
+                        isDark ? 'bg-gradient-to-r from-amber-500 to-yellow-400' : isFinalRank ? 'bg-amber-500' : 'bg-blue-600'
+                      }`}
                       style={{ width: `${progress}%` }}
                     />
                   </div>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5">
+                  <p className={`text-[10px] mt-1.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                     {nextProgressText}
                   </p>
                 </div>
@@ -398,17 +451,23 @@ function HubMap() {
                   {/* Theme toggle */}
                   <button
                     onClick={() => { toggleTheme(); setAvatarOpen(false); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-violet-50 dark:hover:bg-slate-700 hover:text-violet-700 dark:hover:text-white transition-all duration-150 group/item"
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 group/item ${
+                      isDark
+                        ? 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                        : 'text-slate-700 hover:bg-blue-50 hover:text-blue-700'
+                    }`}
                   >
-                    <span className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover/item:bg-violet-100 dark:group-hover/item:bg-violet-900/40 transition-colors">
+                    <span className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+                      isDark ? 'bg-slate-800 group-hover/item:bg-violet-900/40' : 'bg-slate-100 group-hover/item:bg-blue-100'
+                    }`}>
                       {theme === 'dark'
                         ? <Sun size={14} className="text-amber-400" />
-                        : <Moon size={14} className="text-violet-500" />}
+                        : <Moon size={14} className="text-blue-600" />}
                     </span>
                     {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
                   </button>
 
-                  <div className="h-px bg-slate-100 dark:bg-slate-800/80 mx-2" />
+                  <div className={`h-px mx-2 ${isDark ? 'bg-slate-800/80' : 'bg-slate-200'}`} />
 
                   {/* Logout */}
                   <button
@@ -417,9 +476,15 @@ function HubMap() {
                       if (isGuest) { resetProgress(); } else { logout(); }
                       navigate('/login', { replace: true });
                     }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-rose-500 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950 hover:text-rose-700 dark:hover:text-rose-200 transition-all duration-150 group/item"
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 group/item ${
+                      isDark
+                        ? 'text-rose-400 hover:bg-rose-950 hover:text-rose-200'
+                        : 'text-rose-600 hover:bg-rose-50 hover:text-rose-700'
+                    }`}
                   >
-                    <span className="w-7 h-7 rounded-lg bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center group-hover/item:bg-rose-100 dark:group-hover/item:bg-rose-500/20 transition-colors">
+                    <span className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+                      isDark ? 'bg-rose-500/10 group-hover/item:bg-rose-500/20' : 'bg-rose-50 group-hover/item:bg-rose-100'
+                    }`}>
                       <LogOut size={14} />
                     </span>
                     Exit Realm
@@ -435,17 +500,25 @@ function HubMap() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* ── Left sidebar (hidden on mobile — info accessible via avatar) ── */}
-        <aside className="hidden lg:flex w-72 flex-shrink-0 border-r border-violet-200/50 dark:border-violet-900/25 bg-white/70 dark:bg-[#0a0715]/60 flex-col gap-5 p-5 overflow-y-auto sidebar-scroll">
+        <aside className={`hidden lg:flex w-72 flex-shrink-0 flex-col gap-5 p-5 overflow-y-auto sidebar-scroll ${
+          isDark ? 'border-r border-violet-900/25 bg-[#0a0715]/60' : 'border-r border-slate-200 bg-white'
+        }`}>
 
           {/* Player card — slimmed to identity only (rank info lives in chip below) */}
-          <div className="bg-white/60 dark:bg-slate-900/60 border border-violet-300/50 dark:border-violet-900/40 rounded-2xl p-4 shadow-lg">
+          <div className={`rounded-2xl p-4 ${
+            isDark ? 'bg-slate-900/60 border border-violet-900/40 shadow-lg' : 'bg-white border border-slate-200 shadow-sm'
+          }`}>
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-500 flex items-center justify-center text-white font-black text-lg flex-shrink-0 shadow-[0_0_16px_rgba(192,38,211,0.4)]">
+              <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white text-lg flex-shrink-0 ${
+                isDark
+                  ? 'bg-gradient-to-br from-fuchsia-500 to-violet-500 font-black shadow-[0_0_16px_rgba(192,38,211,0.4)]'
+                  : 'bg-slate-700 font-semibold'
+              }`}>
                 {playerName?.[0]?.toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-slate-900 dark:text-white font-bold text-sm truncate">{playerName}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{isGuest ? 'Guest Mode' : 'Explorer'}</p>
+                <p className={`font-bold text-sm truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{playerName}</p>
+                <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{isGuest ? 'Guest Mode' : 'Explorer'}</p>
               </div>
             </div>
           </div>
@@ -454,55 +527,92 @@ function HubMap() {
           <button
             onClick={() => setLadderOpen(true)}
             aria-label={`Rank ${current.level} ${current.title} — open rank ladder`}
-            className="group relative flex items-center gap-3 px-4 py-3.5 rounded-xl border border-amber-400/40 bg-amber-500/5 hover:bg-amber-500/15 hover:border-amber-400/70 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 transition-all duration-200 text-left"
+            className={`group relative flex items-center gap-3 px-4 py-3.5 rounded-xl border transition-all duration-200 text-left ${
+              isDark
+                ? 'border-amber-400/40 bg-amber-500/10 hover:bg-amber-500/20 hover:border-amber-400/70'
+                : isFinalRank
+                  ? 'border-amber-300 bg-amber-50 hover:bg-amber-100'
+                  : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
+            }`}
           >
             {/* Level badge */}
-            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center shadow-[0_0_12px_rgba(245,158,11,0.35)]">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-900/70 leading-none -mb-0.5">Lv</span>
-              <span className="text-base font-black text-slate-900 leading-none ml-0.5">{current.level}</span>
+            <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${
+              isDark
+                ? 'bg-gradient-to-br from-amber-400 to-yellow-500 shadow-[0_0_12px_rgba(245,158,11,0.35)]'
+                : isFinalRank
+                  ? 'bg-gradient-to-br from-amber-400 to-yellow-500'
+                  : 'bg-blue-600'
+            }`}>
+              <span className={`text-[10px] uppercase tracking-widest leading-none -mb-0.5 ${
+                isDark || isFinalRank ? 'font-black text-slate-900/70' : 'font-bold text-white/80'
+              }`}>Lv</span>
+              <span className={`text-base leading-none ml-0.5 ${
+                isDark || isFinalRank ? 'font-black text-slate-900' : 'font-bold text-white'
+              }`}>{current.level}</span>
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <Trophy size={13} className="text-amber-500 flex-shrink-0" />
-                <p className="text-sm font-black text-slate-900 dark:text-white tracking-tight truncate">
+                <Trophy size={13} className={`flex-shrink-0 ${isDark ? 'text-amber-500' : isFinalRank ? 'text-amber-600' : 'text-blue-600'}`} />
+                <p className={`text-sm tracking-tight truncate ${
+                  isDark ? 'font-black text-white' : 'font-bold text-slate-900'
+                }`}>
                   {current.title}
                 </p>
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 truncate">
+              <p className={`text-[11px] mt-1 truncate ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 {nextProgressText}
               </p>
             </div>
             {/* progress underline */}
-            <span className="absolute left-3 right-3 -bottom-0.5 h-[2px] bg-slate-200/70 dark:bg-slate-800/80 rounded-full overflow-hidden">
+            <span className={`absolute left-3 right-3 -bottom-0.5 h-[2px] rounded-full overflow-hidden ${isDark ? 'bg-slate-800/80' : 'bg-slate-200'}`}>
               <span
-                className="block h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full"
+                className={`block h-full rounded-full ${
+                  isDark ? 'bg-gradient-to-r from-amber-500 to-yellow-400' : isFinalRank ? 'bg-amber-500' : 'bg-blue-600'
+                }`}
                 style={{ width: `${progress}%` }}
               />
             </span>
           </button>
 
           {/* Total XP stat tile (compact, single-line) */}
-          <div className="flex items-center justify-between rounded-xl border border-amber-300/30 dark:border-amber-700/30 bg-gradient-to-br from-amber-50 to-yellow-50/60 dark:from-amber-950/30 dark:to-yellow-900/15 px-3.5 py-2 shadow-sm">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-700/80 dark:text-amber-400/80">
-              Total XP
-            </p>
-            <p className="text-base font-black text-amber-700 dark:text-amber-300 tracking-tight">
+          <div className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 ${
+            isDark
+              ? 'border border-amber-700/30 bg-gradient-to-br from-amber-950/30 to-yellow-900/15 shadow-sm'
+              : 'border border-blue-200 bg-blue-50 shadow-sm'
+          }`}>
+            <div className="flex items-center gap-1.5">
+              {!isDark && <span className="text-blue-600 text-sm leading-none">⚡</span>}
+              <p className={`text-[10px] uppercase tracking-[0.18em] ${
+                isDark ? 'font-black text-amber-400/80' : 'font-semibold text-blue-700'
+              }`}>
+                Total XP
+              </p>
+            </div>
+            <p className={`tracking-tight ${
+              isDark ? 'text-base font-black text-amber-300' : 'text-lg font-bold text-blue-800'
+            }`}>
               {xp.toLocaleString()}
             </p>
           </div>
 
           {/* Guest mode banner */}
           {isGuest && (
-            <div className="rounded-2xl border border-violet-400/30 bg-violet-500/5 p-3 flex flex-col gap-2">
-              <p className="text-xs text-violet-500 dark:text-violet-400 font-semibold flex items-center gap-1.5">
+            <div className={`rounded-2xl border p-3 flex flex-col gap-2 ${
+              isDark ? 'border-violet-400/30 bg-violet-500/5' : 'border-blue-200 bg-blue-50'
+            }`}>
+              <p className={`text-xs font-semibold flex items-center gap-1.5 ${
+                isDark ? 'text-violet-400' : 'text-blue-700'
+              }`}>
                 <span>🔓</span> Guest Mode
               </p>
-              <p className="text-xs text-slate-500 leading-relaxed">
+              <p className={`text-xs leading-relaxed ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>
                 Progress saved locally. Sign in to sync across devices.
               </p>
               <button
                 onClick={() => navigate('/login')}
-                className="w-full py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-fuchsia-500 to-violet-600 text-white hover:opacity-90 transition"
+                className={`w-full py-1.5 rounded-lg text-xs font-bold text-white transition ${
+                  isDark ? 'bg-gradient-to-r from-fuchsia-500 to-violet-600 hover:opacity-90' : 'bg-blue-600 hover:bg-blue-700'
+                }`}
               >
                 Sign In / Sign Up →
               </button>
@@ -510,20 +620,24 @@ function HubMap() {
           )}
 
           {/* Daily Bounty */}
-          <div className={`rounded-2xl border p-4 transition-all ${bountyAlreadyClaimed ? 'bg-white/60 dark:bg-slate-900/60 border-slate-800' : 'bg-amber-500/5 border-amber-500/25'}`}>
+          <div className={`rounded-2xl border p-4 transition-all ${
+            bountyAlreadyClaimed
+              ? (isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200')
+              : (isDark ? 'bg-amber-500/5 border-amber-500/25' : 'bg-white border-slate-200')
+          }`}>
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <span className="text-base">⚔️</span>
-                <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Daily Bounty</p>
+                <p className={`text-sm font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>Daily Bounty</p>
               </div>
               {!bountyAlreadyClaimed && (
                 <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isDark ? 'bg-amber-400' : 'bg-blue-500'}`} />
+                  <span className={`relative inline-flex rounded-full h-2 w-2 ${isDark ? 'bg-amber-400' : 'bg-blue-500'}`} />
                 </span>
               )}
             </div>
-            <p className="text-slate-500 text-xs mb-3 leading-relaxed">
+            <p className={`text-xs mb-3 leading-relaxed ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>
               {bountyAlreadyClaimed ? "Come back tomorrow for more XP!" : "Complete your daily quest and earn +50 XP."}
             </p>
             <button
@@ -531,8 +645,10 @@ function HubMap() {
               disabled={bountyAlreadyClaimed}
               className={`w-full py-2 rounded-xl text-xs font-bold transition-all ${
                 bountyAlreadyClaimed
-                  ? 'bg-slate-800 text-slate-500 dark:text-slate-600 cursor-not-allowed'
-                  : 'bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.15)] hover:shadow-[0_0_18px_rgba(245,158,11,0.25)]'
+                  ? (isDark ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed')
+                  : (isDark
+                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.15)] hover:shadow-[0_0_18px_rgba(245,158,11,0.25)]'
+                      : 'bg-blue-600 text-white hover:bg-blue-700')
               }`}
             >
               {bountyAlreadyClaimed ? '✓ Claimed Today' : 'Claim +50 XP'}
@@ -542,27 +658,38 @@ function HubMap() {
           {/* Completion Badges (earned by finishing every module in a zone) */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Completion Badges</h2>
-              <span className="text-xs text-slate-500 dark:text-slate-600">{earnedCount}/{ZONES.length}</span>
+              <h2 className={`text-xs uppercase tracking-widest ${isDark ? 'font-bold text-slate-500' : 'font-semibold text-slate-500'}`}>Completion Badges</h2>
+              <span className={`text-xs ${isDark ? 'text-slate-600' : 'text-slate-500'}`}>{earnedCount}/{ZONES.length}</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {ZONES.map((zone) => {
                 const earned = unlockedBadges.includes(zone.badge);
+                const tint = ZONE_LIGHT_TILE[zone.id];
                 return (
                   <div
                     key={zone.id}
                     className={`relative flex flex-col items-center text-center p-3 rounded-xl border transition-all ${
                       earned
-                        ? `${zone.bgColor} ${zone.borderColor} shadow-[0_0_12px_rgba(0,0,0,0.2)]`
-                        : 'bg-slate-100 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/50'
+                        ? (isDark
+                            ? `${zone.bgColor} ${zone.borderColor} shadow-[0_0_12px_rgba(0,0,0,0.2)]`
+                            : `${tint?.bg ?? 'bg-white'} ${tint?.border ?? 'border-slate-200'} shadow-sm`)
+                        : (isDark ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50 border-slate-200')
                     }`}
                   >
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-1.5 [&>svg]:w-5 [&>svg]:h-5 ${earned ? 'bg-white/80 dark:bg-slate-900/80' : 'bg-slate-200 dark:bg-slate-700/50'}`}>
-                      {earned ? zone.icon : <span className="text-slate-400 dark:text-slate-500 text-sm">🔒</span>}
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-1.5 [&>svg]:w-5 [&>svg]:h-5 ${
+                      earned
+                        ? (isDark ? 'bg-slate-900/80' : (tint?.iconBg ?? 'bg-white'))
+                        : (isDark ? 'bg-slate-700/50' : 'bg-slate-100')
+                    }`}>
+                      {earned ? zone.icon : <span className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>🔒</span>}
                     </div>
-                    <p className={`text-xs font-bold leading-tight ${earned ? zone.colorText : 'text-slate-400 dark:text-slate-500'}`}>{zone.badge}</p>
-                    <p className="text-slate-400 dark:text-slate-500 text-xs mt-0.5 truncate w-full">{zone.title}</p>
-                    {earned && <span className="absolute top-1.5 right-1.5 text-xs">⭐</span>}
+                    <p className={`text-xs font-bold leading-tight ${
+                      earned
+                        ? (isDark ? zone.colorText : (tint?.title ?? 'text-slate-900'))
+                        : (isDark ? 'text-slate-500' : 'text-slate-400')
+                    }`}>{zone.badge}</p>
+                    <p className={`text-xs mt-0.5 truncate w-full ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>{zone.title}</p>
+                    {isDark && earned && <span className="absolute top-1.5 right-1.5 text-xs">⭐</span>}
                   </div>
                 );
               })}
@@ -575,8 +702,8 @@ function HubMap() {
             return (
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Mastery Trial Badges</h2>
-                  <span className="text-xs text-slate-500 dark:text-slate-600">{trialEarnedCount}/{ZONES.length}</span>
+                  <h2 className={`text-xs uppercase tracking-widest ${isDark ? 'font-bold text-slate-500' : 'font-semibold text-slate-500'}`}>Mastery Trial Badges</h2>
+                  <span className={`text-xs ${isDark ? 'text-slate-600' : 'text-slate-500'}`}>{trialEarnedCount}/{ZONES.length}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   {ZONES.map((zone) => {
@@ -588,18 +715,28 @@ function HubMap() {
                         key={zone.id}
                         className={`relative flex flex-col items-center text-center p-3 rounded-xl border transition-all ${
                           earned
-                            ? 'bg-gradient-to-br from-violet-500/15 to-fuchsia-500/15 dark:from-violet-500/20 dark:to-fuchsia-500/20 border-violet-400 dark:border-violet-500/60 shadow-[0_0_14px_rgba(139,92,246,0.35)]'
-                            : 'bg-slate-100 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/50'
+                            ? (isDark
+                                ? 'bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border-violet-500/60 shadow-[0_0_14px_rgba(139,92,246,0.35)]'
+                                : 'bg-indigo-50 border-indigo-300 ring-1 ring-indigo-100 shadow-sm')
+                            : (isDark ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50 border-slate-200')
                         }`}
                       >
-                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-1.5 text-xl ${earned ? 'bg-white/80 dark:bg-slate-900/80' : 'bg-slate-200 dark:bg-slate-700/50'}`}>
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-1.5 text-xl ${
+                          earned
+                            ? (isDark ? 'bg-slate-900/80' : 'bg-indigo-100')
+                            : (isDark ? 'bg-slate-700/50' : 'bg-slate-100')
+                        }`}>
                           {earned
                             ? <span className="leading-none">{trialBadge.icon}</span>
-                            : <span className="text-slate-400 dark:text-slate-500 text-sm">🔒</span>}
+                            : <span className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>🔒</span>}
                         </div>
-                        <p className={`text-xs font-bold leading-tight ${earned ? 'text-violet-700 dark:text-violet-300' : 'text-slate-400 dark:text-slate-500'}`}>{trialBadge.name}</p>
-                        <p className="text-slate-400 dark:text-slate-500 text-xs mt-0.5 truncate w-full">{zone.title}</p>
-                        {earned && <span className="absolute top-1.5 right-1.5 text-xs">🏆</span>}
+                        <p className={`text-xs leading-tight ${
+                          earned
+                            ? (isDark ? 'font-bold text-violet-300' : 'font-bold text-indigo-900')
+                            : (isDark ? 'font-bold text-slate-500' : 'font-bold text-slate-400')
+                        }`}>{trialBadge.name}</p>
+                        <p className={`text-xs mt-0.5 truncate w-full ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>{zone.title}</p>
+                        {earned && <span className={`absolute top-1.5 right-1.5 text-xs ${isDark ? '' : 'text-indigo-600'}`}>🏆</span>}
                       </div>
                     );
                   })}
@@ -613,13 +750,19 @@ function HubMap() {
         <main className="flex-1 p-3 sm:p-5 lg:p-6 overflow-y-auto min-w-0">
           {/* View toggle — centred above content */}
           <div className="flex flex-col items-center gap-2 mb-6">
-            <div className="flex bg-white dark:bg-slate-900 border border-slate-200 dark:border-violet-900/40 rounded-xl p-1 gap-1 shadow-sm">
+            <div className={`flex rounded-xl p-1 gap-1 shadow-sm ${
+              isDark ? 'bg-slate-900 border border-violet-900/40' : 'bg-white border border-slate-200'
+            }`}>
               <button
                 onClick={() => handleSetViewMode('map')}
                 className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${
                   viewMode === 'map'
-                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-[0_2px_14px_rgba(139,92,246,0.45)]'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20'
+                    ? (isDark
+                        ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-[0_2px_14px_rgba(139,92,246,0.45)]'
+                        : 'bg-blue-600 text-white')
+                    : (isDark
+                        ? 'text-slate-400 hover:text-violet-300 hover:bg-violet-900/20'
+                        : 'text-slate-600 hover:text-blue-700 hover:bg-blue-50')
                 }`}
               >
                 <Map size={14} /> Realm Map
@@ -628,14 +771,18 @@ function HubMap() {
                 onClick={() => handleSetViewMode('grid')}
                 className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${
                   viewMode === 'grid'
-                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-[0_2px_14px_rgba(139,92,246,0.45)]'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20'
+                    ? (isDark
+                        ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-[0_2px_14px_rgba(139,92,246,0.45)]'
+                        : 'bg-blue-600 text-white')
+                    : (isDark
+                        ? 'text-slate-400 hover:text-violet-300 hover:bg-violet-900/20'
+                        : 'text-slate-600 hover:text-blue-700 hover:bg-blue-50')
                 }`}
               >
                 <LayoutGrid size={14} /> Skill Tree
               </button>
             </div>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Choose a realm to conquer.</p>
+            <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>Choose a realm to conquer.</p>
           </div>
 
           {/* ── Map View ── */}
@@ -659,21 +806,42 @@ function HubMap() {
                   transition={{ delay: i * 0.07 }}
                   key={zone.id}
                   onClick={() => navigate(`/zone/${zone.id}`)}
-                  className={`group relative overflow-hidden rounded-2xl border border-l-4 cursor-pointer transition-all hover:scale-[1.02] ${zone.bgColor} ${zone.accentBorder} ${zone.cardShadow} ${
-                    isMastered
-                      ? 'border-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.15)]'
-                      : isStarted
-                      ? zone.borderColor
-                      : zone.borderColor + ' hover:border-opacity-80'
+                  className={`group relative overflow-hidden rounded-2xl cursor-pointer transition-all ${
+                    isDark
+                      ? `border border-l-4 hover:scale-[1.02] ${zone.bgColor} ${zone.accentBorder} ${zone.cardShadow} ${
+                          isMastered
+                            ? 'border-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.15)]'
+                            : isStarted
+                              ? zone.borderColor
+                              : zone.borderColor + ' hover:border-opacity-80'
+                        }`
+                      : `border bg-white shadow-sm hover:shadow-md hover:bg-slate-50 ${
+                          isMastered ? 'border-amber-300' : 'border-slate-200 hover:border-slate-300'
+                        }`
                   }`}
                 >
+                  {/* Light-mode 3px zone-color left stripe (the only zone-color cue) */}
+                  {!isDark && (
+                    <div
+                      className="absolute left-0 top-0 bottom-0 w-[3px] z-10"
+                      style={{ backgroundColor: zone.glowColor.replace('0.28', '0.9') }}
+                      aria-hidden="true"
+                    />
+                  )}
+
                   {isMastered && (
-                    <div className="absolute top-0 right-0 bg-amber-400 text-slate-900 text-xs font-bold px-3 py-1 rounded-bl-lg z-10 flex items-center gap-1">
+                    <div className={`absolute top-0 right-0 text-xs px-3 py-1 rounded-bl-lg z-10 flex items-center gap-1 ${
+                      isDark
+                        ? 'bg-amber-400 text-slate-900 font-bold'
+                        : 'bg-amber-50 text-amber-800 border-l border-b border-amber-200 font-semibold'
+                    }`}>
                       ⭐ {zone.badge}
                     </div>
                   )}
                   {masteryBadges[zone.id] && MASTERY_BADGES[zone.id] && (
-                    <div className="absolute top-0 left-0 bg-violet-600 text-white text-[10px] font-black px-2.5 py-1 rounded-br-lg z-10 flex items-center gap-1">
+                    <div className={`absolute top-0 left-0 text-white text-[10px] px-2.5 py-1 rounded-br-lg z-10 flex items-center gap-1 ${
+                      isDark ? 'bg-violet-600 font-black' : 'bg-blue-600 font-semibold'
+                    }`}>
                       {MASTERY_BADGES[zone.id].icon} {MASTERY_BADGES[zone.id].name}
                     </div>
                   )}
@@ -681,29 +849,31 @@ function HubMap() {
                     <div className="absolute inset-0 dark:bg-slate-950/40 dark:backdrop-blur-[1px] z-0 transition-opacity group-hover:opacity-0" />
                   )}
 
-                  {/* ── Holographic shimmer sweep ── */}
-                  <motion.div
-                    className="absolute inset-y-0 pointer-events-none z-20"
-                    style={{
-                      width: '90px',
-                      background: isMastered
-                        ? 'linear-gradient(105deg, transparent 0%, rgba(251,191,36,0.22) 50%, transparent 100%)'
-                        : `linear-gradient(105deg, transparent 0%, ${zone.shimmerColor} 50%, transparent 100%)`,
-                      transform: 'skewX(-14deg)',
-                    }}
-                    animate={{ left: ['-90px', 'calc(100% + 90px)'] }}
-                    transition={{
-                      duration: 1.35,
-                      ease: 'easeInOut',
-                      repeat: Infinity,
-                      repeatDelay: 3.8 + i * 0.72,
-                      delay: 2 + i * 0.9,
-                    }}
-                    aria-hidden="true"
-                  />
+                  {/* ── Holographic shimmer sweep (dark mode only) ── */}
+                  {isDark && (
+                    <motion.div
+                      className="absolute inset-y-0 pointer-events-none z-20"
+                      style={{
+                        width: '90px',
+                        background: isMastered
+                          ? 'linear-gradient(105deg, transparent 0%, rgba(251,191,36,0.22) 50%, transparent 100%)'
+                          : `linear-gradient(105deg, transparent 0%, ${zone.shimmerColor} 50%, transparent 100%)`,
+                        transform: 'skewX(-14deg)',
+                      }}
+                      animate={{ left: ['-90px', 'calc(100% + 90px)'] }}
+                      transition={{
+                        duration: 1.35,
+                        ease: 'easeInOut',
+                        repeat: Infinity,
+                        repeatDelay: 3.8 + i * 0.72,
+                        delay: 2 + i * 0.9,
+                      }}
+                      aria-hidden="true"
+                    />
+                  )}
 
-                  {/* ── In-progress zone colour pulse ── */}
-                  {isStarted && !isMastered && (
+                  {/* ── In-progress zone colour pulse (dark mode only) ── */}
+                  {isDark && isStarted && !isMastered && (
                     <motion.div
                       className="absolute inset-0 rounded-2xl pointer-events-none z-10"
                       animate={{ opacity: [0, 1, 0] }}
@@ -718,8 +888,8 @@ function HubMap() {
                     />
                   )}
 
-                  {/* ── Mastered golden ambient pulse ── */}
-                  {isMastered && (
+                  {/* ── Mastered golden ambient pulse (dark mode only) ── */}
+                  {isDark && isMastered && (
                     <motion.div
                       className="absolute inset-0 rounded-2xl pointer-events-none z-10"
                       animate={{ opacity: [0, 0.7, 0] }}
@@ -735,30 +905,46 @@ function HubMap() {
                   )}
 
                   <div className="p-6 relative z-10">
-                    <div className="w-14 h-14 rounded-xl bg-white dark:bg-slate-900 shadow-xl border border-slate-200 dark:border-slate-700/50 flex items-center justify-center mb-5">
+                    <div className={`w-14 h-14 rounded-xl flex items-center justify-center mb-5 ${
+                      isDark
+                        ? 'bg-slate-900 shadow-xl border border-slate-700/50'
+                        : 'bg-white shadow-sm border border-slate-200'
+                    }`}>
                       {zone.icon}
                     </div>
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-xl font-bold text-slate-900 dark:text-white">{zone.title}</h3>
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${zone.bgColor} ${zone.colorText} border-current opacity-80`}>
+                      <h3 className={`text-xl ${isDark ? 'font-bold text-white' : 'font-semibold text-slate-900'}`}>{zone.title}</h3>
+                      <span className={`text-xs px-2 py-0.5 rounded-full border ${
+                        isDark
+                          ? `${zone.bgColor} ${zone.colorText} border-current opacity-80 font-bold`
+                          : 'bg-slate-100 text-slate-700 border-slate-200 font-medium'
+                      }`}>
                         {completedCount}/{totalModules}
                       </span>
                     </div>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm mb-6 leading-relaxed">{zone.description}</p>
+                    <p className={`text-sm mb-6 leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{zone.description}</p>
                     <div className="flex items-center justify-between mt-auto">
                       <div className="flex-1 mr-4">
                         <div className="flex justify-between text-xs mb-1 font-medium">
-                          <span className="text-slate-600 dark:text-slate-400">Map Explored</span>
-                          <span className={isMastered ? 'text-amber-400' : 'text-slate-600 dark:text-slate-300'}>{progress}%</span>
+                          <span className={isDark ? 'text-slate-400' : 'text-slate-600'}>Map Explored</span>
+                          <span className={isMastered ? (isDark ? 'text-amber-400' : 'text-amber-700') : (isDark ? 'text-slate-300' : 'text-slate-700')}>{progress}%</span>
                         </div>
-                        <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
                           <div
-                            className={`h-full rounded-full transition-all duration-1000 ${isMastered ? 'bg-amber-400' : zone.colorText.replace('text-', 'bg-')}`}
+                            className={`h-full rounded-full transition-all duration-1000 ${
+                              isMastered
+                                ? (isDark ? 'bg-amber-400' : 'bg-amber-500')
+                                : (isDark ? zone.colorText.replace('text-', 'bg-') : 'bg-blue-600')
+                            }`}
                             style={{ width: `${progress}%` }}
                           />
                         </div>
                       </div>
-                      <button className="font-bold text-sm px-4 py-2 bg-slate-900/5 hover:bg-slate-900/10 border border-slate-900/10 dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/10 rounded-lg text-slate-800 dark:text-white transition">
+                      <button className={`font-medium text-sm px-4 py-2 rounded-lg transition ${
+                        isDark
+                          ? 'bg-white/5 hover:bg-white/10 border border-white/10 text-white'
+                          : 'bg-white border border-slate-300 text-slate-700 hover:bg-blue-600 hover:text-white hover:border-blue-600'
+                      }`}>
                         Enter
                       </button>
                     </div>

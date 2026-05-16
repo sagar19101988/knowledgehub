@@ -118,6 +118,9 @@ export default function ZoneView() {
 
   if (!zoneMeta) return <div className="p-8 text-white">Zone not found</div>;
 
+  const isDark = theme === 'dark';
+  const isFinalRank = current.level === 8;
+
   const currentContent = contentData?.levels.find(l => l.id === level);
 
   const availableLevels = contentData?.levels.map(l => l.id) || [];
@@ -136,16 +139,22 @@ export default function ZoneView() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f3ff] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans flex flex-col">
+    <div className={`min-h-screen font-sans flex flex-col ${isDark ? 'bg-[#07050f] text-slate-200' : 'bg-[#eff4fb] text-slate-900'}`}>
       {/* Top Navbar — HUD Layout: Left | Center | Right */}
-      <nav className="h-16 border-b border-violet-200/60 dark:border-violet-900/30 bg-white/85 dark:bg-[#0a0715]/80 backdrop-blur px-3 sm:px-6 flex items-center sticky top-0 z-50 gap-2">
+      <nav className={`h-16 backdrop-blur px-3 sm:px-6 flex items-center sticky top-0 z-50 gap-2 ${
+        isDark ? 'border-b border-violet-900/30 bg-[#0a0715]/80' : 'border-b border-slate-200 bg-white/90'
+      }`}>
 
         {/* ── LEFT: Back + Hamburger (mobile) + Breadcrumb ── */}
         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
           <button
             onClick={() => navigate('/')}
             aria-label="Go back"
-            className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-fuchsia-500 dark:hover:text-fuchsia-400 hover:border-fuchsia-300 dark:hover:border-fuchsia-700 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 transition-all duration-200 group flex-shrink-0"
+            className={`flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border transition-all duration-200 group flex-shrink-0 ${
+              isDark
+                ? 'bg-slate-900 border-slate-700 text-slate-400 hover:text-fuchsia-400 hover:border-fuchsia-700 hover:bg-fuchsia-900/20'
+                : 'bg-white border-slate-300 text-slate-700 hover:text-blue-700 hover:border-blue-300 hover:bg-blue-50'
+            }`}
           >
             <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
             <span className="text-sm font-semibold hidden sm:inline">Back</span>
@@ -153,26 +162,36 @@ export default function ZoneView() {
           <button
             onClick={() => setDrawerOpen(true)}
             aria-label="Open module navigator"
-            className="lg:hidden flex items-center justify-center w-9 h-9 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-fuchsia-500 hover:border-fuchsia-300 dark:hover:border-fuchsia-700 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 transition-all duration-200 flex-shrink-0"
+            className={`lg:hidden flex items-center justify-center w-9 h-9 rounded-lg border transition-all duration-200 flex-shrink-0 ${
+              isDark
+                ? 'bg-slate-900 border-slate-700 text-slate-400 hover:text-fuchsia-500 hover:border-fuchsia-700 hover:bg-fuchsia-900/20'
+                : 'bg-white border-slate-300 text-slate-700 hover:text-blue-700 hover:border-blue-300 hover:bg-blue-50'
+            }`}
           >
             <Menu size={17} />
           </button>
-          <span className="text-slate-300 dark:text-slate-700 select-none hidden sm:inline">|</span>
+          <span className={`select-none hidden sm:inline ${isDark ? 'text-slate-700' : 'text-slate-300'}`}>|</span>
           <div className="flex items-center gap-2 min-w-0">
             <span className="[&>svg]:w-5 [&>svg]:h-5 flex-shrink-0 hidden sm:inline">{zoneMeta.icon}</span>
-            <span className="text-sm font-bold text-slate-900 dark:text-white truncate">{zoneMeta.title}</span>
+            <span className={`text-sm font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{zoneMeta.title}</span>
           </div>
         </div>
 
         {/* ── CENTER: Mode switcher ── */}
-        <div className="flex bg-white dark:bg-slate-900 border border-slate-200 dark:border-violet-900/40 rounded-xl p-1 gap-1 shadow-sm flex-shrink-0">
+        <div className={`flex rounded-xl p-1 gap-1 shadow-sm flex-shrink-0 ${
+          isDark ? 'bg-slate-900 border border-violet-900/40' : 'bg-white border border-slate-200'
+        }`}>
           <button
             onClick={() => setMode('library')}
             aria-label="The Library"
             className={`px-3 sm:px-5 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all duration-200 ${
               mode === 'library'
-                ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-[0_2px_14px_rgba(109,40,217,0.45)]'
-                : 'text-slate-500 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20'
+                ? (isDark
+                    ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-[0_2px_14px_rgba(109,40,217,0.45)]'
+                    : 'bg-blue-600 text-white')
+                : (isDark
+                    ? 'text-slate-400 hover:text-violet-300 hover:bg-violet-900/20'
+                    : 'text-slate-600 hover:text-blue-700 hover:bg-blue-50')
             }`}
           >
             <BookOpen size={15} />
@@ -183,8 +202,12 @@ export default function ZoneView() {
             aria-label="The Arena"
             className={`px-3 sm:px-5 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all duration-200 ${
               mode === 'arena'
-                ? 'bg-gradient-to-r from-rose-500 to-orange-500 text-white shadow-[0_2px_14px_rgba(244,63,94,0.45)]'
-                : 'text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20'
+                ? (isDark
+                    ? 'bg-gradient-to-r from-rose-500 to-orange-500 text-white shadow-[0_2px_14px_rgba(244,63,94,0.45)]'
+                    : 'bg-rose-500 text-white')
+                : (isDark
+                    ? 'text-slate-400 hover:text-rose-400 hover:bg-rose-900/20'
+                    : 'text-slate-600 hover:text-rose-700 hover:bg-rose-50')
             }`}
           >
             <Swords size={15} />
@@ -202,17 +225,29 @@ export default function ZoneView() {
                 onClick={() => navigate(`/zone/${id}/mastery`)}
                 aria-label="Open Mastery Trial"
                 title={earned && badge ? `${badge.name} earned — Mastery Trial` : 'Mastery Trial'}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 transition-all duration-200 group flex-shrink-0 hover:scale-[1.03] active:scale-[0.98]
-                  ${earned
-                    ? 'bg-gradient-to-r from-violet-500/15 to-fuchsia-500/15 dark:from-violet-500/20 dark:to-fuchsia-500/20 border-violet-400 dark:border-violet-500/60 text-violet-700 dark:text-violet-200 shadow-[0_0_14px_rgba(139,92,246,0.35)] dark:shadow-[0_0_16px_rgba(139,92,246,0.45)] hover:shadow-[0_0_20px_rgba(139,92,246,0.5)]'
-                    : `${zoneMeta.bgColor} ${zoneMeta.borderColor} ${zoneMeta.colorText} shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_14px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_0_14px_rgba(168,85,247,0.25)]`}`}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 transition-all duration-200 group flex-shrink-0 active:scale-[0.98]
+                  ${isDark
+                    ? earned
+                      ? 'bg-gradient-to-r from-violet-500/15 to-fuchsia-500/15 dark:from-violet-500/20 dark:to-fuchsia-500/20 border-violet-400 dark:border-violet-500/60 text-violet-700 dark:text-violet-200 shadow-[0_0_14px_rgba(139,92,246,0.35)] dark:shadow-[0_0_16px_rgba(139,92,246,0.45)] hover:shadow-[0_0_20px_rgba(139,92,246,0.5)] hover:scale-[1.03]'
+                      : `${zoneMeta.bgColor} ${zoneMeta.borderColor} ${zoneMeta.colorText} shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_14px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_0_14px_rgba(168,85,247,0.25)] hover:scale-[1.03]`
+                    : earned
+                      ? 'bg-indigo-50 border-indigo-300 text-indigo-800 shadow-sm hover:bg-indigo-100 hover:border-indigo-400'
+                      : 'bg-white border-slate-300 text-slate-700 shadow-sm hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700'}`}
               >
-                <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-sm flex-shrink-0 border ${earned ? 'bg-white/80 dark:bg-slate-900/80 border-violet-300 dark:border-violet-500/40' : `bg-white/80 dark:bg-slate-900/80 ${zoneMeta.borderColor}`}`}>
+                <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-sm flex-shrink-0 border ${
+                  isDark
+                    ? earned
+                      ? 'bg-white/80 dark:bg-slate-900/80 border-violet-300 dark:border-violet-500/40'
+                      : `bg-white/80 dark:bg-slate-900/80 ${zoneMeta.borderColor}`
+                    : earned
+                      ? 'bg-white border-indigo-300'
+                      : 'bg-white border-slate-300'
+                }`}>
                   {earned && badge
                     ? <span className="leading-none">{badge.icon}</span>
-                    : <Trophy size={13} className={`${zoneMeta.colorText} group-hover:rotate-[8deg] transition-transform duration-200`} />}
+                    : <Trophy size={13} className={`${isDark ? zoneMeta.colorText : earned ? 'text-indigo-600' : 'text-slate-500'} group-hover:rotate-[8deg] transition-transform duration-200`} />}
                 </span>
-                <span className="hidden md:inline text-xs font-black uppercase tracking-[0.08em]">
+                <span className={`hidden md:inline text-xs uppercase tracking-[0.08em] ${isDark ? 'font-black' : 'font-bold'}`}>
                   {earned ? badge?.name ?? 'Mastery Trial' : 'Mastery Trial'}
                 </span>
               </button>
@@ -222,15 +257,21 @@ export default function ZoneView() {
             {/* Avatar trigger button */}
             <button
               onClick={() => setAvatarOpen(p => !p)}
-              className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-xl hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-all duration-200 group"
+              className={`flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-xl transition-all duration-200 group ${
+                isDark ? 'hover:bg-violet-900/20' : 'hover:bg-blue-50'
+              }`}
             >
               {/* Avatar circle */}
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-white font-black text-sm shadow-[0_0_14px_rgba(192,38,211,0.5)] ring-2 ring-fuchsia-400/30 flex-shrink-0">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm flex-shrink-0 ${
+                isDark
+                  ? 'bg-gradient-to-br from-fuchsia-500 to-violet-600 font-black shadow-[0_0_14px_rgba(192,38,211,0.5)] ring-2 ring-fuchsia-400/30'
+                  : 'bg-slate-700 font-semibold'
+              }`}>
                 {playerName?.[0]?.toUpperCase() ?? '?'}
               </div>
               <ChevronDown
                 size={13}
-                className={`text-slate-400 dark:text-slate-500 transition-transform duration-200 ${avatarOpen ? 'rotate-180' : ''}`}
+                className={`transition-transform duration-200 ${avatarOpen ? 'rotate-180' : ''} ${isDark ? 'text-slate-500' : 'text-slate-400'}`}
               />
             </button>
 
@@ -240,45 +281,67 @@ export default function ZoneView() {
                 initial={{ opacity: 0, y: -6, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.15, ease: 'easeOut' }}
-                className="absolute right-0 top-[calc(100%+8px)] w-56 bg-white dark:bg-[#0e0b1f] border border-slate-200 dark:border-violet-900/50 rounded-2xl shadow-2xl shadow-black/20 dark:shadow-black/60 overflow-hidden z-50"
+                className={`absolute right-0 top-[calc(100%+8px)] w-56 rounded-2xl overflow-hidden z-50 ${
+                  isDark
+                    ? 'bg-[#0e0b1f] border border-violet-900/50 shadow-2xl shadow-black/60'
+                    : 'bg-white border border-slate-200 shadow-xl'
+                }`}
               >
                 {/* Player header */}
-                <div className="px-4 py-3.5 bg-gradient-to-r from-violet-500/5 to-fuchsia-500/5 dark:from-violet-900/30 dark:to-fuchsia-900/20 border-b border-slate-100 dark:border-violet-900/30">
+                <div className={`px-4 py-3.5 ${
+                  isDark
+                    ? 'bg-gradient-to-r from-violet-900/30 to-fuchsia-900/20 border-b border-violet-900/30'
+                    : 'bg-slate-50 border-b border-slate-200'
+                }`}>
                   <div className="flex items-center gap-3 mb-2.5">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-600 flex items-center justify-center text-white font-black text-base shadow-[0_0_12px_rgba(192,38,211,0.4)] flex-shrink-0">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-base flex-shrink-0 ${
+                      isDark
+                        ? 'bg-gradient-to-br from-fuchsia-500 to-violet-600 font-black shadow-[0_0_12px_rgba(192,38,211,0.4)]'
+                        : 'bg-slate-700 font-semibold'
+                    }`}>
                       {playerName?.[0]?.toUpperCase() ?? '?'}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{playerName}</p>
-                      <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400 truncate">
+                      <p className={`text-sm font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{playerName}</p>
+                      <p className={`text-[11px] font-bold truncate ${
+                        isDark ? 'text-amber-400' : isFinalRank ? 'text-amber-700' : 'text-slate-600'
+                      }`}>
                         Lv.{current.level} · {current.title}
                       </p>
                     </div>
                   </div>
-                  <div className="h-1.5 w-full bg-slate-200/70 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
                     <div
-                      className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all"
+                      className={`h-full rounded-full transition-all ${
+                        isDark ? 'bg-gradient-to-r from-amber-500 to-yellow-400' : isFinalRank ? 'bg-amber-500' : 'bg-blue-600'
+                      }`}
                       style={{ width: `${progress}%` }}
                     />
                   </div>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5">{nextProgressText}</p>
+                  <p className={`text-[10px] mt-1.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{nextProgressText}</p>
                 </div>
 
                 <div className="p-1.5 space-y-0.5">
                   {/* Theme toggle */}
                   <button
                     onClick={() => { toggleTheme(); setAvatarOpen(false); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-violet-50 dark:hover:bg-slate-700 hover:text-violet-700 dark:hover:text-white transition-all duration-150 group/item"
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 group/item ${
+                      isDark
+                        ? 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                        : 'text-slate-700 hover:bg-blue-50 hover:text-blue-700'
+                    }`}
                   >
-                    <span className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover/item:bg-violet-100 dark:group-hover/item:bg-violet-900/40 transition-colors">
+                    <span className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+                      isDark ? 'bg-slate-800 group-hover/item:bg-violet-900/40' : 'bg-slate-100 group-hover/item:bg-blue-100'
+                    }`}>
                       {theme === 'dark'
                         ? <Sun size={14} className="text-amber-400" />
-                        : <Moon size={14} className="text-violet-500" />}
+                        : <Moon size={14} className="text-blue-600" />}
                     </span>
                     {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
                   </button>
 
-                  <div className="h-px bg-slate-100 dark:bg-slate-800/80 mx-2" />
+                  <div className={`h-px mx-2 ${isDark ? 'bg-slate-800/80' : 'bg-slate-200'}`} />
 
                   {/* Logout */}
                   <button
@@ -287,9 +350,15 @@ export default function ZoneView() {
                       if (isGuest) { resetProgress(); } else { logout(); }
                       navigate('/login', { replace: true });
                     }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-rose-500 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950 hover:text-rose-700 dark:hover:text-rose-200 transition-all duration-150 group/item"
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 group/item ${
+                      isDark
+                        ? 'text-rose-400 hover:bg-rose-950 hover:text-rose-200'
+                        : 'text-rose-600 hover:bg-rose-50 hover:text-rose-700'
+                    }`}
                   >
-                    <span className="w-7 h-7 rounded-lg bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center group-hover/item:bg-rose-100 dark:group-hover/item:bg-rose-500/20 transition-colors">
+                    <span className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+                      isDark ? 'bg-rose-500/10 group-hover/item:bg-rose-500/20' : 'bg-rose-50 group-hover/item:bg-rose-100'
+                    }`}>
                       <LogOut size={14} />
                     </span>
                     Exit Realm
@@ -317,18 +386,22 @@ export default function ZoneView() {
           className={`
             relative flex-shrink-0 transition-transform duration-300 ease-out
             lg:static lg:w-72 lg:translate-x-0 lg:bg-transparent lg:shadow-none lg:border-0
-            fixed top-0 left-0 z-[70] h-screen w-[85%] max-w-sm
-            bg-[#f4f3ff] dark:bg-[#0a0715] border-r border-violet-200/60 dark:border-violet-900/40 shadow-2xl
+            fixed top-0 left-0 z-[70] h-screen w-[85%] max-w-sm shadow-2xl
+            ${isDark ? 'bg-[#0a0715] border-r border-violet-900/40' : 'bg-[#eff4fb] border-r border-slate-200'}
             ${drawerOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           `}
         >
           {/* Mobile drawer header */}
-          <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-violet-200/60 dark:border-violet-900/40">
-            <h2 className="text-sm font-black uppercase tracking-widest text-slate-600 dark:text-slate-300">Modules</h2>
+          <div className={`lg:hidden flex items-center justify-between px-4 py-3 ${isDark ? 'border-b border-violet-900/40' : 'border-b border-slate-200'}`}>
+            <h2 className={`text-sm uppercase tracking-widest ${isDark ? 'font-black text-slate-300' : 'font-semibold text-slate-700'}`}>Modules</h2>
             <button
               onClick={() => setDrawerOpen(false)}
               aria-label="Close menu"
-              className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-fuchsia-500 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 transition-colors"
+              className={`p-1.5 rounded-lg transition-colors ${
+                isDark
+                  ? 'text-slate-400 hover:text-fuchsia-500 hover:bg-fuchsia-900/20'
+                  : 'text-slate-500 hover:text-blue-700 hover:bg-blue-50'
+              }`}
             >
               <X size={18} />
             </button>
@@ -337,9 +410,9 @@ export default function ZoneView() {
 
             {/* Header */}
             <div className="flex items-center justify-between px-1 mb-1">
-              <h3 className="text-slate-500 dark:text-slate-400 font-black text-sm uppercase tracking-widest">Modules</h3>
+              <h3 className={`text-sm uppercase tracking-widest ${isDark ? 'font-black text-slate-400' : 'font-semibold text-slate-600'}`}>Modules</h3>
               {contentData && (
-                <span className="text-sm font-bold text-slate-400 dark:text-slate-500">
+                <span className={`text-sm font-bold ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
                   {completedLevels.filter(k => k.startsWith(`${id}::`)).length}/{contentData.levels.length}
                 </span>
               )}
@@ -357,49 +430,49 @@ export default function ZoneView() {
                   beginner: {
                     emoji: '🌱',
                     label: tier.color,
-                    headerBg: 'bg-emerald-50 dark:bg-emerald-500/6',
-                    headerBorder: 'border-emerald-400/60 dark:border-emerald-500/25',
-                    accentBorder: 'border-l-emerald-500 dark:border-l-emerald-500/40',
-                    shadow: 'shadow-[0_4px_16px_rgba(16,185,129,0.15)] dark:shadow-none',
+                    headerBg: isDark ? 'bg-emerald-500/6' : 'bg-emerald-50',
+                    headerBorder: isDark ? 'border-emerald-500/25' : 'border-emerald-200',
+                    accentBorder: isDark ? 'border-l-emerald-500/40' : 'border-l-emerald-500',
+                    shadow: isDark ? 'shadow-none' : 'shadow-sm',
                     bar: 'bg-emerald-500',
-                    badge: 'bg-emerald-500/20 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400',
-                    activeBg: 'bg-emerald-500/12 dark:bg-emerald-500/10 border-emerald-500/30',
-                    activeGlow: 'shadow-[inset_0_0_0_1px_rgba(16,185,129,0.3)]',
-                    numActive: 'bg-emerald-500/20 text-emerald-400',
+                    badge: isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-100 text-emerald-800',
+                    activeBg: isDark ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-50 border-emerald-300',
+                    activeGlow: isDark ? 'shadow-[inset_0_0_0_1px_rgba(16,185,129,0.3)]' : 'ring-1 ring-emerald-200',
+                    numActive: isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-700',
                     dot: 'bg-emerald-400',
                     headerAccent: 'from-emerald-500/20 to-transparent',
                   },
                   intermediate: {
                     emoji: '⚡',
                     label: tier.color,
-                    headerBg: 'bg-sky-50 dark:bg-sky-500/6',
-                    headerBorder: 'border-sky-400/60 dark:border-sky-500/25',
-                    accentBorder: 'border-l-sky-500 dark:border-l-sky-500/40',
-                    shadow: 'shadow-[0_4px_16px_rgba(14,165,233,0.15)] dark:shadow-none',
+                    headerBg: isDark ? 'bg-sky-500/6' : 'bg-sky-50',
+                    headerBorder: isDark ? 'border-sky-500/25' : 'border-sky-200',
+                    accentBorder: isDark ? 'border-l-sky-500/40' : 'border-l-sky-500',
+                    shadow: isDark ? 'shadow-none' : 'shadow-sm',
                     bar: 'bg-sky-500',
-                    badge: 'bg-sky-500/20 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400',
-                    activeBg: 'bg-sky-500/12 dark:bg-sky-500/10 border-sky-500/30',
-                    activeGlow: 'shadow-[inset_0_0_0_1px_rgba(14,165,233,0.3)]',
-                    numActive: 'bg-sky-500/20 text-sky-400',
+                    badge: isDark ? 'bg-sky-500/15 text-sky-400' : 'bg-sky-100 text-sky-800',
+                    activeBg: isDark ? 'bg-sky-500/10 border-sky-500/30' : 'bg-sky-50 border-sky-300',
+                    activeGlow: isDark ? 'shadow-[inset_0_0_0_1px_rgba(14,165,233,0.3)]' : 'ring-1 ring-sky-200',
+                    numActive: isDark ? 'bg-sky-500/20 text-sky-400' : 'bg-sky-100 text-sky-700',
                     dot: 'bg-sky-400',
                     headerAccent: 'from-sky-500/20 to-transparent',
                   },
                   expert: {
                     emoji: '🔥',
                     label: tier.color,
-                    headerBg: 'bg-amber-50 dark:bg-amber-500/6',
-                    headerBorder: 'border-amber-400/60 dark:border-amber-500/25',
-                    accentBorder: 'border-l-amber-500 dark:border-l-amber-500/40',
-                    shadow: 'shadow-[0_4px_16px_rgba(245,158,11,0.15)] dark:shadow-none',
+                    headerBg: isDark ? 'bg-amber-500/6' : 'bg-amber-50',
+                    headerBorder: isDark ? 'border-amber-500/25' : 'border-amber-200',
+                    accentBorder: isDark ? 'border-l-amber-500/40' : 'border-l-amber-500',
+                    shadow: isDark ? 'shadow-none' : 'shadow-sm',
                     bar: 'bg-amber-500',
-                    badge: 'bg-amber-500/20 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
-                    activeBg: 'bg-amber-500/12 dark:bg-amber-500/10 border-amber-500/30',
-                    activeGlow: 'shadow-[inset_0_0_0_1px_rgba(245,158,11,0.3)]',
-                    numActive: 'bg-amber-500/20 text-amber-400',
+                    badge: isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-100 text-amber-800',
+                    activeBg: isDark ? 'bg-amber-500/10 border-amber-500/30' : 'bg-amber-50 border-amber-300',
+                    activeGlow: isDark ? 'shadow-[inset_0_0_0_1px_rgba(245,158,11,0.3)]' : 'ring-1 ring-amber-200',
+                    numActive: isDark ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-700',
                     dot: 'bg-amber-400',
                     headerAccent: 'from-amber-500/20 to-transparent',
                   },
-                }[tier.id] || {};
+                }[tier.id] || {} as any;
 
                 return (
                   <div key={tier.id} className={`rounded-2xl border border-l-4 overflow-hidden transition-all duration-200 ${
@@ -584,29 +657,46 @@ export default function ZoneView() {
               const earned = masteryBadges[id || ''] === true;
               const score = masteryScores[id || ''];
               return (
-                <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+                <div className={`mt-3 pt-3 border-t ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
                 <button
                   onClick={() => navigate(`/zone/${id}/mastery`)}
                   className={`w-full text-left rounded-2xl border-2 p-4 transition-all duration-200 group
-                    ${earned
-                      ? 'border-violet-500/60 bg-violet-500/8 dark:bg-violet-500/5 hover:border-violet-500 hover:bg-violet-500/12'
-                      : hasQuestions
-                      ? `${zoneMeta?.borderColor ?? 'border-slate-300'} ${zoneMeta?.bgColor ?? 'bg-slate-50'} hover:border-opacity-80 hover:scale-[1.01]`
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/30 opacity-70 cursor-not-allowed'
+                    ${isDark
+                      ? earned
+                        ? 'border-violet-500/60 bg-violet-500/5 hover:border-violet-500 hover:bg-violet-500/12'
+                        : hasQuestions
+                          ? `${zoneMeta?.borderColor ?? 'border-slate-300'} ${zoneMeta?.bgColor ?? 'bg-slate-50'} hover:border-opacity-80 hover:scale-[1.01]`
+                          : 'border-slate-800 bg-slate-900/30 opacity-70 cursor-not-allowed'
+                      : earned
+                        ? 'border-indigo-300 bg-indigo-50 hover:border-indigo-400 hover:bg-indigo-100 shadow-sm'
+                        : hasQuestions
+                          ? 'border-slate-300 bg-white hover:border-blue-300 hover:bg-blue-50 hover:scale-[1.01] shadow-sm'
+                          : 'border-slate-200 bg-slate-50 opacity-70 cursor-not-allowed'
                     }`}
                   disabled={!hasQuestions}
                   title={!hasQuestions ? 'Questions coming soon' : undefined}
                 >
                   <div className="flex items-center gap-3 mb-2">
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 border
-                      ${earned ? 'bg-violet-500/15 border-violet-500/40 text-violet-600 dark:text-violet-400' : 'bg-white/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-700 text-slate-500'}`}>
-                      <Trophy size={18} className={earned ? 'text-violet-500' : ''} />
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 border ${
+                      isDark
+                        ? earned
+                          ? 'bg-violet-500/15 border-violet-500/40 text-violet-400'
+                          : 'bg-slate-900/80 border-slate-700 text-slate-500'
+                        : earned
+                          ? 'bg-indigo-100 border-indigo-300 text-indigo-700'
+                          : 'bg-white border-slate-200 text-slate-500'
+                    }`}>
+                      <Trophy size={18} className={isDark ? (earned ? 'text-violet-500' : '') : (earned ? 'text-indigo-600' : 'text-blue-600')} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-black leading-tight ${earned ? 'text-violet-700 dark:text-violet-300' : 'text-slate-700 dark:text-slate-200'}`}>
+                      <p className={`text-sm font-black leading-tight ${
+                        isDark
+                          ? earned ? 'text-violet-300' : 'text-slate-200'
+                          : earned ? 'text-indigo-900' : 'text-slate-800'
+                      }`}>
                         Mastery Trial
                       </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                         {hasQuestions ? '30 questions · 30 min' : 'Coming soon'}
                       </p>
                     </div>
@@ -617,12 +707,12 @@ export default function ZoneView() {
                   {/* Badge name if earned */}
                   {earned && badge && (
                     <div className="flex items-center gap-1.5 mt-1">
-                      <span className="text-xs font-black text-violet-600 dark:text-violet-400">{badge.icon} {badge.name}</span>
+                      <span className={`text-xs font-black ${isDark ? 'text-violet-400' : 'text-indigo-700'}`}>{badge.icon} {badge.name}</span>
                     </div>
                   )}
                   {/* Score stats */}
                   {score && (
-                    <div className="flex gap-3 mt-2 text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                    <div className={`flex gap-3 mt-2 text-xs font-semibold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                       <span>Best: {score.bestScore}/30</span>
                       <span>·</span>
                       <span>{score.attempts} attempt{score.attempts !== 1 ? 's' : ''}</span>
@@ -630,8 +720,11 @@ export default function ZoneView() {
                   )}
                   {/* CTA */}
                   {hasQuestions && (
-                    <div className={`mt-2.5 text-xs font-black flex items-center gap-1 group-hover:gap-2 transition-all
-                      ${earned ? 'text-violet-600 dark:text-violet-400' : (zoneMeta?.colorText ?? 'text-slate-600')}`}>
+                    <div className={`mt-2.5 text-xs font-black flex items-center gap-1 group-hover:gap-2 transition-all ${
+                      isDark
+                        ? earned ? 'text-violet-400' : (zoneMeta?.colorText ?? 'text-slate-600')
+                        : earned ? 'text-indigo-700' : 'text-blue-700'
+                    }`}>
                       ⚔️ {score ? 'Retake Trial' : 'Enter the Trial'} →
                     </div>
                   )}
@@ -642,11 +735,15 @@ export default function ZoneView() {
           </div>
 
           {/* Fade gradient — signals more content below without a scrollbar */}
-          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#f4f3ff] dark:from-[#07050f] to-transparent" />
+          <div className={`pointer-events-none absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t to-transparent ${isDark ? 'from-[#07050f]' : 'from-[#eff4fb]'}`} />
         </aside>
 
         {/* Main Content Area */}
-        <main ref={mainContentRef} className="flex-1 min-w-0 bg-white/50 dark:bg-slate-900/50 border border-violet-200/50 dark:border-violet-900/25 rounded-2xl p-4 sm:p-6 lg:p-8 shadow-2xl relative overflow-hidden">
+        <main ref={mainContentRef} className={`flex-1 min-w-0 rounded-2xl p-4 sm:p-6 lg:p-8 relative overflow-hidden ${
+          isDark
+            ? 'bg-slate-900/50 border border-violet-900/25 shadow-2xl'
+            : 'bg-white border border-slate-200 shadow-sm'
+        }`}>
 
           {/* ── Step Indicator ── */}
           {(() => {
@@ -654,32 +751,48 @@ export default function ZoneView() {
 
             if (isLevelDone) {
               return (
-                <div className="mb-8 rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent shadow-[0_0_24px_rgba(16,185,129,0.08)] overflow-hidden">
+                <div className={`mb-8 rounded-2xl overflow-hidden ${
+                  isDark
+                    ? 'border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent shadow-[0_0_24px_rgba(16,185,129,0.08)]'
+                    : 'border border-emerald-200 bg-emerald-50 shadow-sm'
+                }`}>
                   <div className="flex items-center gap-4 px-5 py-4">
-                    <div className="w-11 h-11 rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center flex-shrink-0 shadow-[0_0_14px_rgba(16,185,129,0.25)]">
-                      <CheckCircle2 size={22} className="text-emerald-400" />
+                    <div className={`w-11 h-11 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                      isDark
+                        ? 'bg-emerald-500/20 border-emerald-500/40 shadow-[0_0_14px_rgba(16,185,129,0.25)]'
+                        : 'bg-emerald-100 border-emerald-300'
+                    }`}>
+                      <CheckCircle2 size={22} className={isDark ? 'text-emerald-400' : 'text-emerald-700'} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-emerald-400 font-black text-sm tracking-wide">Module Complete ✓</p>
-                      <p className="text-slate-500 text-xs mt-0.5">You have mastered this topic. Review or re-fight anytime.</p>
+                      <p className={`font-bold text-sm tracking-wide ${isDark ? 'text-emerald-400' : 'text-emerald-800'}`}>Module Complete ✓</p>
+                      <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>You have mastered this topic. Review or re-fight anytime.</p>
                     </div>
-                    <div className="flex items-center bg-slate-100/80 dark:bg-slate-800/80 rounded-xl p-1 gap-1 flex-shrink-0">
+                    <div className={`flex items-center rounded-xl p-1 gap-1 flex-shrink-0 ${isDark ? 'bg-slate-800/80' : 'bg-white border border-slate-200'}`}>
                       <button
                         onClick={() => setMode('library')}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === 'library' ? 'bg-violet-600 text-white shadow-md shadow-violet-900/40' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                          mode === 'library'
+                            ? (isDark ? 'bg-violet-600 text-white shadow-md shadow-violet-900/40' : 'bg-blue-600 text-white')
+                            : (isDark ? 'text-slate-500 hover:text-white' : 'text-slate-600 hover:text-blue-700')
+                        }`}
                       >
                         <BookOpen size={12} /> Learn
                       </button>
                       <button
                         onClick={() => setMode('arena')}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === 'arena' ? 'bg-rose-500 text-white shadow-md shadow-rose-900/40' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                          mode === 'arena'
+                            ? (isDark ? 'bg-rose-500 text-white shadow-md shadow-rose-900/40' : 'bg-rose-500 text-white')
+                            : (isDark ? 'text-slate-500 hover:text-white' : 'text-slate-600 hover:text-rose-700')
+                        }`}
                       >
                         <Swords size={12} /> Boss Fight
                       </button>
                     </div>
                   </div>
                   {/* Completion progress bar — full */}
-                  <div className="h-0.5 w-full bg-emerald-500/40" />
+                  <div className={`h-0.5 w-full ${isDark ? 'bg-emerald-500/40' : 'bg-emerald-300'}`} />
                 </div>
               );
             }
@@ -692,7 +805,7 @@ export default function ZoneView() {
             const activeIdx = mode === 'arena' ? 1 : 0;
 
             return (
-              <div className="flex items-center mb-8 bg-slate-100/80 dark:bg-slate-800/50 rounded-2xl p-1.5 gap-1.5">
+              <div className={`flex items-center mb-8 rounded-2xl p-1.5 gap-1.5 ${isDark ? 'bg-slate-800/50' : 'bg-slate-100 border border-slate-200'}`}>
                 {steps.map((s, i) => {
                   const isDone = i < activeIdx;
                   const isActive = i === activeIdx;
@@ -703,12 +816,12 @@ export default function ZoneView() {
                         disabled={!s.modeKey}
                         className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 px-1.5 sm:px-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 ${
                           isActive && s.key === 'learn'
-                            ? 'bg-violet-600 text-white shadow-[0_4px_14px_rgba(109,40,217,0.35)]'
+                            ? (isDark ? 'bg-violet-600 text-white shadow-[0_4px_14px_rgba(109,40,217,0.35)]' : 'bg-blue-600 text-white')
                             : isActive && s.key === 'fight'
-                            ? 'bg-rose-500 text-white shadow-[0_4px_14px_rgba(244,63,94,0.35)]'
+                            ? (isDark ? 'bg-rose-500 text-white shadow-[0_4px_14px_rgba(244,63,94,0.35)]' : 'bg-rose-500 text-white')
                             : isDone
-                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
-                            : 'text-slate-400 dark:text-slate-500'
+                            ? (isDark ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border border-emerald-200')
+                            : (isDark ? 'text-slate-500' : 'text-slate-500')
                         } ${s.modeKey ? 'cursor-pointer hover:brightness-110' : 'cursor-default'}`}
                       >
                         {isDone
@@ -717,7 +830,9 @@ export default function ZoneView() {
                         <span className="truncate">{s.label}</span>
                       </button>
                       {i < steps.length - 1 && (
-                        <div className={`w-3 sm:w-6 h-0.5 rounded-full flex-shrink-0 transition-colors duration-500 ${isDone ? 'bg-emerald-400/50' : 'bg-slate-300 dark:bg-slate-700'}`} />
+                        <div className={`w-3 sm:w-6 h-0.5 rounded-full flex-shrink-0 transition-colors duration-500 ${
+                          isDone ? (isDark ? 'bg-emerald-400/50' : 'bg-emerald-400') : (isDark ? 'bg-slate-700' : 'bg-slate-300')
+                        }`} />
                       )}
                     </React.Fragment>
                   );
@@ -739,39 +854,51 @@ export default function ZoneView() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.97, y: -8, transition: { duration: 0.35, ease: 'easeIn' } }}
                     transition={{ type: 'spring', stiffness: 260, damping: 22 }}
-                    className="mb-8 rounded-2xl overflow-hidden border border-emerald-500/30 shadow-[0_0_48px_rgba(16,185,129,0.15)]"
+                    className={`mb-8 rounded-2xl overflow-hidden ${
+                      isDark
+                        ? 'border border-emerald-500/30 shadow-[0_0_48px_rgba(16,185,129,0.15)]'
+                        : 'border border-emerald-200 shadow-sm'
+                    }`}
                   >
                     {/* Top gradient bar — thicker */}
                     <div className="h-1.5 w-full bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400" />
 
-                    <div className="bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent px-6 py-5">
+                    <div className={`px-6 py-5 ${isDark ? 'bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent' : 'bg-emerald-50'}`}>
 
                       {/* Row 1 — icon + title + XP badge */}
                       <div className="flex items-start gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center flex-shrink-0 shadow-[0_0_24px_rgba(16,185,129,0.25)]">
+                        <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center flex-shrink-0 ${
+                          isDark
+                            ? 'bg-emerald-500/15 border-emerald-500/30 shadow-[0_0_24px_rgba(16,185,129,0.25)]'
+                            : 'bg-emerald-100 border-emerald-300'
+                        }`}>
                           <span className="text-3xl">{completionWasFirstTime ? '🏆' : '⚔️'}</span>
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 flex-wrap">
-                            <h3 className="text-xl font-black text-emerald-400 leading-tight">
+                            <h3 className={`text-xl font-black leading-tight ${isDark ? 'text-emerald-400' : 'text-emerald-800'}`}>
                               {completionWasFirstTime ? 'Boss Defeated!' : 'Victory — Again!'}
                             </h3>
                             {completionWasFirstTime && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-400/20 border border-amber-400/30 text-amber-400 dark:text-amber-300 font-black text-sm">
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg border font-black text-sm ${
+                                isDark ? 'bg-amber-400/20 border-amber-400/30 text-amber-300' : 'bg-amber-100 border-amber-300 text-amber-800'
+                              }`}>
                                 +100 XP ✨
                               </span>
                             )}
                             {!nextLevel && (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400 font-black text-sm">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg border font-black text-sm ${
+                                isDark ? 'bg-amber-500/15 border-amber-500/30 text-amber-400' : 'bg-amber-100 border-amber-300 text-amber-800'
+                              }`}>
                                 🎉 Zone Complete!
                               </span>
                             )}
                           </div>
                           {/* Completed module name */}
-                          <p className="mt-1.5 text-base font-bold text-slate-700 dark:text-slate-200">
+                          <p className={`mt-1.5 text-base font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                             {completionWasFirstTime
-                              ? <><span className="text-emerald-500 dark:text-emerald-400">{completedModuleTitle}</span> <span className="text-slate-400 dark:text-slate-500 font-medium">mastered</span></>
-                              : <span className="text-slate-500 dark:text-slate-400 font-medium text-sm">Practice makes perfect. Knowledge compounds every replay.</span>
+                              ? <><span className={isDark ? 'text-emerald-400' : 'text-emerald-700'}>{completedModuleTitle}</span> <span className={`font-medium ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>mastered</span></>
+                              : <span className={`font-medium text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Practice makes perfect. Knowledge compounds every replay.</span>
                             }
                           </p>
                         </div>
@@ -785,11 +912,11 @@ export default function ZoneView() {
                             initial={{ opacity: 0, y: 6 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.35, duration: 0.4, ease: 'easeOut' }}
-                            className="mt-4 pt-4 border-t border-emerald-500/20 flex items-center gap-3"
+                            className={`mt-4 pt-4 border-t flex items-center gap-3 ${isDark ? 'border-emerald-500/20' : 'border-emerald-200'}`}
                           >
-                            <span className="text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 flex-shrink-0">Now Studying</span>
-                            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700/60" />
-                            <span className="text-base font-black text-violet-600 dark:text-violet-400 text-right">
+                            <span className={`text-xs font-black uppercase tracking-widest flex-shrink-0 ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>Now Studying</span>
+                            <div className={`h-px flex-1 ${isDark ? 'bg-slate-700/60' : 'bg-slate-300'}`} />
+                            <span className={`text-base font-black text-right ${isDark ? 'text-violet-400' : 'text-blue-700'}`}>
                               {moduleTitle}
                             </span>
                           </motion.div>
@@ -818,7 +945,9 @@ export default function ZoneView() {
                               {...props}
                             />
                           ) : (
-                            <code className="bg-slate-100 dark:bg-slate-800 text-sky-700 dark:text-sky-300 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
+                            <code className={`px-1.5 py-0.5 rounded text-sm font-mono ${
+                              isDark ? 'bg-slate-800 text-sky-300' : 'bg-slate-100 text-blue-700'
+                            }`} {...props}>
                               {children}
                             </code>
                           )
@@ -829,11 +958,13 @@ export default function ZoneView() {
                     </ReactMarkdown>
                   </div>
 
-                  <div className="mt-12 p-6 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-                    <h4 className="text-indigo-600 dark:text-indigo-400 font-bold mb-2 flex items-center gap-2">
+                  <div className={`mt-12 p-6 rounded-xl ${
+                    isDark ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-blue-50 border border-blue-200'
+                  }`}>
+                    <h4 className={`font-bold mb-2 flex items-center gap-2 ${isDark ? 'text-indigo-400' : 'text-blue-700'}`}>
                       <span>💡</span> The Core Analogy Summary
                     </h4>
-                    <p className="text-lg text-slate-700 dark:text-slate-300 italic leading-relaxed">
+                    <p className={`text-lg italic leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                       "{currentContent.analogy}"
                     </p>
                   </div>
@@ -844,12 +975,18 @@ export default function ZoneView() {
                       initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3 }}
-                      className="mt-8 flex flex-col items-center gap-3 p-6 rounded-2xl border border-rose-500/20 bg-rose-500/5"
+                      className={`mt-8 flex flex-col items-center gap-3 p-6 rounded-2xl border ${
+                        isDark ? 'border-rose-500/20 bg-rose-500/5' : 'border-rose-200 bg-rose-50'
+                      }`}
                     >
-                      <p className="text-slate-600 dark:text-slate-400 text-sm">Finished reading? Put your knowledge to the test.</p>
+                      <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-700'}`}>Finished reading? Put your knowledge to the test.</p>
                       <button
                         onClick={() => setMode('arena')}
-                        className="flex items-center gap-2 px-6 py-3 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl shadow-[0_0_24px_rgba(244,63,94,0.3)] hover:shadow-[0_0_32px_rgba(244,63,94,0.5)] transition-all duration-200 text-sm"
+                        className={`flex items-center gap-2 px-6 py-3 text-white font-bold rounded-xl transition-all duration-200 text-sm ${
+                          isDark
+                            ? 'bg-rose-500 hover:bg-rose-600 shadow-[0_0_24px_rgba(244,63,94,0.3)] hover:shadow-[0_0_32px_rgba(244,63,94,0.5)]'
+                            : 'bg-rose-500 hover:bg-rose-600 shadow-sm'
+                        }`}
                       >
                         <Swords size={18} /> Fight the Boss →
                       </button>
@@ -901,9 +1038,11 @@ export default function ZoneView() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 24 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[80] px-4 py-3 rounded-xl bg-slate-900 dark:bg-slate-800 text-white text-sm font-semibold shadow-2xl flex items-center gap-2.5 max-w-[calc(100vw-2rem)]"
+            className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[80] px-4 py-3 rounded-xl text-sm font-semibold shadow-2xl flex items-center gap-2.5 max-w-[calc(100vw-2rem)] ${
+              isDark ? 'bg-slate-800 text-white' : 'bg-slate-900 text-white'
+            }`}
           >
-            <Lock size={14} className="flex-shrink-0 text-fuchsia-400" />
+            <Lock size={14} className={`flex-shrink-0 ${isDark ? 'text-fuchsia-400' : 'text-amber-400'}`} />
             <span>{lockToast}</span>
           </motion.div>
         )}

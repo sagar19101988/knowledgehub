@@ -45,7 +45,7 @@ export function RankUpModal({ open, fromTitle, toTitle, toLevel, flavor, onClose
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-full max-w-md bg-gradient-to-br from-white to-[#f4f3ff] dark:from-[#1a1130] dark:to-[#0e0b1f] border-2 border-amber-400/60 rounded-3xl shadow-[0_0_60px_rgba(245,158,11,0.4)] p-7 text-center overflow-hidden"
+            className="relative w-full max-w-md bg-white dark:bg-gradient-to-br dark:from-[#1a1130] dark:to-[#0e0b1f] border-2 border-amber-400/60 rounded-3xl shadow-[0_0_60px_rgba(245,158,11,0.4)] dark:shadow-[0_0_60px_rgba(245,158,11,0.4)] shadow-[0_8px_32px_rgba(0,0,0,0.12)] p-7 text-center overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Animated radial glow */}

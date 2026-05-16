@@ -773,10 +773,10 @@ function ReportCard({
   }, [passed, theme.confettiColors]);
 
   return (
-    <div className="min-h-screen bg-[#f4f3ff] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans">
+    <div className="min-h-screen bg-[#eff4fb] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans">
 
       {/* ── Sticky action bar ── */}
-      <div className="sticky top-0 z-40 bg-[#f4f3ff]/90 dark:bg-[#07050f]/90 backdrop-blur border-b border-violet-200/60 dark:border-violet-900/30">
+      <div className="sticky top-0 z-40 bg-[#eff4fb]/90 dark:bg-[#07050f]/90 backdrop-blur border-b border-violet-200/60 dark:border-violet-900/30">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
           <button
             onClick={onBack}
@@ -1180,7 +1180,7 @@ export default function MasteryTrialPage() {
 
   if (!zoneMeta || pool.length === 0) {
     return (
-      <div className="min-h-screen bg-[#f4f3ff] dark:bg-[#07050f] flex items-center justify-center p-8">
+      <div className="min-h-screen bg-[#eff4fb] dark:bg-[#07050f] flex items-center justify-center p-8">
         <div className="text-center space-y-4">
           <p className="text-4xl">⚔️</p>
           <p className="text-xl font-black text-slate-900 dark:text-white">Mastery Trial Coming Soon</p>
@@ -1228,7 +1228,7 @@ export default function MasteryTrialPage() {
     ];
 
     return (
-      <div className="min-h-screen relative bg-[#f4f3ff] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans overflow-hidden">
+      <div className="min-h-screen relative bg-[#eff4fb] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans overflow-hidden">
 
         {/* ── 3-2-1 countdown overlay (fires on Begin Trial) ── */}
         <AnimatePresence>
@@ -1262,7 +1262,7 @@ export default function MasteryTrialPage() {
         </AnimatePresence>
 
         {/* ── Sticky top nav — back button matches ZoneView Library ── */}
-        <nav className="h-16 sticky top-0 z-40 bg-[#f4f3ff]/85 dark:bg-[#0a0715]/80 backdrop-blur border-b border-violet-200/60 dark:border-violet-900/30 px-3 sm:px-6 flex items-center">
+        <nav className="h-16 sticky top-0 z-40 bg-[#eff4fb]/85 dark:bg-[#0a0715]/80 backdrop-blur border-b border-violet-200/60 dark:border-violet-900/30 px-3 sm:px-6 flex items-center">
           <button
             onClick={() => navigate(-1)}
             aria-label="Back to Zone"
@@ -1467,7 +1467,7 @@ export default function MasteryTrialPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f3ff] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans flex flex-col">
+    <div className="min-h-screen bg-[#eff4fb] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans flex flex-col">
 
       {/* ── Leave confirmation modal ── */}
       <AnimatePresence>

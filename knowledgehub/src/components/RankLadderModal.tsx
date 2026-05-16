@@ -29,11 +29,11 @@ export function RankLadderModal({ open, onClose, xp, completedModuleCount }: Ran
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.97 }}
             transition={{ duration: 0.22, ease: 'easeOut' }}
-            className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto bg-[#f4f3ff] dark:bg-[#0e0b1f] border border-violet-200/60 dark:border-violet-900/50 rounded-2xl shadow-2xl"
+            className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto bg-white dark:bg-[#0e0b1f] border border-slate-200 dark:border-violet-900/50 rounded-2xl shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-violet-200/60 dark:border-violet-900/40 bg-white/90 dark:bg-[#0a0715]/95 backdrop-blur rounded-t-2xl">
+            <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-violet-900/40 bg-white/90 dark:bg-[#0a0715]/95 backdrop-blur rounded-t-2xl">
               <div>
                 <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">Rank Ladder</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">{xp.toLocaleString()} XP earned</p>
@@ -64,7 +64,7 @@ export function RankLadderModal({ open, onClose, xp, completedModuleCount }: Ran
                         ? 'border-amber-400/70 bg-gradient-to-r from-amber-500/10 to-yellow-400/5 dark:from-amber-500/15 dark:to-yellow-400/5 shadow-[0_0_20px_rgba(245,158,11,0.18)]'
                         : isLocked
                           ? 'border-slate-300/60 dark:border-slate-700/60 bg-white/40 dark:bg-slate-900/30 opacity-70'
-                          : 'border-violet-200/60 dark:border-violet-900/40 bg-white/60 dark:bg-slate-900/40',
+                          : 'border-slate-200 dark:border-violet-900/40 bg-white/60 dark:bg-slate-900/40',
                     ].join(' ')}
                   >
                     <div className="flex items-start gap-3">
@@ -162,7 +162,7 @@ export function RankLadderModal({ open, onClose, xp, completedModuleCount }: Ran
             </ul>
 
             {/* Footer note explaining the daily-bounty implication */}
-            <div className="px-5 py-3 border-t border-violet-200/60 dark:border-violet-900/40 bg-white/60 dark:bg-[#0a0715]/50 rounded-b-2xl">
+            <div className="px-5 py-3 border-t border-slate-200 dark:border-violet-900/40 bg-white/60 dark:bg-[#0a0715]/50 rounded-b-2xl">
               <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
                 <span className="font-bold text-fuchsia-600 dark:text-fuchsia-400">Final Trial:</span>{' '}
                 Lv.8 requires both the XP threshold <em>and</em> 100% module completion.
