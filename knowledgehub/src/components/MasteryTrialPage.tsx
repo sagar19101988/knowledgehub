@@ -4,7 +4,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft, ArrowRight, Clock, CheckCircle2, XCircle,
+  ArrowLeft, ArrowRight, CheckCircle2, XCircle,
   AlertTriangle, Trophy, RotateCcw, ChevronDown, ChevronUp, Bookmark, CornerDownRight,
 } from 'lucide-react';
 import { ZONES } from '../data/zones';
@@ -39,6 +39,55 @@ function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+// ── Circular SVG timer gauge for exam header ─────────────────
+function CircularTimer({ timeLeft }: { timeLeft: number }) {
+  const pct = Math.max(0, timeLeft / TOTAL_TIME);
+  const SIZE = 72;
+  const STROKE = 5;
+  const RADIUS = (SIZE - STROKE) / 2;
+  const CIRC = 2 * Math.PI * RADIUS;
+  const dashOffset = CIRC * (1 - pct);
+
+  const isRed   = timeLeft < 300;
+  const isAmber = timeLeft < 600 && !isRed;
+  const strokeColor = isRed ? '#ef4444' : isAmber ? '#f59e0b' : '#7c3aed';
+  const textCls = isRed
+    ? 'text-rose-500 dark:text-rose-400'
+    : isAmber
+      ? 'text-amber-500 dark:text-amber-400'
+      : 'text-violet-600 dark:text-violet-400';
+
+  return (
+    <div
+      className={`relative flex-shrink-0 ${isRed ? 'animate-pulse' : ''}`}
+      style={{ width: SIZE, height: SIZE }}
+      aria-label={`Time remaining: ${formatTime(timeLeft)}`}
+    >
+      <svg width={SIZE} height={SIZE} style={{ transform: 'rotate(-90deg)' }}>
+        <circle
+          cx={SIZE / 2} cy={SIZE / 2} r={RADIUS}
+          strokeWidth={STROKE} fill="none"
+          stroke="rgba(139,92,246,0.18)"
+        />
+        <circle
+          cx={SIZE / 2} cy={SIZE / 2} r={RADIUS}
+          strokeWidth={STROKE} fill="none"
+          stroke={strokeColor}
+          strokeDasharray={`${CIRC} ${CIRC}`}
+          strokeDashoffset={dashOffset}
+          strokeLinecap="round"
+          style={{ transition: 'stroke 0.6s ease, stroke-dashoffset 0.98s linear' }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className={`text-[11px] font-black tabular-nums leading-none tracking-tight ${textCls}`}>
+          {formatTime(timeLeft)}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 // ── Floating particle canvas (intro hero backdrop) ────────────
@@ -471,33 +520,44 @@ function McqOptions({
   onChange: (v: number) => void;
 }) {
   return (
-    <div className="space-y-3 mt-6">
+    <div className="space-y-2.5 mt-6">
       {options.map((opt, i) => {
         const selected = answer === i;
         const isRight = submitted && i === correct;
         const isWrong = submitted && selected && i !== correct;
+        const letter = String.fromCharCode(65 + i);
         return (
           <button
             key={i}
             disabled={submitted}
             onClick={() => onChange(i)}
-            className={`w-full text-left px-3.5 py-2.5 rounded-xl border-2 transition-all duration-200 text-[13px] font-medium leading-snug
-              ${isRight  ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' :
-                isWrong  ? 'border-rose-500 bg-rose-500/10 text-rose-700 dark:text-rose-300' :
-                selected  ? 'border-violet-500 bg-violet-500/10 text-violet-700 dark:text-violet-300' :
-                submitted ? 'border-slate-200 dark:border-slate-700 opacity-50 cursor-not-allowed text-slate-600 dark:text-slate-400' :
-                            'border-slate-200 dark:border-slate-700 hover:border-violet-400 hover:bg-violet-500/5 text-slate-700 dark:text-slate-300'}`}
+            className={`group w-full text-left flex items-center gap-3.5 px-4 py-3.5 rounded-xl border-2 transition-all duration-200
+              ${isRight  ? 'border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/8' :
+                isWrong  ? 'border-rose-500 bg-rose-500/10 dark:bg-rose-500/8' :
+                selected  ? 'border-violet-500 bg-violet-500/12 dark:bg-violet-500/15 shadow-[0_0_0_1px_rgba(124,58,237,0.12)]' :
+                submitted ? 'border-slate-200 dark:border-slate-700/60 opacity-40 cursor-not-allowed' :
+                            'border-slate-200 dark:border-slate-700/80 hover:border-violet-400/80 dark:hover:border-violet-500/60 hover:bg-violet-500/5 dark:hover:bg-violet-500/8'}`}
           >
-            <div className="flex items-start gap-3">
-              <span className={`mt-0.5 flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-black
-                ${isRight  ? 'border-emerald-500 bg-emerald-500 text-white' :
-                  isWrong  ? 'border-rose-500 bg-rose-500 text-white' :
-                  selected  ? 'border-violet-500 bg-violet-500 text-white' :
-                              'border-current'}`}>
-                {isRight ? '✓' : isWrong ? '✗' : String.fromCharCode(65 + i)}
-              </span>
-              <span>{opt}</span>
-            </div>
+            {/* Letter badge */}
+            <span className={`w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-xs font-black leading-none transition-all duration-200
+              ${isRight  ? 'bg-emerald-500 text-white' :
+                isWrong  ? 'bg-rose-500 text-white' :
+                selected  ? 'bg-violet-600 text-white shadow-[0_0_12px_rgba(124,58,237,0.5)]' :
+                submitted ? 'bg-slate-100 dark:bg-slate-800 text-slate-400' :
+                            'bg-slate-100 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 group-hover:bg-violet-500/20 dark:group-hover:bg-violet-500/25 group-hover:text-violet-600 dark:group-hover:text-violet-300'}`}
+            >
+              {isRight ? '✓' : isWrong ? '✗' : letter}
+            </span>
+            {/* Option text */}
+            <span className={`text-sm flex-1 text-left leading-snug
+              ${isRight  ? 'font-semibold text-emerald-700 dark:text-emerald-300' :
+                isWrong  ? 'font-semibold text-rose-700 dark:text-rose-300' :
+                selected  ? 'font-semibold text-violet-700 dark:text-violet-200' :
+                submitted ? 'font-medium text-slate-400 dark:text-slate-500' :
+                            'font-medium text-slate-700 dark:text-slate-300'}`}
+            >
+              {opt}
+            </span>
           </button>
         );
       })}
@@ -514,26 +574,46 @@ function TfOptions({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex gap-4 mt-6">
+    <div className="flex gap-3 mt-6">
       {([true, false] as const).map((val) => {
         const selected = answer === val;
         const isRight = submitted && val === correct;
         const isWrong = submitted && selected && val !== correct;
-        const label = val ? 'True' : 'False';
+        const letter = val ? 'T' : 'F';
+        const label  = val ? 'True' : 'False';
         return (
           <button
             key={String(val)}
             disabled={submitted}
             onClick={() => onChange(val)}
-            className={`flex-1 py-3.5 rounded-2xl border-2 text-base font-black transition-all duration-200
-              ${isRight  ? 'border-emerald-500 bg-emerald-500/15 text-emerald-600 dark:text-emerald-300' :
-                isWrong  ? 'border-rose-500 bg-rose-500/15 text-rose-600 dark:text-rose-300' :
-                selected  ? 'border-violet-500 bg-violet-500/15 text-violet-600 dark:text-violet-300' :
-                submitted ? 'border-slate-200 dark:border-slate-700 opacity-50 cursor-not-allowed text-slate-500' :
-                val       ? 'border-emerald-400/50 hover:border-emerald-500 hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
-                            'border-rose-400/50 hover:border-rose-500 hover:bg-rose-500/10 text-rose-600 dark:text-rose-400'}`}
+            className={`group flex-1 flex items-center justify-center gap-3 py-4 rounded-xl border-2 transition-all duration-200
+              ${isRight  ? 'border-emerald-500 bg-emerald-500/10' :
+                isWrong  ? 'border-rose-500 bg-rose-500/10' :
+                selected  ? 'border-violet-500 bg-violet-500/12 dark:bg-violet-500/15 shadow-[0_0_0_1px_rgba(124,58,237,0.12)]' :
+                submitted ? 'border-slate-200 dark:border-slate-700 opacity-40 cursor-not-allowed' :
+                val       ? 'border-emerald-400/50 hover:border-emerald-500/80 hover:bg-emerald-500/8' :
+                            'border-rose-400/50 hover:border-rose-500/80 hover:bg-rose-500/8'}`}
           >
-            {isRight ? '✓ ' : isWrong ? '✗ ' : ''}{label}
+            <span className={`w-9 h-9 rounded-xl flex items-center justify-center text-base font-black leading-none transition-all duration-200
+              ${isRight  ? 'bg-emerald-500 text-white' :
+                isWrong  ? 'bg-rose-500 text-white' :
+                selected  ? 'bg-violet-600 text-white shadow-[0_0_12px_rgba(124,58,237,0.5)]' :
+                submitted ? 'bg-slate-100 dark:bg-slate-800 text-slate-400' :
+                val       ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-500/25' :
+                            'bg-rose-500/15 text-rose-600 dark:text-rose-400 group-hover:bg-rose-500/25'}`}
+            >
+              {isRight ? '✓' : isWrong ? '✗' : letter}
+            </span>
+            <span className={`text-base font-black
+              ${isRight  ? 'text-emerald-600 dark:text-emerald-300' :
+                isWrong  ? 'text-rose-600 dark:text-rose-300' :
+                selected  ? 'text-violet-700 dark:text-violet-200' :
+                submitted ? 'text-slate-400' :
+                val       ? 'text-emerald-600 dark:text-emerald-400' :
+                            'text-rose-600 dark:text-rose-400'}`}
+            >
+              {label}
+            </span>
           </button>
         );
       })}
@@ -956,6 +1036,31 @@ export default function MasteryTrialPage() {
     return () => window.removeEventListener('beforeunload', handler);
   }, [phase]);
 
+  // ── Keyboard shortcuts: A/B/C/D for MCQ, T/F for T-F, arrows to navigate ──
+  useEffect(() => {
+    if (phase !== 'exam') return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const key = e.key.toLowerCase();
+      if (current.type === 'mcq' || current.type === 'code-mcq') {
+        const map: Record<string, number> = { a: 0, '1': 0, b: 1, '2': 1, c: 2, '3': 2, d: 3, '4': 3 };
+        const idx = map[key];
+        if (idx !== undefined && current.options && idx < current.options.length) {
+          setAnswers(a => ({ ...a, [current.id]: idx }));
+          return;
+        }
+      }
+      if (current.type === 'tf') {
+        if (key === 't') { setAnswers(a => ({ ...a, [current.id]: true })); return; }
+        if (key === 'f') { setAnswers(a => ({ ...a, [current.id]: false })); return; }
+      }
+      if (key === 'arrowleft'  && currentIdx > 0)                    setCurrentIdx(i => i - 1);
+      if (key === 'arrowright' && currentIdx < questions.length - 1) setCurrentIdx(i => i + 1);
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [phase, current, currentIdx, questions.length, setAnswers]);
+
   // ── Retake (returns to intro so user re-acknowledges rules) ──
   const handleRetake = () => {
     setAnswers({});
@@ -1272,9 +1377,6 @@ export default function MasteryTrialPage() {
     );
   }
 
-  const timerRed = timeLeft < 300; // < 5 min
-  const timerAmber = timeLeft < 600 && !timerRed;
-
   return (
     <div className="min-h-screen bg-[#f4f3ff] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans flex flex-col">
 
@@ -1503,15 +1605,8 @@ export default function MasteryTrialPage() {
           </button>
         </div>
 
-        {/* Right: timer (bigger, violet default) */}
-        <div className={`flex items-center gap-2.5 px-5 py-2.5 rounded-2xl border-2 font-black text-2xl tabular-nums flex-shrink-0 transition-colors
-          ${timerRed    ? 'border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400 animate-pulse' :
-            timerAmber  ? 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400' :
-                          'border-violet-500/60 bg-violet-500/10 text-violet-600 dark:text-violet-400'}`}
-        >
-          <Clock size={20} className="flex-shrink-0" />
-          {formatTime(timeLeft)}
-        </div>
+        {/* Right: circular SVG timer gauge */}
+        <CircularTimer timeLeft={timeLeft} />
       </header>
 
       {/* ── Body: sidebar (question map) + main (question) ── */}
@@ -1602,7 +1697,7 @@ export default function MasteryTrialPage() {
             </div>
           </div>
 
-          <div className="max-w-2xl mx-auto w-full px-4 py-8">
+          <div className="max-w-2xl mx-auto w-full px-4 py-6">
             <AnimatePresence mode="wait">
               <motion.div
                 key={current.id}
@@ -1610,14 +1705,22 @@ export default function MasteryTrialPage() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.18 }}
+                className="rounded-2xl border border-violet-500/20 dark:border-violet-500/25 bg-white dark:bg-[#100d22] p-6 sm:p-8"
+                style={{ boxShadow: '0 0 0 1px rgba(139,92,246,0.06), 0 4px 28px rgba(0,0,0,0.1), 0 0 80px rgba(139,92,246,0.07)' }}
               >
-                {/* Caption (type) + bookmark toggle */}
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500 pt-1.5">
-                    {{ mcq: 'Single Choice', tf: 'True / False', 'code-mcq': 'Code Reading', 'fill-blank': 'Fill in Blank' }[current.type]}
-                    <span className="mx-1.5 opacity-40">·</span>
-                    {current.difficulty.toUpperCase()}
-                  </p>
+                {/* Q-badge + type label + bookmark */}
+                <div className="flex items-center justify-between gap-3 mb-5">
+                  <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-violet-600/15 dark:bg-violet-600/20 border border-violet-500/25 flex-shrink-0">
+                      <span className="text-xs font-black text-violet-700 dark:text-violet-300 tabular-nums">Q{currentIdx + 1}</span>
+                      <span className="text-[10px] text-violet-500/55 dark:text-violet-400/55 font-bold">/{questions.length}</span>
+                    </span>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500 truncate">
+                      {{ mcq: 'Single Choice', tf: 'True / False', 'code-mcq': 'Code Reading', 'fill-blank': 'Fill in Blank' }[current.type]}
+                      <span className="mx-1.5 opacity-40">·</span>
+                      {current.difficulty.toUpperCase()}
+                    </p>
+                  </div>
                   <button
                     onClick={() => toggleFlag(current.id)}
                     aria-pressed={flagged.has(current.id)}
@@ -1625,15 +1728,15 @@ export default function MasteryTrialPage() {
                     className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border-2 transition-all duration-200 flex-shrink-0
                       ${flagged.has(current.id)
                         ? 'bg-amber-500/20 border-amber-500 text-amber-700 dark:text-amber-300 shadow-[0_0_0_1px_rgba(245,158,11,0.25)]'
-                        : 'bg-white dark:bg-slate-900 border-amber-400 dark:border-amber-500/50 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:border-amber-500'}`}
+                        : 'bg-white dark:bg-slate-900/50 border-amber-400 dark:border-amber-500/50 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:border-amber-500'}`}
                   >
                     <Bookmark size={13} className={flagged.has(current.id) ? 'fill-amber-500 text-amber-600' : ''} />
-                    {flagged.has(current.id) ? 'Marked for review' : 'Mark for review'}
+                    <span className="hidden sm:inline">{flagged.has(current.id) ? 'Flagged' : 'Flag'}</span>
                   </button>
                 </div>
 
-                {/* Question text (bigger) */}
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white leading-snug mb-3">
+                {/* Question text */}
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white leading-snug mb-4">
                   {current.question}
                 </h2>
 
