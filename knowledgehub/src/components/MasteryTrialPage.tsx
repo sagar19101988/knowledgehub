@@ -44,6 +44,7 @@ function formatTime(seconds: number): string {
 
 // ── Floating circular timer widget (fixed, bottom-right) ─────
 function CircularTimer({ timeLeft }: { timeLeft: number }) {
+  const isDark = useQuestStore(s => s.theme) === 'dark';
   const pct = Math.max(0, timeLeft / TOTAL_TIME);
   const SIZE = 112;
   const STROKE = 8;
@@ -53,27 +54,31 @@ function CircularTimer({ timeLeft }: { timeLeft: number }) {
 
   const isRed   = timeLeft < 300;
   const isAmber = timeLeft < 600 && !isRed;
-  const strokeColor = isRed ? '#ef4444' : isAmber ? '#f59e0b' : '#7c3aed';
+  const strokeColor = isRed ? '#ef4444' : isAmber ? '#f59e0b' : (isDark ? '#7c3aed' : '#2563eb');
   const textCls = isRed
     ? 'text-rose-500 dark:text-rose-400'
     : isAmber
       ? 'text-amber-500 dark:text-amber-400'
-      : 'text-violet-600 dark:text-violet-400';
-
+      : 'text-blue-600 dark:text-violet-400';
   return (
     <div
       className={`fixed top-24 right-4 lg:top-24 lg:right-8 z-[80] rounded-full
         bg-white/92 dark:bg-[#0f0c20]/92 backdrop-blur-sm
-        shadow-[0_4px_28px_rgba(0,0,0,0.18),0_0_0_1px_rgba(139,92,246,0.16)]
         ${isRed ? 'animate-pulse' : ''}`}
-      style={{ width: SIZE, height: SIZE }}
+      style={{
+        width: SIZE,
+        height: SIZE,
+        boxShadow: isDark
+          ? '0 4px 28px rgba(0,0,0,0.18), 0 0 0 1px rgba(139,92,246,0.16)'
+          : '0 2px 12px rgba(15,23,42,0.08), 0 0 0 1px #e2e8f0',
+      }}
       aria-label={`Time remaining: ${formatTime(timeLeft)}`}
     >
       <svg width={SIZE} height={SIZE} style={{ transform: 'rotate(-90deg)' }}>
         <circle
           cx={SIZE / 2} cy={SIZE / 2} r={RADIUS}
           strokeWidth={STROKE} fill="none"
-          stroke="rgba(139,92,246,0.14)"
+          stroke={isDark ? 'rgba(139,92,246,0.14)' : '#e2e8f0'}
         />
         <circle
           cx={SIZE / 2} cy={SIZE / 2} r={RADIUS}
@@ -541,17 +546,17 @@ function McqOptions({
             className={`group w-full text-left flex items-center gap-3.5 px-4 py-3.5 rounded-xl border-2 transition-all duration-200
               ${isRight  ? 'border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/8' :
                 isWrong  ? 'border-rose-500 bg-rose-500/10 dark:bg-rose-500/8' :
-                selected  ? 'border-violet-500 bg-violet-500/12 dark:bg-violet-500/15 shadow-[0_0_0_1px_rgba(124,58,237,0.12)]' :
+                selected  ? 'border-blue-500 bg-blue-50 dark:border-violet-500 dark:bg-violet-500/15 dark:shadow-[0_0_0_1px_rgba(124,58,237,0.12)]' :
                 submitted ? 'border-slate-200 dark:border-slate-700/60 opacity-40 cursor-not-allowed' :
-                            'border-slate-200 dark:border-slate-700/80 hover:border-violet-400/80 dark:hover:border-violet-500/60 hover:bg-violet-500/5 dark:hover:bg-violet-500/8'}`}
+                            'border-slate-200 dark:border-slate-700/80 hover:border-blue-400 dark:hover:border-violet-500/60 hover:bg-blue-50/50 dark:hover:bg-violet-500/8'}`}
           >
             {/* Letter badge */}
             <span className={`w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-xs font-black leading-none transition-all duration-200
               ${isRight  ? 'bg-emerald-500 text-white' :
                 isWrong  ? 'bg-rose-500 text-white' :
-                selected  ? 'bg-violet-600 text-white shadow-[0_0_12px_rgba(124,58,237,0.5)]' :
+                selected  ? 'bg-blue-600 text-white dark:bg-violet-600 dark:shadow-[0_0_12px_rgba(124,58,237,0.5)]' :
                 submitted ? 'bg-slate-100 dark:bg-slate-800 text-slate-400' :
-                            'bg-slate-100 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 group-hover:bg-violet-500/20 dark:group-hover:bg-violet-500/25 group-hover:text-violet-600 dark:group-hover:text-violet-300'}`}
+                            'bg-slate-100 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 group-hover:bg-blue-100 dark:group-hover:bg-violet-500/25 group-hover:text-blue-700 dark:group-hover:text-violet-300'}`}
             >
               {isRight ? '✓' : isWrong ? '✗' : letter}
             </span>
@@ -559,7 +564,7 @@ function McqOptions({
             <span className={`text-sm flex-1 text-left leading-snug
               ${isRight  ? 'font-semibold text-emerald-700 dark:text-emerald-300' :
                 isWrong  ? 'font-semibold text-rose-700 dark:text-rose-300' :
-                selected  ? 'font-semibold text-violet-700 dark:text-violet-200' :
+                selected  ? 'font-semibold text-blue-700 dark:text-violet-200' :
                 submitted ? 'font-medium text-slate-400 dark:text-slate-500' :
                             'font-medium text-slate-700 dark:text-slate-300'}`}
             >
@@ -596,7 +601,7 @@ function TfOptions({
             className={`group flex-1 flex items-center justify-center gap-3 py-4 rounded-xl border-2 transition-all duration-200
               ${isRight  ? 'border-emerald-500 bg-emerald-500/10' :
                 isWrong  ? 'border-rose-500 bg-rose-500/10' :
-                selected  ? 'border-violet-500 bg-violet-500/12 dark:bg-violet-500/15 shadow-[0_0_0_1px_rgba(124,58,237,0.12)]' :
+                selected  ? 'border-blue-500 bg-blue-50 dark:border-violet-500 dark:bg-violet-500/15 dark:shadow-[0_0_0_1px_rgba(124,58,237,0.12)]' :
                 submitted ? 'border-slate-200 dark:border-slate-700 opacity-40 cursor-not-allowed' :
                 val       ? 'border-emerald-400/50 hover:border-emerald-500/80 hover:bg-emerald-500/8' :
                             'border-rose-400/50 hover:border-rose-500/80 hover:bg-rose-500/8'}`}
@@ -604,7 +609,7 @@ function TfOptions({
             <span className={`w-9 h-9 rounded-xl flex items-center justify-center text-base font-black leading-none transition-all duration-200
               ${isRight  ? 'bg-emerald-500 text-white' :
                 isWrong  ? 'bg-rose-500 text-white' :
-                selected  ? 'bg-violet-600 text-white shadow-[0_0_12px_rgba(124,58,237,0.5)]' :
+                selected  ? 'bg-blue-600 text-white dark:bg-violet-600 dark:shadow-[0_0_12px_rgba(124,58,237,0.5)]' :
                 submitted ? 'bg-slate-100 dark:bg-slate-800 text-slate-400' :
                 val       ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-500/25' :
                             'bg-rose-500/15 text-rose-600 dark:text-rose-400 group-hover:bg-rose-500/25'}`}
@@ -614,7 +619,7 @@ function TfOptions({
             <span className={`text-base font-black
               ${isRight  ? 'text-emerald-600 dark:text-emerald-300' :
                 isWrong  ? 'text-rose-600 dark:text-rose-300' :
-                selected  ? 'text-violet-700 dark:text-violet-200' :
+                selected  ? 'text-blue-700 dark:text-violet-200' :
                 submitted ? 'text-slate-400' :
                 val       ? 'text-emerald-600 dark:text-emerald-400' :
                             'text-rose-600 dark:text-rose-400'}`}
@@ -649,7 +654,7 @@ function FillBlankOptions({
         <span className={`inline-block mx-1 min-w-[120px] px-3 py-0.5 rounded-lg border-2 text-center font-bold transition-colors
           ${submitted && filled === correct ? 'border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' :
             submitted && filled !== correct ? 'border-rose-500 bg-rose-500/15 text-rose-700 dark:text-rose-300' :
-            filled ? 'border-violet-500 bg-violet-500/10 text-violet-700 dark:text-violet-300' :
+            filled ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-violet-500 dark:bg-violet-500/10 dark:text-violet-300' :
                      'border-dashed border-slate-400 dark:border-slate-500 text-slate-400 dark:text-slate-500'}`}>
           {filled ?? '?'}
         </span>
@@ -672,9 +677,9 @@ function FillBlankOptions({
               className={`px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all duration-200
                 ${isRight  ? 'border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' :
                   isWrong  ? 'border-rose-500 bg-rose-500/15 text-rose-700 dark:text-rose-300' :
-                  selected  ? 'border-violet-500 bg-violet-500/15 text-violet-700 dark:text-violet-300' :
+                  selected  ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-violet-500 dark:bg-violet-500/15 dark:text-violet-300' :
                   submitted ? 'border-slate-200 dark:border-slate-700 opacity-40 cursor-not-allowed text-slate-500' :
-                              'border-slate-300 dark:border-slate-600 hover:border-violet-400 hover:bg-violet-500/8 text-slate-700 dark:text-slate-300'}`}
+                              'border-slate-300 dark:border-slate-600 hover:border-blue-400 hover:bg-blue-50/50 dark:hover:border-violet-400 dark:hover:bg-violet-500/8 text-slate-700 dark:text-slate-300'}`}
             >
               {chip}
             </button>
@@ -1716,7 +1721,7 @@ export default function MasteryTrialPage() {
             <button
               onClick={jumpToNextUnanswered}
               disabled={answeredCount === questions.length}
-              className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors -mt-2"
+              className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-violet-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors -mt-2"
             >
               <CornerDownRight size={11} /> Next pending
             </button>
@@ -1752,7 +1757,7 @@ export default function MasteryTrialPage() {
               className={`w-full flex items-center justify-center gap-1.5 px-5 py-3 rounded-xl text-sm font-black text-white transition
                 ${answeredCount === questions.length
                   ? 'bg-emerald-600 hover:bg-emerald-700 shadow-[0_0_18px_rgba(5,150,105,0.35)]'
-                  : 'bg-violet-600 hover:bg-violet-700'}`}
+                  : 'bg-blue-600 hover:bg-blue-700 dark:bg-violet-600 dark:hover:bg-violet-700'}`}
             >
               <Trophy size={15} /> Submit Trial
             </button>
@@ -1801,9 +1806,9 @@ export default function MasteryTrialPage() {
                 {/* Q-badge + type label + bookmark */}
                 <div className="flex items-center justify-between gap-3 mb-5">
                   <div className="flex items-center gap-2.5 flex-wrap min-w-0">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-violet-600/15 dark:bg-violet-600/20 border border-violet-500/25 flex-shrink-0">
-                      <span className="text-xs font-black text-violet-700 dark:text-violet-300 tabular-nums">Q{currentIdx + 1}</span>
-                      <span className="text-[10px] text-violet-500/55 dark:text-violet-400/55 font-bold">/{questions.length}</span>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-violet-600/20 border border-blue-200 dark:border-violet-500/25 flex-shrink-0">
+                      <span className="text-xs font-black text-blue-700 dark:text-violet-300 tabular-nums">Q{currentIdx + 1}</span>
+                      <span className="text-[10px] text-blue-500/60 dark:text-violet-400/55 font-bold">/{questions.length}</span>
                     </span>
                     <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500 truncate">
                       {{ mcq: 'Single Choice', tf: 'True / False', 'code-mcq': 'Code Reading', 'fill-blank': 'Fill in Blank' }[current.type]}
