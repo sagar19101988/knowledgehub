@@ -141,8 +141,8 @@ export default function ZoneView() {
   return (
     <div className={`min-h-screen font-sans flex flex-col ${isDark ? 'bg-[#07050f] text-slate-200' : 'bg-[#eff4fb] text-slate-900'}`}>
       {/* Top Navbar — HUD Layout: Left | Center | Right */}
-      <nav className={`h-16 backdrop-blur px-3 sm:px-6 flex items-center sticky top-0 z-50 gap-2 ${
-        isDark ? 'border-b border-violet-900/30 bg-[#0a0715]/80' : 'border-b border-slate-200 bg-white/90'
+      <nav className={`h-16 px-3 sm:px-6 flex items-center sticky top-0 z-[80] gap-2 ${
+        isDark ? 'border-b border-violet-900/30 bg-[#07050f]' : 'border-b border-slate-200 bg-[#eff4fb]'
       }`}>
 
         {/* ── LEFT: Back + Hamburger (mobile) + Breadcrumb ── */}
