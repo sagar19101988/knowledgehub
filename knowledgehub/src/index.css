@@ -177,6 +177,14 @@ button:not(:disabled) {
   color: #334155; /* slate-700 — high-readability cool dark */
 }
 
-.dark .prose p, .dark .prose li, .dark .prose ul, .dark .prose ol {
-  color: inherit;
+.dark .prose,
+.dark .prose p,
+.dark .prose li,
+.dark .prose ul,
+.dark .prose ol,
+.dark .prose em,
+.dark .prose span:not([class*="bg-"]),
+.dark .prose blockquote,
+.dark .prose td {
+  color: #f1f5f9 !important; /* slate-100 — match bold/strong brightness; bold differentiates via font-weight only */
 }
