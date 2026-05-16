@@ -100,6 +100,8 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
   const markLevelComplete  = useQuestStore((state) => state.markLevelComplete);
   const pauseRankUp        = useQuestStore((state) => state.pauseRankUp);
   const resumeRankUp       = useQuestStore((state) => state.resumeRankUp);
+  const theme              = useQuestStore((state) => state.theme);
+  const isDark             = theme === 'dark';
 
   const quizzes   = ZONES_QUIZZES[zoneId];
   const levelData = quizzes?.find((q) => q.level === level);
@@ -271,13 +273,17 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
       animate={{ opacity: 1, y: 0 }}
       className="max-w-2xl mx-auto"
     >
-      {/* Zone-themed dark card with violet glow + shimmer sweep */}
+      {/* Boss Fight card — dark in dark mode, white-flat in light */}
       <div
         className="relative overflow-hidden rounded-2xl p-7 sm:p-8"
         style={{
-          background: 'linear-gradient(135deg, rgba(12,9,28,0.96) 0%, rgba(20,10,40,0.96) 100%)',
-          border: '2px solid rgba(124,58,237,0.6)',
-          boxShadow: '0 0 0 1px rgba(124,58,237,0.15), 0 0 40px rgba(124,58,237,0.12), 0 20px 60px rgba(0,0,0,0.5)',
+          background: isDark
+            ? 'linear-gradient(135deg, rgba(12,9,28,0.96) 0%, rgba(20,10,40,0.96) 100%)'
+            : '#ffffff',
+          border: isDark ? '2px solid rgba(124,58,237,0.6)' : '1.5px solid #e2e8f0',
+          boxShadow: isDark
+            ? '0 0 0 1px rgba(124,58,237,0.15), 0 0 40px rgba(124,58,237,0.12), 0 20px 60px rgba(0,0,0,0.5)'
+            : '0 1px 3px rgba(15,23,42,0.06), 0 8px 24px rgba(15,23,42,0.06)',
         }}
       >
         {/* Header: Boss Fight label + Phase counter */}
@@ -286,28 +292,33 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
             <div
               className="w-10 h-10 rounded-[10px] flex items-center justify-center text-lg"
               style={{
-                background: 'linear-gradient(135deg, rgba(239,68,68,0.25), rgba(124,58,237,0.25))',
-                border: '1px solid rgba(239,68,68,0.4)',
-                boxShadow: '0 0 16px rgba(239,68,68,0.2)',
+                background: isDark
+                  ? 'linear-gradient(135deg, rgba(239,68,68,0.25), rgba(124,58,237,0.25))'
+                  : '#fee2e2',
+                border: isDark ? '1px solid rgba(239,68,68,0.4)' : '1px solid #fecaca',
+                boxShadow: isDark ? '0 0 16px rgba(239,68,68,0.2)' : 'none',
               }}
             >
               ⚔️
             </div>
             <div className="flex flex-col leading-tight">
-              <span className="text-[20px] font-black text-red-400" style={{ letterSpacing: '-0.01em' }}>
+              <span
+                className={`text-[20px] font-black ${isDark ? 'text-red-400' : 'text-red-600'}`}
+                style={{ letterSpacing: '-0.01em' }}
+              >
                 Boss Fight
               </span>
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.1em] mt-0.5">
+              <span className={`text-[11px] font-bold uppercase tracking-[0.1em] mt-0.5 ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
                 {zone?.title ?? zoneId} · {level}
               </span>
             </div>
           </div>
 
           <div className="flex flex-col items-end gap-0.5">
-            <span className="text-[10px] font-black uppercase tracking-[0.12em] text-violet-500">Phase</span>
+            <span className={`text-[10px] font-black uppercase tracking-[0.12em] ${isDark ? 'text-violet-500' : 'text-blue-600'}`}>Phase</span>
             <div className="flex items-baseline gap-1">
-              <span className="text-[22px] font-black text-white leading-none">{currentIndex + 1}</span>
-              <span className="text-xs font-bold text-slate-500">/ {questions.length}</span>
+              <span className={`text-[22px] font-black leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{currentIndex + 1}</span>
+              <span className={`text-xs font-bold ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>/ {questions.length}</span>
             </div>
           </div>
         </div>
@@ -315,38 +326,42 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
         {/* Boss HP bar */}
         <div className="relative z-10 mb-7">
           <div className="flex justify-between items-center mb-1.5">
-            <span className="text-[10px] font-black uppercase tracking-[0.14em] text-red-500 flex items-center gap-1.5">
+            <span className={`text-[10px] font-black uppercase tracking-[0.14em] flex items-center gap-1.5 ${isDark ? 'text-red-500' : 'text-red-600'}`}>
               <Skull size={12} /> Boss HP
             </span>
-            <span className="text-[11px] font-extrabold text-red-400">
+            <span className={`text-[11px] font-extrabold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
               {hpRemaining} / {questions.length}
             </span>
           </div>
           <div
             className="relative h-3.5 w-full rounded-md overflow-hidden"
             style={{
-              background: 'rgba(239,68,68,0.1)',
-              border: '1px solid rgba(239,68,68,0.25)',
+              background: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2',
+              border: isDark ? '1px solid rgba(239,68,68,0.25)' : '1px solid #fecaca',
             }}
           >
             <div
-              className="qe-hp-fill h-full relative transition-all duration-700"
+              className={`h-full relative transition-all duration-700 ${isDark ? 'qe-hp-fill' : ''}`}
               style={{
                 width: `${hpPct}%`,
-                background: 'linear-gradient(90deg, #dc2626, #ef4444, #f87171)',
+                background: isDark
+                  ? 'linear-gradient(90deg, #dc2626, #ef4444, #f87171)'
+                  : 'linear-gradient(90deg, #dc2626, #ef4444)',
                 borderRadius: '5px',
               }}
             >
-              <div
-                className="absolute inset-0 rounded-md"
-                style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.2) 0%, transparent 60%)' }}
-              />
+              {isDark && (
+                <div
+                  className="absolute inset-0 rounded-md"
+                  style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.2) 0%, transparent 60%)' }}
+                />
+              )}
             </div>
           </div>
         </div>
 
         {/* Question */}
-        <p className="relative z-10 text-[17px] leading-[1.65] text-slate-100 font-medium mb-6">
+        <p className={`relative z-10 text-[17px] leading-[1.65] font-medium mb-6 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
           {question.question}
         </p>
 
@@ -359,45 +374,54 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
             let stateClass = '';
             const inlineStyle: React.CSSProperties = {
               transition: 'all 0.18s',
-              border: '1.5px solid rgba(255,255,255,0.06)',
-              background: 'rgba(255,255,255,0.03)',
-              color: '#cbd5e1',
+              borderWidth: '1.5px',
+              borderStyle: 'solid',
+              borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0',
+              background: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff',
+              color: isDark ? '#cbd5e1' : '#334155',
+              boxShadow: 'none',
             };
 
             if (showResult) {
               if (opt.isCorrect) {
-                inlineStyle.background    = 'rgba(16,185,129,0.15)';
-                inlineStyle.borderColor   = 'rgba(16,185,129,0.6)';
-                inlineStyle.color         = '#6ee7b7';
-                inlineStyle.boxShadow     = '0 0 20px rgba(16,185,129,0.2)';
+                inlineStyle.background    = isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5';
+                inlineStyle.borderColor   = isDark ? 'rgba(16,185,129,0.6)' : '#34d399';
+                inlineStyle.color         = isDark ? '#6ee7b7' : '#065f46';
+                inlineStyle.boxShadow     = isDark ? '0 0 20px rgba(16,185,129,0.2)' : 'none';
                 stateClass = 'qe-anim-correct';
               } else if (isSelected) {
-                inlineStyle.background    = 'rgba(239,68,68,0.12)';
-                inlineStyle.borderColor   = 'rgba(239,68,68,0.5)';
-                inlineStyle.color         = '#fca5a5';
+                inlineStyle.background    = isDark ? 'rgba(239,68,68,0.12)' : '#fef2f2';
+                inlineStyle.borderColor   = isDark ? 'rgba(239,68,68,0.5)' : '#f87171';
+                inlineStyle.color         = isDark ? '#fca5a5' : '#991b1b';
                 stateClass = 'qe-anim-shake';
               } else {
-                inlineStyle.opacity = 0.3;
+                inlineStyle.opacity = isDark ? 0.3 : 0.45;
               }
             } else if (isSelected) {
-              inlineStyle.background  = 'rgba(124,58,237,0.15)';
-              inlineStyle.borderColor = 'rgba(124,58,237,0.6)';
-              inlineStyle.color       = '#c4b5fd';
-              inlineStyle.boxShadow   = '0 0 20px rgba(124,58,237,0.2), inset 0 0 20px rgba(124,58,237,0.05)';
+              inlineStyle.background  = isDark ? 'rgba(124,58,237,0.15)' : '#eff6ff';
+              inlineStyle.borderColor = isDark ? 'rgba(124,58,237,0.6)' : '#2563eb';
+              inlineStyle.color       = isDark ? '#c4b5fd' : '#1e3a8a';
+              inlineStyle.boxShadow   = isDark
+                ? '0 0 20px rgba(124,58,237,0.2), inset 0 0 20px rgba(124,58,237,0.05)'
+                : 'none';
             }
 
             // Letter badge styling per state
-            let badgeStyle: React.CSSProperties = {
-              background: 'rgba(255,255,255,0.06)',
-              color: '#64748b',
-              border: '1px solid rgba(255,255,255,0.08)',
-            };
+            let badgeStyle: React.CSSProperties = isDark
+              ? { background: 'rgba(255,255,255,0.06)', color: '#64748b', border: '1px solid rgba(255,255,255,0.08)' }
+              : { background: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0' };
             if (showResult && opt.isCorrect) {
-              badgeStyle = { background: 'rgba(16,185,129,0.3)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.5)' };
+              badgeStyle = isDark
+                ? { background: 'rgba(16,185,129,0.3)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.5)' }
+                : { background: '#d1fae5', color: '#047857', border: '1px solid #6ee7b7' };
             } else if (showResult && isSelected) {
-              badgeStyle = { background: 'rgba(239,68,68,0.2)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.4)' };
+              badgeStyle = isDark
+                ? { background: 'rgba(239,68,68,0.2)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.4)' }
+                : { background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' };
             } else if (isSelected) {
-              badgeStyle = { background: 'rgba(124,58,237,0.3)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.5)' };
+              badgeStyle = isDark
+                ? { background: 'rgba(124,58,237,0.3)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.5)' }
+                : { background: '#dbeafe', color: '#1d4ed8', border: '1px solid #93c5fd' };
             }
 
             return (
@@ -418,9 +442,9 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
                 <span
                   className="hidden sm:inline-block flex-shrink-0 text-[10px] font-bold tracking-wider rounded px-1.5 py-0.5"
                   style={{
-                    color: '#475569',
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.06)',
+                    color: isDark ? '#475569' : '#94a3b8',
+                    background: isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc',
+                    border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0',
                   }}
                   aria-hidden="true"
                 >
@@ -440,8 +464,12 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
               className="flex items-center gap-2 text-white font-extrabold rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:-translate-y-px"
               style={{
                 padding: '13px 32px',
-                background: 'linear-gradient(135deg, #7c3aed, #c026d3)',
-                boxShadow: '0 0 24px rgba(124,58,237,0.45), 0 4px 12px rgba(0,0,0,0.3)',
+                background: isDark
+                  ? 'linear-gradient(135deg, #7c3aed, #c026d3)'
+                  : '#2563eb',
+                boxShadow: isDark
+                  ? '0 0 24px rgba(124,58,237,0.45), 0 4px 12px rgba(0,0,0,0.3)'
+                  : '0 1px 2px rgba(37,99,235,0.2)',
                 fontSize: 13,
                 letterSpacing: '0.03em',
                 textTransform: 'uppercase',
@@ -465,32 +493,48 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
             <div
               className="flex items-center gap-3 px-5 py-3.5 rounded-t-2xl"
               style={{
-                background: isCorrect
-                  ? 'linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.08))'
-                  : 'linear-gradient(135deg, rgba(239,68,68,0.2), rgba(239,68,68,0.08))',
-                border: `1.5px solid ${isCorrect ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'}`,
+                background: isDark
+                  ? (isCorrect
+                      ? 'linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.08))'
+                      : 'linear-gradient(135deg, rgba(239,68,68,0.2), rgba(239,68,68,0.08))')
+                  : (isCorrect ? '#ecfdf5' : '#fef2f2'),
+                border: isDark
+                  ? `1.5px solid ${isCorrect ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'}`
+                  : `1.5px solid ${isCorrect ? '#a7f3d0' : '#fecaca'}`,
                 borderBottom: 'none',
               }}
             >
               <div
                 className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
                 style={{
-                  background: isCorrect ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)',
-                  boxShadow: isCorrect ? '0 0 16px rgba(16,185,129,0.3)' : '0 0 16px rgba(239,68,68,0.3)',
+                  background: isDark
+                    ? (isCorrect ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)')
+                    : (isCorrect ? '#d1fae5' : '#fee2e2'),
+                  boxShadow: isDark
+                    ? (isCorrect ? '0 0 16px rgba(16,185,129,0.3)' : '0 0 16px rgba(239,68,68,0.3)')
+                    : 'none',
                 }}
               >
                 {isCorrect
-                  ? <ShieldCheck size={22} className="text-emerald-400" />
-                  : <XCircle    size={22} className="text-red-400" />
+                  ? <ShieldCheck size={22} className={isDark ? 'text-emerald-400' : 'text-emerald-600'} />
+                  : <XCircle    size={22} className={isDark ? 'text-red-400' : 'text-red-600'} />
                 }
               </div>
               <div className="flex-1 relative">
-                <div className={`text-xl font-black leading-none ${isCorrect ? 'text-emerald-400' : 'text-red-400'}`}>
+                <div className={`text-xl font-black leading-none ${
+                  isDark
+                    ? (isCorrect ? 'text-emerald-400' : 'text-red-400')
+                    : (isCorrect ? 'text-emerald-700' : 'text-red-700')
+                }`}>
                   {isCorrect ? 'Direct Hit!' : 'Attack Blocked!'}
                 </div>
                 <div
                   className="text-[11px] uppercase tracking-[0.1em] mt-0.5"
-                  style={{ color: isCorrect ? 'rgba(52,211,153,0.7)' : 'rgba(248,113,113,0.7)' }}
+                  style={{
+                    color: isDark
+                      ? (isCorrect ? 'rgba(52,211,153,0.7)' : 'rgba(248,113,113,0.7)')
+                      : (isCorrect ? '#059669' : '#dc2626'),
+                  }}
                 >
                   {isCorrect ? 'Boss takes damage' : 'Boss deflects your strike'}
                 </div>
@@ -501,18 +545,22 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
             <div
               className="px-5 py-5 rounded-b-2xl"
               style={{
-                background: isCorrect ? 'rgba(16,185,129,0.06)' : 'rgba(239,68,68,0.04)',
-                border: `1.5px solid ${isCorrect ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'}`,
+                background: isDark
+                  ? (isCorrect ? 'rgba(16,185,129,0.06)' : 'rgba(239,68,68,0.04)')
+                  : '#ffffff',
+                border: isDark
+                  ? `1.5px solid ${isCorrect ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'}`
+                  : `1.5px solid ${isCorrect ? '#a7f3d0' : '#fecaca'}`,
                 borderTop: 'none',
               }}
             >
-              <p className="text-sm text-slate-400 leading-relaxed mb-4">
+              <p className={`text-sm leading-relaxed mb-4 ${isDark ? 'text-slate-400' : 'text-slate-700'}`}>
                 {question.explanation}
               </p>
 
               <div className="flex items-center justify-between gap-4">
                 {isCorrect && !isLastQuestion && countdown !== null && (
-                  <span className="text-xs text-slate-500">
+                  <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
                     Auto-advancing in {countdown}s…
                   </span>
                 )}
@@ -522,8 +570,12 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
                       onClick={handleNext}
                       className="flex items-center gap-2 px-6 py-2 text-white font-extrabold rounded-lg transition hover:opacity-90"
                       style={{
-                        background: 'linear-gradient(135deg, #10b981, #059669)',
-                        boxShadow: '0 0 16px rgba(16,185,129,0.35)',
+                        background: isDark
+                          ? 'linear-gradient(135deg, #10b981, #059669)'
+                          : '#059669',
+                        boxShadow: isDark
+                          ? '0 0 16px rgba(16,185,129,0.35)'
+                          : '0 1px 2px rgba(5,150,105,0.2)',
                       }}
                     >
                       {isLastQuestion
@@ -538,9 +590,9 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
                       onClick={handleRetry}
                       className="flex items-center gap-2 px-6 py-2 font-bold rounded-lg transition"
                       style={{
-                        background: 'rgba(255,255,255,0.05)',
-                        color: '#cbd5e1',
-                        border: '1px solid rgba(255,255,255,0.1)',
+                        background: isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
+                        color: isDark ? '#cbd5e1' : '#334155',
+                        border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0',
                       }}
                     >
                       <RefreshCw size={18} /> Try Again
