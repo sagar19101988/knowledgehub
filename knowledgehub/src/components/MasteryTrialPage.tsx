@@ -10,6 +10,7 @@ import {
 import { ZONES } from '../data/zones';
 import { QUESTION_BANK, MASTERY_BADGES, type MasteryTrialQuestion } from '../data/questionBank';
 import { useQuestStore } from '../store/useQuestStore';
+import confetti from 'canvas-confetti';
 
 const TOTAL_QUESTIONS = 30;
 const TOTAL_TIME = 30 * 60; // 1800 seconds
@@ -684,6 +685,18 @@ function FillBlankOptions({
   );
 }
 
+// ── Zone card themes for the results hero card ────────────────
+const ZONE_CARD_THEMES: Record<string, {
+  gradient: string; glow: string; accent: string; confettiColors: string[];
+}> = {
+  manual:     { gradient: 'linear-gradient(135deg, #1a0a03 0%, #2d1506 55%, #0f0602 100%)', glow: 'rgba(249,115,22,0.35)',  accent: '#fb923c', confettiColors: ['#fb923c', '#fbbf24', '#ef4444', '#7c3aed'] },
+  sql:        { gradient: 'linear-gradient(135deg, #030d1e 0%, #061828 55%, #020810 100%)', glow: 'rgba(59,130,246,0.35)',  accent: '#60a5fa', confettiColors: ['#60a5fa', '#a5f3fc', '#818cf8', '#fbbf24'] },
+  api:        { gradient: 'linear-gradient(135deg, #0f0520 0%, #190840 55%, #080315 100%)', glow: 'rgba(168,85,247,0.40)', accent: '#c084fc', confettiColors: ['#c084fc', '#f0abfc', '#818cf8', '#fbbf24'] },
+  typescript: { gradient: 'linear-gradient(135deg, #03101e 0%, #051928 55%, #020a12 100%)', glow: 'rgba(14,165,233,0.35)',  accent: '#38bdf8', confettiColors: ['#38bdf8', '#7dd3fc', '#818cf8', '#fbbf24'] },
+  playwright: { gradient: 'linear-gradient(135deg, #031210 0%, #061e18 55%, #020c09 100%)', glow: 'rgba(16,185,129,0.35)',  accent: '#34d399', confettiColors: ['#34d399', '#6ee7b7', '#a3e635', '#fbbf24'] },
+  'ai-qa':    { gradient: 'linear-gradient(135deg, #1a030a 0%, #2d0510 55%, #0f0205 100%)', glow: 'rgba(244,63,94,0.35)',   accent: '#fb7185', confettiColors: ['#fb7185', '#f9a8d4', '#c084fc', '#fbbf24'] },
+};
+
 // ── Report Card ───────────────────────────────────────────────
 
 function ReportCard({
@@ -711,7 +724,12 @@ function ReportCard({
   const passed = score >= Math.ceil(questions.length * PASS_THRESHOLD);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [breakdownOpen, setBreakdownOpen] = useState(false);
+  const [displayPct, setDisplayPct] = useState(0);
   const masteryBadge = MASTERY_BADGES[zoneMeta.id];
+  const masteryScores = useQuestStore(s => s.masteryScores);
+  const attempts = masteryScores[zoneMeta.id]?.attempts ?? 1;
+  const theme = ZONE_CARD_THEMES[zoneMeta.id] ?? ZONE_CARD_THEMES['manual'];
+  const timeTakenSecs = TOTAL_TIME - timeTaken;
 
   // ── Dynamic performance verdict ──
   const verdict = (() => {
@@ -721,21 +739,45 @@ function ReportCard({
     if (pct >= 80)    return { line: `Solid pass — a handful of expert questions to revisit.`,       tag: 'SOLID' };
     if (pct >= 70)    return { line: `So close — intermediate concepts need another pass.`,          tag: 'NEAR MISS' };
     if (pct >= 50)    return { line: `Foundation in place — focus on the modules and try again.`,    tag: 'BUILDING' };
-    return                     { line: `Early days — work through the library, then return.`,        tag: 'EARLY' };
+    return                   { line: `Early days — work through the library, then return.`,          tag: 'EARLY' };
   })();
 
   // SVG ring geometry
-  const RING_SIZE = 200;
-  const RING_STROKE = 16;
+  const RING_SIZE = 180;
+  const RING_STROKE = 14;
   const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
   const RING_CIRC = 2 * Math.PI * RING_RADIUS;
+
+  // ── Score count-up animation ──
+  useEffect(() => {
+    const start = Date.now();
+    const duration = 1400;
+    const tick = () => {
+      const elapsed = Date.now() - start;
+      const t = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplayPct(Math.round(eased * pct));
+      if (t < 1) requestAnimationFrame(tick);
+    };
+    const id = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(id);
+  }, [pct]);
+
+  // ── Confetti on pass ──
+  useEffect(() => {
+    if (!passed) return;
+    const t = setTimeout(() => {
+      confetti({ particleCount: 140, spread: 90, origin: { y: 0.45 }, colors: theme.confettiColors });
+    }, 700);
+    return () => clearTimeout(t);
+  }, [passed, theme.confettiColors]);
 
   return (
     <div className="min-h-screen bg-[#f4f3ff] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans">
 
       {/* ── Sticky action bar ── */}
       <div className="sticky top-0 z-40 bg-[#f4f3ff]/90 dark:bg-[#07050f]/90 backdrop-blur border-b border-violet-200/60 dark:border-violet-900/30">
-        <div className="max-w-3xl mx-auto px-4 h-14 flex items-center gap-3">
+        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
           <button
             onClick={onBack}
             aria-label="Back to Zone"
@@ -766,92 +808,133 @@ function ReportCard({
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+      <div className="max-w-2xl mx-auto px-4 py-8 space-y-5">
 
-        {/* ── Headline: circular ring + verdict ── */}
+        {/* ── Hero screenshot card ── */}
         <motion.div
-          initial={{ opacity: 0, y: -16 }}
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`rounded-2xl border-2 p-8 flex flex-col sm:flex-row items-center gap-7 ${
-            passed
-              ? 'border-emerald-500/60 bg-emerald-500/8 dark:bg-emerald-500/5'
-              : 'border-rose-500/60 bg-rose-500/8 dark:bg-rose-500/5'
-          }`}
+          transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+          className="relative overflow-hidden rounded-3xl"
+          style={{
+            background: theme.gradient,
+            boxShadow: `0 0 0 1px rgba(255,255,255,0.07), 0 20px 60px rgba(0,0,0,0.5), 0 0 100px ${theme.glow}`,
+          }}
         >
-          {/* Animated score ring */}
-          <div className="relative flex-shrink-0" style={{ width: RING_SIZE, height: RING_SIZE }}>
-            <svg width={RING_SIZE} height={RING_SIZE} className="-rotate-90">
-              <circle
-                cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_RADIUS}
-                strokeWidth={RING_STROKE} fill="none"
-                className="stroke-slate-200 dark:stroke-slate-800"
-              />
-              <motion.circle
-                cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_RADIUS}
-                strokeWidth={RING_STROKE} fill="none" strokeLinecap="round"
-                className={passed ? 'stroke-emerald-500' : 'stroke-rose-500'}
-                strokeDasharray={RING_CIRC}
-                initial={{ strokeDashoffset: RING_CIRC }}
-                animate={{ strokeDashoffset: RING_CIRC * (1 - pct / 100) }}
-                transition={{ duration: 1.1, ease: 'easeOut', delay: 0.15 }}
-              />
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <motion.span
-                initial={{ opacity: 0, scale: 0.85 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.45, duration: 0.35 }}
-                className={`text-5xl font-black tabular-nums ${passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}
-              >
-                {pct}%
-              </motion.span>
-              <span className="text-sm font-bold text-slate-500 dark:text-slate-400 mt-1">
-                {score} / {questions.length}
-              </span>
-            </div>
-          </div>
+          {/* Dot-grid texture */}
+          <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+          {/* Top glow bloom */}
+          <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(ellipse 70% 45% at 50% 0%, ${theme.glow} 0%, transparent 70%)` }} />
 
-          {/* Verdict + meta */}
-          <div className="flex-1 text-center sm:text-left">
-            <div className={`inline-block text-[10px] font-black uppercase tracking-[0.18em] px-2 py-0.5 rounded-md mb-2
-              ${passed ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' : 'bg-rose-500/15 text-rose-600 dark:text-rose-400'}`}>
-              {verdict.tag}
-            </div>
-            <h1 className={`text-2xl font-black mb-1.5 ${passed ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300'}`}>
-              {passed ? 'PASSED' : 'NOT PASSED'}
-              <span className="ml-2 text-xs font-bold opacity-60">
-                pass mark {Math.ceil(questions.length * PASS_THRESHOLD)}/{questions.length}
+          <div className="relative z-10 px-7 sm:px-10 py-10 flex flex-col items-center text-center gap-6">
+
+            {/* Zone + trial label */}
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex flex-col items-center gap-1">
+              <p className="text-[10px] font-black uppercase tracking-[0.32em]" style={{ color: theme.accent }}>
+                {zoneMeta.title} · Mastery Trial
+              </p>
+              <p className="text-lg font-black text-white/90">{passed ? '✦ Trial Complete' : 'Trial Result'}</p>
+            </motion.div>
+
+            {/* Animated score ring with count-up */}
+            <motion.div
+              initial={{ scale: 0.7, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.15, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+              className="relative flex-shrink-0"
+              style={{ width: RING_SIZE, height: RING_SIZE }}
+            >
+              <svg width={RING_SIZE} height={RING_SIZE} className="-rotate-90">
+                <circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_RADIUS} strokeWidth={RING_STROKE} fill="none" stroke="rgba(255,255,255,0.08)" />
+                <motion.circle
+                  cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_RADIUS}
+                  strokeWidth={RING_STROKE} fill="none" strokeLinecap="round"
+                  stroke={passed ? '#10b981' : '#ef4444'}
+                  strokeDasharray={RING_CIRC}
+                  initial={{ strokeDashoffset: RING_CIRC }}
+                  animate={{ strokeDashoffset: RING_CIRC * (1 - pct / 100) }}
+                  transition={{ duration: 1.3, ease: 'easeOut', delay: 0.3 }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className={`text-5xl font-black tabular-nums leading-none ${passed ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {displayPct}%
+                </span>
+                <span className="text-sm font-bold text-white/50 mt-1">{score} / {questions.length}</span>
+              </div>
+            </motion.div>
+
+            {/* Verdict */}
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="flex flex-col items-center gap-2">
+              <span
+                className="text-[10px] font-black uppercase tracking-[0.22em] px-2.5 py-1 rounded-md"
+                style={{ background: `${theme.accent}22`, color: theme.accent, border: `1px solid ${theme.accent}44` }}
+              >
+                {verdict.tag}
               </span>
-            </h1>
-            <p className="text-sm text-slate-600 dark:text-slate-300 leading-snug">
-              {verdict.line}
-            </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">
-              Time taken: {formatTime(TOTAL_TIME - timeTaken)} · {zoneMeta.title} Mastery Trial
-            </p>
+              <h1 className={`text-2xl font-black ${passed ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {passed ? 'PASSED' : 'NOT PASSED'}
+                <span className="ml-2 text-xs font-bold text-white/30">pass mark {Math.ceil(questions.length * PASS_THRESHOLD)}/{questions.length}</span>
+              </h1>
+              <p className="text-sm text-white/65 leading-snug max-w-xs">{verdict.line}</p>
+            </motion.div>
+
+            {/* 3-up stats */}
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }} className="grid grid-cols-3 gap-3 w-full">
+              {[
+                { label: 'Score',    value: `${score}/${questions.length}` },
+                { label: 'Time',     value: formatTime(timeTakenSecs) },
+                { label: 'Attempts', value: String(attempts) },
+              ].map(stat => (
+                <div key={stat.label} className="rounded-xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-1">{stat.label}</p>
+                  <p className="text-base font-black text-white tabular-nums">{stat.value}</p>
+                </div>
+              ))}
+            </motion.div>
+
+            {/* Badge with pulsing glow */}
+            {(badgeEarned || badgeAlreadyHad) && passed && masteryBadge && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.55, type: 'spring', stiffness: 200 }}
+                className="flex items-center gap-3 px-5 py-3 rounded-2xl"
+                style={{ background: 'rgba(255,255,255,0.06)', border: `1.5px solid ${theme.accent}55`, boxShadow: `0 0 28px ${theme.glow}` }}
+              >
+                <motion.span
+                  className="text-3xl"
+                  animate={{ filter: [`drop-shadow(0 0 0px ${theme.glow})`, `drop-shadow(0 0 14px ${theme.glow})`, `drop-shadow(0 0 0px ${theme.glow})`] }}
+                  transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  {masteryBadge.icon}
+                </motion.span>
+                <div className="text-left">
+                  <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: theme.accent }}>
+                    {badgeEarned ? '🎉 Badge Earned!' : '✓ Badge Retained'}
+                  </p>
+                  <p className="text-sm font-black text-white">{masteryBadge.name}</p>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Footer credit */}
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.65 }} className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/25">
+              QA Quest · {zoneMeta.title} Mastery Trial
+            </motion.p>
+
           </div>
         </motion.div>
 
-        {/* ── Badge earned ── */}
-        {(badgeEarned || badgeAlreadyHad) && passed && masteryBadge && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className={`rounded-2xl border p-5 flex items-center gap-4 ${zoneMeta.bgColor} ${zoneMeta.borderColor}`}
-          >
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0 bg-white/80 dark:bg-slate-900/80 border ${zoneMeta.borderColor}`}>
-              {masteryBadge.icon}
-            </div>
-            <div>
-              <p className={`text-xs font-black uppercase tracking-widest ${zoneMeta.colorText}`}>
-                {badgeEarned ? '🎉 Badge Earned!' : '✓ Badge Retained'}
-              </p>
-              <p className="text-lg font-black text-slate-900 dark:text-white">{masteryBadge.name}</p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">{zoneMeta.title} Mastery Trial</p>
-            </div>
-          </motion.div>
-        )}
+        {/* ── Action buttons (outside card) ── */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="flex gap-3">
+          <button onClick={onBack} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <ArrowLeft size={15} /> Back to Zone
+          </button>
+          <button onClick={onRetake} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-black transition shadow-[0_0_18px_rgba(124,58,237,0.35)]">
+            <RotateCcw size={15} /> Retake Trial
+          </button>
+        </motion.div>
 
         {/* ── Per-question breakdown ── */}
         <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/50 overflow-hidden">
