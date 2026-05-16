@@ -33,6 +33,7 @@ export default function ZoneView() {
   const mainContentRef = React.useRef<HTMLDivElement>(null);
   const avatarRef = React.useRef<HTMLDivElement>(null);
   const sidebarScrollRef = React.useRef<HTMLDivElement>(null);
+  const justCompletedTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const toggleTier = (tierId: string) =>
     setCollapsedTiers((prev) => ({ ...prev, [tierId]: !prev[tierId] }));
@@ -89,6 +90,16 @@ export default function ZoneView() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     if (mainContentRef.current) mainContentRef.current.scrollTop = 0;
   }, [level]);
+
+  // Auto-dismiss the "Boss Defeated!" banner after 4.5s
+  React.useEffect(() => {
+    if (!justCompleted) return;
+    if (justCompletedTimer.current) clearTimeout(justCompletedTimer.current);
+    justCompletedTimer.current = setTimeout(() => setJustCompleted(false), 4500);
+    return () => {
+      if (justCompletedTimer.current) clearTimeout(justCompletedTimer.current);
+    };
+  }, [justCompleted]);
 
   // Expand the tier containing the active module, collapse others, then scroll it into view
   React.useEffect(() => {
@@ -717,13 +728,16 @@ export default function ZoneView() {
 
           {mode === 'library' ? (
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} key={`library-${level}`}>
+              <AnimatePresence>
               {justCompleted && (() => {
                 const currentIdx = availableLevels.indexOf(level);
                 const nextLevel = availableLevels[currentIdx + 1] ?? null;
                 return (
                   <motion.div
+                    key="boss-defeated-banner"
                     initial={{ opacity: 0, scale: 0.96, y: -12 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.97, y: -8, transition: { duration: 0.35, ease: 'easeIn' } }}
                     transition={{ type: 'spring', stiffness: 260, damping: 22 }}
                     className="mb-8 rounded-2xl overflow-hidden border border-emerald-500/30 shadow-[0_0_48px_rgba(16,185,129,0.15)]"
                   >
@@ -785,6 +799,7 @@ export default function ZoneView() {
                   </motion.div>
                 );
               })()}
+              </AnimatePresence>
               {currentContent ? (
                 <>
                   <div className={`prose max-w-none ${theme === 'dark' ? 'prose-invert' : 'prose-slate'} prose-indigo`}>
