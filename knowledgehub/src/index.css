@@ -172,6 +172,20 @@ button:not(:disabled) {
   white-space: nowrap;
 }
 
+/* Light-mode override for plain (no-language) code blocks.
+   These bypass SyntaxHighlighter and inherit Tailwind prose's dark
+   slate-800 default — jarring on a light page. Mimic oneLight bg
+   so plain ``` blocks blend with the highlighted ones. */
+:not(.dark) .prose pre {
+  background-color: #fafafa !important;
+  color: #383a42 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+:not(.dark) .prose pre code {
+  color: #383a42 !important;
+  background-color: transparent !important;
+}
+
 /* Prose body text in daybreak (light) mode */
 .prose p, .prose li, .prose ul, .prose ol {
   color: #334155; /* slate-700 — high-readability cool dark */

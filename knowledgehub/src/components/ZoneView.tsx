@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { atomDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { ArrowLeft, BookOpen, Swords, Sun, Moon, ChevronDown, CheckCircle2, Lock, LogOut, Menu, X, Trophy } from 'lucide-react';
 import { ZONES_CONTENT } from '../data/analogies';
 import { MASTERY_BADGES, QUESTION_BANK } from '../data/questionBank';
@@ -962,7 +962,7 @@ export default function ZoneView() {
                           return !inline && match ? (
                             <SyntaxHighlighter
                               children={String(children).replace(/\n$/, '')}
-                              style={atomDark}
+                              style={isDark ? atomDark : oneLight}
                               language={match[1]}
                               PreTag="div"
                               className="rounded-xl border border-slate-200 dark:border-slate-700"

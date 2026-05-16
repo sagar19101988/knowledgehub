@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, type ComponentType } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { atomDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, XCircle,
@@ -732,6 +732,7 @@ function ReportCard({
   const [displayPct, setDisplayPct] = useState(0);
   const masteryBadge = MASTERY_BADGES[zoneMeta.id];
   const masteryScores = useQuestStore(s => s.masteryScores);
+  const isDark = useQuestStore(s => s.theme) === 'dark';
   const attempts = masteryScores[zoneMeta.id]?.attempts ?? 1;
   const theme = ZONE_CARD_THEMES[zoneMeta.id] ?? ZONE_CARD_THEMES['manual'];
   const timeTakenSecs = TOTAL_TIME - timeTaken;
@@ -1007,7 +1008,16 @@ function ReportCard({
                           <p className="text-sm text-slate-700 dark:text-slate-300 font-medium">{q.question}</p>
                           {q.code && (
                             <div className="rounded-lg overflow-hidden text-xs">
-                              <SyntaxHighlighter language={q.codeLanguage ?? 'text'} style={atomDark} customStyle={{ margin: 0, fontSize: '11px', borderRadius: '8px' }}>
+                              <SyntaxHighlighter
+                                language={q.codeLanguage ?? 'text'}
+                                style={isDark ? atomDark : oneLight}
+                                customStyle={{
+                                  margin: 0,
+                                  fontSize: '11px',
+                                  borderRadius: '8px',
+                                  border: isDark ? 'none' : '1px solid #e2e8f0',
+                                }}
+                              >
                                 {q.code}
                               </SyntaxHighlighter>
                             </div>
@@ -1047,6 +1057,7 @@ export default function MasteryTrialPage() {
 
   const recordMasteryResult = useQuestStore(s => s.recordMasteryResult);
   const masteryBadges = useQuestStore(s => s.masteryBadges);
+  const isDark = useQuestStore(s => s.theme) === 'dark';
   const masteryScores = useQuestStore(s => s.masteryScores);
 
   // Initialise questions once (stable across re-renders)
@@ -1840,8 +1851,14 @@ export default function MasteryTrialPage() {
                   <div className="rounded-xl overflow-hidden mt-4 mb-2">
                     <SyntaxHighlighter
                       language={current.codeLanguage ?? 'text'}
-                      style={atomDark}
-                      customStyle={{ margin: 0, fontSize: '13px', borderRadius: '12px', padding: '16px' }}
+                      style={isDark ? atomDark : oneLight}
+                      customStyle={{
+                        margin: 0,
+                        fontSize: '13px',
+                        borderRadius: '12px',
+                        padding: '16px',
+                        border: isDark ? 'none' : '1px solid #e2e8f0',
+                      }}
                     >
                       {current.code}
                     </SyntaxHighlighter>
