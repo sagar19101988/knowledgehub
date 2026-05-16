@@ -781,12 +781,12 @@ function ReportCard({
     <div className="min-h-screen bg-[#eff4fb] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans">
 
       {/* ── Sticky action bar ── */}
-      <div className="sticky top-0 z-40 bg-[#eff4fb]/90 dark:bg-[#07050f]/90 backdrop-blur border-b border-violet-200/60 dark:border-violet-900/30">
+      <div className="sticky top-0 z-40 bg-[#eff4fb]/90 dark:bg-[#07050f]/90 backdrop-blur border-b border-slate-200 dark:border-violet-900/30">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
           <button
             onClick={onBack}
             aria-label="Back to Zone"
-            className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-fuchsia-500 dark:hover:text-fuchsia-400 hover:border-fuchsia-300 dark:hover:border-fuchsia-700 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 transition-all duration-200 group flex-shrink-0"
+            className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-fuchsia-400 hover:border-blue-300 dark:hover:border-fuchsia-700 hover:bg-blue-50 dark:hover:bg-fuchsia-900/20 transition-all duration-200 group flex-shrink-0"
           >
             <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
             <span className="text-xs font-semibold hidden sm:inline">Back to Zone</span>
@@ -806,7 +806,7 @@ function ReportCard({
           </div>
           <button
             onClick={onRetake}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-xs font-black transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-violet-600 dark:hover:bg-violet-700 text-white text-xs font-black transition"
           >
             <RotateCcw size={13} /> <span className="hidden sm:inline">Retake</span>
           </button>
@@ -936,7 +936,7 @@ function ReportCard({
           <button onClick={onBack} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
             <ArrowLeft size={15} /> Back to Zone
           </button>
-          <button onClick={onRetake} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-black transition shadow-[0_0_18px_rgba(124,58,237,0.35)]">
+          <button onClick={onRetake} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-violet-600 dark:hover:bg-violet-700 text-white text-sm font-black transition dark:shadow-[0_0_18px_rgba(124,58,237,0.35)]">
             <RotateCcw size={15} /> Retake Trial
           </button>
         </motion.div>
@@ -1555,9 +1555,9 @@ export default function MasteryTrialPage() {
                     <p className={`text-[10px] font-black uppercase tracking-widest ${unansweredCount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500'}`}>Unanswered</p>
                     <p className={`text-xl font-black tabular-nums ${unansweredCount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500'}`}>{unansweredCount}</p>
                   </div>
-                  <div className="rounded-lg bg-violet-500/10 px-2 py-2">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-violet-700 dark:text-violet-400">Time Left</p>
-                    <p className="text-xl font-black tabular-nums text-violet-700 dark:text-violet-400">{formatTime(timeLeft)}</p>
+                  <div className="rounded-lg bg-blue-50 dark:bg-violet-500/10 px-2 py-2">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-700 dark:text-violet-400">Time Left</p>
+                    <p className="text-xl font-black tabular-nums text-blue-700 dark:text-violet-400">{formatTime(timeLeft)}</p>
                   </div>
                 </div>
 
@@ -1612,7 +1612,7 @@ export default function MasteryTrialPage() {
                   {unansweredCount > 0 && (
                     <button
                       onClick={reviewUnanswered}
-                      className="flex-1 min-w-[130px] py-2.5 rounded-xl border border-violet-500 bg-violet-500/10 text-sm font-bold text-violet-700 dark:text-violet-300 hover:bg-violet-500/20 transition"
+                      className="flex-1 min-w-[130px] py-2.5 rounded-xl border border-blue-500 bg-blue-50 text-sm font-bold text-blue-700 hover:bg-blue-100 dark:border-violet-500 dark:bg-violet-500/10 dark:text-violet-300 dark:hover:bg-violet-500/20 transition"
                     >
                       Review unanswered
                     </button>
