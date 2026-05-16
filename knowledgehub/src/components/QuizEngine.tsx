@@ -40,10 +40,6 @@ function ensureStyles() {
       0%,100% { box-shadow: 0 0 8px rgba(239,68,68,0.4); }
       50% { box-shadow: 0 0 18px rgba(239,68,68,0.7); }
     }
-    @keyframes qe-shimmer {
-      0% { transform: translateX(-120%) skewX(-14deg); }
-      100% { transform: translateX(900%) skewX(-14deg); }
-    }
     @keyframes qe-xp-float {
       0%   { transform: translate(-50%, 0) scale(0.85);   opacity: 0; }
       12%  { transform: translate(-50%, -10vh) scale(1.1); opacity: 1; }
@@ -54,15 +50,6 @@ function ensureStyles() {
     .qe-anim-shake { animation: qe-shake 0.4s ease; }
     .qe-anim-correct { animation: qe-correct-pulse 0.4s ease; }
     .qe-hp-fill { animation: qe-hp-pulse 2s ease-in-out infinite; }
-    .qe-shimmer {
-      content: '';
-      position: absolute;
-      inset-block: 0;
-      width: 80px;
-      background: linear-gradient(105deg, transparent 0%, rgba(139,92,246,0.12) 50%, transparent 100%);
-      animation: qe-shimmer 4s ease-in-out infinite 1s;
-      pointer-events: none;
-    }
   `;
   document.head.appendChild(style);
 }
@@ -178,6 +165,7 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
     function onKey(e: KeyboardEvent) {
       const target = e.target as HTMLElement;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      if (justAdvanced.current) return;
       if (showResult) return;
       if (!question) return;
 
@@ -203,11 +191,15 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
 
   function advance() {
     justAdvanced.current = true;
-    setTimeout(() => { justAdvanced.current = false; }, 200);
+    setTimeout(() => { justAdvanced.current = false; }, 600);
     setCountdown(null);
     setCurrentIndex(i => i + 1);
     setSelectedOption(null);
     setShowResult(false);
+    if (typeof document !== 'undefined') {
+      const active = document.activeElement as HTMLElement | null;
+      if (active && typeof active.blur === 'function') active.blur();
+    }
     if (typeof window !== 'undefined') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -288,9 +280,6 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
           boxShadow: '0 0 0 1px rgba(124,58,237,0.15), 0 0 40px rgba(124,58,237,0.12), 0 20px 60px rgba(0,0,0,0.5)',
         }}
       >
-        {/* Shimmer sweep */}
-        <div className="qe-shimmer" aria-hidden="true" />
-
         {/* Header: Boss Fight label + Phase counter */}
         <div className="relative z-10 flex items-center justify-between mb-5">
           <div className="flex items-center gap-2.5">
@@ -413,11 +402,11 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
 
             return (
               <button
-                key={opt.id}
+                key={`${currentIndex}-${opt.id}`}
                 onClick={() => handleSelect(opt.id)}
                 disabled={showResult}
-                className={`relative w-full text-left rounded-2xl flex items-center gap-3.5 overflow-hidden ${stateClass} ${!showResult ? 'hover:translate-x-[3px]' : ''}`}
-                style={{ padding: '14px 18px', fontSize: 15, fontWeight: 600, ...inlineStyle }}
+                className={`relative w-full text-left rounded-2xl flex items-center gap-3.5 overflow-hidden outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${stateClass} ${!showResult ? 'hover:translate-x-[3px]' : ''}`}
+                style={{ padding: '14px 18px', fontSize: 15, fontWeight: 600, outline: 'none', ...inlineStyle }}
               >
                 <span
                   className="flex-shrink-0 flex items-center justify-center font-black text-xs rounded-lg"
