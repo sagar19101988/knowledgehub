@@ -105,6 +105,7 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
   const resultRef      = useRef<HTMLDivElement>(null);
   const advanceTimer   = useRef<ReturnType<typeof setTimeout>  | null>(null);
   const countdownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const justAdvanced   = useRef(false);
 
   const updateZoneProgress = useQuestStore((state) => state.updateZoneProgress);
   const addXp              = useQuestStore((state) => state.addXp);
@@ -201,6 +202,8 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
   }
 
   function advance() {
+    justAdvanced.current = true;
+    setTimeout(() => { justAdvanced.current = false; }, 200);
     setCountdown(null);
     setCurrentIndex(i => i + 1);
     setSelectedOption(null);
@@ -212,6 +215,7 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
 
   const handleSelect = (optionId: string) => {
     if (showResult) return;
+    if (justAdvanced.current) return;
     setSelectedOption(optionId);
   };
 

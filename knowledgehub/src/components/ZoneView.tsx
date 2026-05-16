@@ -232,7 +232,7 @@ export default function ZoneView() {
                       : `${zoneMeta.bgColor} ${zoneMeta.borderColor} ${zoneMeta.colorText} shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_14px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_0_14px_rgba(168,85,247,0.25)] hover:scale-[1.03]`
                     : earned
                       ? 'bg-indigo-50 border-indigo-300 text-indigo-800 shadow-sm hover:bg-indigo-100 hover:border-indigo-400'
-                      : 'bg-white border-slate-300 text-slate-700 shadow-sm hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700'}`}
+                      : 'bg-blue-600 border-blue-600 text-white shadow-sm hover:bg-blue-700 hover:border-blue-700'}`}
               >
                 <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-sm flex-shrink-0 border ${
                   isDark
@@ -241,11 +241,11 @@ export default function ZoneView() {
                       : `bg-white/80 dark:bg-slate-900/80 ${zoneMeta.borderColor}`
                     : earned
                       ? 'bg-white border-indigo-300'
-                      : 'bg-white border-slate-300'
+                      : 'bg-white/20 border-white/30'
                 }`}>
                   {earned && badge
                     ? <span className="leading-none">{badge.icon}</span>
-                    : <Trophy size={13} className={`${isDark ? zoneMeta.colorText : earned ? 'text-indigo-600' : 'text-slate-500'} group-hover:rotate-[8deg] transition-transform duration-200`} />}
+                    : <Trophy size={13} className={`${isDark ? zoneMeta.colorText : earned ? 'text-indigo-600' : 'text-white'} group-hover:rotate-[8deg] transition-transform duration-200`} />}
                 </span>
                 <span className={`hidden md:inline text-xs uppercase tracking-[0.08em] ${isDark ? 'font-black' : 'font-bold'}`}>
                   {earned ? badge?.name ?? 'Mastery Trial' : 'Mastery Trial'}
@@ -475,59 +475,83 @@ export default function ZoneView() {
                 }[tier.id] || {} as any;
 
                 return (
-                  <div key={tier.id} className={`rounded-2xl border border-l-4 overflow-hidden transition-all duration-200 ${
-                    tierLocked
-                      ? 'bg-slate-100 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 border-l-slate-300 dark:border-l-slate-700'
-                      : `${TC.headerBg} ${TC.headerBorder} ${TC.accentBorder} ${TC.shadow}`
+                  <div key={tier.id} className={`overflow-hidden transition-all duration-200 ${
+                    isDark
+                      ? `rounded-2xl border border-l-4 ${tierLocked ? 'bg-slate-900/40 border-slate-800 border-l-slate-700' : `${TC.headerBg} ${TC.headerBorder} ${TC.accentBorder}`}`
+                      : `rounded-xl border ${tierLocked ? 'border-slate-200 bg-slate-50/70 opacity-60' : 'border-slate-200 bg-white'}`
                   }`}>
 
                     {/* ── Tier Header ── */}
                     <button
                       onClick={() => toggleTier(tier.id)}
-                      className="w-full px-4 pt-3.5 pb-3 text-left group"
+                      className={`w-full text-left group ${isDark ? 'px-4 pt-3.5 pb-3' : 'px-4 pt-3 pb-2.5'}`}
                       title={tierLocked ? 'Complete the previous tier to unlock' : undefined}
                     >
-                      <div className="flex items-center gap-2.5 mb-2.5">
-                        {/* Icon */}
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 border ${
-                          tierLocked
-                            ? 'bg-slate-200 dark:bg-slate-800 border-slate-300 dark:border-slate-700 grayscale opacity-70'
-                            : `${TC.headerBg} ${TC.headerBorder}`
-                        }`}>
-                          {TC.emoji}
+                      {isDark ? (
+                        /* Dark mode: emoji icon + colored label (unchanged) */
+                        <div className="flex items-center gap-2.5 mb-2.5">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 border ${
+                            tierLocked
+                              ? 'bg-slate-800 border-slate-700 grayscale opacity-70'
+                              : `${TC.headerBg} ${TC.headerBorder}`
+                          }`}>
+                            {TC.emoji}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <span className={`text-base font-black ${tierLocked ? 'text-slate-400' : tier.color}`}>{tier.label}</span>
+                              {allTierDone ? (
+                                <span className="flex items-center gap-1 text-sm font-bold text-emerald-400">
+                                  <CheckCircle2 size={12} /> All done
+                                </span>
+                              ) : (
+                                <span className={`text-sm font-bold px-1.5 py-0.5 rounded-md ${
+                                  tierLocked ? 'bg-slate-800 text-slate-400' : TC.badge
+                                }`}>
+                                  {tier.moduleIds.length > 0 ? `${completedInTier}/${tier.moduleIds.length}` : '—'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <ChevronDown size={13} className={`text-slate-400 group-hover:text-slate-300 transition-transform duration-250 flex-shrink-0 ${isCollapsed ? '-rotate-90' : ''}`} />
                         </div>
-                        {/* Label + count */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-1">
-                            <span className={`text-base font-black ${tierLocked ? 'text-slate-500 dark:text-slate-400' : tier.color}`}>{tier.label}</span>
+                      ) : (
+                        /* Light mode: Pluralsight-flat — small uppercase label, plain count */
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className={`text-[10px] font-black uppercase tracking-[0.15em] ${tierLocked ? 'text-slate-400' : 'text-slate-500'}`}>
+                            {tier.label}
+                          </span>
+                          <div className="flex items-center gap-2">
                             {allTierDone ? (
-                              <span className="flex items-center gap-1 text-sm font-bold text-emerald-400">
-                                <CheckCircle2 size={12} /> All done
+                              <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600">
+                                <CheckCircle2 size={10} /> Done
                               </span>
                             ) : (
-                              <span className={`text-sm font-bold px-1.5 py-0.5 rounded-md ${
-                                tierLocked
-                                  ? 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-                                  : TC.badge
-                              }`}>
-                                {tier.moduleIds.length > 0 ? `${completedInTier}/${tier.moduleIds.length}` : '—'}
+                              <span className="text-[10px] font-medium text-slate-400 tabular-nums">
+                                {tier.moduleIds.length > 0 ? `${completedInTier} / ${tier.moduleIds.length}` : '—'}
                               </span>
                             )}
+                            <ChevronDown size={12} className={`text-slate-400 group-hover:text-slate-600 transition-transform duration-250 flex-shrink-0 ${isCollapsed ? '-rotate-90' : ''}`} />
                           </div>
                         </div>
-                        <ChevronDown
-                          size={13}
-                          className={`text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-transform duration-250 flex-shrink-0 ${isCollapsed ? '-rotate-90' : ''}`}
-                        />
-                      </div>
+                      )}
                       {/* Progress bar */}
                       {tier.moduleIds.length > 0 && (
-                        <div className="h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full ${allTierDone ? 'bg-emerald-500' : tierLocked ? 'bg-slate-300 dark:bg-slate-700' : TC.bar} rounded-full transition-all duration-700`}
-                            style={{ width: `${tierPct}%` }}
-                          />
-                        </div>
+                        isDark ? (
+                          <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${allTierDone ? 'bg-emerald-500' : tierLocked ? 'bg-slate-700' : TC.bar} rounded-full transition-all duration-700`}
+                              style={{ width: `${tierPct}%` }}
+                            />
+                          </div>
+                        ) : (
+                          <div className="h-0.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-700 ${allTierDone ? 'bg-emerald-500' : tierLocked ? 'bg-slate-200' : 'bg-blue-500'}`}
+                              style={{ width: `${tierPct}%` }}
+                            />
+                          </div>
+                        )
                       )}
                     </button>
 
