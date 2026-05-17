@@ -1093,7 +1093,8 @@ export default function MasteryTrialPage() {
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [phase]);
   const [timeTaken, setTimeTaken] = useState(0);
   const [blurWarning, setBlurWarning] = useState(false);
-  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);          // Exit Realm = full logout
+  const [showBackToZoneModal, setShowBackToZoneModal] = useState(false); // Back to Zone = navigate back, stay signed in
   const [introBackHovered, setIntroBackHovered] = useState(false);
   const [examBackHovered, setExamBackHovered] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
@@ -1541,7 +1542,33 @@ export default function MasteryTrialPage() {
   return (
     <div className="min-h-screen bg-[#eff4fb] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans flex flex-col">
 
-      {/* ── Leave confirmation modal ── */}
+      {/* ── Back to Zone confirmation modal (abandon trial, stay signed in) ── */}
+      <AnimatePresence>
+        {showBackToZoneModal && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }}
+              className="bg-white dark:bg-[#12102a] rounded-2xl border border-slate-200 dark:border-violet-900/50 p-6 max-w-sm w-full shadow-2xl"
+            >
+              <AlertTriangle size={28} className="text-amber-500 mb-3" />
+              <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">Leave the trial?</h3>
+              <p className="text-sm text-slate-500 mb-5">You'll go back to the zone. Your in-progress trial answers will be lost — the timer cannot be paused.</p>
+              <div className="flex gap-3">
+                <button onClick={() => setShowBackToZoneModal(false)} className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition">Stay</button>
+                <button
+                  onClick={() => navigate(-1)}
+                  className="flex-1 py-2.5 rounded-xl bg-rose-500 text-white text-sm font-bold hover:bg-rose-600 transition"
+                >Leave Trial</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Exit Realm confirmation modal (sign out of the app) ── */}
       <AnimatePresence>
         {showLeaveModal && (
           <motion.div
@@ -1733,8 +1760,8 @@ export default function MasteryTrialPage() {
       <header className="h-20 border-b border-violet-200/60 dark:border-violet-900/30 bg-white/85 dark:bg-[#0a0715]/80 backdrop-blur px-4 sm:px-6 flex items-center gap-3 sticky top-0 z-50">
         {/* Left: Exit (fuchsia-glow) + zone name */}
         <button
-          onClick={() => setShowLeaveModal(true)}
-          aria-label="Exit trial"
+          onClick={() => setShowBackToZoneModal(true)}
+          aria-label="Back to Zone"
           onMouseEnter={() => setExamBackHovered(true)}
           onMouseLeave={() => setExamBackHovered(false)}
           className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border transition-colors duration-150 group flex-shrink-0"
