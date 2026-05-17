@@ -40,16 +40,6 @@ const MAP_PATHS: [string, string][] = [
   ['playwright', 'ai-qa'],
 ];
 
-// ── Per-zone light-mode tints (used for earned Completion Badge tiles) ──
-const ZONE_LIGHT_TILE: Record<string, { bg: string; border: string; title: string; iconBg: string }> = {
-  manual:     { bg: 'bg-orange-50',  border: 'border-orange-200',  title: 'text-orange-800',  iconBg: 'bg-orange-100'  },
-  sql:        { bg: 'bg-blue-50',    border: 'border-blue-200',    title: 'text-blue-800',    iconBg: 'bg-blue-100'    },
-  api:        { bg: 'bg-violet-50',  border: 'border-violet-200',  title: 'text-violet-800',  iconBg: 'bg-violet-100'  },
-  typescript: { bg: 'bg-sky-50',     border: 'border-sky-200',     title: 'text-sky-800',     iconBg: 'bg-sky-100'     },
-  playwright: { bg: 'bg-emerald-50', border: 'border-emerald-200', title: 'text-emerald-800', iconBg: 'bg-emerald-100' },
-  'ai-qa':    { bg: 'bg-rose-50',    border: 'border-rose-200',    title: 'text-rose-800',    iconBg: 'bg-rose-100'    },
-};
-
 function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
   const completedLevels = useQuestStore(s => s.completedLevels);
   const masteryBadges = useQuestStore(s => s.masteryBadges);
