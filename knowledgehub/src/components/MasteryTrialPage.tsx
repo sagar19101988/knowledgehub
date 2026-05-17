@@ -783,8 +783,7 @@ function ReportCard({
     <div className="min-h-screen bg-[#eff4fb] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans">
 
       {/* ── Sticky action bar ── */}
-      <div className="sticky top-0 z-40 bg-[#eff4fb]/90 dark:bg-[#07050f]/90 backdrop-blur border-b border-slate-200 dark:border-violet-900/30">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
+      <div className="sticky top-0 z-40 bg-[#eff4fb]/90 dark:bg-[#07050f]/90 backdrop-blur border-b border-slate-200 dark:border-violet-900/30 h-14 px-3 sm:px-6 flex items-center justify-between">
           <button
             onClick={onBack}
             aria-label="Back to Zone"
@@ -793,26 +792,7 @@ function ReportCard({
             <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
             <span className="text-xs font-semibold hidden sm:inline">Back to Zone</span>
           </button>
-          <div className="flex-1 flex justify-center">
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 text-xs font-black tabular-nums
-              ${passed
-                ? 'border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
-                : 'border-rose-500/60 bg-rose-500/10 text-rose-600 dark:text-rose-400'}`}>
-              {passed ? <CheckCircle2 size={13} /> : <XCircle size={13} />}
-              <span>{score}/{questions.length}</span>
-              <span className="opacity-50">·</span>
-              <span>{pct}%</span>
-              <span className="opacity-50">·</span>
-              <span>{passed ? 'PASSED' : 'NOT PASSED'}</span>
-            </div>
-          </div>
-          <button
-            onClick={onRetake}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-violet-600 dark:hover:bg-violet-700 text-white text-xs font-black transition"
-          >
-            <RotateCcw size={13} /> <span className="hidden sm:inline">Retake</span>
-          </button>
-        </div>
+          <UserAvatarMenu />
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-8 space-y-5">
