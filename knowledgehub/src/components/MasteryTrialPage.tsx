@@ -5,7 +5,7 @@ import { atomDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/pri
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, XCircle,
-  AlertTriangle, Trophy, RotateCcw, ChevronDown, ChevronUp, Bookmark, CornerDownRight,
+  AlertTriangle, Trophy, RotateCcw, ChevronDown, ChevronUp, Bookmark, CornerDownRight, Home,
 } from 'lucide-react';
 import { ZONES } from '../data/zones';
 import { QUESTION_BANK, MASTERY_BADGES, type MasteryTrialQuestion } from '../data/questionBank';
@@ -727,6 +727,7 @@ function ReportCard({
   onRetake: () => void;
   onBack: () => void;
 }) {
+  const navigate = useNavigate();
   const pct = Math.round((score / questions.length) * 100);
   const passed = score >= Math.ceil(questions.length * PASS_THRESHOLD);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -734,6 +735,7 @@ function ReportCard({
   const [displayPct, setDisplayPct] = useState(0);
   const [backTopHovered, setBackTopHovered] = useState(false);
   const [backBottomHovered, setBackBottomHovered] = useState(false);
+  const [reportHomeHovered, setReportHomeHovered] = useState(false);
   const masteryBadge = MASTERY_BADGES[zoneMeta.id];
   const masteryScores = useQuestStore(s => s.masteryScores);
   const isDark = useQuestStore(s => s.theme) === 'dark';
@@ -783,10 +785,10 @@ function ReportCard({
   }, [passed, theme.confettiColors]);
 
   return (
-    <div className="min-h-screen relative bg-[#eff4fb] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans overflow-hidden">
+    <div className="min-h-screen relative bg-[#eff4fb] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans">
 
       {/* ── Decorative page background ── */}
-      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
         <div className="absolute inset-0" style={{
           backgroundImage: isDark
             ? 'radial-gradient(circle, rgba(255,255,255,0.055) 1px, transparent 1px)'
@@ -819,9 +821,27 @@ function ReportCard({
             }}
           >
             <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
-            <span className="text-xs font-semibold hidden sm:inline">Back to Zone</span>
+            <span className="text-sm font-semibold hidden sm:inline">Back to Zone</span>
           </button>
-          <UserAvatarMenu />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/')}
+              aria-label="Home"
+              onMouseEnter={() => setReportHomeHovered(true)}
+              onMouseLeave={() => setReportHomeHovered(false)}
+              className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border transition-colors duration-150 group flex-shrink-0"
+              style={{
+                background: reportHomeHovered ? (isDark ? 'rgba(217,70,239,0.08)' : 'rgba(239,246,255,1)') : (isDark ? 'rgba(15,23,42,1)' : 'rgba(255,255,255,1)'),
+                borderColor: reportHomeHovered ? (isDark ? 'rgba(217,70,239,0.55)' : 'rgba(147,197,253,1)') : (isDark ? 'rgba(51,65,85,1)' : 'rgba(203,213,225,1)'),
+                color: reportHomeHovered ? (isDark ? 'rgba(232,121,249,1)' : 'rgba(29,78,216,1)') : (isDark ? 'rgba(148,163,184,1)' : 'rgba(71,85,105,1)'),
+                boxShadow: reportHomeHovered ? (isDark ? '0 0 18px rgba(192,38,211,0.4)' : '0 0 14px rgba(37,99,235,0.2)') : 'none',
+              }}
+            >
+              <Home size={14} />
+              <span className="text-sm font-semibold hidden sm:inline">Home</span>
+            </button>
+            <UserAvatarMenu />
+          </div>
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-5">
@@ -1095,8 +1115,11 @@ export default function MasteryTrialPage() {
   const [blurWarning, setBlurWarning] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);          // Exit Realm = full logout
   const [showBackToZoneModal, setShowBackToZoneModal] = useState(false); // Back to Zone = navigate back, stay signed in
+  const [showGoHomeFromExamModal, setShowGoHomeFromExamModal] = useState(false);
   const [introBackHovered, setIntroBackHovered] = useState(false);
   const [examBackHovered, setExamBackHovered] = useState(false);
+  const [introHomeHovered, setIntroHomeHovered] = useState(false);
+  const [examHomeHovered, setExamHomeHovered] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [flagged, setFlagged] = useState<Set<string>>(new Set());
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -1274,10 +1297,10 @@ export default function MasteryTrialPage() {
     const introTheme = ZONE_CARD_THEMES[zoneId] ?? ZONE_CARD_THEMES['manual'];
 
     return (
-      <div className="min-h-screen relative bg-[#eff4fb] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans overflow-hidden">
+      <div className="min-h-screen relative bg-[#eff4fb] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans">
 
         {/* ── Decorative page background ── */}
-        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
           <div className="absolute inset-0" style={{
             backgroundImage: isDark
               ? 'radial-gradient(circle, rgba(255,255,255,0.055) 1px, transparent 1px)'
@@ -1343,7 +1366,25 @@ export default function MasteryTrialPage() {
             <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
             <span className="text-sm font-semibold hidden sm:inline">Back to Zone</span>
           </button>
-          <UserAvatarMenu />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/')}
+              aria-label="Home"
+              onMouseEnter={() => setIntroHomeHovered(true)}
+              onMouseLeave={() => setIntroHomeHovered(false)}
+              className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border transition-colors duration-150 group flex-shrink-0"
+              style={{
+                background: introHomeHovered ? (isDark ? 'rgba(217,70,239,0.08)' : 'rgba(239,246,255,1)') : (isDark ? 'rgba(15,23,42,1)' : 'rgba(255,255,255,1)'),
+                borderColor: introHomeHovered ? (isDark ? 'rgba(217,70,239,0.55)' : 'rgba(147,197,253,1)') : (isDark ? 'rgba(51,65,85,1)' : 'rgba(203,213,225,1)'),
+                color: introHomeHovered ? (isDark ? 'rgba(232,121,249,1)' : 'rgba(29,78,216,1)') : (isDark ? 'rgba(148,163,184,1)' : 'rgba(71,85,105,1)'),
+                boxShadow: introHomeHovered ? (isDark ? '0 0 18px rgba(192,38,211,0.4)' : '0 0 14px rgba(37,99,235,0.2)') : 'none',
+              }}
+            >
+              <Home size={15} />
+              <span className="text-sm font-semibold hidden sm:inline">Home</span>
+            </button>
+            <UserAvatarMenu />
+          </div>
         </nav>
 
         <div className="max-w-4xl mx-auto px-4 py-10 space-y-6 relative z-10">
@@ -1562,6 +1603,32 @@ export default function MasteryTrialPage() {
                   onClick={() => navigate(-1)}
                   className="flex-1 py-2.5 rounded-xl bg-rose-500 text-white text-sm font-bold hover:bg-rose-600 transition"
                 >Leave Trial</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Go Home confirmation modal (abandon trial, navigate to home) ── */}
+      <AnimatePresence>
+        {showGoHomeFromExamModal && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }}
+              className="bg-white dark:bg-[#12102a] rounded-2xl border border-slate-200 dark:border-violet-900/50 p-6 max-w-sm w-full shadow-2xl"
+            >
+              <AlertTriangle size={28} className="text-amber-500 mb-3" />
+              <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">Leave the trial?</h3>
+              <p className="text-sm text-slate-500 mb-5">You'll go to the home page. Your in-progress trial answers will be lost — the timer cannot be paused.</p>
+              <div className="flex gap-3">
+                <button onClick={() => setShowGoHomeFromExamModal(false)} className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition">Stay</button>
+                <button
+                  onClick={() => navigate('/')}
+                  className="flex-1 py-2.5 rounded-xl bg-rose-500 text-white text-sm font-bold hover:bg-rose-600 transition"
+                >Go Home</button>
               </div>
             </motion.div>
           </motion.div>
@@ -1805,6 +1872,22 @@ export default function MasteryTrialPage() {
           </button>
         </div>
 
+        <button
+          onClick={() => setShowGoHomeFromExamModal(true)}
+          aria-label="Home"
+          onMouseEnter={() => setExamHomeHovered(true)}
+          onMouseLeave={() => setExamHomeHovered(false)}
+          className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border transition-colors duration-150 group flex-shrink-0"
+          style={{
+            background: examHomeHovered ? (isDark ? 'rgba(217,70,239,0.08)' : 'rgba(239,246,255,1)') : (isDark ? 'rgba(15,23,42,1)' : 'rgba(255,255,255,1)'),
+            borderColor: examHomeHovered ? (isDark ? 'rgba(217,70,239,0.55)' : 'rgba(147,197,253,1)') : (isDark ? 'rgba(51,65,85,1)' : 'rgba(203,213,225,1)'),
+            color: examHomeHovered ? (isDark ? 'rgba(232,121,249,1)' : 'rgba(29,78,216,1)') : (isDark ? 'rgba(148,163,184,1)' : 'rgba(71,85,105,1)'),
+            boxShadow: examHomeHovered ? (isDark ? '0 0 18px rgba(192,38,211,0.4)' : '0 0 14px rgba(37,99,235,0.2)') : 'none',
+          }}
+        >
+          <Home size={14} />
+          <span className="text-sm font-semibold hidden sm:inline">Home</span>
+        </button>
         <UserAvatarMenu onExit={() => setShowLeaveModal(true)} />
       </header>
 
