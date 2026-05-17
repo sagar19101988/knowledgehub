@@ -377,25 +377,6 @@ function HubMap() {
           isDark ? 'border-r border-violet-900/25 bg-[#0a0715]/60' : 'border-r border-slate-200 bg-white'
         }`}>
 
-          {/* Player card — slimmed to identity only (rank info lives in chip below) */}
-          <div className={`rounded-2xl p-4 ${
-            isDark ? 'bg-slate-900/60 border border-violet-900/40 shadow-lg' : 'bg-white border border-slate-200 shadow-sm'
-          }`}>
-            <div className="flex items-center gap-3">
-              <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white text-lg flex-shrink-0 ${
-                isDark
-                  ? 'bg-gradient-to-br from-fuchsia-500 to-violet-500 font-black shadow-[0_0_16px_rgba(192,38,211,0.4)]'
-                  : 'bg-slate-700 font-semibold'
-              }`}>
-                {playerName?.[0]?.toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={`font-bold text-sm truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{playerName}</p>
-                <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{isGuest ? 'Guest Mode' : 'Explorer'}</p>
-              </div>
-            </div>
-          </div>
-
           {/* Rank chip — desktop sidebar version (prominent identity card, click → ladder modal) */}
           <button
             onClick={() => setLadderOpen(true)}
