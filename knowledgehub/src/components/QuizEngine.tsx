@@ -89,6 +89,7 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
   const [wasFirstCompletion, setWasFirstCompletion] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
 
+  const rootRef        = useRef<HTMLDivElement>(null);
   const resultRef      = useRef<HTMLDivElement>(null);
   const advanceTimer   = useRef<ReturnType<typeof setTimeout>  | null>(null);
   const countdownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -202,7 +203,12 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
       const active = document.activeElement as HTMLElement | null;
       if (active && typeof active.blur === 'function') active.blur();
     }
-    if (typeof window !== 'undefined') {
+    // Reset scroll on the nearest scrollable ancestor (main element in ZoneView),
+    // falling back to window if QuizEngine is used in a window-scroll context.
+    const scrollableParent = rootRef.current?.closest('main') as HTMLElement | null;
+    if (scrollableParent) {
+      scrollableParent.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (typeof window !== 'undefined') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
@@ -269,6 +275,7 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
 
   return (
     <motion.div
+      ref={rootRef}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="max-w-2xl mx-auto"

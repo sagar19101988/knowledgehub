@@ -59,14 +59,24 @@ export default function ZoneView() {
     }
   }, [level, id, completedLevels]);
 
+  // Lock the body so only the inner panels scroll (Approach A — isolated panels)
   React.useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  // On mount (entering a zone from anywhere), reset main and sidebar to top
+  React.useEffect(() => {
+    if (mainContentRef.current) mainContentRef.current.scrollTop = 0;
+    if (sidebarScrollRef.current) sidebarScrollRef.current.scrollTop = 0;
+  }, []);
+
+  React.useEffect(() => {
     if (mainContentRef.current) mainContentRef.current.scrollTop = 0;
   }, [level]);
 
   // Reset scroll when switching between Library (learn) and Arena (Boss Fight)
   React.useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
     if (mainContentRef.current) mainContentRef.current.scrollTop = 0;
   }, [mode]);
 
@@ -117,7 +127,7 @@ export default function ZoneView() {
   };
 
   return (
-    <div className={`min-h-screen font-sans flex flex-col ${isDark ? 'bg-[#07050f] text-slate-200' : 'bg-[#eff4fb] text-slate-900'}`}>
+    <div className={`h-screen overflow-hidden font-sans flex flex-col ${isDark ? 'bg-[#07050f] text-slate-200' : 'bg-[#eff4fb] text-slate-900'}`}>
       {/* Top Navbar — HUD Layout: Left | Center | Right */}
       <nav className={`h-16 px-3 sm:px-6 flex items-center sticky top-0 z-[80] gap-2 ${
         isDark ? 'border-b border-violet-900/30 bg-[#07050f]' : 'border-b border-slate-200 bg-[#eff4fb]'
@@ -239,7 +249,7 @@ export default function ZoneView() {
         </div>
       </nav>
 
-      <div className="flex-1 w-full flex gap-3 sm:gap-6 px-3 sm:pl-6 sm:pr-8 py-4 sm:py-6 relative">
+      <div className="flex-1 min-h-0 w-full flex gap-3 sm:gap-6 px-3 sm:pl-6 sm:pr-8 py-4 sm:py-6 relative overflow-hidden">
 
         {/* Mobile drawer backdrop */}
         {drawerOpen && (
@@ -254,7 +264,7 @@ export default function ZoneView() {
         <aside
           className={`
             relative flex-shrink-0 transition-transform duration-300 ease-out
-            lg:static lg:w-72 lg:translate-x-0 lg:bg-transparent lg:shadow-none lg:border-0
+            lg:static lg:w-72 lg:translate-x-0 lg:bg-transparent lg:shadow-none lg:border-0 lg:h-full lg:min-h-0
             fixed top-0 left-0 z-[70] h-screen w-[85%] max-w-sm shadow-2xl
             ${isDark ? 'bg-[#0a0715] border-r border-violet-900/40' : 'bg-[#eff4fb] border-r border-slate-200'}
             ${drawerOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -275,7 +285,7 @@ export default function ZoneView() {
               <X size={18} />
             </button>
           </div>
-          <div ref={sidebarScrollRef} className="lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] h-[calc(100vh-3.25rem)] lg:h-auto overflow-y-auto pr-1 px-3 lg:px-0 py-3 lg:py-0 sidebar-scroll space-y-3">
+          <div ref={sidebarScrollRef} className="h-[calc(100vh-3.25rem)] lg:h-full overflow-y-auto pr-1 px-3 lg:px-0 py-3 lg:py-0 sidebar-scroll space-y-3">
 
             {/* Header */}
             <div className="flex items-center justify-between px-1 mb-1">
@@ -632,7 +642,7 @@ export default function ZoneView() {
         </aside>
 
         {/* Main Content Area */}
-        <main ref={mainContentRef} className={`flex-1 min-w-0 rounded-2xl p-4 sm:p-6 lg:p-8 relative overflow-hidden ${
+        <main ref={mainContentRef} className={`flex-1 min-h-0 min-w-0 rounded-2xl p-4 sm:p-6 lg:p-8 relative overflow-y-auto sidebar-scroll ${
           isDark
             ? 'bg-slate-900/50 border border-violet-900/25 shadow-2xl'
             : 'bg-white border border-slate-200 shadow-sm'
@@ -904,7 +914,6 @@ export default function ZoneView() {
                 // Capture completed module title before navigating away
                 const rawTitle = contentData?.levels.find(l => l.id === level)?.title || '';
                 setCompletedModuleTitle(rawTitle.split(':').slice(1).join(':').trim() || rawTitle);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
                 if (mainContentRef.current) mainContentRef.current.scrollTop = 0;
                 // Auto-navigate to the next module and expand its tier if needed
                 const currentIdx = availableLevels.indexOf(level);
