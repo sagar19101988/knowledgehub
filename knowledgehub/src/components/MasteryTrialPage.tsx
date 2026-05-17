@@ -10,6 +10,7 @@ import {
 import { ZONES } from '../data/zones';
 import { QUESTION_BANK, MASTERY_BADGES, type MasteryTrialQuestion } from '../data/questionBank';
 import { useQuestStore } from '../store/useQuestStore';
+import { UserAvatarMenu } from './UserAvatarMenu';
 import confetti from 'canvas-confetti';
 
 const TOTAL_QUESTIONS = 30;
@@ -1278,7 +1279,7 @@ export default function MasteryTrialPage() {
         </AnimatePresence>
 
         {/* ── Sticky top nav — back button matches ZoneView Library ── */}
-        <nav className="h-16 sticky top-0 z-40 bg-[#eff4fb]/85 dark:bg-[#0a0715]/80 backdrop-blur border-b border-violet-200/60 dark:border-violet-900/30 px-3 sm:px-6 flex items-center">
+        <nav className="h-16 sticky top-0 z-40 bg-[#eff4fb]/85 dark:bg-[#0a0715]/80 backdrop-blur border-b border-violet-200/60 dark:border-violet-900/30 px-3 sm:px-6 flex items-center justify-between">
           <button
             onClick={() => navigate(-1)}
             aria-label="Back to Zone"
@@ -1287,6 +1288,7 @@ export default function MasteryTrialPage() {
             <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
             <span className="text-sm font-semibold hidden sm:inline">Back to Zone</span>
           </button>
+          <UserAvatarMenu />
         </nav>
 
         <div className="max-w-3xl mx-auto px-4 py-10 space-y-6 relative z-10">
