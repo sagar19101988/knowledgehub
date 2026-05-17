@@ -813,7 +813,7 @@ function ReportCard({
           <UserAvatarMenu />
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-8 space-y-5">
+      <div className="max-w-3xl mx-auto px-4 py-8 space-y-5">
 
         {/* ── Hero screenshot card ── */}
         <motion.div
@@ -1309,7 +1309,7 @@ export default function MasteryTrialPage() {
           <UserAvatarMenu />
         </nav>
 
-        <div className="max-w-3xl mx-auto px-4 py-10 space-y-6 relative z-10">
+        <div className="max-w-4xl mx-auto px-4 py-10 space-y-6 relative z-10">
 
           {/* ── A: Cinematic hero ── */}
           <motion.div
