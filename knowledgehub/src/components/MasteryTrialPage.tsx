@@ -63,7 +63,7 @@ function CircularTimer({ timeLeft }: { timeLeft: number }) {
       : 'text-blue-600 dark:text-violet-400';
   return (
     <div
-      className={`fixed top-24 right-4 lg:top-24 lg:right-8 z-[80] rounded-full
+      className={`fixed bottom-6 right-6 z-[80] rounded-full
         bg-white/92 dark:bg-[#0f0c20]/92 backdrop-blur-sm
         ${isRed ? 'animate-pulse' : ''}`}
       style={{
@@ -1678,7 +1678,7 @@ export default function MasteryTrialPage() {
           className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-fuchsia-500 dark:hover:text-fuchsia-400 hover:border-fuchsia-300 dark:hover:border-fuchsia-700 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 transition-all duration-200 group flex-shrink-0"
         >
           <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
-          <span className="text-sm font-semibold hidden sm:inline">Exit</span>
+          <span className="text-sm font-semibold hidden sm:inline">Back to Zone</span>
         </button>
         <div className="flex items-center gap-2.5 flex-shrink-0">
           <span className="[&>svg]:w-5 [&>svg]:h-5">{zoneMeta.icon}</span>
@@ -1715,6 +1715,7 @@ export default function MasteryTrialPage() {
           </button>
         </div>
 
+        <UserAvatarMenu onExit={() => setShowLeaveModal(true)} />
       </header>
 
       {/* ── Body: sidebar (question map) + main (question) ── */}
