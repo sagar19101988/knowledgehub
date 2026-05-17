@@ -25,6 +25,7 @@ interface UserAvatarMenuProps {
 export function UserAvatarMenu({ onExit, exitLabel = 'Exit Realm' }: UserAvatarMenuProps) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [hoveredItem, setHoveredItem] = useState<'theme' | 'exit' | null>(null);
   const rootRef = React.useRef<HTMLDivElement>(null);
 
   const theme = useQuestStore((state) => state.theme);
@@ -139,11 +140,17 @@ export function UserAvatarMenu({ onExit, exitLabel = 'Exit Realm' }: UserAvatarM
             {/* Theme toggle */}
             <button
               onClick={() => { toggleTheme(); setOpen(false); }}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 group/item ${
-                isDark
-                  ? 'text-slate-300 hover:bg-slate-700 hover:text-white'
-                  : 'text-slate-700 hover:bg-blue-50 hover:text-blue-700'
-              }`}
+              onMouseEnter={() => setHoveredItem('theme')}
+              onMouseLeave={() => setHoveredItem(null)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150"
+              style={{
+                backgroundColor: hoveredItem === 'theme'
+                  ? (isDark ? '#7c3aed' : '#dbeafe')
+                  : 'transparent',
+                color: hoveredItem === 'theme'
+                  ? (isDark ? '#ffffff' : '#1e40af')
+                  : (isDark ? '#cbd5e1' : '#334155'),
+              }}
             >
               <span className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
                 isDark ? 'bg-slate-800 group-hover/item:bg-violet-900/40' : 'bg-slate-100 group-hover/item:bg-blue-100'
@@ -160,11 +167,17 @@ export function UserAvatarMenu({ onExit, exitLabel = 'Exit Realm' }: UserAvatarM
             {/* Exit Realm (or override) */}
             <button
               onClick={handleExit}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 group/item ${
-                isDark
-                  ? 'text-rose-400 hover:bg-rose-950 hover:text-rose-200'
-                  : 'text-rose-600 hover:bg-rose-50 hover:text-rose-700'
-              }`}
+              onMouseEnter={() => setHoveredItem('exit')}
+              onMouseLeave={() => setHoveredItem(null)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150"
+              style={{
+                backgroundColor: hoveredItem === 'exit'
+                  ? (isDark ? '#e11d48' : '#fecdd3')
+                  : 'transparent',
+                color: hoveredItem === 'exit'
+                  ? (isDark ? '#ffffff' : '#9f1239')
+                  : (isDark ? '#fb7185' : '#e11d48'),
+              }}
             >
               <span className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
                 isDark ? 'bg-rose-500/10 group-hover/item:bg-rose-500/20' : 'bg-rose-50 group-hover/item:bg-rose-100'
