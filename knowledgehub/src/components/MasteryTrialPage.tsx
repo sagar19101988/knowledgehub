@@ -1488,7 +1488,7 @@ export default function MasteryTrialPage() {
           >
             <button
               onClick={handleBegin}
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-[0_0_22px_rgba(5,150,105,0.35)] transition"
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white font-black text-sm shadow-[0_0_22px_rgba(37,99,235,0.35)] dark:shadow-[0_0_22px_rgba(5,150,105,0.35)] transition"
             >
               <Trophy size={16} /> Begin Trial <ArrowRight size={15} />
             </button>
