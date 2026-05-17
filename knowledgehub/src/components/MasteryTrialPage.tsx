@@ -780,7 +780,25 @@ function ReportCard({
   }, [passed, theme.confettiColors]);
 
   return (
-    <div className="min-h-screen bg-[#eff4fb] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans">
+    <div className="min-h-screen relative bg-[#eff4fb] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans overflow-hidden">
+
+      {/* ── Decorative page background ── */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+        <div className="absolute inset-0" style={{
+          backgroundImage: isDark
+            ? 'radial-gradient(circle, rgba(255,255,255,0.055) 1px, transparent 1px)'
+            : 'radial-gradient(circle, rgba(0,0,0,0.12) 1px, transparent 1px)',
+          backgroundSize: '28px 28px',
+        }} />
+        <div className="absolute -top-48 -left-48 w-[600px] h-[600px] rounded-full blur-[120px]"
+          style={{ background: theme.accent, opacity: isDark ? 0.13 : 0.18 }} />
+        <div className="absolute -bottom-48 -right-48 w-[520px] h-[520px] rounded-full blur-[100px]"
+          style={{ background: theme.accent, opacity: isDark ? 0.10 : 0.14 }} />
+        <div className="absolute -top-28 -right-28 w-[480px] h-[480px] rounded-full"
+          style={{ border: `1.5px solid ${theme.accent}`, opacity: isDark ? 0.09 : 0.18 }} />
+        <div className="absolute -bottom-40 -left-40 w-[380px] h-[380px] rounded-full"
+          style={{ border: `1.5px solid ${theme.accent}`, opacity: isDark ? 0.07 : 0.14 }} />
+      </div>
 
       {/* ── Sticky action bar ── */}
       <div className="sticky top-0 z-40 bg-[#eff4fb]/90 dark:bg-[#07050f]/90 backdrop-blur border-b border-slate-200 dark:border-violet-900/30 h-14 px-3 sm:px-6 flex items-center justify-between">
@@ -1224,8 +1242,28 @@ export default function MasteryTrialPage() {
       { icon: '🏆', title: 'Badge on first pass',  body: `Pass once to earn the ${badge?.name ?? 'Mastery'} badge — kept forever, even if later attempts don't pass.`,                    accent: '#6366f1' },
     ];
 
+    const introTheme = ZONE_CARD_THEMES[zoneId] ?? ZONE_CARD_THEMES['manual'];
+
     return (
       <div className="min-h-screen relative bg-[#eff4fb] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans overflow-hidden">
+
+        {/* ── Decorative page background ── */}
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+          <div className="absolute inset-0" style={{
+            backgroundImage: isDark
+              ? 'radial-gradient(circle, rgba(255,255,255,0.055) 1px, transparent 1px)'
+              : 'radial-gradient(circle, rgba(0,0,0,0.12) 1px, transparent 1px)',
+            backgroundSize: '28px 28px',
+          }} />
+          <div className="absolute -top-48 -left-48 w-[600px] h-[600px] rounded-full blur-[120px]"
+            style={{ background: introTheme.accent, opacity: isDark ? 0.13 : 0.18 }} />
+          <div className="absolute -bottom-48 -right-48 w-[520px] h-[520px] rounded-full blur-[100px]"
+            style={{ background: introTheme.accent, opacity: isDark ? 0.10 : 0.14 }} />
+          <div className="absolute -top-28 -right-28 w-[480px] h-[480px] rounded-full"
+            style={{ border: `1.5px solid ${introTheme.accent}`, opacity: isDark ? 0.09 : 0.18 }} />
+          <div className="absolute -bottom-40 -left-40 w-[380px] h-[380px] rounded-full"
+            style={{ border: `1.5px solid ${introTheme.accent}`, opacity: isDark ? 0.07 : 0.14 }} />
+        </div>
 
         {/* ── 3-2-1 countdown overlay (fires on Begin Trial) ── */}
         <AnimatePresence>
