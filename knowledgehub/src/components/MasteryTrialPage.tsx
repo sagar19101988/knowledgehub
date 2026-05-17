@@ -1738,15 +1738,10 @@ export default function MasteryTrialPage() {
           <span className="text-sm font-semibold hidden sm:inline">Back to Zone</span>
         </button>
         <div className="flex items-center gap-2.5 flex-shrink-0">
-          <span className="[&>svg]:w-5 [&>svg]:h-5">{zoneMeta.icon}</span>
-          <div className="hidden sm:flex flex-col leading-tight">
-            <span className={`text-[10px] font-black uppercase tracking-[0.18em] ${zoneMeta.colorText}`}>
-              Mastery Trial
-            </span>
-            <span className="text-sm font-black text-slate-900 dark:text-white -mt-0.5">
-              {zoneMeta.title}
-            </span>
-          </div>
+          <span className="[&>svg]:w-6 [&>svg]:h-6">{zoneMeta.icon}</span>
+          <span className="hidden sm:inline text-base font-black text-slate-900 dark:text-white">
+            {zoneMeta.title}
+          </span>
         </div>
 
         {/* Center: Prev / Q counter / Next */}
