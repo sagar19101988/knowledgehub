@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useQuestStore } from '../store/useQuestStore';
@@ -23,7 +23,6 @@ export default function BadgesPage() {
   const masteryScores  = useQuestStore(s => s.masteryScores);
   const isDark = theme === 'dark';
 
-  useEffect(() => { window.scrollTo(0, 0); }, []);
   const [backHovered, setBackHovered] = useState(false);
 
   const completionCount = ZONES.filter(z => unlockedBadges.includes(z.badge)).length;
@@ -33,10 +32,10 @@ export default function BadgesPage() {
   const accentLight = 'rgba(99,102,241,1)';    // indigo-500 — matches mastery badge tiles
 
   return (
-    <div className="min-h-screen relative bg-[#eff4fb] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans overflow-hidden flex flex-col">
+    <div className="min-h-screen relative bg-[#eff4fb] dark:bg-[#07050f] text-slate-800 dark:text-slate-200 font-sans flex flex-col">
 
       {/* ── Decorative background ── */}
-      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
         <div className="absolute inset-0" style={{
           backgroundImage: isDark
             ? 'radial-gradient(circle, rgba(255,255,255,0.055) 1px, transparent 1px)'
@@ -54,7 +53,7 @@ export default function BadgesPage() {
       </div>
 
       {/* Nav — matches Mastery Trial intro pattern */}
-      <nav className="relative z-40 h-16 sticky top-0 bg-[#eff4fb]/85 dark:bg-[#0a0715]/80 backdrop-blur border-b border-violet-200/60 dark:border-violet-900/30 px-3 sm:px-6 flex items-center justify-between">
+      <nav className="z-40 h-16 sticky top-0 bg-[#eff4fb]/85 dark:bg-[#0a0715]/80 backdrop-blur border-b border-violet-200/60 dark:border-violet-900/30 px-3 sm:px-6 flex items-center justify-between">
         <button
           onClick={() => navigate('/')}
           aria-label="Back to Home"

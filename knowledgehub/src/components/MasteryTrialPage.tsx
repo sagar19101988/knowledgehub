@@ -1090,6 +1090,7 @@ export default function MasteryTrialPage() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [timeLeft, setTimeLeft] = useState(TOTAL_TIME);
   const [phase, setPhase] = useState<'intro' | 'exam' | 'report'>('intro');
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [phase]);
   const [timeTaken, setTimeTaken] = useState(0);
   const [blurWarning, setBlurWarning] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);

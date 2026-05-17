@@ -64,6 +64,12 @@ export default function ZoneView() {
     if (mainContentRef.current) mainContentRef.current.scrollTop = 0;
   }, [level]);
 
+  // Reset scroll when switching between Library (learn) and Arena (Boss Fight)
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (mainContentRef.current) mainContentRef.current.scrollTop = 0;
+  }, [mode]);
+
   // Auto-dismiss the "Boss Defeated!" banner after 4.5s
   React.useEffect(() => {
     if (!justCompleted) return;

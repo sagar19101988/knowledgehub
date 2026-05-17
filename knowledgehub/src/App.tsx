@@ -1,5 +1,5 @@
-import React, { useState, useLayoutEffect, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import React, { useState, useLayoutEffect, useEffect, Suspense } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { BookOpen, Loader2, Map, LayoutGrid, Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BadgeToast } from './components/BadgeToast';
@@ -772,6 +772,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 // ── Full-screen spinner shown while Firebase checks auth session ─
 // ─── Auto-sync progress to Firestore whenever it changes ─────
+// Resets window scroll to the top whenever the route pathname changes.
+// Renders nothing. Mount once inside <Router>.
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+}
+
 // Renders nothing. Subscribes to the quest store and debounce-writes
 // to Firestore so progress survives logout/re-login.
 function SyncToCloud() {
@@ -823,6 +831,15 @@ export default function App() {
     document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [theme]);
 
+  // Disable browser scroll restoration so our <ScrollToTop> always wins.
+  // Without this, back/forward navigation restores the previous scroll
+  // position after our effect runs, overriding the scroll-to-top.
+  useLayoutEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+  }, []);
+
   const badgesMap = ZONES.reduce((acc, zone) => {
     acc[zone.id] = zone.badge;
     return acc;
@@ -830,6 +847,7 @@ export default function App() {
 
   return (
     <Router>
+      <ScrollToTop />
       <SyncToCloud />
       <BadgeToast badgesMap={badgesMap} />
       <RankUpWatcher />
