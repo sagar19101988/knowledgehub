@@ -10,6 +10,7 @@ import {
 import { ZONES } from '../data/zones';
 import { QUESTION_BANK, MASTERY_BADGES, type MasteryTrialQuestion } from '../data/questionBank';
 import { useQuestStore } from '../store/useQuestStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { UserAvatarMenu } from './UserAvatarMenu';
 import confetti from 'canvas-confetti';
 
@@ -1077,6 +1078,9 @@ export default function MasteryTrialPage() {
 
   const recordMasteryResult = useQuestStore(s => s.recordMasteryResult);
   const masteryBadges = useQuestStore(s => s.masteryBadges);
+  const isGuest = useQuestStore(s => s.isGuest);
+  const resetProgress = useQuestStore(s => s.resetProgress);
+  const logout = useAuthStore(s => s.logout);
   const isDark = useQuestStore(s => s.theme) === 'dark';
   const masteryScores = useQuestStore(s => s.masteryScores);
 
@@ -1548,11 +1552,17 @@ export default function MasteryTrialPage() {
               className="bg-white dark:bg-[#12102a] rounded-2xl border border-slate-200 dark:border-violet-900/50 p-6 max-w-sm w-full shadow-2xl"
             >
               <AlertTriangle size={28} className="text-amber-500 mb-3" />
-              <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">Leave the trial?</h3>
-              <p className="text-sm text-slate-500 mb-5">Your progress and answers will be lost. The timer cannot be paused.</p>
+              <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">Exit the realm?</h3>
+              <p className="text-sm text-slate-500 mb-5">You'll be signed out of QA Quest. Your in-progress trial answers will be lost — completed trials and zone progress are saved.</p>
               <div className="flex gap-3">
                 <button onClick={() => setShowLeaveModal(false)} className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition">Stay</button>
-                <button onClick={() => navigate(-1)} className="flex-1 py-2.5 rounded-xl bg-rose-500 text-white text-sm font-bold hover:bg-rose-600 transition">Leave</button>
+                <button
+                  onClick={() => {
+                    if (isGuest) { resetProgress(); } else { logout(); }
+                    navigate('/login', { replace: true });
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-rose-500 text-white text-sm font-bold hover:bg-rose-600 transition"
+                >Exit Realm</button>
               </div>
             </motion.div>
           </motion.div>
