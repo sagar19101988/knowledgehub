@@ -731,6 +731,8 @@ function ReportCard({
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [displayPct, setDisplayPct] = useState(0);
+  const [backTopHovered, setBackTopHovered] = useState(false);
+  const [backBottomHovered, setBackBottomHovered] = useState(false);
   const masteryBadge = MASTERY_BADGES[zoneMeta.id];
   const masteryScores = useQuestStore(s => s.masteryScores);
   const isDark = useQuestStore(s => s.theme) === 'dark';
@@ -805,7 +807,15 @@ function ReportCard({
           <button
             onClick={onBack}
             aria-label="Back to Zone"
-            className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-fuchsia-400 hover:border-blue-300 dark:hover:border-fuchsia-700 hover:bg-blue-50 dark:hover:bg-fuchsia-900/20 transition-all duration-200 group flex-shrink-0"
+            onMouseEnter={() => setBackTopHovered(true)}
+            onMouseLeave={() => setBackTopHovered(false)}
+            className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border transition-colors duration-150 group flex-shrink-0"
+            style={{
+              background: backTopHovered ? (isDark ? 'rgba(217,70,239,0.08)' : 'rgba(239,246,255,1)') : (isDark ? 'rgba(15,23,42,1)' : 'rgba(255,255,255,1)'),
+              borderColor: backTopHovered ? (isDark ? 'rgba(217,70,239,0.55)' : 'rgba(147,197,253,1)') : (isDark ? 'rgba(51,65,85,1)' : 'rgba(203,213,225,1)'),
+              color: backTopHovered ? (isDark ? 'rgba(232,121,249,1)' : 'rgba(29,78,216,1)') : (isDark ? 'rgba(148,163,184,1)' : 'rgba(71,85,105,1)'),
+              boxShadow: backTopHovered ? (isDark ? '0 0 18px rgba(192,38,211,0.4)' : '0 0 14px rgba(37,99,235,0.2)') : 'none',
+            }}
           >
             <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
             <span className="text-xs font-semibold hidden sm:inline">Back to Zone</span>
@@ -933,8 +943,19 @@ function ReportCard({
 
         {/* ── Action buttons (outside card) ── */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="flex gap-3">
-          <button onClick={onBack} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-            <ArrowLeft size={15} /> Back to Zone
+          <button
+            onClick={onBack}
+            onMouseEnter={() => setBackBottomHovered(true)}
+            onMouseLeave={() => setBackBottomHovered(false)}
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border transition-colors duration-150 text-sm font-bold group"
+            style={{
+              background: backBottomHovered ? (isDark ? 'rgba(217,70,239,0.08)' : 'rgba(239,246,255,1)') : (isDark ? 'transparent' : 'transparent'),
+              borderColor: backBottomHovered ? (isDark ? 'rgba(217,70,239,0.55)' : 'rgba(147,197,253,1)') : (isDark ? 'rgba(51,65,85,1)' : 'rgba(203,213,225,1)'),
+              color: backBottomHovered ? (isDark ? 'rgba(232,121,249,1)' : 'rgba(29,78,216,1)') : (isDark ? 'rgba(203,213,225,1)' : 'rgba(71,85,105,1)'),
+              boxShadow: backBottomHovered ? (isDark ? '0 0 18px rgba(192,38,211,0.4)' : '0 0 14px rgba(37,99,235,0.2)') : 'none',
+            }}
+          >
+            <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform duration-200" /> Back to Zone
           </button>
           <button onClick={onRetake} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-violet-600 dark:hover:bg-violet-700 text-white text-sm font-black transition dark:shadow-[0_0_18px_rgba(124,58,237,0.35)]">
             <RotateCcw size={15} /> Retake Trial
@@ -1068,6 +1089,8 @@ export default function MasteryTrialPage() {
   const [timeTaken, setTimeTaken] = useState(0);
   const [blurWarning, setBlurWarning] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [introBackHovered, setIntroBackHovered] = useState(false);
+  const [examBackHovered, setExamBackHovered] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [flagged, setFlagged] = useState<Set<string>>(new Set());
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -1301,7 +1324,15 @@ export default function MasteryTrialPage() {
           <button
             onClick={() => navigate(-1)}
             aria-label="Back to Zone"
-            className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-fuchsia-500 dark:hover:text-fuchsia-400 hover:border-fuchsia-300 dark:hover:border-fuchsia-700 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 hover:shadow-[0_0_18px_rgba(192,38,211,0.35)] dark:hover:shadow-[0_0_22px_rgba(217,70,239,0.5)] transition-all duration-200 group flex-shrink-0"
+            onMouseEnter={() => setIntroBackHovered(true)}
+            onMouseLeave={() => setIntroBackHovered(false)}
+            className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border transition-colors duration-150 group flex-shrink-0"
+            style={{
+              background: introBackHovered ? (isDark ? 'rgba(217,70,239,0.08)' : 'rgba(239,246,255,1)') : (isDark ? 'rgba(15,23,42,1)' : 'rgba(255,255,255,1)'),
+              borderColor: introBackHovered ? (isDark ? 'rgba(217,70,239,0.55)' : 'rgba(147,197,253,1)') : (isDark ? 'rgba(51,65,85,1)' : 'rgba(203,213,225,1)'),
+              color: introBackHovered ? (isDark ? 'rgba(232,121,249,1)' : 'rgba(29,78,216,1)') : (isDark ? 'rgba(148,163,184,1)' : 'rgba(71,85,105,1)'),
+              boxShadow: introBackHovered ? (isDark ? '0 0 18px rgba(192,38,211,0.4)' : '0 0 14px rgba(37,99,235,0.2)') : 'none',
+            }}
           >
             <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
             <span className="text-sm font-semibold hidden sm:inline">Back to Zone</span>
@@ -1693,7 +1724,15 @@ export default function MasteryTrialPage() {
         <button
           onClick={() => setShowLeaveModal(true)}
           aria-label="Exit trial"
-          className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-fuchsia-500 dark:hover:text-fuchsia-400 hover:border-fuchsia-300 dark:hover:border-fuchsia-700 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 transition-all duration-200 group flex-shrink-0"
+          onMouseEnter={() => setExamBackHovered(true)}
+          onMouseLeave={() => setExamBackHovered(false)}
+          className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border transition-colors duration-150 group flex-shrink-0"
+          style={{
+            background: examBackHovered ? (isDark ? 'rgba(217,70,239,0.08)' : 'rgba(239,246,255,1)') : (isDark ? 'rgba(15,23,42,1)' : 'rgba(255,255,255,1)'),
+            borderColor: examBackHovered ? (isDark ? 'rgba(217,70,239,0.55)' : 'rgba(147,197,253,1)') : (isDark ? 'rgba(51,65,85,1)' : 'rgba(203,213,225,1)'),
+            color: examBackHovered ? (isDark ? 'rgba(232,121,249,1)' : 'rgba(29,78,216,1)') : (isDark ? 'rgba(148,163,184,1)' : 'rgba(71,85,105,1)'),
+            boxShadow: examBackHovered ? (isDark ? '0 0 18px rgba(192,38,211,0.4)' : '0 0 14px rgba(37,99,235,0.2)') : 'none',
+          }}
         >
           <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
           <span className="text-sm font-semibold hidden sm:inline">Back to Zone</span>

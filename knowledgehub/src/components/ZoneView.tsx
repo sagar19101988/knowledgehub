@@ -28,6 +28,7 @@ export default function ZoneView() {
   const [completedModuleTitle, setCompletedModuleTitle] = useState('');
   const [collapsedTiers, setCollapsedTiers] = useState<Record<string, boolean>>({ beginner: true, intermediate: true, expert: true });
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [backHovered, setBackHovered] = useState(false);
   const [lockToast, setLockToast] = useState<string | null>(null);
   const mainContentRef = React.useRef<HTMLDivElement>(null);
   const sidebarScrollRef = React.useRef<HTMLDivElement>(null);
@@ -121,11 +122,15 @@ export default function ZoneView() {
           <button
             onClick={() => navigate('/')}
             aria-label="Go back"
-            className={`flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border transition-all duration-200 group flex-shrink-0 ${
-              isDark
-                ? 'bg-slate-900 border-slate-700 text-slate-400 hover:text-fuchsia-400 hover:border-fuchsia-700 hover:bg-fuchsia-900/20'
-                : 'bg-white border-slate-300 text-slate-700 hover:text-blue-700 hover:border-blue-300 hover:bg-blue-50'
-            }`}
+            onMouseEnter={() => setBackHovered(true)}
+            onMouseLeave={() => setBackHovered(false)}
+            className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border transition-colors duration-150 group flex-shrink-0"
+            style={{
+              background: backHovered ? (isDark ? 'rgba(217,70,239,0.08)' : 'rgba(239,246,255,1)') : (isDark ? 'rgba(15,23,42,1)' : 'rgba(255,255,255,1)'),
+              borderColor: backHovered ? (isDark ? 'rgba(217,70,239,0.55)' : 'rgba(147,197,253,1)') : (isDark ? 'rgba(51,65,85,1)' : 'rgba(203,213,225,1)'),
+              color: backHovered ? (isDark ? 'rgba(232,121,249,1)' : 'rgba(29,78,216,1)') : (isDark ? 'rgba(148,163,184,1)' : 'rgba(71,85,105,1)'),
+              boxShadow: backHovered ? (isDark ? '0 0 18px rgba(192,38,211,0.4)' : '0 0 14px rgba(37,99,235,0.2)') : 'none',
+            }}
           >
             <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
             <span className="text-sm font-semibold hidden sm:inline">Back</span>

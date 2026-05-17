@@ -15,6 +15,7 @@ import { ZONES, ZONE_TIERS, getLevel, getTotalModuleCount } from './data/zones';
 // ── Lazy-loaded routes (excluded from initial bundle) ─────────
 const ZoneView         = React.lazy(() => import('./components/ZoneView'));
 const MasteryTrialPage = React.lazy(() => import('./components/MasteryTrialPage'));
+const BadgesPage       = React.lazy(() => import('./components/BadgesPage'));
 const AuthPage         = React.lazy(() => import('./components/AuthPage').then(m => ({ default: m.AuthPage })));
 
 // ─────────────────────────────────────────────────────────────
@@ -277,6 +278,7 @@ function HubMap() {
   const [viewMode, setViewMode] = useState<'map' | 'grid'>(
     () => (sessionStorage.getItem('qa-hub-view') as 'map' | 'grid') ?? 'map'
   );
+  const [badgesHovered, setBadgesHovered] = useState(false);
   const handleSetViewMode = (v: 'map' | 'grid') => {
     sessionStorage.setItem('qa-hub-view', v);
     setViewMode(v);
@@ -509,95 +511,32 @@ function HubMap() {
             </button>
           </div>
 
-          {/* Completion Badges (earned by finishing every module in a zone) */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className={`text-xs uppercase tracking-widest ${isDark ? 'font-bold text-slate-500' : 'font-semibold text-slate-500'}`}>Completion Badges</h2>
-              <span className={`text-xs ${isDark ? 'text-slate-600' : 'text-slate-500'}`}>{earnedCount}/{ZONES.length}</span>
+          {/* Badges summary + link */}
+          <button
+            onClick={() => navigate('/badges')}
+            onMouseEnter={() => setBadgesHovered(true)}
+            onMouseLeave={() => setBadgesHovered(false)}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors duration-150"
+            style={{
+              borderColor: badgesHovered
+                ? (isDark ? 'rgba(139,92,246,0.5)' : 'rgba(59,130,246,0.4)')
+                : (isDark ? 'rgba(51,65,85,1)' : 'rgba(226,232,240,1)'),
+              backgroundColor: badgesHovered
+                ? (isDark ? 'rgba(139,92,246,0.07)' : 'rgba(239,246,255,1)')
+                : (isDark ? 'transparent' : 'rgba(255,255,255,1)'),
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-base">🏅</span>
+              <span style={{ color: badgesHovered
+                ? (isDark ? 'rgba(196,181,253,1)' : 'rgba(37,99,235,1)')
+                : (isDark ? 'rgba(226,232,240,1)' : 'rgba(30,41,59,1)')
+              }} className="text-sm font-bold">View All Badges</span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              {ZONES.map((zone) => {
-                const earned = unlockedBadges.includes(zone.badge);
-                const tint = ZONE_LIGHT_TILE[zone.id];
-                return (
-                  <div
-                    key={zone.id}
-                    className={`relative flex flex-col items-center text-center p-3 rounded-xl border transition-all ${
-                      earned
-                        ? (isDark
-                            ? `${zone.bgColor} ${zone.borderColor} shadow-[0_0_12px_rgba(0,0,0,0.2)]`
-                            : `${tint?.bg ?? 'bg-white'} ${tint?.border ?? 'border-slate-200'} shadow-sm`)
-                        : (isDark ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50 border-slate-200')
-                    }`}
-                  >
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-1.5 [&>svg]:w-5 [&>svg]:h-5 ${
-                      earned
-                        ? (isDark ? 'bg-slate-900/80' : (tint?.iconBg ?? 'bg-white'))
-                        : (isDark ? 'bg-slate-700/50' : 'bg-slate-100')
-                    }`}>
-                      {earned ? zone.icon : <span className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>🔒</span>}
-                    </div>
-                    <p className={`text-xs font-bold leading-tight ${
-                      earned
-                        ? (isDark ? zone.colorText : (tint?.title ?? 'text-slate-900'))
-                        : (isDark ? 'text-slate-500' : 'text-slate-400')
-                    }`}>{zone.badge}</p>
-                    <p className={`text-xs mt-0.5 truncate w-full ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>{zone.title}</p>
-                    {isDark && earned && <span className="absolute top-1.5 right-1.5 text-xs">⭐</span>}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Mastery Trial Badges (earned by passing the trial — harder) */}
-          {(() => {
-            const trialEarnedCount = ZONES.filter(z => masteryBadges[z.id] === true).length;
-            return (
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className={`text-xs uppercase tracking-widest ${isDark ? 'font-bold text-slate-500' : 'font-semibold text-slate-500'}`}>Mastery Trial Badges</h2>
-                  <span className={`text-xs ${isDark ? 'text-slate-600' : 'text-slate-500'}`}>{trialEarnedCount}/{ZONES.length}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {ZONES.map((zone) => {
-                    const trialBadge = MASTERY_BADGES[zone.id];
-                    const earned = masteryBadges[zone.id] === true;
-                    if (!trialBadge) return null;
-                    return (
-                      <div
-                        key={zone.id}
-                        className={`relative flex flex-col items-center text-center p-3 rounded-xl border transition-all ${
-                          earned
-                            ? (isDark
-                                ? 'bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border-violet-500/60 shadow-[0_0_14px_rgba(139,92,246,0.35)]'
-                                : 'bg-indigo-50 border-indigo-300 ring-1 ring-indigo-100 shadow-sm')
-                            : (isDark ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50 border-slate-200')
-                        }`}
-                      >
-                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-1.5 text-xl ${
-                          earned
-                            ? (isDark ? 'bg-slate-900/80' : 'bg-indigo-100')
-                            : (isDark ? 'bg-slate-700/50' : 'bg-slate-100')
-                        }`}>
-                          {earned
-                            ? <span className="leading-none">{trialBadge.icon}</span>
-                            : <span className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>🔒</span>}
-                        </div>
-                        <p className={`text-xs leading-tight ${
-                          earned
-                            ? (isDark ? 'font-bold text-violet-300' : 'font-bold text-indigo-900')
-                            : (isDark ? 'font-bold text-slate-500' : 'font-bold text-slate-400')
-                        }`}>{trialBadge.name}</p>
-                        <p className={`text-xs mt-0.5 truncate w-full ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>{zone.title}</p>
-                        {earned && <span className={`absolute top-1.5 right-1.5 text-xs ${isDark ? '' : 'text-indigo-600'}`}>🏆</span>}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })()}
+            <span className={`text-xs font-semibold ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+              {earnedCount + ZONES.filter(z => masteryBadges[z.id] === true).length} / {ZONES.length * 2} →
+            </span>
+          </button>
         </aside>
 
         {/* ── Main: zone cards ── */}
@@ -912,6 +851,7 @@ export default function App() {
               <Route path="/" element={<ProtectedRoute><HubMap /></ProtectedRoute>} />
               <Route path="/zone/:id" element={<ProtectedRoute><ZoneView /></ProtectedRoute>} />
               <Route path="/zone/:id/mastery" element={<ProtectedRoute><MasteryTrialPage /></ProtectedRoute>} />
+              <Route path="/badges" element={<ProtectedRoute><BadgesPage /></ProtectedRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
