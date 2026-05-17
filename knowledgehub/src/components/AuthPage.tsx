@@ -41,6 +41,9 @@ export function AuthPage() {
   const [password, setPassword] = useState('');
   const [showPw, setShowPw]     = useState(false);
   const [showGuestWarning, setShowGuestWarning] = useState(false);
+  const [hoveredTab, setHoveredTab] = useState<Mode | null>(null);
+  const [googleHovered, setGoogleHovered] = useState(false);
+  const [guestHovered, setGuestHovered] = useState(false);
 
   const validateEmail = (val: string) => {
     if (!val) { setEmailError(''); return true; }
@@ -508,28 +511,56 @@ export function AuthPage() {
             <div className={`flex rounded-xl p-1 mb-6 border ${
               isDark ? 'bg-slate-800/60 border-violet-900/30' : 'bg-slate-100 border-slate-200'
             }`}>
-              {(['login', 'signup'] as Mode[]).map((m) => (
-                <button key={m} onClick={() => switchMode(m)}
-                  className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${
-                    mode === m
-                      ? (isDark ? 'bg-gradient-to-r from-fuchsia-500 to-violet-600 text-white shadow-sm' : 'bg-blue-600 text-white')
-                      : (isDark ? 'text-slate-500 hover:text-slate-300' : 'text-slate-600 hover:text-slate-900')
-                  }`}
-                >
-                  {m === 'login' ? 'Sign In' : 'Sign Up'}
-                </button>
-              ))}
+              {(['login', 'signup'] as Mode[]).map((m) => {
+                const active = mode === m;
+                const tabHovered = !active && hoveredTab === m;
+                return (
+                  <button
+                    key={m}
+                    onClick={() => switchMode(m)}
+                    onMouseEnter={() => !active && setHoveredTab(m)}
+                    onMouseLeave={() => setHoveredTab(null)}
+                    className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors duration-150 ${
+                      active
+                        ? (isDark ? 'bg-gradient-to-r from-fuchsia-500 to-violet-600 text-white shadow-sm' : 'bg-blue-600 text-white')
+                        : ''
+                    }`}
+                    style={!active ? {
+                      color: tabHovered
+                        ? (isDark ? 'rgba(232,121,249,1)' : 'rgba(29,78,216,1)')
+                        : (isDark ? 'rgba(100,116,139,1)' : 'rgba(71,85,105,1)'),
+                      boxShadow: tabHovered
+                        ? (isDark ? '0 0 18px rgba(192,38,211,0.4)' : '0 0 14px rgba(37,99,235,0.25)')
+                        : 'none',
+                    } : undefined}
+                  >
+                    {m === 'login' ? 'Sign In' : 'Sign Up'}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Google button */}
             <motion.button onClick={handleGoogle} disabled={actionLoading}
+              onMouseEnter={() => !actionLoading && setGoogleHovered(true)}
+              onMouseLeave={() => setGoogleHovered(false)}
               whileHover={{ scale: actionLoading ? 1 : 1.01 }}
               whileTap={{ scale: actionLoading ? 1 : 0.98 }}
-              className={`w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl text-sm font-semibold transition-all mb-5 disabled:opacity-50 shadow-sm ${
-                isDark
-                  ? 'border border-slate-700 bg-slate-800/50 text-slate-200 hover:bg-slate-800'
-                  : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-              }`}
+              className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl text-sm font-semibold transition-colors duration-150 mb-5 disabled:opacity-50 border"
+              style={{
+                background: googleHovered
+                  ? (isDark ? 'rgba(217,70,239,0.08)' : 'rgba(239,246,255,1)')
+                  : (isDark ? 'rgba(30,41,59,0.5)' : 'rgba(255,255,255,1)'),
+                borderColor: googleHovered
+                  ? (isDark ? 'rgba(217,70,239,0.55)' : 'rgba(147,197,253,1)')
+                  : (isDark ? 'rgba(51,65,85,1)' : 'rgba(203,213,225,1)'),
+                color: googleHovered
+                  ? (isDark ? 'rgba(232,121,249,1)' : 'rgba(29,78,216,1)')
+                  : (isDark ? 'rgba(226,232,240,1)' : 'rgba(51,65,85,1)'),
+                boxShadow: googleHovered
+                  ? (isDark ? '0 0 18px rgba(192,38,211,0.4)' : '0 0 14px rgba(37,99,235,0.25)')
+                  : '0 1px 2px rgba(0,0,0,0.05)',
+              }}
             >
               <GoogleIcon />
               Continue with Google
@@ -638,14 +669,25 @@ export function AuthPage() {
               <motion.button
                 type="button"
                 onClick={() => setShowGuestWarning(true)}
+                onMouseEnter={() => setGuestHovered(true)}
+                onMouseLeave={() => setGuestHovered(false)}
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
-                className={`w-full py-3 rounded-xl font-bold text-sm transition-all
-                  border-2 border-dashed flex items-center justify-center gap-2 ${
-                    isDark
-                      ? 'border-slate-700 text-slate-400 hover:border-violet-600 hover:text-violet-400 hover:bg-violet-900/10'
-                      : 'border-slate-300 text-slate-600 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50'
-                  }`}
+                className="w-full py-3 rounded-xl font-bold text-sm transition-colors duration-150 border-2 border-dashed flex items-center justify-center gap-2"
+                style={{
+                  background: guestHovered
+                    ? (isDark ? 'rgba(217,70,239,0.08)' : 'rgba(239,246,255,1)')
+                    : 'transparent',
+                  borderColor: guestHovered
+                    ? (isDark ? 'rgba(217,70,239,0.55)' : 'rgba(147,197,253,1)')
+                    : (isDark ? 'rgba(51,65,85,1)' : 'rgba(203,213,225,1)'),
+                  color: guestHovered
+                    ? (isDark ? 'rgba(232,121,249,1)' : 'rgba(29,78,216,1)')
+                    : (isDark ? 'rgba(148,163,184,1)' : 'rgba(71,85,105,1)'),
+                  boxShadow: guestHovered
+                    ? (isDark ? '0 0 18px rgba(192,38,211,0.4)' : '0 0 14px rgba(37,99,235,0.25)')
+                    : 'none',
+                }}
               >
                 <span>👤</span> Continue as Guest
               </motion.button>
