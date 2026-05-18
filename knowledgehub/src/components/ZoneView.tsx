@@ -277,7 +277,7 @@ export default function ZoneView() {
         {/* ── Left Sidebar: Module Navigator (desktop inline / mobile drawer) ── */}
         <aside
           className={`
-            fixed top-0 left-0 z-[70] h-screen w-[85%] max-w-sm shadow-2xl
+            fixed top-16 left-0 z-[70] h-[calc(100vh-4rem)] w-[85%] max-w-sm shadow-2xl
             transition-transform duration-300 ease-out
             lg:relative lg:flex-shrink-0 lg:top-auto lg:left-auto lg:z-auto lg:h-full lg:min-h-0 lg:w-72 lg:max-w-none lg:shadow-none lg:translate-x-0 lg:bg-transparent lg:border-0
             ${isDark ? 'bg-[#0a0715] border-r border-violet-900/40' : 'bg-[#eff4fb] border-r border-slate-200'}
@@ -299,10 +299,10 @@ export default function ZoneView() {
               <X size={18} />
             </button>
           </div>
-          <div ref={sidebarScrollRef} className="h-[calc(100vh-3.25rem)] lg:h-full overflow-y-auto pr-1 px-3 lg:px-0 py-3 lg:py-0 sidebar-scroll space-y-3">
+          <div ref={sidebarScrollRef} className="h-[calc(100vh-7.25rem)] lg:h-full overflow-y-auto pr-1 px-3 lg:px-0 py-3 lg:py-0 sidebar-scroll space-y-3">
 
             {/* Header */}
-            <div className="flex items-center justify-between px-1 mb-1">
+            <div className="hidden lg:flex items-center justify-between px-1 mb-1">
               <h3 className={`text-sm uppercase tracking-widest ${isDark ? 'font-black text-slate-400' : 'font-semibold text-slate-600'}`}>Modules</h3>
               {contentData && (
                 <span className={`text-sm font-bold ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
