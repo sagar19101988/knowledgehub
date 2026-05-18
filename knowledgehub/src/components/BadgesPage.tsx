@@ -186,7 +186,7 @@ export default function BadgesPage() {
                         {earned ? trialBadge.name : 'Locked'}
                       </p>
                       <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>{zone.title}</p>
-                      {earned && score && <p className={`text-[11px] mt-1.5 font-semibold ${isDark ? 'text-slate-400' : 'text-indigo-600'}`}>Best: {score.bestScore}%</p>}
+                      {earned && score && <p className={`text-[11px] mt-1.5 font-semibold ${isDark ? 'text-slate-400' : 'text-indigo-600'}`}>Best: {Math.round((score.bestScore / 30) * 100)}%</p>}
                       {!earned && <p className={`text-[11px] mt-1.5 leading-snug ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>Pass the Mastery Trial</p>}
                       {earned && <span className={`absolute top-2.5 right-2.5 text-sm ${!isDark ? 'text-indigo-500' : ''}`}>🏆</span>}
                     </div>
