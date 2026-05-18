@@ -1116,6 +1116,10 @@ export default function MasteryTrialPage() {
   const [showLeaveModal, setShowLeaveModal] = useState(false);          // Exit Realm = full logout
   const [showBackToZoneModal, setShowBackToZoneModal] = useState(false); // Back to Zone = navigate back, stay signed in
   const [showGoHomeFromExamModal, setShowGoHomeFromExamModal] = useState(false);
+  // Set to true right before any *intentional* navigation away from the exam
+  // (Leave Trial / Go Home / Exit Realm). The popstate listener checks this to
+  // distinguish a confirmed exit from a raw browser-back press.
+  const leaveIntentRef = useRef(false);
   const [introBackHovered, setIntroBackHovered] = useState(false);
   const [examBackHovered, setExamBackHovered] = useState(false);
   const [introHomeHovered, setIntroHomeHovered] = useState(false);
@@ -1190,6 +1194,22 @@ export default function MasteryTrialPage() {
     const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
+  }, [phase]);
+
+  // ── Browser back-button guard ──
+  // Push a sentinel history entry on exam entry so the first back-press lands
+  // on it (instead of leaving the page). Re-push on each popstate so repeated
+  // back-presses stay trapped until the user confirms via the Back-to-Zone modal.
+  useEffect(() => {
+    if (phase !== 'exam') return;
+    window.history.pushState({ examTrap: true }, '');
+    const onPop = () => {
+      if (leaveIntentRef.current) return;
+      window.history.pushState({ examTrap: true }, '');
+      setShowBackToZoneModal(true);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
   }, [phase]);
 
   // ── Keyboard shortcuts: A/B/C/D for MCQ, T/F for T-F, arrows to navigate ──
@@ -1600,7 +1620,7 @@ export default function MasteryTrialPage() {
               <div className="flex gap-3">
                 <button onClick={() => setShowBackToZoneModal(false)} className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition">Stay</button>
                 <button
-                  onClick={() => navigate(-1)}
+                  onClick={() => { leaveIntentRef.current = true; navigate(`/zone/${zoneId}`); }}
                   className="flex-1 py-2.5 rounded-xl bg-rose-500 text-white text-sm font-bold hover:bg-rose-600 transition"
                 >Leave Trial</button>
               </div>
@@ -1626,7 +1646,7 @@ export default function MasteryTrialPage() {
               <div className="flex gap-3">
                 <button onClick={() => setShowGoHomeFromExamModal(false)} className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition">Stay</button>
                 <button
-                  onClick={() => navigate('/')}
+                  onClick={() => { leaveIntentRef.current = true; navigate('/'); }}
                   className="flex-1 py-2.5 rounded-xl bg-rose-500 text-white text-sm font-bold hover:bg-rose-600 transition"
                 >Go Home</button>
               </div>
@@ -1653,6 +1673,7 @@ export default function MasteryTrialPage() {
                 <button onClick={() => setShowLeaveModal(false)} className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition">Stay</button>
                 <button
                   onClick={() => {
+                    leaveIntentRef.current = true;
                     if (isGuest) { resetProgress(); } else { logout(); }
                     navigate('/login', { replace: true });
                   }}
