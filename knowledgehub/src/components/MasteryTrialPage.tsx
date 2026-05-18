@@ -553,7 +553,7 @@ function McqOptions({
                             'border-slate-200 dark:border-slate-700/80 hover:border-blue-400 dark:hover:border-violet-500/60 hover:bg-blue-50/50 dark:hover:bg-violet-500/8'}`}
           >
             {/* Letter badge */}
-            <span className={`w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-xs font-black leading-none transition-all duration-200
+            <span className={`w-9 h-9 rounded-lg flex-shrink-0 flex items-center justify-center text-sm font-black leading-none transition-all duration-200
               ${isRight  ? 'bg-emerald-500 text-white' :
                 isWrong  ? 'bg-rose-500 text-white' :
                 selected  ? 'bg-blue-600 text-white dark:bg-violet-600 dark:shadow-[0_0_12px_rgba(124,58,237,0.5)]' :
@@ -564,11 +564,11 @@ function McqOptions({
             </span>
             {/* Option text */}
             <span className={`text-sm flex-1 text-left leading-snug
-              ${isRight  ? 'font-semibold text-emerald-700 dark:text-emerald-300' :
-                isWrong  ? 'font-semibold text-rose-700 dark:text-rose-300' :
-                selected  ? 'font-semibold text-blue-700 dark:text-violet-200' :
-                submitted ? 'font-medium text-slate-400 dark:text-slate-500' :
-                            'font-medium text-slate-700 dark:text-slate-300'}`}
+              ${isRight  ? 'font-bold text-emerald-700 dark:text-emerald-300' :
+                isWrong  ? 'font-bold text-rose-700 dark:text-rose-300' :
+                selected  ? 'font-bold text-blue-700 dark:text-violet-200' :
+                submitted ? 'font-semibold text-slate-400 dark:text-slate-500' :
+                            'font-semibold text-slate-700 dark:text-slate-300'}`}
             >
               {opt}
             </span>
@@ -608,7 +608,7 @@ function TfOptions({
                 val       ? 'border-emerald-400/50 hover:border-emerald-500/80 hover:bg-emerald-500/8' :
                             'border-rose-400/50 hover:border-rose-500/80 hover:bg-rose-500/8'}`}
           >
-            <span className={`w-9 h-9 rounded-xl flex items-center justify-center text-base font-black leading-none transition-all duration-200
+            <span className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black leading-none transition-all duration-200
               ${isRight  ? 'bg-emerald-500 text-white' :
                 isWrong  ? 'bg-rose-500 text-white' :
                 selected  ? 'bg-blue-600 text-white dark:bg-violet-600 dark:shadow-[0_0_12px_rgba(124,58,237,0.5)]' :
@@ -618,13 +618,13 @@ function TfOptions({
             >
               {isRight ? '✓' : isWrong ? '✗' : letter}
             </span>
-            <span className={`text-base font-black
-              ${isRight  ? 'text-emerald-600 dark:text-emerald-300' :
-                isWrong  ? 'text-rose-600 dark:text-rose-300' :
-                selected  ? 'text-blue-700 dark:text-violet-200' :
-                submitted ? 'text-slate-400' :
-                val       ? 'text-emerald-600 dark:text-emerald-400' :
-                            'text-rose-600 dark:text-rose-400'}`}
+            <span className={`text-sm
+              ${isRight  ? 'font-bold text-emerald-600 dark:text-emerald-300' :
+                isWrong  ? 'font-bold text-rose-600 dark:text-rose-300' :
+                selected  ? 'font-bold text-blue-700 dark:text-violet-200' :
+                submitted ? 'font-semibold text-slate-400' :
+                val       ? 'font-semibold text-emerald-600 dark:text-emerald-400' :
+                            'font-semibold text-rose-600 dark:text-rose-400'}`}
             >
               {label}
             </span>
@@ -676,12 +676,12 @@ function FillBlankOptions({
               key={chip}
               disabled={submitted}
               onClick={() => onChange(chip)}
-              className={`px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all duration-200
-                ${isRight  ? 'border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' :
-                  isWrong  ? 'border-rose-500 bg-rose-500/15 text-rose-700 dark:text-rose-300' :
-                  selected  ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-violet-500 dark:bg-violet-500/15 dark:text-violet-300' :
-                  submitted ? 'border-slate-200 dark:border-slate-700 opacity-40 cursor-not-allowed text-slate-500' :
-                              'border-slate-300 dark:border-slate-600 hover:border-blue-400 hover:bg-blue-50/50 dark:hover:border-violet-400 dark:hover:bg-violet-500/8 text-slate-700 dark:text-slate-300'}`}
+              className={`px-4 py-2 rounded-xl border-2 text-sm transition-all duration-200
+                ${isRight  ? 'font-bold border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' :
+                  isWrong  ? 'font-bold border-rose-500 bg-rose-500/15 text-rose-700 dark:text-rose-300' :
+                  selected  ? 'font-bold border-blue-500 bg-blue-50 text-blue-700 dark:border-violet-500 dark:bg-violet-500/15 dark:text-violet-300' :
+                  submitted ? 'font-semibold border-slate-200 dark:border-slate-700 opacity-40 cursor-not-allowed text-slate-500' :
+                              'font-semibold border-slate-300 dark:border-slate-600 hover:border-blue-400 hover:bg-blue-50/50 dark:hover:border-violet-400 dark:hover:bg-violet-500/8 text-slate-700 dark:text-slate-300'}`}
             >
               {chip}
             </button>
