@@ -59,24 +59,38 @@ export default function ZoneView() {
     }
   }, [level, id, completedLevels]);
 
-  // Lock the body so only the inner panels scroll (Approach A — isolated panels)
+  // Lock the body on desktop only (Approach A — isolated two-panel scroll).
+  // On mobile/tablet, let the page scroll naturally — mobile has only one visible panel
+  // (sidebar is a drawer), so isolation isn't needed and a locked body breaks scrolling.
   React.useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    const mql = window.matchMedia('(min-width: 1024px)');
+    const apply = () => {
+      document.body.style.overflow = mql.matches ? 'hidden' : '';
+    };
+    apply();
+    mql.addEventListener('change', apply);
+    return () => {
+      mql.removeEventListener('change', apply);
+      document.body.style.overflow = '';
+    };
   }, []);
 
-  // On mount (entering a zone from anywhere), reset main and sidebar to top
+  // On mount (entering a zone from anywhere), reset all possible scroll containers to top.
+  // Window covers mobile; main + sidebar cover desktop two-panel layout. Both are safe to call.
   React.useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
     if (mainContentRef.current) mainContentRef.current.scrollTop = 0;
     if (sidebarScrollRef.current) sidebarScrollRef.current.scrollTop = 0;
   }, []);
 
   React.useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     if (mainContentRef.current) mainContentRef.current.scrollTop = 0;
   }, [level]);
 
   // Reset scroll when switching between Library (learn) and Arena (Boss Fight)
   React.useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     if (mainContentRef.current) mainContentRef.current.scrollTop = 0;
   }, [mode]);
 
@@ -127,7 +141,7 @@ export default function ZoneView() {
   };
 
   return (
-    <div className={`h-screen overflow-hidden font-sans flex flex-col ${isDark ? 'bg-[#07050f] text-slate-200' : 'bg-[#eff4fb] text-slate-900'}`}>
+    <div className={`min-h-screen lg:h-screen lg:overflow-hidden font-sans flex flex-col ${isDark ? 'bg-[#07050f] text-slate-200' : 'bg-[#eff4fb] text-slate-900'}`}>
       {/* Top Navbar — HUD Layout: Left | Center | Right */}
       <nav className={`h-16 px-3 sm:px-6 flex items-center sticky top-0 z-[80] gap-2 ${
         isDark ? 'border-b border-violet-900/30 bg-[#07050f]' : 'border-b border-slate-200 bg-[#eff4fb]'
@@ -249,7 +263,7 @@ export default function ZoneView() {
         </div>
       </nav>
 
-      <div className="flex-1 min-h-0 w-full flex gap-3 sm:gap-6 px-3 sm:pl-6 sm:pr-8 py-4 sm:py-6 relative overflow-hidden">
+      <div className="flex-1 lg:min-h-0 w-full flex gap-3 sm:gap-6 px-3 sm:pl-6 sm:pr-8 py-4 sm:py-6 relative lg:overflow-hidden">
 
         {/* Mobile drawer backdrop */}
         {drawerOpen && (
@@ -263,9 +277,9 @@ export default function ZoneView() {
         {/* ── Left Sidebar: Module Navigator (desktop inline / mobile drawer) ── */}
         <aside
           className={`
-            relative flex-shrink-0 transition-transform duration-300 ease-out
-            lg:static lg:w-72 lg:translate-x-0 lg:bg-transparent lg:shadow-none lg:border-0 lg:h-full lg:min-h-0
             fixed top-0 left-0 z-[70] h-screen w-[85%] max-w-sm shadow-2xl
+            transition-transform duration-300 ease-out
+            lg:relative lg:flex-shrink-0 lg:top-auto lg:left-auto lg:z-auto lg:h-full lg:min-h-0 lg:w-72 lg:max-w-none lg:shadow-none lg:translate-x-0 lg:bg-transparent lg:border-0
             ${isDark ? 'bg-[#0a0715] border-r border-violet-900/40' : 'bg-[#eff4fb] border-r border-slate-200'}
             ${drawerOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           `}
@@ -642,7 +656,7 @@ export default function ZoneView() {
         </aside>
 
         {/* Main Content Area */}
-        <main ref={mainContentRef} className={`flex-1 min-h-0 min-w-0 rounded-2xl p-4 sm:p-6 lg:p-8 relative overflow-y-auto sidebar-scroll ${
+        <main ref={mainContentRef} className={`flex-1 lg:min-h-0 min-w-0 rounded-2xl p-4 sm:p-6 lg:p-8 relative lg:overflow-y-auto lg:sidebar-scroll ${
           isDark
             ? 'bg-slate-900/50 border border-violet-900/25 shadow-2xl'
             : 'bg-white border border-slate-200 shadow-sm'
@@ -914,6 +928,7 @@ export default function ZoneView() {
                 // Capture completed module title before navigating away
                 const rawTitle = contentData?.levels.find(l => l.id === level)?.title || '';
                 setCompletedModuleTitle(rawTitle.split(':').slice(1).join(':').trim() || rawTitle);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
                 if (mainContentRef.current) mainContentRef.current.scrollTop = 0;
                 // Auto-navigate to the next module and expand its tier if needed
                 const currentIdx = availableLevels.indexOf(level);

@@ -203,12 +203,12 @@ export function QuizEngine({ zoneId, level, progressIncrement, onComplete }: Qui
       const active = document.activeElement as HTMLElement | null;
       if (active && typeof active.blur === 'function') active.blur();
     }
-    // Reset scroll on the nearest scrollable ancestor (main element in ZoneView),
-    // falling back to window if QuizEngine is used in a window-scroll context.
+    // Reset scroll on the nearest <main> (desktop two-panel layout uses overflow-y-auto on main)
+    // AND the window (mobile uses window scroll, where main is just a block element).
+    // Calling both is safe: scrolling a non-scrollable element is a no-op.
     const scrollableParent = rootRef.current?.closest('main') as HTMLElement | null;
-    if (scrollableParent) {
-      scrollableParent.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (typeof window !== 'undefined') {
+    scrollableParent?.scrollTo({ top: 0, behavior: 'smooth' });
+    if (typeof window !== 'undefined') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
