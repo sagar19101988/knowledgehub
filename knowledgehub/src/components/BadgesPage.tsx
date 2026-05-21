@@ -5,6 +5,7 @@ import { useQuestStore } from '../store/useQuestStore';
 import { UserAvatarMenu } from './UserAvatarMenu';
 import { ZONES } from '../data/zones';
 import { MASTERY_BADGES } from '../data/questionBank';
+import { CertificateModal } from './CertificateModal';
 
 const ZONE_LIGHT_TILE: Record<string, { bg: string; border: string; title: string; iconBg: string }> = {
   manual:     { bg: 'bg-orange-50',  border: 'border-orange-200',  title: 'text-orange-800',  iconBg: 'bg-orange-100'  },
@@ -24,6 +25,7 @@ export default function BadgesPage() {
   const isDark = theme === 'dark';
 
   const [backHovered, setBackHovered] = useState(false);
+  const [certZoneId, setCertZoneId] = useState<string | null>(null);
 
   const completionCount = ZONES.filter(z => unlockedBadges.includes(z.badge)).length;
   const trialCount      = ZONES.filter(z => masteryBadges[z.id] === true).length;
@@ -189,6 +191,18 @@ export default function BadgesPage() {
                       {earned && score && <p className={`text-[11px] mt-1.5 font-semibold ${isDark ? 'text-slate-400' : 'text-indigo-600'}`}>Best: {Math.round((score.bestScore / 30) * 100)}%</p>}
                       {!earned && <p className={`text-[11px] mt-1.5 leading-snug ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>Pass the Mastery Trial</p>}
                       {earned && <span className={`absolute top-2.5 right-2.5 text-sm ${!isDark ? 'text-indigo-500' : ''}`}>🏆</span>}
+                      {earned && (
+                        <button
+                          onClick={() => setCertZoneId(zone.id)}
+                          className={`mt-2.5 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border transition-colors ${
+                            isDark
+                              ? 'border-violet-500/50 text-violet-400 hover:bg-violet-500/15'
+                              : 'border-indigo-300 text-indigo-600 hover:bg-indigo-50'
+                          }`}
+                        >
+                          ✦ Certificate
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -200,6 +214,21 @@ export default function BadgesPage() {
         </div>
 
       </main>
+
+      {certZoneId && (() => {
+        const z = ZONES.find(zone => zone.id === certZoneId);
+        const s = masteryScores[certZoneId];
+        const iso = s?.firstPassedAt ?? s?.lastAttemptAt;
+        const completionDate = iso ? new Date(iso) : undefined;
+        return z ? (
+          <CertificateModal
+            zoneId={certZoneId}
+            zoneName={z.title}
+            completionDate={completionDate}
+            onClose={() => setCertZoneId(null)}
+          />
+        ) : null;
+      })()}
     </div>
   );
 }

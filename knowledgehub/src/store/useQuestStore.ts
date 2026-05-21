@@ -111,10 +111,14 @@ export const useQuestStore = create<QuestState>()(
 
       recordMasteryResult: (zoneId, score, passed) => set((state) => {
         const existing = state.masteryScores[zoneId];
+        const now = new Date().toISOString();
         const updatedScore: MasteryScore = {
           bestScore: existing ? Math.max(existing.bestScore, score) : score,
           attempts: (existing?.attempts ?? 0) + 1,
-          lastAttemptAt: new Date().toISOString(),
+          lastAttemptAt: now,
+          // Preserve the original first-pass date once set; otherwise record it
+          // the first time the user passes (used by the certificate).
+          firstPassedAt: existing?.firstPassedAt ?? (passed ? now : undefined),
         };
         const earnBadge = passed && !state.masteryBadges[zoneId];
         return {

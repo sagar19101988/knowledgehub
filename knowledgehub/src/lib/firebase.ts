@@ -40,6 +40,10 @@ export interface MasteryScore {
   bestScore: number;
   attempts: number;
   lastAttemptAt: string;
+  // Date the user FIRST passed this zone's Mastery Trial.
+  // Optional because legacy Firestore docs predate this field — fall back
+  // to lastAttemptAt for those users.
+  firstPassedAt?: string;
 }
 
 export interface UserProgress {

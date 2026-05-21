@@ -12,6 +12,7 @@ import { QUESTION_BANK, MASTERY_BADGES, type MasteryTrialQuestion } from '../dat
 import { useQuestStore } from '../store/useQuestStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { UserAvatarMenu } from './UserAvatarMenu';
+import { CertificateModal } from './CertificateModal';
 import confetti from 'canvas-confetti';
 
 const TOTAL_QUESTIONS = 30;
@@ -733,6 +734,7 @@ function ReportCard({
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [displayPct, setDisplayPct] = useState(0);
+  const [showCertModal, setShowCertModal] = useState(false);
   const [backTopHovered, setBackTopHovered] = useState(false);
   const [backBottomHovered, setBackBottomHovered] = useState(false);
   const [reportHomeHovered, setReportHomeHovered] = useState(false);
@@ -982,6 +984,40 @@ function ReportCard({
             <RotateCcw size={15} /> Retake Trial
           </button>
         </motion.div>
+
+        {/* ── Certificate button (passed only) ── */}
+        {passed && (
+          <motion.button
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.65 }}
+            onClick={() => setShowCertModal(true)}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-black transition"
+            style={{
+              background: isDark
+                ? 'linear-gradient(135deg, rgba(124,58,237,0.18), rgba(99,102,241,0.12))'
+                : 'linear-gradient(135deg, rgba(99,102,241,0.1), rgba(59,130,246,0.08))',
+              border: `1px solid ${theme.accent}44`,
+              color: theme.accent,
+            }}
+          >
+            ✦ Download Certificate
+          </motion.button>
+        )}
+
+        {showCertModal && (() => {
+          const s = masteryScores[zoneMeta.id];
+          const iso = s?.firstPassedAt ?? s?.lastAttemptAt;
+          const completionDate = iso ? new Date(iso) : undefined;
+          return (
+            <CertificateModal
+              zoneId={zoneMeta.id}
+              zoneName={zoneMeta.title}
+              completionDate={completionDate}
+              onClose={() => setShowCertModal(false)}
+            />
+          );
+        })()}
 
         {/* ── Per-question breakdown ── */}
         <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/50 overflow-hidden">
