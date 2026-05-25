@@ -9,7 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { ArrowLeft, BookOpen, Swords, ChevronDown, CheckCircle2, Lock, Menu, X, Trophy } from 'lucide-react';
+import { ArrowLeft, BookOpen, Swords, ChevronDown, CheckCircle2, Lock, Menu, X, Trophy, Target } from 'lucide-react';
 import { ZONES_CONTENT } from '../data/analogies';
 import { MASTERY_BADGES, QUESTION_BANK } from '../data/questionBank';
 import { ZONES, ZONE_TIERS } from '../data/zones';
@@ -221,8 +221,29 @@ export default function ZoneView() {
           </button>
         </div>
 
-        {/* ── RIGHT: Mastery Trial + Avatar dropdown ── */}
+        {/* ── RIGHT: War Room + Mastery Trial + Avatar dropdown ── */}
         <div className="flex-1 flex justify-end items-center gap-2 sm:gap-3">
+          {/* War Room button */}
+          <button
+            onClick={() => navigate(`/zone/${id}/interview`)}
+            aria-label="War Room — Interview Prep"
+            title="War Room — Interview Prep"
+            className={`group flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 transition-all duration-200 flex-shrink-0 active:scale-[0.98] hover:scale-[1.03] ${
+              isDark
+                ? 'bg-amber-900/20 border-amber-600/40 text-amber-300 hover:border-amber-500/70 hover:bg-amber-900/30 hover:text-amber-200'
+                : 'bg-amber-50 border-amber-400 text-amber-800 hover:bg-amber-100 hover:border-amber-500'
+            }`}
+          >
+            <span className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 border ${
+              isDark ? 'bg-slate-900/80 border-amber-600/40' : 'bg-white border-amber-300'
+            }`}>
+              <Target size={13} className="group-hover:scale-110 transition-transform duration-200" />
+            </span>
+            <span className={`hidden md:inline text-xs uppercase tracking-[0.08em] ${isDark ? 'font-black' : 'font-bold'}`}>
+              War Room
+            </span>
+          </button>
+
           {(QUESTION_BANK[id || ''] ?? []).length > 0 && (() => {
             const earned = masteryBadges[id || ''] === true;
             const badge = MASTERY_BADGES[id || ''];

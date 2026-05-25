@@ -13,10 +13,11 @@ import { useAuthStore } from './store/useAuthStore';
 import { ZONES, ZONE_TIERS, getLevel, getTotalModuleCount } from './data/zones';
 
 // ── Lazy-loaded routes (excluded from initial bundle) ─────────
-const ZoneView         = React.lazy(() => import('./components/ZoneView'));
-const MasteryTrialPage = React.lazy(() => import('./components/MasteryTrialPage'));
-const BadgesPage       = React.lazy(() => import('./components/BadgesPage'));
-const AuthPage         = React.lazy(() => import('./components/AuthPage').then(m => ({ default: m.AuthPage })));
+const ZoneView            = React.lazy(() => import('./components/ZoneView'));
+const MasteryTrialPage    = React.lazy(() => import('./components/MasteryTrialPage'));
+const BadgesPage          = React.lazy(() => import('./components/BadgesPage'));
+const InterviewArenaPage  = React.lazy(() => import('./components/InterviewArenaPage'));
+const AuthPage            = React.lazy(() => import('./components/AuthPage').then(m => ({ default: m.AuthPage })));
 
 // ─────────────────────────────────────────────────────────────
 //  🗺️  ZONE PROGRESS MAP
@@ -859,6 +860,7 @@ export default function App() {
               <Route path="/" element={<ProtectedRoute><HubMap /></ProtectedRoute>} />
               <Route path="/zone/:id" element={<ProtectedRoute><ZoneView /></ProtectedRoute>} />
               <Route path="/zone/:id/mastery" element={<ProtectedRoute><MasteryTrialPage /></ProtectedRoute>} />
+              <Route path="/zone/:id/interview" element={<ProtectedRoute><InterviewArenaPage /></ProtectedRoute>} />
               <Route path="/badges" element={<ProtectedRoute><BadgesPage /></ProtectedRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
