@@ -4461,7 +4461,3127 @@ The goal: catch mismatches at *design time*, where they're cheap, instead of dur
     },
 
   ],
-  typescript: [],
-  playwright: [],
-  'ai-qa': [],
+  typescript: [
+
+    // ── Junior (0–2 yrs) ──────────────────────────────────────
+    {
+      id: 'ts-jr-1',
+      level: 'junior',
+      topic: 'Fundamentals',
+      question: 'What is TypeScript, and how does it differ from JavaScript?',
+      answer: `TypeScript is a **superset of JavaScript** that adds **static types**. You write normal JS plus type annotations; the TypeScript compiler (\`tsc\`) checks the types and then strips them, producing plain JavaScript that runs anywhere JS runs.
+
+The key win: type errors are caught **at compile time** (right in your editor), not at runtime.
+
+\`\`\`ts
+// JavaScript — error only blows up when it runs:
+function greet(name) { return "Hi " + name.toUpperCase(); }
+greet(42);  // 💥 runtime crash
+
+// TypeScript — caught while you type:
+function greet(name: string) { return "Hi " + name.toUpperCase(); }
+greet(42);  // ❌ compile error: 42 is not a string
+\`\`\``,
+      analogy: `JavaScript is writing in pen — mistakes only surface when someone reads it aloud (runtime). TypeScript is writing with spell-check on — it underlines the mistake *as you type*, before anyone reads it.`,
+    },
+    {
+      id: 'ts-jr-2',
+      level: 'junior',
+      topic: 'Types',
+      question: 'What are the basic types in TypeScript?',
+      answer: `The everyday ones:
+- \`string\`, \`number\`, \`boolean\`
+- Arrays — \`number[]\` or \`string[]\`
+- \`null\` and \`undefined\`
+- \`any\` (opt out of checking), \`unknown\` (the safe \`any\`), \`void\` (no useful return), \`never\` (never returns)
+- \`object\`, **tuple**, and **enum**
+
+\`\`\`ts
+let name: string = "Asha";
+let age: number = 30;
+let active: boolean = true;
+let scores: number[] = [90, 85];
+\`\`\``,
+      analogy: `Types are like labelled containers in a kitchen — the "flour" jar only holds flour, the "sugar" jar only sugar. The label stops you pouring salt into the sugar jar by mistake.`,
+    },
+    {
+      id: 'ts-jr-3',
+      level: 'junior',
+      topic: 'Types',
+      question: 'What is the difference between type inference and type annotation?',
+      answer: `- **Annotation** — you write the type explicitly: \`let age: number = 30;\`
+- **Inference** — TypeScript works it out from the value: \`let age = 30;\` is inferred as \`number\`.
+
+Lean on inference for simple values (less clutter), but **annotate function parameters and return types**, and anywhere inference can't tell.
+
+\`\`\`ts
+let city = "Pune";        // inferred as string
+let count: number = 0;    // annotated
+\`\`\``,
+      analogy: `Annotation is labelling a box yourself. Inference is the smart assistant who watches you put apples in and labels it "apples" automatically.`,
+    },
+    {
+      id: 'ts-jr-4',
+      level: 'junior',
+      topic: 'JavaScript Basics',
+      question: 'What is the difference between let, const, and var?',
+      answer: `- **\`var\`** — function-scoped, hoisted, can be redeclared. Legacy; avoid it.
+- **\`let\`** — block-scoped, can be reassigned.
+- **\`const\`** — block-scoped, **cannot be reassigned** (though the *contents* of a const object/array can still change).
+
+\`\`\`ts
+const MAX = 100;     // can't reassign MAX
+let total = 0;       // can reassign
+const list = [1];
+list.push(2);        // ✅ allowed — contents change, binding doesn't
+\`\`\``,
+      analogy: `\`const\` is a reserved parking spot for one car — you can't swap the car, but you can rearrange what's inside it. \`let\` is a spot you can park different cars in. \`var\` is the old free-for-all lot with confusing rules.`,
+    },
+    {
+      id: 'ts-jr-5',
+      level: 'junior',
+      topic: 'Types',
+      question: 'What is the difference between any, unknown, and never?',
+      answer: `- **\`any\`** — turns *off* type checking; anything goes. Use sparingly — it defeats the point of TS.
+- **\`unknown\`** — "could be anything, but you must *check* it before you use it." The **safe** version of \`any\`.
+- **\`never\`** — a value that *never* occurs (a function that always throws, or an impossible branch).
+
+\`\`\`ts
+let a: any = 5;       a.foo.bar;        // no error (risky!)
+let u: unknown = 5;   // u.toFixed();   ❌ must narrow first
+function fail(): never { throw new Error("x"); }
+\`\`\``,
+      analogy: `\`any\` is a blank cheque — dangerous. \`unknown\` is a sealed box you must open and inspect before using what's inside. \`never\` is a door that never opens — nothing ever comes through it.`,
+    },
+    {
+      id: 'ts-jr-6',
+      level: 'junior',
+      topic: 'Types',
+      question: 'What is the difference between an interface and a type?',
+      answer: `Both describe the *shape* of data:
+- **\`interface\`** — best for object and class shapes; can be **extended** and supports **declaration merging** (re-opening to add members).
+- **\`type\`** — more flexible; can alias *anything* — unions, primitives, tuples, intersections.
+
+Rule of thumb: \`interface\` for object/class shapes, \`type\` for unions and complex types. For plain objects they're often interchangeable.
+
+\`\`\`ts
+interface User { name: string; age: number }
+type ID = string | number;   // only 'type' can do this
+\`\`\``,
+      analogy: `Both are blueprints. An \`interface\` is a building blueprint you can add extensions onto; a \`type\` is a more general label that can name *any* shape — even "this OR that."`,
+    },
+    {
+      id: 'ts-jr-7',
+      level: 'junior',
+      topic: 'Types',
+      question: 'What are union and intersection types?',
+      answer: `- **Union (\`|\`)** — a value can be *one of* several types: \`string | number\`.
+- **Intersection (\`&\`)** — combines types into one that has *all* their members: \`A & B\`.
+
+\`\`\`ts
+let id: string | number;        // union: either is allowed
+type Staff = Person & Employee; // intersection: has all of both
+\`\`\``,
+      analogy: `A **union** is "tea OR coffee" — one of them. An **intersection** is a combo meal — burger AND fries AND a drink, all together.`,
+    },
+    {
+      id: 'ts-jr-8',
+      level: 'junior',
+      topic: 'Types',
+      question: 'What are optional properties in TypeScript?',
+      answer: `A \`?\` after a property name means it may be present or absent. Reading it gives \`T | undefined\`, so your code must handle the missing case.
+
+\`\`\`ts
+interface User {
+  name: string;
+  age?: number;     // optional
+}
+const u: User = { name: "Asha" };   // ✅ age omitted is fine
+\`\`\``,
+      analogy: `A form where some fields are required (name) and some optional (middle name). You can submit without the optional ones — but your code has to cope when they're blank.`,
+    },
+    {
+      id: 'ts-jr-9',
+      level: 'junior',
+      topic: 'Types',
+      question: 'What is a tuple, and how is it different from an array?',
+      answer: `- An **array** holds many values of the *same* type, any length: \`number[]\`.
+- A **tuple** is a *fixed-length* array where *each position* has a specific type.
+
+\`\`\`ts
+let scores: number[] = [90, 85, 70];   // array — all numbers
+let user: [string, number] = ["Asha", 30];  // tuple — name then age
+\`\`\``,
+      analogy: `An array is a bag of identical apples — any number of them. A tuple is an egg carton with labelled slots: slot 1 must be a name, slot 2 a number, and the size is fixed.`,
+    },
+    {
+      id: 'ts-jr-10',
+      level: 'junior',
+      topic: 'Types',
+      question: 'What is an enum in TypeScript?',
+      answer: `An **enum** is a named set of constant values — it makes fixed options readable instead of using "magic" numbers or strings.
+
+\`\`\`ts
+enum Status { Active, Inactive, Banned }   // 0, 1, 2 under the hood
+let s: Status = Status.Active;
+
+enum Role { Admin = "ADMIN", User = "USER" }   // string enum (clearer in logs)
+\`\`\``,
+      analogy: `Labelled switch positions — "OFF / LOW / HIGH" — instead of remembering "0, 1, 2." The names make the code explain itself.`,
+    },
+    {
+      id: 'ts-jr-11',
+      level: 'junior',
+      topic: 'Functions',
+      question: 'How do you type a function\'s parameters and return value?',
+      answer: `Annotate each parameter, and put the return type after the parentheses:
+
+\`\`\`ts
+function add(a: number, b: number): number {
+  return a + b;
+}
+
+const greet = (name: string): string => \`Hi \${name}\`;
+\`\`\`
+TypeScript can *infer* the return type, but annotating it documents intent and catches mistakes early.`,
+      analogy: `A recipe that states exactly what ingredients go in (parameters) and what dish comes out (return type) — so no one hands you a fish when you ordered a cake.`,
+    },
+    {
+      id: 'ts-jr-12',
+      level: 'junior',
+      topic: 'Types',
+      question: 'What is type assertion (`as`), and when do you use it?',
+      answer: `Type assertion tells the compiler "trust me, I know this value's type better than you do":
+
+\`\`\`ts
+const el = document.getElementById("name") as HTMLInputElement;
+el.value;   // now TS knows it has .value
+\`\`\`
+Use it when you genuinely know more than TS can infer (DOM elements, narrowing an \`unknown\`). Don't abuse it — it **bypasses** checks and can hide real bugs.`,
+      analogy: `Vouching for someone at a club door — "I know them, let them in." Fine if you're right; risky if you're wrong, because you've overridden the bouncer (the compiler).`,
+    },
+    {
+      id: 'ts-jr-13',
+      level: 'junior',
+      topic: 'Types',
+      question: 'How do you type an array in TypeScript?',
+      answer: `Two equivalent ways:
+
+\`\`\`ts
+let nums: number[] = [1, 2, 3];
+let names: Array<string> = ["a", "b"];     // generic form
+let mixed: (string | number)[] = [1, "a"]; // union of types
+\`\`\`
+\`number[]\` is the common shorthand; \`Array<number>\` means exactly the same.`,
+      analogy: `Labelling a shelf "books only." \`number[]\` is just saying "this shelf holds numbers" — both notations mean the same thing.`,
+    },
+    {
+      id: 'ts-jr-14',
+      level: 'junior',
+      topic: 'Types',
+      question: 'What does `readonly` do?',
+      answer: `\`readonly\` marks a property that can be set once (at creation) but never reassigned afterward.
+
+\`\`\`ts
+interface Point { readonly x: number; readonly y: number }
+const p: Point = { x: 1, y: 2 };
+p.x = 5;   // ❌ compile error — cannot assign to a readonly property
+\`\`\`
+There's also \`readonly number[]\` / \`ReadonlyArray<T>\` for arrays you don't want mutated.`,
+      analogy: `Writing in permanent marker versus pencil. \`readonly\` fields are the permanent-marker ones — you can read them forever, but you can't rub them out and rewrite.`,
+    },
+    {
+      id: 'ts-jr-15',
+      level: 'junior',
+      topic: 'Functions',
+      question: 'What does the `void` type mean?',
+      answer: `\`void\` is the type for a function that **returns nothing useful** — typically a side-effect function.
+
+\`\`\`ts
+function log(msg: string): void {
+  console.log(msg);   // does something, returns nothing
+}
+\`\`\`
+It's different from \`never\`: \`void\` returns (just nothing meaningful); \`never\` never returns at all.`,
+      analogy: `\`void\` is a task you do for its *effect*, not its output — like switching off the lights. You don't expect anything handed back.`,
+    },
+    {
+      id: 'ts-jr-16',
+      level: 'junior',
+      topic: 'Types',
+      question: 'What are literal types?',
+      answer: `A **literal type** is an *exact value*, not just a category. Combined with a union, it restricts a value to a fixed set of options.
+
+\`\`\`ts
+let direction: "left" | "right";
+direction = "left";    // ✅
+direction = "up";      // ❌ not one of the allowed literals
+\`\`\``,
+      analogy: `Instead of "any word" (a plain \`string\`), it's a multiple-choice question with only the allowed answers — "left" or "right," nothing else.`,
+    },
+    {
+      id: 'ts-jr-17',
+      level: 'junior',
+      topic: 'Types',
+      question: 'What is a type alias?',
+      answer: `A custom name for a type, created with \`type\`. Great for reusing unions, object shapes, or function types without repeating them.
+
+\`\`\`ts
+type ID = string | number;
+type User = { name: string; id: ID };
+
+function find(id: ID) { /* ... */ }
+\`\`\``,
+      analogy: `A nickname for something complicated. Instead of repeating the full description every time, you give it a short name everyone understands.`,
+    },
+    {
+      id: 'ts-jr-18',
+      level: 'junior',
+      topic: 'JavaScript Basics',
+      question: 'What is the difference between == and === ?',
+      answer: `- **\`==\`** — loose equality; it *converts types* before comparing, so \`0 == "0"\` is \`true\`. Surprising and bug-prone.
+- **\`===\`** — strict equality; checks value **and** type, so \`0 === "0"\` is \`false\`.
+
+Always prefer \`===\` to avoid type-coercion surprises.
+
+\`\`\`ts
+0 == "0"    // true  😬
+0 === "0"   // false ✅
+\`\`\``,
+      analogy: `\`===\` is a strict bouncer checking both your name *and* your ID match exactly. \`==\` is a lenient one who accepts "close enough" — which lets impostors slip through.`,
+    },
+    {
+      id: 'ts-jr-19',
+      level: 'junior',
+      topic: 'JavaScript Basics',
+      question: 'What is the difference between null and undefined?',
+      answer: `- **\`undefined\`** — a variable declared but not assigned, or a missing property. "Nothing has been set."
+- **\`null\`** — an *intentional* empty value you assign on purpose. "Set to nothing, deliberately."
+
+With \`strictNullChecks\` on, TypeScript forces you to handle both before using a value.
+
+\`\`\`ts
+let a;            // undefined
+let b = null;     // explicitly empty
+\`\`\``,
+      analogy: `\`undefined\` is a form field nobody has filled in yet. \`null\` is a field where someone deliberately wrote "N/A."`,
+    },
+    {
+      id: 'ts-jr-20',
+      level: 'junior',
+      topic: 'Fundamentals',
+      question: 'Does the browser or Node run TypeScript directly? How does it run?',
+      answer: `No — browsers and Node only run **JavaScript**. The TypeScript compiler (\`tsc\`) **transpiles** your \`.ts\` files into \`.js\`, and the **types are erased** — they exist only at compile time.
+
+So types help you *while coding* but add **zero runtime overhead** and do **no runtime checking**. A value typed as \`number\` can still arrive as a string at runtime if it comes from outside (an API), which is why you still validate external data.`,
+      analogy: `Types are the scaffolding around a building under construction — essential while building, but taken down before anyone moves in. The finished building (the JS) has no scaffolding left.`,
+    },
+    {
+      id: 'ts-jr-21',
+      level: 'junior',
+      topic: 'Tooling',
+      question: 'What is tsconfig.json, and what does strict mode do?',
+      answer: `\`tsconfig.json\` configures the compiler — which files to include, the target JavaScript version, output folder, and how strict the type-checking is.
+
+\`"strict": true\` switches on a bundle of safety checks at once (\`strictNullChecks\`, \`noImplicitAny\`, and more). It catches far more bugs, and most teams keep it on.
+
+\`\`\`json
+{ "compilerOptions": { "strict": true, "target": "ES2020" } }
+\`\`\``,
+      analogy: `It's the settings panel for your spell-checker. Strict mode is cranking the sensitivity all the way up, so it flags even the subtle mistakes, not just the glaring ones.`,
+    },
+    {
+      id: 'ts-jr-22',
+      level: 'junior',
+      topic: 'Functions',
+      question: 'What are optional and default function parameters?',
+      answer: `- **Optional** (\`?\`) — the parameter may be omitted; its type becomes \`T | undefined\`.
+- **Default** — a value used when the argument isn't supplied.
+
+\`\`\`ts
+function greet(name: string, title?: string) { /* title may be undefined */ }
+function pour(size: string, sugar = 0) { /* sugar defaults to 0 */ }
+\`\`\`
+Optional/default parameters must come **after** the required ones.`,
+      analogy: `Ordering coffee — the size is required, "extra shot?" is optional, and "sugar" defaults to none unless you ask for it.`,
+    },
+    {
+      id: 'ts-jr-23',
+      level: 'junior',
+      topic: 'JavaScript Basics',
+      question: 'What is destructuring, and how does it work with types?',
+      answer: `Destructuring pulls values out of objects or arrays into variables in one line. TypeScript infers each variable's type from the source (or you can annotate the whole pattern).
+
+\`\`\`ts
+const user = { name: "Asha", age: 30 };
+const { name, age } = user;       // name: string, age: number
+
+const arr = [1, 2];
+const [first, second] = arr;      // both number
+\`\`\``,
+      analogy: `Unpacking a labelled grocery bag straight onto the counter — instead of reaching in for one item at a time, you lay them all out at once, each by name.`,
+    },
+    {
+      id: 'ts-jr-24',
+      level: 'junior',
+      topic: 'Types',
+      question: 'How do you describe the shape of an object in TypeScript?',
+      answer: `Use an inline type, a \`type\` alias, or an \`interface\` — describe the *actual* shape, not just the vague \`object\` type.
+
+\`\`\`ts
+// inline
+const user: { name: string; age: number } = { name: "Asha", age: 30 };
+
+// reusable
+interface User { name: string; age: number }
+const u: User = { name: "Ben", age: 25 };
+\`\`\`
+The bare \`object\` type is too vague to be useful — say what fields it has.`,
+      analogy: `A packing list for a box — not just "a box," but exactly what's inside and of what kind, so whoever receives it knows what to expect.`,
+    },
+    {
+      id: 'ts-jr-25',
+      level: 'junior',
+      topic: 'Types',
+      question: 'What is structural typing (duck typing) in TypeScript?',
+      answer: `TypeScript checks type compatibility by **shape**, not by name. If an object has all the required properties of a type, it's accepted — even if it was never explicitly declared as that type.
+
+\`\`\`ts
+interface User { name: string; age: number }
+function save(u: User) {}
+
+const person = { name: "Asha", age: 30, city: "Pune" };
+save(person);   // ✅ has name + age, so it fits — extra 'city' is fine
+\`\`\``,
+      analogy: `"If it walks like a duck and quacks like a duck, it's a duck." TypeScript doesn't check the label on the animal — only whether it has the duck features.`,
+    },
+    {
+      id: 'ts-jr-26',
+      level: 'junior',
+      topic: 'JavaScript Basics',
+      question: 'What are optional chaining (?.) and nullish coalescing (??)?',
+      answer: `- **\`?.\`** — safely access a nested property that might not exist; returns \`undefined\` instead of crashing.
+- **\`??\`** — provide a fallback *only* when the left side is \`null\` or \`undefined\` (unlike \`||\`, it won't trigger on \`0\` or \`""\`).
+
+\`\`\`ts
+const city = user?.address?.city;   // undefined if user/address missing
+const name = input ?? "Guest";      // "Guest" only if input is null/undefined
+const count = 0 || 5;   // 5  (|| treats 0 as falsy)
+const safe  = 0 ?? 5;   // 0  (?? only replaces null/undefined)
+\`\`\``,
+      analogy: `\`?.\` is tip-toeing down a corridor, checking each door exists before opening it — no faceplant if one's missing. \`??\` is "use my backup plan only if there's *genuinely* nothing there."`,
+    },
+    // ── Mid (2–5 yrs) ─────────────────────────────────────────
+    {
+      id: 'ts-mid-1',
+      level: 'mid',
+      topic: 'Generics',
+      question: 'What are generics, and why use them?',
+      answer: `Generics let you write **reusable** code that works with *any* type while keeping full type safety — the type becomes a parameter. Without them you'd fall back to \`any\` (losing safety) or duplicate the function per type.
+
+\`\`\`ts
+function first<T>(arr: T[]): T {
+  return arr[0];
+}
+first([1, 2, 3]);     // T = number → returns number
+first(["a", "b"]);    // T = string → returns string
+\`\`\``,
+      analogy: `A generic is a labelled-but-empty shipping-box *template* — the same box design works for books, mugs, or shoes, and whatever you put in is what you get out. The \`<T>\` is "fill in the contents type."`,
+    },
+    {
+      id: 'ts-mid-2',
+      level: 'mid',
+      topic: 'Generics',
+      question: 'What is a generic constraint?',
+      answer: `\`<T extends X>\` restricts what T can be, so you can safely use X's members inside.
+
+\`\`\`ts
+function len<T extends { length: number }>(x: T): number {
+  return x.length;          // safe — T is guaranteed to have .length
+}
+len("hello");   // ✅ string has length
+len([1, 2]);    // ✅ array has length
+len(42);        // ❌ number has no length
+\`\`\``,
+      analogy: `A vending machine that accepts "any coin, as long as it's round and fits the slot." The constraint guarantees the minimum features you need before letting it in.`,
+    },
+    {
+      id: 'ts-mid-3',
+      level: 'mid',
+      topic: 'Utility Types',
+      question: 'What are utility types? Name the common ones.',
+      answer: `Built-in generics that *transform* an existing type:
+- \`Partial<T>\` — make all properties optional.
+- \`Required<T>\` — make all properties required.
+- \`Readonly<T>\` — make all properties readonly.
+- \`Pick<T, K>\` — keep only some properties.
+- \`Omit<T, K>\` — remove some properties.
+
+\`\`\`ts
+interface User { id: number; name: string; email: string }
+type UserUpdate = Partial<User>;          // all optional
+type PublicUser = Omit<User, "email">;    // drops email
+\`\`\``,
+      analogy: `Photo filters for types — same base image (the type), and each filter (utility) produces a tweaked version without redrawing it from scratch.`,
+    },
+    {
+      id: 'ts-mid-4',
+      level: 'mid',
+      topic: 'Utility Types',
+      question: 'What is the Record<K, V> type?',
+      answer: `\`Record<K, V>\` builds an object type with keys of type K and values of type V — great for dictionaries and lookups.
+
+\`\`\`ts
+const ages: Record<string, number> = { asha: 30, ben: 25 };
+
+type Role = "admin" | "user";
+const perms: Record<Role, boolean> = { admin: true, user: false };
+// ↑ TS requires exactly the keys 'admin' and 'user'
+\`\`\``,
+      analogy: `A labelled filing cabinet where you declare up front "every drawer label is a string, and every drawer holds a number."`,
+    },
+    {
+      id: 'ts-mid-5',
+      level: 'mid',
+      topic: 'Narrowing',
+      question: 'What is type narrowing?',
+      answer: `TypeScript *narrows* a broad type to a more specific one inside a conditional, based on a check — \`typeof\`, \`instanceof\`, the \`in\` operator, or truthiness. Inside the branch, TS knows the narrower type.
+
+\`\`\`ts
+function format(x: string | number) {
+  if (typeof x === "string") {
+    return x.toUpperCase();   // here TS knows x is string
+  }
+  return x.toFixed(2);        // here it must be number
+}
+\`\`\``,
+      analogy: `A detective ruling out suspects — each clue (check) narrows "it could be anyone" down to exactly who you're dealing with, so you can act confidently.`,
+    },
+    {
+      id: 'ts-mid-6',
+      level: 'mid',
+      topic: 'Narrowing',
+      question: 'What is a user-defined type guard?',
+      answer: `A function whose return type is \`x is SomeType\` — it tells TypeScript how to narrow a value.
+
+\`\`\`ts
+function isCat(a: Animal): a is Cat {
+  return "meow" in a;
+}
+
+if (isCat(pet)) {
+  pet.meow();   // TS now treats pet as Cat
+}
+\`\`\``,
+      analogy: `A trained sniffer dog at customs — once it signals "this is a cat" (\`a is Cat\`), the officers treat the bag accordingly, no re-checking needed.`,
+    },
+    {
+      id: 'ts-mid-7',
+      level: 'mid',
+      topic: 'Types',
+      question: 'What is a discriminated (tagged) union?',
+      answer: `A union of object types that share a common literal "tag" field. TypeScript narrows by checking that tag — clean and exhaustive.
+
+\`\`\`ts
+type Shape =
+  | { kind: "circle"; r: number }
+  | { kind: "square"; side: number };
+
+function area(s: Shape): number {
+  if (s.kind === "circle") return Math.PI * s.r * s.r;
+  return s.side * s.side;        // TS knows s is the square here
+}
+\`\`\``,
+      analogy: `Parcels labelled on the outside — "FRAGILE / FROZEN" — so the handler instantly knows how to treat each one without opening it.`,
+    },
+    {
+      id: 'ts-mid-8',
+      level: 'mid',
+      topic: 'Types',
+      question: 'What does `keyof` do?',
+      answer: `\`keyof\` produces a *union of an object type's keys*. It's the foundation of type-safe property access.
+
+\`\`\`ts
+interface User { id: number; name: string }
+type UserKey = keyof User;     // "id" | "name"
+
+function get<T, K extends keyof T>(obj: T, key: K): T[K] {
+  return obj[key];             // type-safe: key must be a real key
+}
+\`\`\``,
+      analogy: `\`keyof\` is asking for the *list of valid labels* on a form, so you can only request fields that actually exist on it.`,
+    },
+    {
+      id: 'ts-mid-9',
+      level: 'mid',
+      topic: 'Types',
+      question: 'What is the `typeof` type query (the type-level one)?',
+      answer: `In a *type* context, \`typeof x\` gives you the **type of a value**, so you can derive a type from existing data instead of writing it twice.
+
+\`\`\`ts
+const config = { port: 3000, host: "localhost" };
+type Config = typeof config;   // { port: number; host: string }
+\`\`\`
+(This is different from the runtime \`typeof\` operator that returns a string like \`"number"\`.)`,
+      analogy: `Tracing the outline of an object you already have, instead of re-measuring it and drawing the blueprint again from scratch.`,
+    },
+    {
+      id: 'ts-mid-10',
+      level: 'mid',
+      topic: 'Types',
+      question: 'What is an index signature?',
+      answer: `It describes objects whose keys aren't known ahead of time — any key of a given type maps to a value of a given type.
+
+\`\`\`ts
+interface StringMap {
+  [key: string]: string;
+}
+const headers: StringMap = { "Content-Type": "application/json" };
+\`\`\``,
+      analogy: `A coat-check where any ticket number (key) maps to a coat (value). You declare the *pattern* of keys and values, not each individual one.`,
+    },
+    {
+      id: 'ts-mid-11',
+      level: 'mid',
+      topic: 'Types',
+      question: 'What is a mapped type?',
+      answer: `A type that builds a new type by transforming each property of another, using \`[K in keyof T]\`. It's how utility types like \`Partial\` are made.
+
+\`\`\`ts
+type Optional<T> = { [K in keyof T]?: T[K] };   // all props optional
+type Frozen<T>   = { readonly [K in keyof T]: T[K] };
+\`\`\``,
+      analogy: `A photocopier with a setting — feed in a type, and it copies every field while applying one change (make optional, make readonly) to each one.`,
+    },
+    {
+      id: 'ts-mid-12',
+      level: 'mid',
+      topic: 'Async',
+      question: 'How do you type async functions and Promises?',
+      answer: `An \`async\` function always returns a \`Promise\`; you type the **resolved** value. \`await\` unwraps it.
+
+\`\`\`ts
+async function getUser(id: number): Promise<User> {
+  const res = await fetch(\`/users/\${id}\`);
+  return res.json();
+}
+const user: User = await getUser(1);   // await unwraps Promise<User> → User
+\`\`\`
+\`Awaited<T>\` extracts the resolved type of a Promise if you need it.`,
+      analogy: `A Promise is a tracking number for a parcel. \`Promise<User>\` says "a User will arrive later"; \`await\` is waiting at the door to receive it.`,
+    },
+    {
+      id: 'ts-mid-13',
+      level: 'mid',
+      topic: 'Async',
+      question: 'How do you handle and type errors in async TypeScript?',
+      answer: `Use \`try/catch\` around \`await\`. The catch variable is typed \`unknown\` (because *anything* can be thrown), so you must **narrow** before using it.
+
+\`\`\`ts
+try {
+  await save();
+} catch (e) {
+  if (e instanceof Error) console.log(e.message);   // narrow first
+  else console.log("Unknown error", e);
+}
+\`\`\`
+Don't assume the caught value is an \`Error\` — it might be a string or anything else.`,
+      analogy: `Opening an unmarked package that came back marked "delivery failed" — you don't know what's inside until you check, so you inspect it before reacting.`,
+    },
+    {
+      id: 'ts-mid-14',
+      level: 'mid',
+      topic: 'Modules',
+      question: 'How do import/export work — named vs default?',
+      answer: `- **Named exports** — many per file, imported by their exact name:
+\`\`\`ts
+export function add() {}      →   import { add } from "./math";
+\`\`\`
+- **Default export** — one per file, imported under any name:
+\`\`\`ts
+export default class Api {}   →   import Api from "./api";
+\`\`\`
+Most teams prefer **named** exports — they're explicit and refactor/rename more safely.`,
+      analogy: `Named exports are labelled items on a shelf you ask for by name. A default export is "the one main product" of the shop that you grab without naming it.`,
+    },
+    {
+      id: 'ts-mid-15',
+      level: 'mid',
+      topic: 'Types',
+      question: 'What does `as const` do?',
+      answer: `A **const assertion** freezes a value to its most specific, **readonly** literal type — instead of widening it.
+
+\`\`\`ts
+const dirs = ["left", "right"];           // type: string[]
+const dirs2 = ["left", "right"] as const; // type: readonly ["left", "right"]
+
+type Dir = typeof dirs2[number];          // "left" | "right"
+\`\`\`
+Great for deriving literal unions and locking down config objects.`,
+      analogy: `Laminating a document — it locks the exact contents and makes them read-only, so nothing can widen or be changed afterward.`,
+    },
+    {
+      id: 'ts-mid-16',
+      level: 'mid',
+      topic: 'Types',
+      question: 'What is the non-null assertion operator (`!`)?',
+      answer: `\`x!\` tells TypeScript "this is definitely *not* null or undefined here," removing those from the type.
+
+\`\`\`ts
+const el = document.getElementById("name")!;   // assert it exists
+el.textContent = "Hi";
+\`\`\`
+It's a promise you make to the compiler — if you're wrong, it crashes at runtime. Prefer a real check (\`if (el) ...\`) where you can; use \`!\` only when you're certain.`,
+      analogy: `Signing a waiver that says "I guarantee this isn't empty." Convenient — but *you're* liable if it turns out it was.`,
+    },
+    {
+      id: 'ts-mid-17',
+      level: 'mid',
+      topic: 'Functions',
+      question: 'What is function overloading in TypeScript?',
+      answer: `Declaring multiple **call signatures** for one function so it presents different input/output shapes, with a single implementation underneath.
+
+\`\`\`ts
+function parse(x: string): string[];
+function parse(x: number): number;
+function parse(x: any): any {
+  return typeof x === "string" ? x.split(",") : x * 2;
+}
+\`\`\`
+Callers see the precise signature for their argument type.`,
+      analogy: `A help desk with one phone number but different scripts depending on whether you're a customer or a vendor — same entry point, tailored handling.`,
+    },
+    {
+      id: 'ts-mid-18',
+      level: 'mid',
+      topic: 'Types',
+      question: 'Enums or a union of string literals — which should you use?',
+      answer: `Both model a fixed set of options:
+- **Union of literals** (\`type Role = "admin" | "user"\`) — lightweight, *no runtime code*, narrows beautifully. Many teams prefer it.
+- **Enum** — generates a runtime object (useful for iteration and reverse lookups) but adds JS output.
+
+Default to **literal unions** unless you specifically need the runtime enum features.`,
+      analogy: `A literal union is a sticky label (zero weight). An enum is a physical token you can also carry around at runtime — handier sometimes, heavier always.`,
+    },
+    {
+      id: 'ts-mid-19',
+      level: 'mid',
+      topic: 'Functions',
+      question: 'How do you type callbacks and event handlers?',
+      answer: `Give the parameter a *function type signature* — its arguments and return type.
+
+\`\`\`ts
+function onClick(cb: (e: MouseEvent) => void) { /* ... */ }
+
+const upper = (s: string): string => s.toUpperCase();
+["a", "b"].map(upper);
+
+// React example:
+// onChange={(e: React.ChangeEvent<HTMLInputElement>) => setVal(e.target.value)}
+\`\`\``,
+      analogy: `Handing someone instructions that state exactly what information they'll receive and what they should return — no ambiguity about the hand-off.`,
+    },
+    {
+      id: 'ts-mid-20',
+      level: 'mid',
+      topic: 'Tooling',
+      question: 'How do you use types for a JavaScript library that doesn\'t ship its own?',
+      answer: `1. Many libraries bundle types already — check first.
+2. If not, install community types from **DefinitelyTyped**: \`npm i -D @types/lodash\`.
+3. If still none, write a small declaration file (\`.d.ts\`) or \`declare module "x"\` to describe just what you use.`,
+      analogy: `Buying a foreign appliance — if it doesn't come with an English manual (types), you grab a community-translated one (\`@types\`), or jot down your own quick guide (a \`.d.ts\`).`,
+    },
+    {
+      id: 'ts-mid-21',
+      level: 'mid',
+      topic: 'Types',
+      question: 'What does the `satisfies` operator do?',
+      answer: `\`satisfies\` checks that a value *conforms to* a type **without widening** it — you keep the precise inferred type *and* get the validation.
+
+\`\`\`ts
+type Config = Record<string, number>;
+const cfg = { port: 3000, timeout: 5000 } satisfies Config;
+cfg.port;   // still known as number, and keys stay precise
+\`\`\`
+Unlike \`as\`, it can't lie; unlike a type annotation, it doesn't broaden your literal types.`,
+      analogy: `A tailor checking a suit meets the dress code (validation) while keeping all its specific details — versus stuffing it into a generic "suit" box (annotation) that forgets the details.`,
+    },
+    {
+      id: 'ts-mid-22',
+      level: 'mid',
+      topic: 'Narrowing',
+      question: 'How do you safely use a value typed as `unknown`?',
+      answer: `You must **narrow** it before use — \`typeof\`, \`instanceof\`, property checks, or a type guard. TypeScript won't let you touch an \`unknown\` value's members directly.
+
+\`\`\`ts
+function handle(x: unknown) {
+  if (typeof x === "string") x.toUpperCase();   // ✅ narrowed
+  // x.toUpperCase();  ❌ not allowed without narrowing
+}
+\`\`\`
+This is exactly why \`unknown\` is the *safe* boundary type for API/JSON data.`,
+      analogy: `A mystery package — you can't use the contents until you've opened and identified them. \`unknown\` forces that safety check; \`any\` lets you blindly grab.`,
+    },
+    {
+      id: 'ts-mid-23',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you type the JSON response from an API?',
+      answer: `Define an interface for the expected shape, then type the parsed result:
+
+\`\`\`ts
+interface User { id: number; name: string }
+const res = await fetch("/users/1");
+const user = await res.json() as User;
+\`\`\`
+**Important caveat:** \`res.json()\` returns \`any\`/\`unknown\`, and TS does **no runtime check** — if the API lies, your types lie too. For untrusted data, *validate* at runtime (e.g., with zod) instead of blindly asserting.`,
+      analogy: `A delivery slip describing what *should* be in the box is useful — but a careful tester actually opens the box to confirm (runtime validation), because the slip can be wrong.`,
+    },
+    {
+      id: 'ts-mid-24',
+      level: 'mid',
+      topic: 'Types',
+      question: 'Why does assigning an object literal with an extra field sometimes error?',
+      answer: `When you assign an **object literal directly** to a typed target, TypeScript runs an *excess property check* and flags unknown fields — usually a typo. Assigning via a variable first skips that check (structural typing).
+
+\`\`\`ts
+interface User { name: string }
+const a: User = { name: "Asha", agee: 30 };   // ❌ 'agee' flagged
+
+const tmp = { name: "Asha", agee: 30 };
+const b: User = tmp;                            // ✅ no excess check
+\`\`\``,
+      analogy: `A strict customs form — declare exactly the listed items, and an extra *undeclared* item gets flagged. But if it's already tucked inside your luggage (a variable), they wave it through.`,
+    },
+    {
+      id: 'ts-mid-25',
+      level: 'mid',
+      topic: 'Generics',
+      question: 'What is the difference between a generic function and a generic interface/class?',
+      answer: `- A **generic function** decides its T *per call*, usually inferred from arguments:
+\`\`\`ts
+function wrap<T>(x: T) { return [x]; }   // T inferred each call
+\`\`\`
+- A **generic type/interface/class** is parameterised *when you use it*:
+\`\`\`ts
+interface Box<T> { value: T }
+const b: Box<number> = { value: 1 };     // T specified
+\`\`\``,
+      analogy: `A generic *function* is a printer that adapts to whatever paper you feed it each time. A generic *interface* is a mould you cast once for a specific material.`,
+    },
+    {
+      id: 'ts-mid-26',
+      level: 'mid',
+      topic: 'Types',
+      question: 'What is the difference between an optional property, a default value, and `| undefined`?',
+      answer: `- \`age?: number\` — may be **omitted entirely**; its type is \`number | undefined\`.
+- \`age: number | undefined\` — must be **present**, but can be explicitly \`undefined\`.
+- A **default** (\`function f(age = 18)\`) — fills in a value when omitted, so the body sees a definite \`number\`.
+
+Subtle, but it changes whether callers *can skip* the field.`,
+      analogy: `Optional = the field can be skipped. \`| undefined\` = you must tick the box, but may tick "none." Default = if you skip it, we fill in the standard answer for you.`,
+    },
+
+    // ── Senior (5+ yrs) ───────────────────────────────────────
+    {
+      id: 'ts-sr-1',
+      level: 'senior',
+      topic: 'Advanced Types',
+      question: 'What are conditional types?',
+      answer: `A type that *chooses* based on a condition: \`T extends U ? X : Y\` — type-level branching.
+
+\`\`\`ts
+type IsString<T> = T extends string ? true : false;
+type A = IsString<"hi">;   // true
+type B = IsString<number>; // false
+\`\`\`
+They power much of TS's type machinery, and *distribute* over unions (applied to each member). Combined with \`infer\`, they extract and transform types.`,
+      analogy: `A type-level if/else — the type system asks a yes/no question about a type and picks a result, like a flowchart that runs on types instead of values.`,
+    },
+    {
+      id: 'ts-sr-2',
+      level: 'senior',
+      topic: 'Advanced Types',
+      question: 'What does the `infer` keyword do?',
+      answer: `Inside a conditional type, \`infer\` *captures* part of a type into a variable you can then use.
+
+\`\`\`ts
+type ElementType<T> = T extends (infer U)[] ? U : never;
+type X = ElementType<string[]>;   // string
+
+// it's how ReturnType works:
+type MyReturn<T> = T extends (...args: any[]) => infer R ? R : never;
+\`\`\``,
+      analogy: `A fill-in-the-blank pattern — "if it looks like an array of ___, capture the ___." TypeScript deduces what fits the blank for you.`,
+    },
+    {
+      id: 'ts-sr-3',
+      level: 'senior',
+      topic: 'Advanced Types',
+      question: 'What are advanced mapped types and key remapping?',
+      answer: `Mapped types iterate keys with \`[K in keyof T]\`; you can transform the *values* and **remap the keys** with \`as\`, plus add/remove \`?\` and \`readonly\` modifiers.
+
+\`\`\`ts
+type Getters<T> = {
+  [K in keyof T as \`get\${Capitalize<string & K>}\`]: () => T[K];
+};
+// Getters<{ name: string }>  →  { getName: () => string }
+\`\`\``,
+      analogy: `An assembly line that relabels and reshapes every part as it passes — renaming \`name\` to \`getName\` and adjusting each field systematically.`,
+    },
+    {
+      id: 'ts-sr-4',
+      level: 'senior',
+      topic: 'Advanced Types',
+      question: 'What are template literal types?',
+      answer: `String literal types built with template syntax *at the type level* — so the type enforces a string *pattern*, not just "any string."
+
+\`\`\`ts
+type Event = \`on\${Capitalize<string>}\`;     // "onClick", "onChange", ...
+type Route = \`/users/\${number}\`;             // "/users/123"
+type Hex   = \`#\${string}\`;                   // "#fff"
+\`\`\``,
+      analogy: `A fill-in-the-blanks stamp for strings — the type enforces "starts with /users/ then a number," not merely "some string."`,
+    },
+    {
+      id: 'ts-sr-5',
+      level: 'senior',
+      topic: 'Declaration Files',
+      question: 'How do you write a declaration file (.d.ts) for untyped JavaScript?',
+      answer: `A \`.d.ts\` file contains **types only** — no implementation — describing a JS module so TypeScript understands it.
+
+\`\`\`ts
+// legacy-lib.d.ts
+declare module "legacy-lib" {
+  export function doThing(input: string): number;
+  export const version: string;
+}
+\`\`\`
+Used for untyped dependencies, global variables, and ambient declarations.`,
+      analogy: `Writing the instruction manual for a machine that shipped without one — you describe the buttons and what they do, without rebuilding the machine itself.`,
+    },
+    {
+      id: 'ts-sr-6',
+      level: 'senior',
+      topic: 'Declaration Files',
+      question: 'What is module augmentation / declaration merging?',
+      answer: `Adding to *existing* types without editing their source. Interfaces with the same name **merge**, and modules can be **augmented**.
+
+\`\`\`ts
+// add a property to Express's Request:
+declare global {
+  namespace Express {
+    interface Request { userId?: string }
+  }
+}
+\`\`\``,
+      analogy: `Adding sticky notes to someone else's printed manual — you extend it with your own additions without having to reprint the original.`,
+    },
+    {
+      id: 'ts-sr-7',
+      level: 'senior',
+      topic: 'Advanced Types',
+      question: 'How do you simulate nominal typing (branded types)?',
+      answer: `TypeScript is *structural*, so \`UserId\` and \`OrderId\` (both \`number\`) are interchangeable — risky. A **branded type** adds a phantom marker so a plain number won't fit without an explicit conversion.
+
+\`\`\`ts
+type UserId = number & { readonly __brand: "UserId" };
+function load(id: UserId) {}
+load(123 as UserId);   // must brand it deliberately
+load(123);             // ❌ a raw number won't do
+\`\`\``,
+      analogy: `Two identical-looking keys for different doors — branding stamps each one so you can't accidentally use the house key on the car.`,
+    },
+    {
+      id: 'ts-sr-8',
+      level: 'senior',
+      topic: 'Advanced Types',
+      question: 'How do you guarantee you handled every case of a union (exhaustiveness checking)?',
+      answer: `In a discriminated-union switch, assign the leftover value to \`never\` in the default branch. If someone adds a new variant and forgets to handle it, TS errors at compile time.
+
+\`\`\`ts
+function area(s: Shape): number {
+  switch (s.kind) {
+    case "circle": return Math.PI * s.r * s.r;
+    case "square": return s.side * s.side;
+    default:
+      const _exhaustive: never = s;   // ❌ errors if a new kind is added
+      return _exhaustive;
+  }
+}
+\`\`\``,
+      analogy: `A checklist that refuses to be signed off until *every* box is ticked — add a new item and the unticked box blocks you.`,
+    },
+    {
+      id: 'ts-sr-9',
+      level: 'senior',
+      topic: 'Narrowing',
+      question: 'What are assertion functions (`asserts x is T`)?',
+      answer: `A function that **throws** if a condition fails and, on a normal return, **narrows** the type for the rest of the scope.
+
+\`\`\`ts
+function assertIsString(x: unknown): asserts x is string {
+  if (typeof x !== "string") throw new Error("not a string");
+}
+
+assertIsString(input);
+input.toUpperCase();   // TS now treats input as string
+\`\`\``,
+      analogy: `A bouncer who either throws you out or stamps your hand — after the stamp, everyone downstream treats you as verified without re-checking.`,
+    },
+    {
+      id: 'ts-sr-10',
+      level: 'senior',
+      topic: 'Generics',
+      question: 'What are default and const type parameters in generics?',
+      answer: `- **Default type parameter** — supplies a fallback if the caller doesn't specify:
+\`\`\`ts
+interface Box<T = string> { value: T }
+const b: Box = { value: "hi" };   // T defaults to string
+\`\`\`
+- **\`const\` type parameter** (TS 5+) — infers the *narrowest* literal type, like an inline \`as const\`:
+\`\`\`ts
+function tuple<const T>(x: T): T { return x; }
+tuple(["a", "b"]);   // inferred as readonly ["a", "b"], not string[]
+\`\`\``,
+      analogy: `A default is "standard size unless you specify." A \`const\` param is the assistant who records your *exact words*, not a loose paraphrase.`,
+    },
+    {
+      id: 'ts-sr-11',
+      level: 'senior',
+      topic: 'Advanced Types',
+      question: 'What are covariance and contravariance in TypeScript?',
+      answer: `How subtyping flows through complex types:
+- **Return types are covariant** — a function returning \`Dog\` fits where one returning \`Animal\` is expected (more specific is fine).
+- **Function parameters are contravariant** — a handler accepting \`Animal\` fits where one accepting \`Dog\` is needed (more general is safe). (Under \`strictFunctionTypes\`.)
+
+It matters most for callback and assignability checks.`,
+      analogy: `Covariance: a more *specific* gift is fine when "any gift" was expected. Contravariance: a person who'll accept *any* animal can safely stand in for one who only takes dogs — the more general accepter is the safer substitute.`,
+    },
+    {
+      id: 'ts-sr-12',
+      level: 'senior',
+      topic: 'Advanced Types',
+      question: 'How would you implement your own version of `Pick`?',
+      answer: `Combine a generic, a \`keyof\` constraint, and a mapped type:
+
+\`\`\`ts
+type MyPick<T, K extends keyof T> = {
+  [P in K]: T[P];
+};
+
+type User = { id: number; name: string; email: string };
+type NameOnly = MyPick<User, "name">;   // { name: string }
+\`\`\`
+This shows you understand the machinery behind the built-in utility types.`,
+      analogy: `Building the "photocopier-with-a-setting" yourself — proving you understand the mechanism behind the built-in filters, not just using them.`,
+    },
+    {
+      id: 'ts-sr-13',
+      level: 'senior',
+      topic: 'Safety',
+      question: 'TypeScript types are erased at runtime — how do you keep external data safe?',
+      answer: `Types do **no runtime checking**, so API responses, JSON, and user input typed as \`User\` might not actually be one. At the boundary, **validate** with a schema library (zod, io-ts) that checks at runtime *and* infers the TS type — turning \`unknown\` into a genuinely trusted type. Don't blindly \`as\`.
+
+\`\`\`ts
+const User = z.object({ id: z.number(), name: z.string() });
+const user = User.parse(await res.json());   // validated + typed
+\`\`\``,
+      analogy: `Passport control at the border — *inside* the country (your code) you trust IDs, but at the boundary you physically *check* every passport, because the label alone can be forged.`,
+    },
+    {
+      id: 'ts-sr-14',
+      level: 'senior',
+      topic: 'Design',
+      question: 'What does "make illegal states unrepresentable" mean?',
+      answer: `Design types so impossible combinations *can't even be written*. Instead of a loose object that allows contradictions, use a **discriminated union** of only the valid states.
+
+\`\`\`ts
+// ❌ allows loading + error + data all at once:
+type Bad = { loading: boolean; data?: X; error?: string };
+
+// ✅ only valid states exist:
+type State =
+  | { status: "loading" }
+  | { status: "success"; data: X }
+  | { status: "error"; error: string };
+\`\`\``,
+      analogy: `A form that physically only lets you tick *one* box in a group — you can't accidentally claim to be both "logged in" and "logged out," because the shape simply doesn't allow it.`,
+    },
+    {
+      id: 'ts-sr-15',
+      level: 'senior',
+      topic: 'Tooling',
+      question: 'How do you configure tsconfig for a large project?',
+      answer: `- Turn on **\`strict\`** (plus extras like \`noUncheckedIndexedAccess\`).
+- Use **\`paths\`** for clean, stable imports.
+- Use **project references** to split into independently-buildable sub-projects → faster incremental builds.
+- Share a **base config** that each package extends.
+- **\`skipLibCheck\`** to avoid re-checking every dependency's types.
+
+Tune for both *safety* and *build speed* — they pull in opposite directions at scale.`,
+      analogy: `Zoning a large city — strict building codes for safety, clear road names (paths), and dividing into districts (project references) so you don't rebuild the whole city to fix one street.`,
+    },
+    {
+      id: 'ts-sr-16',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'How do you share types between the frontend and backend?',
+      answer: `Have a **single source of truth**:
+- In a monorepo, put shared types/contracts in a common package both sides import.
+- Or **generate** types from a schema — OpenAPI → TS, Prisma for DB models, or **tRPC** for end-to-end type inference with no codegen.
+
+The goal: the API and the client can't silently drift out of agreement.`,
+      analogy: `Both teams working from *one* master blueprint kept in a shared vault, rather than each keeping their own copy that slowly diverges.`,
+    },
+    {
+      id: 'ts-sr-17',
+      level: 'senior',
+      topic: 'Tooling',
+      question: 'Why do TypeScript builds get slow, and how do you speed them up?',
+      answer: `Causes: huge/complex types (deep conditional or recursive types), checking all of \`node_modules\`, a monolithic project, and heavy inference.
+
+Fixes: \`skipLibCheck\`; **project references** + \`--incremental\` / \`tsc --build\`; simplify gnarly type-level code; use **type-only imports** (\`import type\`); avoid needless complex inference. Profile with \`--extendedDiagnostics\` or \`--generateTrace\`.`,
+      analogy: `A spell-checker bogged down re-scanning the *entire* dictionary on every keystroke — you cache results, split the document into sections, and skip the parts that never change.`,
+    },
+    {
+      id: 'ts-sr-18',
+      level: 'senior',
+      topic: 'Design',
+      question: 'When would you return a Result type instead of throwing an exception?',
+      answer: `Throwing is idiomatic but **invisible in the type signature** — callers may forget to catch. A **Result type** makes failure explicit and forces handling via narrowing:
+
+\`\`\`ts
+type Result<T> = { ok: true; value: T } | { ok: false; error: string };
+\`\`\`
+Use **throw** for truly exceptional/unexpected failures; use **Result** for *expected* failures you want callers to handle deliberately.`,
+      analogy: `Throwing is pulling a fire alarm — loud, interrupts everything. A Result is a clearly labelled "success or failure" envelope handed back, which the receiver *must* open and read.`,
+    },
+    {
+      id: 'ts-sr-19',
+      level: 'senior',
+      topic: 'Advanced Types',
+      question: 'What are indexed access types, and how do you derive types from data?',
+      answer: `\`T[K]\` looks up the type of a property; combined with \`typeof\` and \`as const\`, you derive types straight from data so they never drift.
+
+\`\`\`ts
+type User = { id: number; name: string };
+type Name = User["name"];           // string
+
+const roles = ["admin", "user"] as const;
+type Role = typeof roles[number];   // "admin" | "user"
+\`\`\``,
+      analogy: `Reading the type *off* an object you already have — like measuring a part you're holding, instead of redrawing the spec and risking a mismatch.`,
+    },
+    {
+      id: 'ts-sr-20',
+      level: 'senior',
+      topic: 'Generics',
+      question: 'What makes a well-typed reusable library or utility?',
+      answer: `- Generics with sensible **constraints** and good **inference** — callers shouldn't have to specify \`T\` manually.
+- **No leaking \`any\`**; precise return types.
+- **Overloads** only where input/output genuinely differ.
+- Sensible **defaults**.
+
+The aim: the API "just works" with full IntelliSense and *rejects* misuse at compile time.`,
+      analogy: `A well-designed power tool — adjustable for many jobs (generics), with guards (constraints) so you can't easily hurt yourself, and it feels obvious in the hand (inference).`,
+    },
+    {
+      id: 'ts-sr-21',
+      level: 'senior',
+      topic: 'Advanced Types',
+      question: 'When do you use overloads vs generics vs conditional types?',
+      answer: `- **Generics** — same logic, varying by a type that flows through (\`identity<T>\`).
+- **Overloads** — genuinely *different* input/output shapes for distinct call patterns.
+- **Conditional types** — the return type *depends on* the input type by a rule (\`T extends X ? A : B\`).
+
+Pick the simplest tool that expresses the actual relationship.`,
+      analogy: `Generics = one adjustable wrench. Overloads = a labelled set of fixed spanners. Conditional types = a smart wrench that reshapes itself based on the bolt it meets.`,
+    },
+    {
+      id: 'ts-sr-22',
+      level: 'senior',
+      topic: 'Migration',
+      question: 'How would you migrate a large JavaScript codebase to TypeScript?',
+      answer: `Incrementally — never big-bang:
+1. Add TS with \`allowJs\` and *loose* settings so everything still builds.
+2. Rename files to \`.ts\` gradually, starting with leaf modules and **boundaries** (APIs, shared utils).
+3. Use \`any\` as a temporary placeholder, then tighten.
+4. Turn on strict flags **one at a time** (\`noImplicitAny\`, then \`strictNullChecks\`…) and fix the fallout.
+5. Track debt with \`@ts-expect-error\` comments.`,
+      analogy: `Renovating a house room by room while still living in it — you don't demolish everything at once; you make each room solid, then move to the next.`,
+    },
+    {
+      id: 'ts-sr-23',
+      level: 'senior',
+      topic: 'Testing',
+      question: 'How do you test your TypeScript types themselves?',
+      answer: `For libraries where the *types* are part of the contract, use type-level testing:
+- **\`expectTypeOf\`** (Vitest) or **\`tsd\`** to assert a value has the expected type.
+- **\`@ts-expect-error\`** comments that *fail the build if no error occurs* — proving something is correctly rejected.
+
+\`\`\`ts
+expectTypeOf(add(1, 2)).toEqualTypeOf<number>();
+// @ts-expect-error — must reject a string
+add("a", 2);
+\`\`\``,
+      analogy: `Unit-testing the *blueprint*, not just the building — confirming the plans themselves are correct before anyone builds from them.`,
+    },
+    {
+      id: 'ts-sr-24',
+      level: 'senior',
+      topic: 'Language Features',
+      question: 'What are decorators, and where are they used?',
+      answer: `Decorators are special \`@decorator\` syntax that annotates or modifies classes, methods, and properties — adding behaviour or metadata. They're heavily used by frameworks: Angular (\`@Component\`), NestJS (\`@Injectable\`, \`@Get\`), TypeORM (\`@Entity\`). Enabled via tsconfig; the modern (TS 5) standard differs from the older "experimental" decorators.
+
+\`\`\`ts
+@Injectable()
+class UserService {}
+\`\`\``,
+      analogy: `A sticker you slap on a class that says "treat this specially" — like a "FRAGILE" label that makes the shipping system handle the box differently, without changing what's inside.`,
+    },
+    {
+      id: 'ts-sr-25',
+      level: 'senior',
+      topic: 'Advanced Types',
+      question: 'How do you type recursive or nested structures like JSON or a tree?',
+      answer: `A type can reference *itself*:
+
+\`\`\`ts
+type Json =
+  | string | number | boolean | null
+  | Json[]
+  | { [key: string]: Json };
+
+type TreeNode = { value: number; children: TreeNode[] };
+\`\`\`
+TypeScript handles self-referential types (with some depth limits on heavy *type-level* recursion).`,
+      analogy: `Russian nesting dolls described by one rule — "a doll contains more dolls of the same kind." The definition refers to itself, all the way down.`,
+    },
+    {
+      id: 'ts-sr-26',
+      level: 'senior',
+      topic: 'Types',
+      question: 'When do you use `satisfies` vs `as` vs a plain type annotation?',
+      answer: `- **Annotation** (\`const x: T = ...\`) — checks *and widens* to T (you lose literal precision).
+- **\`as\`** (\`x as T\`) — forces a type with **no real check** (can lie; last resort, e.g. DOM).
+- **\`satisfies\`** (\`x satisfies T\`) — checks conformance but **keeps** the precise inferred type.
+
+Reach for \`satisfies\` when you want validation *without* widening; \`as\` only when you truly know better than the compiler.`,
+      analogy: `Annotation = filing into a labelled folder (loses the specifics). \`as\` = slapping a label on without checking. \`satisfies\` = a QA stamp that verifies it meets spec while keeping every detail intact.`,
+    },
+
+  ],
+  playwright: [
+
+    // ── Junior (0–2 yrs) ──────────────────────────────────────
+    {
+      id: 'pw-jr-1',
+      level: 'junior',
+      topic: 'Fundamentals',
+      question: 'What is Playwright, and what is it used for?',
+      answer: `Playwright is an open-source **end-to-end testing / browser-automation** framework from Microsoft. It drives a *real* browser to act like a user — navigating, clicking, typing — and asserts the app behaves correctly.
+
+It supports multiple browsers and languages (JS/TS, Python, Java, .NET), with **auto-waiting**, parallel execution, and tracing built in.
+
+\`\`\`ts
+import { test, expect } from '@playwright/test';
+
+test('home page loads', async ({ page }) => {
+  await page.goto('https://example.com');
+  await expect(page.getByRole('heading')).toBeVisible();
+});
+\`\`\``,
+      analogy: `A tireless robot user that follows your script exactly — clicking buttons and filling forms across browsers — and shouts the moment anything looks wrong. Far faster and steadier than a human clicking by hand.`,
+    },
+    {
+      id: 'pw-jr-2',
+      level: 'junior',
+      topic: 'Fundamentals',
+      question: 'How is Playwright different from Selenium?',
+      answer: `Both automate browsers, but Playwright is more modern:
+- **Auto-waiting** is built in — Selenium needs manual/explicit waits, a common source of flakiness.
+- One install ships **bundled browsers** (Chromium, Firefox, WebKit); Selenium needs separate drivers.
+- Built-in **trace viewer, parallelism, and network interception**.
+- Generally faster and more reliable.
+
+Selenium's edge: a much longer history, huge ecosystem, and support for more languages and legacy browsers.`,
+      analogy: `Selenium is a dependable older car you tune and bolt parts onto. Playwright is a newer model with cruise control, parking sensors, and a dashcam already built in.`,
+    },
+    {
+      id: 'pw-jr-3',
+      level: 'junior',
+      topic: 'Fundamentals',
+      question: 'Which browsers does Playwright support?',
+      answer: `Three engines that cover all the major browsers from one API:
+- **Chromium** — Chrome and Edge
+- **Firefox**
+- **WebKit** — Safari
+
+It also supports **mobile emulation** (viewport, touch, user-agent) for devices like iPhone and Pixel — useful for responsive testing, though it's emulation, not a real device.`,
+      analogy: `One universal remote that controls every TV brand in the house — write the test once and run it on Chrome, Safari, and Firefox alike.`,
+    },
+    {
+      id: 'pw-jr-4',
+      level: 'junior',
+      topic: 'Setup',
+      question: 'How do you set up a Playwright project?',
+      answer: `One command scaffolds everything:
+
+\`\`\`bash
+npm init playwright@latest
+\`\`\`
+It creates the config, an example test, and (optionally) a CI workflow, and runs \`npx playwright install\` to download the browser binaries. Then:
+
+\`\`\`bash
+npx playwright test
+\`\`\``,
+      analogy: `A starter kit with the tools, a sample project, and the "batteries" (browsers) included — you're testing within minutes, not configuring drivers all afternoon.`,
+    },
+    {
+      id: 'pw-jr-5',
+      level: 'junior',
+      topic: 'Locators',
+      question: 'What is a locator in Playwright?',
+      answer: `A **locator** is a way to find element(s) on the page — but it's *lazy* and *auto-retrying*. It doesn't grab the element immediately; it re-finds it each time you act or assert, so it survives the page re-rendering.
+
+\`\`\`ts
+const submit = page.getByRole('button', { name: 'Submit' });
+await submit.click();   // re-locates at the moment of the click
+\`\`\`
+This is a big reason Playwright tests are resilient.`,
+      analogy: `A locator is a set of *directions* to a person — "the one in the red shirt at the front desk" — not a photo taken once. Even if they move, the directions still find them.`,
+    },
+    {
+      id: 'pw-jr-6',
+      level: 'junior',
+      topic: 'Locators',
+      question: 'What are the recommended ways to locate elements?',
+      answer: `Prefer **user-facing** locators that mirror how a real person (and a screen reader) finds things — they're resilient to code changes:
+
+\`\`\`ts
+page.getByRole('button', { name: 'Submit' });  // best — accessibility-based
+page.getByText('Welcome back');
+page.getByLabel('Email');                       // form fields
+page.getByPlaceholder('Search...');
+page.getByTestId('cart-icon');                  // when nothing better fits
+\`\`\`
+Avoid brittle CSS/XPath tied to page structure.`,
+      analogy: `Finding someone by name and role ("the cashier named Asha") rather than "third person from the left in row 2" — the latter breaks the moment the room is rearranged.`,
+    },
+    {
+      id: 'pw-jr-7',
+      level: 'junior',
+      topic: 'Core Concepts',
+      question: 'What is auto-waiting in Playwright?',
+      answer: `Before acting on an element, Playwright **automatically waits for it to be ready** — visible, enabled, stable, and able to receive events — up to a timeout. No manual \`sleep\` calls.
+
+\`\`\`ts
+await page.getByRole('button', { name: 'Save' }).click();
+// waits until the button is actually clickable, then clicks
+\`\`\`
+This eliminates most timing-related flakiness.`,
+      analogy: `A considerate person who waits for the door to fully open before walking through — instead of charging at it on a fixed timer and bouncing off because it hadn't opened yet.`,
+    },
+    {
+      id: 'pw-jr-8',
+      level: 'junior',
+      topic: 'Test Basics',
+      question: 'How do you write a basic Playwright test?',
+      answer: `Import \`test\` and \`expect\`, then write a \`test()\` block:
+
+\`\`\`ts
+import { test, expect } from '@playwright/test';
+
+test('homepage has the right title', async ({ page }) => {
+  await page.goto('https://example.com');
+  await expect(page).toHaveTitle(/Example/);
+});
+\`\`\`
+The \`{ page }\` is a **fixture** — a fresh, isolated page handed to each test.`,
+      analogy: `A recipe card — a named dish (the test title), the steps (the actions), and a taste-test at the end (the \`expect\`). Anyone can follow it and get the same result.`,
+    },
+    {
+      id: 'pw-jr-9',
+      level: 'junior',
+      topic: 'Actions',
+      question: 'What are the common actions in Playwright?',
+      answer: `\`\`\`ts
+await page.getByRole('button').click();           // click
+await page.getByLabel('Email').fill('a@x.com');   // set input value
+await page.getByLabel('Agree').check();           // checkbox / radio
+await page.getByLabel('Country').selectOption('IN'); // dropdown
+await page.getByRole('textbox').press('Enter');   // keyboard
+await page.getByLabel('Avatar').setInputFiles('pic.png'); // upload
+\`\`\`
+Every action **auto-waits** for the element to be actionable first.`,
+      analogy: `The verbs a real user performs — tap, type, tick, choose, press — each one Playwright performs only once the control is genuinely ready.`,
+    },
+    {
+      id: 'pw-jr-10',
+      level: 'junior',
+      topic: 'Actions',
+      question: 'What is the difference between `fill` and `type` (pressSequentially)?',
+      answer: `- **\`fill('text')\`** — instantly sets the whole value in one go. Fast; preferred for most inputs.
+- **\`pressSequentially('text')\`** — types character by character, firing each keypress. Use only when the app *reacts to individual keystrokes* (live search, autocomplete, masked input). (The old \`type()\` is deprecated in favour of this.)
+
+\`\`\`ts
+await page.getByLabel('Email').fill('a@x.com');           // one shot
+await page.getByLabel('Search').pressSequentially('lap'); // key by key
+\`\`\``,
+      analogy: `\`fill\` is pasting text in one move. \`pressSequentially\` is tapping it out key by key — only needed when something is listening to each tap, like search suggestions.`,
+    },
+    {
+      id: 'pw-jr-11',
+      level: 'junior',
+      topic: 'Assertions',
+      question: 'What are web-first assertions in Playwright?',
+      answer: `Assertions like \`expect(locator).toBeVisible()\` that **automatically retry** until the condition is true or a timeout is reached — ideal for async UIs where elements appear or update after a delay. No manual waits needed.
+
+\`\`\`ts
+await expect(page.getByText('Saved!')).toBeVisible();
+\`\`\`
+Note the \`await\` — web-first assertions are asynchronous.`,
+      analogy: `A patient referee who keeps watching until the play resolves — rather than blowing the whistle the instant they glance over and missing that the goal happened a split-second later.`,
+    },
+    {
+      id: 'pw-jr-12',
+      level: 'junior',
+      topic: 'Assertions',
+      question: 'How do you assert an element\'s text? (toHaveText vs toContainText)',
+      answer: `- **\`toHaveText('Welcome')\`** — the text must match *exactly* (the full string).
+- **\`toContainText('Welcome')\`** — the text only needs to *contain* the substring.
+
+\`\`\`ts
+await expect(page.getByRole('heading')).toHaveText('Dashboard');
+await expect(page.locator('.alert')).toContainText('saved');
+\`\`\`
+Both auto-retry.`,
+      analogy: `\`toHaveText\` is checking a name tag reads *exactly* "Asha Patel." \`toContainText\` is just checking it includes "Asha."`,
+    },
+    {
+      id: 'pw-jr-13',
+      level: 'junior',
+      topic: 'Assertions',
+      question: 'How do you assert an element\'s visibility or state?',
+      answer: `Web-first state assertions, all auto-retrying:
+
+\`\`\`ts
+await expect(loc).toBeVisible();
+await expect(loc).toBeHidden();
+await expect(loc).toBeEnabled();
+await expect(loc).toBeDisabled();
+await expect(loc).toBeChecked();
+await expect(input).toHaveValue('Asha');
+\`\`\``,
+      analogy: `A checklist of an element's condition — is it on screen, can you interact with it, is the box ticked — each one verified patiently, not in a single glance.`,
+    },
+    {
+      id: 'pw-jr-14',
+      level: 'junior',
+      topic: 'Assertions',
+      question: 'How do you assert the page URL or title?',
+      answer: `\`\`\`ts
+await expect(page).toHaveURL(/.*dashboard/);
+await expect(page).toHaveTitle('Home');
+\`\`\`
+Both accept a string or a regex and **auto-retry** — handy right after a navigation that takes a moment to settle.`,
+      analogy: `After walking through a door, confirming the sign on the new room reads what you expected ("Dashboard") before you carry on.`,
+    },
+    {
+      id: 'pw-jr-15',
+      level: 'junior',
+      topic: 'Actions',
+      question: 'How do you navigate in Playwright?',
+      answer: `\`\`\`ts
+await page.goto('https://example.com');   // loads and waits for load
+await page.reload();
+await page.goBack();
+await page.waitForURL('**/dashboard');     // after an action triggers nav
+\`\`\`
+Set a \`baseURL\` in the config so you can use relative paths like \`page.goto('/login')\`.`,
+      analogy: `\`goto\` is typing an address into the browser bar and waiting for the page to settle before you start clicking around.`,
+    },
+    {
+      id: 'pw-jr-16',
+      level: 'junior',
+      topic: 'Locators',
+      question: 'How do you handle multiple matching elements?',
+      answer: `A locator can match many elements. Refine or count them:
+
+\`\`\`ts
+const items = page.getByRole('listitem');
+await items.first().click();
+await items.nth(2).click();
+await expect(items).toHaveCount(5);
+
+for (const item of await items.all()) { /* ... */ }
+\`\`\``,
+      analogy: `A search that returns several results — you pick the first, the last, or the 3rd, or just count them all, instead of assuming there's only ever one.`,
+    },
+    {
+      id: 'pw-jr-17',
+      level: 'junior',
+      topic: 'Tools',
+      question: 'How do you take a screenshot in Playwright?',
+      answer: `\`\`\`ts
+await page.screenshot({ path: 'shot.png' });             // viewport
+await page.screenshot({ path: 'full.png', fullPage: true });
+await page.getByRole('dialog').screenshot({ path: 'modal.png' }); // one element
+\`\`\`
+Playwright can also capture screenshots **automatically on failure** (via config), and do visual comparison with \`toHaveScreenshot()\`.`,
+      analogy: `A camera that snaps the screen on demand — or automatically photographs the scene of the crime the moment a test fails, so you can see what went wrong.`,
+    },
+    {
+      id: 'pw-jr-18',
+      level: 'junior',
+      topic: 'Execution',
+      question: 'What is the difference between headless and headed mode?',
+      answer: `- **Headless** (the default) — the browser runs *invisibly*, with no UI window. Faster, and ideal for CI.
+- **Headed** (\`--headed\`) — you *see* the real browser window as the test runs. Useful for watching or debugging.
+
+\`\`\`bash
+npx playwright test --headed
+\`\`\``,
+      analogy: `Headless is the robot doing the work behind a closed door — fast, no show. Headed is doing it on stage so you can watch every move.`,
+    },
+    {
+      id: 'pw-jr-19',
+      level: 'junior',
+      topic: 'Core Concepts',
+      question: 'What is the difference between a browser, a browser context, and a page?',
+      answer: `- **Browser** — a launched browser instance (relatively expensive; usually shared).
+- **Context** — an isolated, incognito-like session inside the browser, with its *own* cookies and storage. Each test gets its own context, so there's no state bleed.
+- **Page** — a single tab within a context.
+
+Contexts are what make tests independent *and* cheap to run in parallel.`,
+      analogy: `The **browser** is the building; a **context** is a private, soundproof office with its own keys and files; a **page** is one desk inside that office. Two contexts can't see each other's stuff.`,
+    },
+    {
+      id: 'pw-jr-20',
+      level: 'junior',
+      topic: 'Core Concepts',
+      question: 'What are fixtures in Playwright (like the `page` fixture)?',
+      answer: `Fixtures are ready-made objects the test runner sets up and tears down for you. The most common is \`page\` — a fresh, isolated page per test. You destructure whatever you need:
+
+\`\`\`ts
+test('example', async ({ page, request, context }) => { /* ... */ });
+\`\`\`
+They guarantee isolation, cut boilerplate, and you can define your own custom fixtures (e.g., a logged-in page).`,
+      analogy: `A prepped workstation handed to you for each task — tools laid out, then cleaned up afterward — so you don't set up and pack away every single time.`,
+    },
+    {
+      id: 'pw-jr-21',
+      level: 'junior',
+      topic: 'Configuration',
+      question: 'What is playwright.config.ts?',
+      answer: `The central configuration file for the whole suite. It controls:
+- which **browsers/projects** to run, and \`baseURL\`
+- **timeouts**, **retries**, and **parallelism** (\`workers\`)
+- **reporters**
+- \`use\` defaults — headless, viewport, \`trace\`, \`screenshot\`
+- a \`webServer\` block to auto-start your app before tests
+
+\`\`\`ts
+export default defineConfig({
+  use: { baseURL: 'http://localhost:3000', trace: 'on-first-retry' },
+});
+\`\`\``,
+      analogy: `The settings dashboard for your whole test fleet — set it once, and every test obeys.`,
+    },
+    {
+      id: 'pw-jr-22',
+      level: 'junior',
+      topic: 'Execution',
+      question: 'How do you run Playwright tests from the command line?',
+      answer: `\`\`\`bash
+npx playwright test                  # run everything
+npx playwright test --headed         # show the browser
+npx playwright test --project=firefox# one browser only
+npx playwright test -g "login"       # only tests whose title matches
+npx playwright test tests/cart.spec.ts  # one file
+npx playwright test --ui             # interactive UI mode
+\`\`\``,
+      analogy: `A control panel of switches — run everything, just one machine, just the jobs labelled "login," or open the live cockpit (UI mode).`,
+    },
+    {
+      id: 'pw-jr-23',
+      level: 'junior',
+      topic: 'Tools',
+      question: 'How do you debug a failing Playwright test?',
+      answer: `Several built-in options:
+- **\`--debug\`** opens the **Playwright Inspector** — step through actions, watch locators highlight live.
+- **\`--ui\`** (UI mode) — time-travel through every step with a watch mode.
+- **\`page.pause()\`** in \`--headed\` mode — stop and poke around.
+- Read the **trace** afterward for CI failures.
+- Use the **VS Code extension** for breakpoints.`,
+      analogy: `Slow-motion replay with a remote — pause, step frame by frame, and see exactly which action the test was on when it tripped.`,
+    },
+    {
+      id: 'pw-jr-24',
+      level: 'junior',
+      topic: 'Tools',
+      question: 'What is the Playwright trace viewer?',
+      answer: `A post-run debugging tool that records a full **timeline of a test** — DOM snapshots before and after each action, screenshots, network calls, console logs, and the source line. Open it with:
+
+\`\`\`bash
+npx playwright show-trace trace.zip
+\`\`\`
+Set \`trace: 'on-first-retry'\` in config to capture it only for failures. It's invaluable for CI failures you can't reproduce locally.`,
+      analogy: `A flight recorder (black box) for your test — after a crash you replay every second to see exactly what happened, even though you weren't watching live.`,
+    },
+    {
+      id: 'pw-jr-25',
+      level: 'junior',
+      topic: 'Tools',
+      question: 'How do you view test results, and what reporters does Playwright have?',
+      answer: `Playwright ships an **HTML reporter** by default:
+
+\`\`\`bash
+npx playwright show-report
+\`\`\`
+It shows pass/fail, durations, error messages, screenshots, and embedded traces. Other built-in reporters: \`list\`, \`line\`, \`dot\`, \`json\`, and \`junit\` (for CI pipelines). You choose them in the config.`,
+      analogy: `A polished report card after the exam — not just pass/fail, but exactly where each answer went wrong, with photos and a replay attached.`,
+    },
+    {
+      id: 'pw-jr-26',
+      level: 'junior',
+      topic: 'Core Concepts',
+      question: 'What does Playwright check before performing an action like click?',
+      answer: `Before clicking (and most actions), Playwright runs **actionability checks** — it waits until the element is:
+- **attached** to the DOM
+- **visible**
+- **stable** (not animating)
+- **enabled**
+- **receiving events** (not covered by another element)
+
+It retries until all pass or it times out — preventing clicks that would fail or land on the wrong thing.`,
+      analogy: `A careful driver who checks the road is clear, the light is green, and nothing's in the way before pulling out — instead of flooring it blindly the moment a timer goes off.`,
+    },
+    // ── Mid (2–5 yrs) ─────────────────────────────────────────
+    {
+      id: 'pw-mid-1',
+      level: 'mid',
+      topic: 'Architecture',
+      question: 'What is the Page Object Model, and how do you use it in Playwright?',
+      answer: `POM is a pattern where each page (or component) gets a class holding its **locators and actions**, so tests read at a high level and selectors live in one place.
+
+\`\`\`ts
+class LoginPage {
+  constructor(private page: Page) {}
+  email = () => this.page.getByLabel('Email');
+  async login(email: string, pw: string) {
+    await this.email().fill(email);
+    await this.page.getByRole('button', { name: 'Sign in' }).click();
+  }
+}
+\`\`\`
+When the UI changes, you fix the locator in *one* class — not across 50 tests.`,
+      analogy: `A TV remote — tests press "channel up" without knowing the wiring. The page object hides the wiring; the tests just use the buttons.`,
+    },
+    {
+      id: 'pw-mid-2',
+      level: 'mid',
+      topic: 'Fixtures',
+      question: 'How and why do you create custom fixtures in Playwright?',
+      answer: `Extend the base \`test\` to provide reusable, pre-set-up objects — so every test gets them without repeating setup.
+
+\`\`\`ts
+import { test as base } from '@playwright/test';
+
+export const test = base.extend<{ loginPage: LoginPage }>({
+  loginPage: async ({ page }, use) => {
+    await use(new LoginPage(page));
+  },
+});
+\`\`\`
+Now \`test('x', async ({ loginPage }) => ...)\` just gets a ready page object.`,
+      analogy: `A prepped kit handed to each worker — instead of every test assembling its own tools, the fixture delivers them ready to use, then tidies up after.`,
+    },
+    {
+      id: 'pw-mid-3',
+      level: 'mid',
+      topic: 'Authentication',
+      question: 'How do you avoid logging in through the UI in every test?',
+      answer: `Log in **once**, save the authenticated browser state (cookies + localStorage) to a file, then reuse it so tests start already logged in — usually in a setup project or global setup.
+
+\`\`\`ts
+// save once after logging in:
+await context.storageState({ path: 'auth.json' });
+
+// reuse in tests:
+test.use({ storageState: 'auth.json' });
+\`\`\`
+Speeds up the suite hugely and removes a flaky, repeated UI step.`,
+      analogy: `Getting a wristband at the entrance once, then flashing it to skip the queue all day — instead of buying a fresh ticket at every ride.`,
+    },
+    {
+      id: 'pw-mid-4',
+      level: 'mid',
+      topic: 'Network',
+      question: 'How do you mock or intercept network requests?',
+      answer: `\`page.route()\` intercepts matching requests so you can fulfil them with fake data, modify them, or block them — letting you test edge cases without a real backend.
+
+\`\`\`ts
+await page.route('**/api/users', route =>
+  route.fulfill({ json: [{ id: 1, name: 'Asha' }] })
+);
+// test empty states, 500 errors, slow responses, etc. on demand
+\`\`\``,
+      analogy: `A film stand-in — you swap the real actor (the backend) for a controllable double, so you can shoot any scene on demand, including the disaster scenes that are hard to stage for real.`,
+    },
+    {
+      id: 'pw-mid-5',
+      level: 'mid',
+      topic: 'API',
+      question: 'How do you make API calls in Playwright?',
+      answer: `Use the \`request\` fixture — it sends HTTP requests directly, with no browser.
+
+\`\`\`ts
+test('create user via API', async ({ request }) => {
+  const res = await request.post('/api/users', { data: { name: 'Asha' } });
+  expect(res.status()).toBe(201);
+  expect((await res.json()).name).toBe('Asha');
+});
+\`\`\`
+Great for pure API tests *and* for fast setup/teardown in UI tests.`,
+      analogy: `Phoning the kitchen directly instead of going through the waiter (the UI) — much faster when all you care about is the data.`,
+    },
+    {
+      id: 'pw-mid-6',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you combine API and UI in a single test?',
+      answer: `Use the **API for fast setup**, then test the **UI behaviour** — avoiding slow, flaky UI setup steps.
+
+\`\`\`ts
+test('shows my order', async ({ page, request }) => {
+  await request.post('/api/orders', { data: { item: 'Book' } }); // setup
+  await page.goto('/orders');
+  await expect(page.getByText('Book')).toBeVisible();             // verify in UI
+});
+\`\`\``,
+      analogy: `Stagehands setting the scene quickly (API) so the actors (the UI test) can get straight to the part that actually matters.`,
+    },
+    {
+      id: 'pw-mid-7',
+      level: 'mid',
+      topic: 'Execution',
+      question: 'How does parallel execution work in Playwright?',
+      answer: `Playwright runs test **files in parallel** across **workers** (default = number of CPU cores), each an isolated process. Tests *within* a file run serially by default; add \`test.describe.configure({ mode: 'parallel' })\` to parallelise inside a file too.
+
+Per-test context isolation is what makes this safe — no shared state between parallel tests.`,
+      analogy: `Multiple checkout lanes open at once — more shoppers served per minute, and each lane runs independently of the others.`,
+    },
+    {
+      id: 'pw-mid-8',
+      level: 'mid',
+      topic: 'Flakiness',
+      question: 'How do you handle flaky tests in Playwright?',
+      answer: `First *reduce* flakiness: use locators + web-first assertions, **no hard sleeps**, and isolated test data. Then configure \`retries\` so a transient failure re-runs, and \`trace: 'on-first-retry'\` to capture *why* it flaked.
+
+\`\`\`ts
+export default defineConfig({ retries: 2, use: { trace: 'on-first-retry' } });
+\`\`\`
+Retries are a safety net — chase the root cause of anything that only passes on retry.`,
+      analogy: `A smoke alarm with a "test again" button — handy to avoid false evacuations, but if it keeps going off you fix the wiring, not just keep resetting it.`,
+    },
+    {
+      id: 'pw-mid-9',
+      level: 'mid',
+      topic: 'Test Design',
+      question: 'How do you write data-driven (parametrized) tests?',
+      answer: `Loop over a data array and generate one test per case:
+
+\`\`\`ts
+const cases = [
+  { user: 'valid@x.com', pw: 'good',  expected: /dashboard/ },
+  { user: 'valid@x.com', pw: 'wrong', expected: /error/ },
+];
+
+for (const c of cases) {
+  test(\`login: \${c.user}/\${c.pw}\`, async ({ page }) => {
+    // ...run the scenario, assert c.expected
+  });
+}
+\`\`\``,
+      analogy: `One inspection checklist run against every product on the line — the same steps, different inputs each time.`,
+    },
+    {
+      id: 'pw-mid-10',
+      level: 'mid',
+      topic: 'Test Design',
+      question: 'What are the test hooks in Playwright?',
+      answer: `- \`beforeEach\` / \`afterEach\` — run around *every* test (e.g., navigate to a start page, clean up).
+- \`beforeAll\` / \`afterAll\` — run *once* per file (heavier shared setup).
+
+\`\`\`ts
+test.beforeEach(async ({ page }) => { await page.goto('/'); });
+\`\`\`
+Keep one-time, expensive work in \`beforeAll\` or global setup, and per-test work in \`beforeEach\`.`,
+      analogy: `Stage crew — \`beforeAll\` builds the set once; \`beforeEach\` resets the props before each scene; \`afterEach\` sweeps up afterward.`,
+    },
+    {
+      id: 'pw-mid-11',
+      level: 'mid',
+      topic: 'Test Design',
+      question: 'What are test.describe and test.step used for?',
+      answer: `- **\`test.describe('group', ...)\`** — groups related tests so they can share hooks and config.
+- **\`test.step('label', async () => {...})\`** — labels a sub-section *inside* a test, so the report and trace read clearly.
+
+\`\`\`ts
+await test.step('add item to cart', async () => { /* ... */ });
+\`\`\`
+Both improve organisation and make debugging far easier.`,
+      analogy: `Chapters and section headings in a report — they don't change the content, but they make it navigable when you're hunting for something.`,
+    },
+    {
+      id: 'pw-mid-12',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you interact with elements inside an iframe?',
+      answer: `Use \`frameLocator\` to "enter" the frame, then locate inside it:
+
+\`\`\`ts
+await page
+  .frameLocator('#checkout-iframe')
+  .getByRole('button', { name: 'Pay' })
+  .click();
+\`\`\``,
+      analogy: `A picture-in-picture window — you have to "click into" that frame first before any of its controls will respond to you.`,
+    },
+    {
+      id: 'pw-mid-13',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you handle a new tab or popup window?',
+      answer: `Wait for the \`popup\` event *while* triggering the action that opens it:
+
+\`\`\`ts
+const [popup] = await Promise.all([
+  page.waitForEvent('popup'),
+  page.getByText('Open report').click(),
+]);
+await popup.waitForLoadState();
+await expect(popup).toHaveTitle(/Report/);
+\`\`\``,
+      analogy: `Catching a ball someone's about to throw — you get into position to receive the new window the instant the action that opens it fires, not after.`,
+    },
+    {
+      id: 'pw-mid-14',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you handle JavaScript dialogs (alert / confirm / prompt)?',
+      answer: `Register a handler *before* triggering the dialog:
+
+\`\`\`ts
+page.on('dialog', dialog => dialog.accept());   // or dialog.dismiss()
+await page.getByRole('button', { name: 'Delete' }).click();
+\`\`\`
+By default Playwright auto-dismisses dialogs unless you handle them.`,
+      analogy: `Telling reception in advance, "if a pop-up salesman shows up, say yes (or no) for me" — so you're never caught off guard mid-task.`,
+    },
+    {
+      id: 'pw-mid-15',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you test file upload and download?',
+      answer: `**Upload** — set the files on the input:
+\`\`\`ts
+await page.getByLabel('Avatar').setInputFiles('photo.png');
+\`\`\`
+**Download** — wait for the \`download\` event:
+\`\`\`ts
+const [download] = await Promise.all([
+  page.waitForEvent('download'),
+  page.getByText('Export CSV').click(),
+]);
+await download.saveAs('out.csv');
+\`\`\``,
+      analogy: `Upload is handing a parcel through the slot; download is standing ready to catch the parcel the system sends back out.`,
+    },
+    {
+      id: 'pw-mid-16',
+      level: 'mid',
+      topic: 'Network',
+      question: 'How do you wait for a specific network response?',
+      answer: `Wait on the actual response, not an arbitrary timer:
+
+\`\`\`ts
+const [res] = await Promise.all([
+  page.waitForResponse(r => r.url().includes('/api/save') && r.ok()),
+  page.getByRole('button', { name: 'Save' }).click(),
+]);
+expect((await res.json()).status).toBe('saved');
+\`\`\``,
+      analogy: `Waiting for a *specific* reply letter to arrive, rather than checking the mailbox on a random timer and hoping it's there.`,
+    },
+    {
+      id: 'pw-mid-17',
+      level: 'mid',
+      topic: 'Assertions',
+      question: 'What are soft assertions, and when do you use them?',
+      answer: `\`expect.soft()\` records a failure but **doesn't stop** the test — so you can check several things and see *all* the failures in one run. A normal \`expect\` halts at the first failure.
+
+\`\`\`ts
+await expect.soft(page.getByTestId('total')).toHaveText('$50');
+await expect.soft(page.getByTestId('tax')).toBeVisible();
+// both checked even if the first fails
+\`\`\``,
+      analogy: `A proofreader who marks *every* typo on the page in one pass, instead of stopping at the first and handing it straight back.`,
+    },
+    {
+      id: 'pw-mid-18',
+      level: 'mid',
+      topic: 'Locators',
+      question: 'How do you narrow down locators (filtering and chaining)?',
+      answer: `Chain locators to scope, and \`filter\` by text or a child element:
+
+\`\`\`ts
+await page
+  .getByRole('listitem')
+  .filter({ hasText: 'Asha' })          // the row containing "Asha"
+  .getByRole('button', { name: 'Edit' }) // the Edit button in that row
+  .click();
+\`\`\`
+Also useful: \`locator.locator(...)\`, \`has\`, \`hasNotText\`.`,
+      analogy: `Zooming in — first the right row in the table, then the specific button *in that row* — instead of grabbing the first matching button anywhere on the page.`,
+    },
+    {
+      id: 'pw-mid-19',
+      level: 'mid',
+      topic: 'Flakiness',
+      question: 'Why shouldn\'t you use hard sleeps, and what do you use instead?',
+      answer: `\`page.waitForTimeout(3000)\` is both flaky and slow — too short and it fails, too long and it wastes time on every run. Instead, wait for the *actual condition*:
+- Playwright's **auto-waiting** on actions.
+- **Web-first assertions** (\`toBeVisible\`, etc.).
+- \`waitForResponse\` / \`waitForURL\` / \`waitForLoadState\`.`,
+      analogy: `Waiting for the kettle by *listening for the whistle* (the real signal) rather than guessing "about three minutes" — guess short and you scald yourself, guess long and you waste time.`,
+    },
+    {
+      id: 'pw-mid-20',
+      level: 'mid',
+      topic: 'Assertions',
+      question: 'How do you assert attributes, classes, or CSS?',
+      answer: `\`\`\`ts
+await expect(link).toHaveAttribute('href', '/home');
+await expect(tab).toHaveClass(/active/);
+await expect(box).toHaveCSS('background-color', 'rgb(255, 0, 0)');
+\`\`\`
+These are web-first assertions too — they auto-retry until the condition holds or it times out.`,
+      analogy: `Checking not just that a label exists, but that its details are right — the price sticker shows the correct price *and* the correct category.`,
+    },
+    {
+      id: 'pw-mid-21',
+      level: 'mid',
+      topic: 'Configuration',
+      question: 'How do you run the same tests across multiple browsers or devices?',
+      answer: `Define **projects** in the config, each with a browser or emulated device:
+
+\`\`\`ts
+export default defineConfig({
+  projects: [
+    { name: 'chromium', use: devices['Desktop Chrome'] },
+    { name: 'iphone',   use: devices['iPhone 13'] },
+  ],
+});
+\`\`\`
+Run all of them, or just one with \`--project=iphone\`. Same tests, multiple environments.`,
+      analogy: `The same play performed for different audiences and venues — one script, several stagings.`,
+    },
+    {
+      id: 'pw-mid-22',
+      level: 'mid',
+      topic: 'Configuration',
+      question: 'What is global setup / teardown, and when do you use it?',
+      answer: `A \`globalSetup\` script runs **once** before the entire suite (and \`globalTeardown\` after) — for one-time work like authenticating, seeding a database, or starting services. This is different from \`beforeAll\`, which runs once *per file*.
+
+\`\`\`ts
+export default defineConfig({ globalSetup: './global-setup.ts' });
+\`\`\``,
+      analogy: `Unlocking and prepping the whole building before anyone arrives — and locking up after everyone's gone. Once, not per room.`,
+    },
+    {
+      id: 'pw-mid-23',
+      level: 'mid',
+      topic: 'Configuration',
+      question: 'How do you run the same tests against different environments (dev/staging/prod)?',
+      answer: `Parameterise the \`baseURL\` and secrets via environment variables, read in the config — never hard-code them:
+
+\`\`\`ts
+export default defineConfig({
+  use: { baseURL: process.env.BASE_URL ?? 'http://localhost:3000' },
+});
+\`\`\`
+Switch environments by changing the variable (\`.env\` file or CI variable).`,
+      analogy: `One universal adapter — plug the same tests into dev, staging, or prod by simply flipping which socket (env var) they connect to.`,
+    },
+    {
+      id: 'pw-mid-24',
+      level: 'mid',
+      topic: 'CI/CD',
+      question: 'How do you run Playwright tests in CI?',
+      answer: `- Use the official **GitHub Action** or the Docker image (browsers preinstalled).
+- Run \`npx playwright test\` **headless**.
+- Enable **retries** and \`trace: 'on-first-retry'\`.
+- **Shard** across parallel jobs for speed.
+- Upload the **HTML report and traces** as artifacts so you can debug failures.`,
+      analogy: `An automated night-shift inspector — it runs the full check on every push, files a report, and saves the CCTV footage (traces) of anything that went wrong.`,
+    },
+    {
+      id: 'pw-mid-25',
+      level: 'mid',
+      topic: 'Locators',
+      question: 'How do you handle the shadow DOM in Playwright?',
+      answer: `Good news — Playwright's locators **pierce open shadow DOM automatically**. \`getByRole\`, \`getByText\`, and CSS locators work across shadow boundaries with no special API. (Closed shadow roots are intentionally inaccessible, just as they are to a real user.)`,
+      analogy: `X-ray glasses that see through the inner casing — most of Playwright's locators look right inside web-component shells without you doing anything extra.`,
+    },
+    {
+      id: 'pw-mid-26',
+      level: 'mid',
+      topic: 'Execution',
+      question: 'How do you tag and selectively run tests?',
+      answer: `Tag tests in the title (or with annotations) and filter on the command line:
+
+\`\`\`ts
+test('checkout flow @smoke', async ({ page }) => { /* ... */ });
+\`\`\`
+\`\`\`bash
+npx playwright test --grep @smoke         # only smoke tests
+npx playwright test --grep-invert @slow   # everything except slow
+\`\`\`
+Also: \`test.only\` (focus), \`test.skip\` / \`test.fixme\` (skip).`,
+      analogy: `Coloured sticky tabs on documents — pull just the "urgent" tabbed ones when you don't have time to read everything.`,
+    },
+
+    // ── Senior (5+ yrs) ───────────────────────────────────────
+    {
+      id: 'pw-sr-1',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'How do you architect a scalable Playwright framework?',
+      answer: `Layer it for clarity and reuse:
+- **Tests** — short, readable, intent-focused.
+- **Page objects / components** — locators + actions.
+- **Fixtures** — auth, test data, and ready-made objects.
+- **Utilities / API helpers** — pure reusable logic and setup calls.
+- **Config** — projects, environments, reporters.
+
+Keep tests independent and data-isolated, reuse auth via \`storageState\`, set data up via the API, and centralise locators. Favour **fixtures over class inheritance**.`,
+      analogy: `A well-organised kitchen — stations, prepped ingredients, and clear recipes — so many cooks (tests) can work in parallel without colliding.`,
+    },
+    {
+      id: 'pw-sr-2',
+      level: 'senior',
+      topic: 'Flakiness',
+      question: 'What is your strategy to eliminate flakiness across a large suite?',
+      answer: `Root-cause it, don't just retry:
+- Locators + **web-first assertions**, never hard sleeps.
+- **Isolate test data** — each test owns its own; no shared mutable state or order dependence.
+- **Mock unstable externals**; stabilise the environment.
+- Wait on **real signals** (responses, URLs), not timers.
+- **Track** tests that only pass on retry (trace-on-retry) and fix the worst offenders.
+
+Retries are a safety net, not the cure.`,
+      analogy: `A factory chasing intermittent defects — you instrument the line and fix the loose bolt, instead of just re-running every product through QC and hoping it passes next time.`,
+    },
+    {
+      id: 'pw-sr-3',
+      level: 'senior',
+      topic: 'Performance',
+      question: 'How do you speed up a large suite by sharding?',
+      answer: `Split the tests across multiple machines/CI jobs and merge the results:
+
+\`\`\`bash
+npx playwright test --shard=1/4   # job 1
+npx playwright test --shard=2/4   # job 2 ...
+\`\`\`
+Use the \`blob\` reporter on each shard, then \`merge-reports\` into one HTML report. Combine with per-machine worker parallelism. A 40-minute suite can drop to a few minutes.`,
+      analogy: `Dividing a huge stack of exams among several graders working at the same time, then combining their marks into one final report.`,
+    },
+    {
+      id: 'pw-sr-4',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'POM vs fixtures vs helpers — how do you structure a big suite?',
+      answer: `Use each for its strength:
+- **Page objects** — UI structure and locators.
+- **Fixtures** — setup/teardown and *providing* ready objects (auth, data, page objects).
+- **Helpers / utils** — pure reusable logic (formatting, API calls).
+
+Avoid deep inheritance; **compose via fixtures**. Keep tests declarative — they should read like the user story.`,
+      analogy: `A building crew with clear roles — architects (page objects), the site-prep crew (fixtures), and specialised tools (helpers) — rather than one person trying to do everything.`,
+    },
+    {
+      id: 'pw-sr-5',
+      level: 'senior',
+      topic: 'Authentication',
+      question: 'How do you handle authentication across many tests and roles?',
+      answer: `Authenticate **once per role** in setup, save each role's \`storageState\` to its own file, then load the right one per test or project:
+
+\`\`\`ts
+// setup project saves: admin.json, user.json, guest.json
+test.use({ storageState: 'user.json' });
+\`\`\`
+Avoids UI login in every test and cleanly supports admin/user/guest scenarios. Refresh the state when tokens expire.`,
+      analogy: `Pre-printed staff badges for each role kept at reception — grab the right badge and walk straight in, no re-verifying your identity each time.`,
+    },
+    {
+      id: 'pw-sr-6',
+      level: 'senior',
+      topic: 'Test Data',
+      question: 'What is your test data strategy for end-to-end tests?',
+      answer: `- Each test **creates and owns** its data (via API for speed).
+- Use **unique identifiers** so parallel runs don't collide.
+- **Clean up** afterward, or use ephemeral/reset-able environments.
+- Avoid relying on shared seed data that other tests mutate.
+
+The goal is independence — any test can run alone, in any order, in parallel.`,
+      analogy: `Each chef bringing their own *labelled* ingredients to a shared kitchen — nobody grabs someone else's, and they clean their station when done.`,
+    },
+    {
+      id: 'pw-sr-7',
+      level: 'senior',
+      topic: 'Visual Testing',
+      question: 'How do you do visual regression testing in Playwright?',
+      answer: `\`toHaveScreenshot()\` captures a baseline image and compares it on later runs:
+
+\`\`\`ts
+await expect(page).toHaveScreenshot('home.png', { maxDiffPixelRatio: 0.02 });
+\`\`\`
+Manage it carefully: commit baselines per platform (rendering differs across OS — run in a consistent Docker env), **mask** dynamic regions (dates, ads), set a sensible **threshold** to avoid noise, and update baselines deliberately.`,
+      analogy: `Spot-the-difference between two photos — but you blur out the parts that always change (the clock on the wall) so you only flag the differences that actually matter.`,
+    },
+    {
+      id: 'pw-sr-8',
+      level: 'senior',
+      topic: 'Accessibility',
+      question: 'How do you test accessibility with Playwright?',
+      answer: `Integrate **\`@axe-core/playwright\`** to scan pages for WCAG violations inside your tests and assert there are none critical:
+
+\`\`\`ts
+const results = await new AxeBuilder({ page }).analyze();
+expect(results.violations).toEqual([]);
+\`\`\`
+Playwright's role-based locators already nudge you toward accessible markup. Automated scans catch the common issues; manual keyboard/screen-reader checks cover the rest.`,
+      analogy: `An automated building inspector that flags missing ramps and signage on every floor — fast at the common violations, though a human still walks the trickier cases.`,
+    },
+    {
+      id: 'pw-sr-9',
+      level: 'senior',
+      topic: 'Component Testing',
+      question: 'What is Playwright component testing, and when do you use it?',
+      answer: `Playwright can **mount and test individual UI components** (React/Vue/Svelte) in a *real* browser, in isolation — faster and more focused than full E2E, and more realistic than jsdom-based unit tests.
+
+Use it for component-level behaviour (props, events, rendering states); reserve full E2E for complete user journeys.`,
+      analogy: `Testing each car part on a workbench — does the brake caliper actually grip? — before assembling and road-testing the whole car (E2E).`,
+    },
+    {
+      id: 'pw-sr-10',
+      level: 'senior',
+      topic: 'CI/CD',
+      question: 'How do you integrate and parallelise Playwright in CI/CD?',
+      answer: `- Run a fast **critical-path** set on every PR; the **full** suite nightly or pre-release.
+- **Shard** across parallel jobs; cache browser installs.
+- Run headless in Docker; enable **retries + trace-on-failure**.
+- Upload reports/traces as **artifacts**; gate merges on results.
+
+Keep PR runs quick so they don't block the team; schedule the deep, slow runs.`,
+      analogy: `An assembly-line QC with several stations running at once — quick checks on every item shipped, and a thorough audit overnight.`,
+    },
+    {
+      id: 'pw-sr-11',
+      level: 'senior',
+      topic: 'Reporting',
+      question: 'How do you track flaky tests and report results across a big suite?',
+      answer: `- Merge the **blob reports** from all shards into one HTML report.
+- Playwright **flags tests that passed only on retry** — surface those as flaky.
+- Push results to a **dashboard or CI annotations**; trend flakiness and failure rates over time.
+- **Quarantine** chronic offenders with a ticket to fix, rather than letting them erode trust.`,
+      analogy: `A maintenance log for a vehicle fleet — you record which vehicles keep breaking down so you can prioritise the worst, not just patch whatever happens to fail today.`,
+    },
+    {
+      id: 'pw-sr-12',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'How do you decide what to cover with E2E UI tests vs API tests?',
+      answer: `Follow the testing pyramid:
+- Most logic verified by fast **unit/API** tests.
+- A **small** set of E2E UI tests for **critical user journeys** (login, checkout) that prove the pieces work together.
+
+UI E2E is slow and brittle — don't verify business rules through the UI that an API test could cover far more cheaply.`,
+      analogy: `Test each musician thoroughly on their own (unit/API), then run a few full rehearsals (E2E) to confirm the band plays together — you don't re-test every note in the full concert.`,
+    },
+    {
+      id: 'pw-sr-13',
+      level: 'senior',
+      topic: 'Network',
+      question: 'When do you mock the network vs hit the real backend?',
+      answer: `- **Mock** to isolate the frontend, force edge cases (errors, empty, slow), and get deterministic, fast tests.
+- **Hit the real backend** in a smaller set of integration/E2E tests, so the mocks don't silently drift from reality.
+
+Balance: mock for breadth and speed, real for truth.`,
+      analogy: `Flight simulators for most training (cheap, can simulate engine failure on demand) *plus* some real flight hours, so the simulator's assumptions stay honest.`,
+    },
+    {
+      id: 'pw-sr-14',
+      level: 'senior',
+      topic: 'Security',
+      question: 'How do you manage secrets (logins, API keys) in Playwright tests?',
+      answer: `Never hard-code or commit them. Use **environment variables / CI secret stores**, inject at runtime, use dedicated **test accounts** with minimal scope, and **scrub secrets** from traces, reports, and logs. Keep separate credentials per environment.`,
+      analogy: `You don't tape your PIN to the bank card — secrets live in a vault and are handed out only at the moment of use, never left lying in the code.`,
+    },
+    {
+      id: 'pw-sr-15',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'How much cross-browser and device testing should you actually run?',
+      answer: `Let **user analytics** decide, not "all of them." Run the full suite on the primary browser; run the **critical paths** on the others and on key devices. Running everything everywhere triples the cost for little gain. Use \`projects\` to scope it, and push broader coverage to nightly runs.`,
+      analogy: `A clothing brand makes the popular sizes in bulk and only *samples* the rare ones — you match effort to where the customers actually are.`,
+    },
+    {
+      id: 'pw-sr-16',
+      level: 'senior',
+      topic: 'Performance',
+      question: 'An E2E suite takes 40 minutes. How do you speed it up?',
+      answer: `- **Parallelise** (workers) and **shard** across machines.
+- Replace slow **UI setup with API setup**; reuse auth via \`storageState\`.
+- **Cut redundant E2E** — push coverage down to API/unit tests.
+- **Mock** slow externals; remove hard waits.
+- Run only **impacted/critical** tests on PR, the full suite nightly.`,
+      analogy: `A kitchen clearing a backlog — more cooks (parallel), ingredients prepped ahead (API setup), and not re-cooking dishes you already know are fine.`,
+    },
+    {
+      id: 'pw-sr-17',
+      level: 'senior',
+      topic: 'Debugging',
+      question: 'A test passes locally but fails only in CI. How do you debug it?',
+      answer: `Capture artifacts: \`trace: 'on-first-retry'\`, screenshots, and video — then open the **trace** from the failed CI run. Common causes: slower CI machines (timing), different viewport/headless rendering, missing data or env config, parallelism collisions, and locale/time-zone differences. Reproduce locally with CI's exact settings (headless, same env vars, same shard).`,
+      analogy: `A fault that only appears in cold weather — you fit a dashcam (trace) and recreate the cold conditions in the garage, instead of only ever testing on warm days.`,
+    },
+    {
+      id: 'pw-sr-18',
+      level: 'senior',
+      topic: 'Locators',
+      question: 'How do you keep locators maintainable in a large suite?',
+      answer: `- Prefer **role/label/text** locators — resilient to markup churn.
+- Add stable **\`data-testid\`** for elements with no good accessible handle, *owned jointly with developers*.
+- **Centralise** locators in page objects.
+- Avoid brittle CSS/XPath tied to structure.
+- Make the locator strategy a documented **team standard**.`,
+      analogy: `Labelling shelves by *what's on them* (role/purpose) rather than "third shelf from the door" — rearrange the warehouse and the labels still work.`,
+    },
+    {
+      id: 'pw-sr-19',
+      level: 'senior',
+      topic: 'Flakiness',
+      question: 'When do retries help, and when do they hide real bugs?',
+      answer: `Retries **help** with genuinely transient issues (network blips, animation timing) and keep CI green. They **hide** real, intermittent *product* bugs and mask flakiness you ought to fix.
+
+So: enable **limited** retries, but **track** tests that only pass on retry and investigate them. Never let retries become a way to ignore instability.`,
+      analogy: `A second try to start the car is fine on a frosty morning — but if it needs three attempts *every* day, retrying is masking a real fault you should repair.`,
+    },
+    {
+      id: 'pw-sr-20',
+      level: 'senior',
+      topic: 'Configuration',
+      question: 'What belongs in global setup vs per-test setup?',
+      answer: `- **Global setup (once):** authenticate and save \`storageState\`, seed baseline data, start services, prepare the environment.
+- **Per-test (\`beforeEach\`):** navigate to the start page, create test-specific data.
+
+Heavy one-time work in global setup keeps the suite fast; per-test setup preserves isolation.`,
+      analogy: `Opening and prepping the whole stadium once before the event (global), versus each team setting up their own bench before *their* match (per-test).`,
+    },
+    {
+      id: 'pw-sr-21',
+      level: 'senior',
+      topic: 'Migration',
+      question: 'How would you migrate a Selenium or Cypress suite to Playwright?',
+      answer: `Incrementally — never big-bang:
+1. Run both frameworks in parallel during the transition.
+2. Port the **highest-value / critical** tests first.
+3. **Rebuild** with Playwright idioms (locators, auto-wait, fixtures) — don't line-by-line translate old explicit waits.
+4. Adopt POM/fixtures; validate stability and speed.
+5. Retire old tests as coverage moves over.`,
+      analogy: `Renovating a house room by room while still living in it — you keep the old kitchen working until the new one's ready, then switch over.`,
+    },
+    {
+      id: 'pw-sr-22',
+      level: 'senior',
+      topic: 'Fixtures',
+      question: 'What are worker-scoped fixtures, and when do you use them?',
+      answer: `By default fixtures are **per-test**. A **worker-scoped** fixture is created once per worker process and shared across that worker's tests — for expensive setup you don't want repeated (a logged-in context, a DB connection, a started server).
+
+\`\`\`ts
+const test = base.extend({
+  api: [async ({}, use) => { /* ... */ }, { scope: 'worker' }],
+});
+\`\`\`
+Balance sharing (speed) against isolation (safety).`,
+      analogy: `One shared coffee machine per office floor (the worker) rather than one per desk (each test) — cheaper, as long as people don't mess with each other's settings.`,
+    },
+    {
+      id: 'pw-sr-23',
+      level: 'senior',
+      topic: 'Monitoring',
+      question: 'Can Playwright be used for production monitoring?',
+      answer: `Yes — run a few **critical-path** Playwright scripts on a schedule against production (synthetic monitoring), alerting if login or checkout breaks. It's shift-right testing: it catches real-world issues (CDN, third parties, infra) that staging can't reproduce.
+
+Keep these scripts few, stable, and read-only or backed by dedicated test accounts/data.`,
+      analogy: `A security guard who walks the same critical route every hour, day and night, and raises the alarm the moment a door won't open.`,
+    },
+    {
+      id: 'pw-sr-24',
+      level: 'senior',
+      topic: 'Practical',
+      question: 'How do you test multi-user or role-based interactions (e.g., chat, approvals)?',
+      answer: `Use **multiple browser contexts** in one test — each its own isolated session/user. Act as user A in one and user B in the other, asserting the interaction:
+
+\`\`\`ts
+const admin = await browser.newContext({ storageState: 'admin.json' });
+const user  = await browser.newContext({ storageState: 'user.json' });
+const aPage = await admin.newPage();
+const uPage = await user.newPage();
+// admin approves in aPage → assert user sees it in uPage
+\`\`\``,
+      analogy: `A film with two actors in separate dressing rooms (contexts) brought onto the same set — you direct both at once to test how they interact.`,
+    },
+    {
+      id: 'pw-sr-25',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'Which Playwright tests should block a merge vs run nightly?',
+      answer: `- **Block PRs** on a fast, stable **critical-path** subset (smoke + key journeys) — keeps merges quick and trustworthy.
+- Run the **full** cross-browser/device suite, visual tests, and slower flows on a **schedule** (nightly) or pre-release.
+
+Gating *everything* on every PR slows the team and invites flaky-blocked merges.`,
+      analogy: `A quick pre-flight checklist before every short hop, with the full deep inspection done on a scheduled maintenance cycle — not before every single takeoff.`,
+    },
+    {
+      id: 'pw-sr-26',
+      level: 'senior',
+      topic: 'Authentication',
+      question: 'How do you handle session expiry, tokens, and 2FA in end-to-end auth?',
+      answer: `- Refresh \`storageState\` before it expires (re-auth in setup).
+- For tokens, log in via the **API** in setup rather than the slow UI flow.
+- For **2FA**: use test accounts with 2FA disabled, a test-mode bypass, or a deterministic **TOTP secret** you can generate codes from in code — never a real phone in CI.`,
+      analogy: `A backstage pass you renew before it lapses, plus a special crew door (a test bypass) — so you're not stuck waiting for a one-time code texted to someone's personal phone.`,
+    },
+
+  ],
+  'ai-qa': [
+
+    // ── Junior (0–2 yrs) ──────────────────────────────────────
+    {
+      id: 'aiqa-jr-1',
+      level: 'junior',
+      topic: 'Fundamentals',
+      question: 'What are AI and ML, and how do they relate to QA?',
+      answer: `- **AI (Artificial Intelligence)** — software that does tasks needing human-like intelligence: understanding language, spotting patterns, making decisions.
+- **ML (Machine Learning)** — a subset of AI where systems *learn from data* instead of being explicitly programmed for every rule.
+
+In QA, AI/ML help **generate test cases**, write and maintain automation, **self-heal** broken locators, spot patterns in failures, and prioritise which tests to run — speeding up the repetitive work so testers focus on judgement.`,
+      analogy: `AI is a sharp junior assistant — fast at drafting and spotting patterns, but it still needs a senior (you) to check its work and make the real calls.`,
+    },
+    {
+      id: 'aiqa-jr-2',
+      level: 'junior',
+      topic: 'Fundamentals',
+      question: 'What is a Large Language Model (LLM) / generative AI?',
+      answer: `An **LLM** (like ChatGPT or Claude) is an AI trained on huge amounts of text that **predicts and generates** human-like language. "Generative AI" means it *creates* new content — text, code, test cases — rather than just classifying existing data.
+
+For QA, it can draft test cases, automation scripts, and bug reports from a plain-English description.`,
+      analogy: `An extremely well-read autocomplete — it has read a library's worth of text and predicts the most plausible next words. Powerful, but that's not the same as actually *knowing* the truth.`,
+    },
+    {
+      id: 'aiqa-jr-3',
+      level: 'junior',
+      topic: 'Use Cases',
+      question: 'How can AI help in software testing?',
+      answer: `Across the whole lifecycle:
+- **Test design** — generate scenarios and cases from requirements.
+- **Automation** — draft and maintain scripts; self-healing locators.
+- **Test data** — produce realistic and edge-case data.
+- **Analysis** — cluster failures, summarise logs, flag flaky patterns.
+- **Visual testing** — detect meaningful UI changes.
+- **Prioritisation** — pick which tests to run based on risk and code changes.`,
+      analogy: `A power-tool upgrade for the QA workshop — the same craft, but the drudge work (drafting, sifting through logs, repetitive maintenance) gets much faster.`,
+    },
+    {
+      id: 'aiqa-jr-4',
+      level: 'junior',
+      topic: 'Prompting',
+      question: 'What is a prompt, and what is prompt engineering?',
+      answer: `A **prompt** is the instruction you give an AI. **Prompt engineering** is crafting it well — being specific, giving context, examples, the output format, and constraints — to get accurate, usable results.
+
+A vague prompt gives vague output; a precise one gives something you can actually use:
+- ❌ "Write tests for login."
+- ✅ "Write 8 test cases for an email+password login form, including negative and security cases. Output as a table with steps and expected result."`,
+      analogy: `Briefing a contractor — "build me something" gets you anything at all; detailed plans, dimensions, and examples get you what you actually wanted.`,
+    },
+    {
+      id: 'aiqa-jr-5',
+      level: 'junior',
+      topic: 'Use Cases',
+      question: 'How do you use AI to generate test cases?',
+      answer: `Give the AI the feature/requirement plus context (business rules, constraints), and ask for *specific* coverage — positive, negative, boundary, and edge cases. Then **review and refine**: AI may miss domain rules or invent unsupported cases.
+
+\`\`\`text
+"Here are the rules for our password reset flow: [...].
+Generate test cases covering valid resets, expired links,
+already-used links, and rate limiting. Output as a table."
+\`\`\`
+Use it as a fast first draft, never the final word.`,
+      analogy: `A brainstorming partner who rapidly lists ideas — great for breadth, but *you* curate which ones are actually valid for your application.`,
+    },
+    {
+      id: 'aiqa-jr-6',
+      level: 'junior',
+      topic: 'Use Cases',
+      question: 'How can AI help write automation scripts?',
+      answer: `It can draft Playwright/Selenium/API test code from a description, convert manual test cases into code, suggest locators, explain failing code, and refactor existing tests.
+
+But the generated code **needs review** — it may use wrong selectors, outdated APIs, or miss proper waits. Treat it as a fast pair-programmer, not a finished product.`,
+      analogy: `An eager intern who types out a first draft of the script in seconds — you still review it carefully before it goes anywhere near your test suite.`,
+    },
+    {
+      id: 'aiqa-jr-7',
+      level: 'junior',
+      topic: 'Limitations',
+      question: 'What is an AI hallucination, and why does it matter in QA?',
+      answer: `A **hallucination** is when AI produces *confident but false* information — a made-up API method, a non-existent function, a wrong "fact."
+
+In QA this is dangerous: AI might invent a selector that doesn't exist, reference a feature that isn't there, or write a test that asserts the *wrong* behaviour — all while sounding completely sure. That's exactly why every AI output must be verified.`,
+      analogy: `A confident colleague who occasionally makes things up with a totally straight face — helpful, but you fact-check before acting on anything they tell you.`,
+    },
+    {
+      id: 'aiqa-jr-8',
+      level: 'junior',
+      topic: 'Role',
+      question: 'Can AI replace manual or QA testers?',
+      answer: `No — it **augments**, it doesn't replace. AI handles repetitive drafting and pattern work, but it lacks real understanding of business context, user empathy, judgement about risk, and *accountability* — and it hallucinates.
+
+Testers shift toward guiding the AI, validating its output, exploratory testing, and making the judgement calls.`,
+      analogy: `Spell-check didn't replace writers — it made them faster. AI is that for testing: a force-multiplier, not a substitute for a thinking tester.`,
+    },
+    {
+      id: 'aiqa-jr-9',
+      level: 'junior',
+      topic: 'Fundamentals',
+      question: 'What is the difference between traditional automation and AI-based testing?',
+      answer: `- **Traditional automation** — explicit scripted steps and fixed locators. Predictable, but breaks when the UI changes.
+- **AI-based testing** — uses ML to adapt: self-healing locators, visual matching, generating tests. More resilient to change, but less predictable and needing oversight.
+
+They complement each other — AI doesn't make traditional automation obsolete.`,
+      analogy: `Traditional automation is a train on fixed tracks — reliable but rigid. AI-based testing is a self-driving car that adapts to the road — flexible, but it still needs a human supervising.`,
+    },
+    {
+      id: 'aiqa-jr-10',
+      level: 'junior',
+      topic: 'Tools',
+      question: 'What are some AI-powered testing tools?',
+      answer: `A few well-known categories and examples:
+- **Visual AI** — Applitools.
+- **Self-healing / low-code automation** — Testim, Mabl, Functionize.
+- **Unit-test generation** — Diffblue.
+- **Code & test generation** — GitHub Copilot, Claude, ChatGPT.
+
+Plus AI features increasingly baked into the Playwright/Selenium ecosystems.`,
+      analogy: `Power tools in a hardware store — each one specialises (visual checks, self-healing, generation). You pick the right tool for the job rather than expecting one to do everything.`,
+    },
+    {
+      id: 'aiqa-jr-11',
+      level: 'junior',
+      topic: 'Concepts',
+      question: 'What is self-healing test automation?',
+      answer: `When a locator breaks because the UI changed, AI automatically finds the element another way — by nearby text, other attributes, or ML-learned alternatives — and updates the test. This cuts the maintenance burden of flaky selectors.
+
+Useful, but **review the "heals"** — a self-heal could quietly latch onto the wrong element and mask a real bug.`,
+      analogy: `A GPS that reroutes when a road's closed — it keeps you moving instead of stopping dead, though occasionally it'll send you somewhere you didn't actually intend to go.`,
+    },
+    {
+      id: 'aiqa-jr-12',
+      level: 'junior',
+      topic: 'Concepts',
+      question: 'What is visual AI testing?',
+      answer: `Instead of pixel-by-pixel screenshot diffing (which is noisy and flags trivial changes), **visual AI** (e.g., Applitools) uses ML to compare UIs the way a *human* would — ignoring meaningless rendering differences but catching real visual bugs like overlap, missing elements, and broken layout.
+
+The big win: far fewer false positives than raw pixel comparison.`,
+      analogy: `A proofreader who notices the *meaningful* layout problems — not someone who flags every one-pixel shift as an error.`,
+    },
+    {
+      id: 'aiqa-jr-13',
+      level: 'junior',
+      topic: 'Use Cases',
+      question: 'How can AI help generate test data?',
+      answer: `AI can produce realistic, varied, and edge-case data on demand — names, addresses, valid and invalid inputs, boundary values — and **synthetic** data that mimics production *without* using real customer PII.
+
+It saves time and improves coverage; just verify the data meets your required formats and constraints.`,
+      analogy: `A prop master who instantly produces believable fake IDs, receipts, and addresses for any scene — realistic enough to test with, without exposing anyone's real details.`,
+    },
+    {
+      id: 'aiqa-jr-14',
+      level: 'junior',
+      topic: 'Use Cases',
+      question: 'How can AI help analyse test failures and logs?',
+      answer: `AI can summarise long logs, **cluster similar failures**, spot patterns ("this whole batch failed on the same API call"), suggest likely root causes, and flag flaky tests. It turns hours of log-reading into a quick summary — which you then verify.`,
+      analogy: `A detective's assistant who reads the entire case file overnight and hands you a summary of the likely leads — you still investigate, but you start far ahead of where you'd be alone.`,
+    },
+    {
+      id: 'aiqa-jr-15',
+      level: 'junior',
+      topic: 'Limitations',
+      question: 'Why must you always verify AI-generated tests or output?',
+      answer: `Because AI can hallucinate, miss domain rules, use outdated information, or assert the wrong behaviour — all *confidently*. An unverified AI test might happily pass while testing the *wrong* thing, giving you false assurance that quality is fine when it isn't.
+
+Always review generated cases and code against the real requirements.`,
+      analogy: `AI is a fast first-draft writer; you're the editor. Publishing the draft unread is exactly how errors slip through to the reader.`,
+    },
+    {
+      id: 'aiqa-jr-16',
+      level: 'junior',
+      topic: 'Fundamentals',
+      question: 'What is a token and a context window in LLMs?',
+      answer: `- A **token** is a chunk of text the model processes — roughly ¾ of a word.
+- The **context window** is how many tokens the model can consider at once — its "working memory."
+
+If you paste more than fits in the window, the earliest content gets dropped and "forgotten." This matters when you feed an AI large requirements documents or long log files.`,
+      analogy: `The context window is the size of your desk — you can only spread out so many papers at once. Pile on more and the earlier ones slide off the edge.`,
+    },
+    {
+      id: 'aiqa-jr-17',
+      level: 'junior',
+      topic: 'Fundamentals',
+      question: 'What is the difference between AI, ML, and deep learning?',
+      answer: `They're nested:
+- **AI** — the broad goal of machines doing intelligent things.
+- **ML** — a subset of AI: learning patterns from data.
+- **Deep learning** — a subset of ML using multi-layered neural networks (this powers modern LLMs and image recognition).`,
+      analogy: `AI is "transport," ML is "motor vehicles," and deep learning is "electric cars" — each is a more specific kind of the one before it.`,
+    },
+    {
+      id: 'aiqa-jr-18',
+      level: 'junior',
+      topic: 'Fundamentals',
+      question: 'What is supervised vs unsupervised learning?',
+      answer: `- **Supervised learning** — trained on *labelled* examples (input → correct answer), e.g., "these screenshots are bugs, these are not."
+- **Unsupervised learning** — finds patterns in *unlabelled* data on its own, e.g., clustering similar test failures into groups.`,
+      analogy: `Supervised is studying with an answer key. Unsupervised is sorting a pile of photos into groups with no labels at all — just by how similar they look.`,
+    },
+    {
+      id: 'aiqa-jr-19',
+      level: 'junior',
+      topic: 'Use Cases',
+      question: 'How can AI assist exploratory testing?',
+      answer: `AI can suggest test ideas and charters, generate edge cases a human might overlook, propose unusual inputs, point out under-tested areas, and act as a brainstorming partner during a session.
+
+The human still **drives** the exploration and makes the judgement calls — AI just widens the field of ideas.`,
+      analogy: `A curious sidekick tossing out "what if you tried *this*?" ideas while you explore — it broadens your thinking, but you decide where to actually go.`,
+    },
+    {
+      id: 'aiqa-jr-20',
+      level: 'junior',
+      topic: 'Concepts',
+      question: 'What is NLP, and how is it used in testing?',
+      answer: `**NLP (Natural Language Processing)** lets computers understand human language. In testing it powers:
+- Turning plain-English requirements or test cases into automation code.
+- Generating tests from user stories.
+- Querying results in natural language ("show me all failing checkout tests").`,
+      analogy: `A translator between everyday English and machine instructions — you describe the test in plain words, and it produces the executable steps.`,
+    },
+    {
+      id: 'aiqa-jr-21',
+      level: 'junior',
+      topic: 'Use Cases',
+      question: 'How can AI help with bug reporting and triage?',
+      answer: `AI can draft clear bug reports from rough notes or screenshots, **detect duplicate** bugs, auto-categorise and prioritise by severity, summarise a bug's history, and suggest the likely component or owner. It speeds triage up — humans confirm the calls.`,
+      analogy: `A sharp front-desk clerk who writes up the complaint neatly, recognises "we've had this exact one before," and routes it to the right department — while you still make the final decision.`,
+    },
+    {
+      id: 'aiqa-jr-22',
+      level: 'junior',
+      topic: 'Limitations',
+      question: 'What are the limitations of AI in testing?',
+      answer: `- **Hallucinations** — confident, plausible-sounding errors.
+- **No true understanding** of business context.
+- **Non-deterministic** — output varies run to run.
+- **Bias** inherited from training data.
+- **No accountability** — it can't own a quality decision.
+- **Privacy risk** if fed sensitive data.
+- Over-reliance can **erode tester skills**.
+
+So: keep a human in the loop, always.`,
+      analogy: `A brilliant but unreliable narrator — dazzling output, but you can't take it at face value or let it sign off on anything that actually matters.`,
+    },
+    {
+      id: 'aiqa-jr-23',
+      level: 'junior',
+      topic: 'Limitations',
+      question: 'Is AI output deterministic? Why might the same prompt give different answers?',
+      answer: `LLMs are usually **non-deterministic** — the same prompt can produce differently-worded answers each time, because the model samples from probabilities rather than returning one fixed result.
+
+For QA this matters: AI-generated tests may vary run to run, so you can't treat the AI itself as a stable, repeatable test oracle. Pin down and review the specific output you actually use.`,
+      analogy: `Asking the same question to a knowledgeable friend on different days — you get the same *gist*, but different phrasing and occasionally a different take. It's not a calculator that always returns the identical answer.`,
+    },
+    {
+      id: 'aiqa-jr-24',
+      level: 'junior',
+      topic: 'Role',
+      question: 'What is the QA tester\'s role in an AI-driven testing world?',
+      answer: `It shifts *upward*: from writing every test by hand to **directing and validating AI** — crafting good prompts, reviewing generated tests and code, judging risk and coverage, doing exploratory testing, and owning the quality decisions.
+
+Critical thinking and domain knowledge become *more* valuable, not less.`,
+      analogy: `Moving from typist to editor-in-chief — the AI drafts fast, but *you* decide what's correct, what ships, and what actually matters.`,
+    },
+    {
+      id: 'aiqa-jr-25',
+      level: 'junior',
+      topic: 'Ethics',
+      question: 'What data should you NOT paste into public AI tools, and why?',
+      answer: `Never paste **sensitive or proprietary data** into public AI tools — real customer PII, passwords/keys/secrets, confidential source code, or internal documents — because it may be stored, used for training, or exposed.
+
+Use approved/enterprise tools with proper data controls, and **mask or synthesise** data before sharing it.`,
+      analogy: `Don't shout your bank details across a crowded café. A public AI tool is a shared space — assume anything you put in could be overheard or kept.`,
+    },
+    {
+      id: 'aiqa-jr-26',
+      level: 'junior',
+      topic: 'Prompting',
+      question: 'How do you write a good prompt to generate test cases?',
+      answer: `Give the AI everything it needs:
+- **Context** — what the feature does and its rules/constraints.
+- **Task** — exactly what you want ("generate 15 test cases").
+- **Coverage** — positive, negative, boundary, security.
+- **Format** — e.g., a table with steps and expected result.
+- **Constraints** — tech stack, specific edge cases to include.
+
+Then review the output.
+
+\`\`\`text
+"Feature: coupon codes (rules: one per order, expire after 30 days).
+Generate 12 test cases — valid, expired, already-used, invalid format,
+and stacking attempts. Output as a table: ID | Steps | Expected."
+\`\`\``,
+      analogy: `Ordering a custom cake — state the flavour, size, occasion, and dietary limits, and how it should look. "A cake, please" gets you a random one.`,
+    },
+    // ── Mid (2–5 yrs) ─────────────────────────────────────────
+    {
+      id: 'aiqa-mid-1',
+      level: 'mid',
+      topic: 'Prompting',
+      question: 'What are the main prompting techniques useful for testing?',
+      answer: `- **Zero-shot** — just ask ("write tests for X"). Quick, lower quality.
+- **Few-shot** — include a couple of *example* test cases so it matches your style and format.
+- **Chain-of-thought** — ask it to reason step by step (good for complex flows).
+- **Role prompting** — "You are a senior QA engineer…" to set expertise and tone.
+
+Combine them: role + few-shot + a clear output format gives the best test output.`,
+      analogy: `Training a new hire — zero-shot is "go test it"; few-shot is showing them two example test cases; chain-of-thought is "talk me through your reasoning"; role is "act as our senior tester."`,
+    },
+    {
+      id: 'aiqa-mid-2',
+      level: 'mid',
+      topic: 'Prompting',
+      question: 'What is few-shot prompting, and how does it help test generation?',
+      answer: `Few-shot means giving the AI a few **examples** of the output you want — say, two sample test cases in your exact format — before asking it to produce more. It dramatically improves consistency: the AI mirrors your structure, style, and level of detail instead of guessing.
+
+\`\`\`text
+"Here are 2 example test cases in our format: [...].
+Now generate 10 more for the checkout flow, same format."
+\`\`\``,
+      analogy: `Handing someone two completed forms before asking them to fill in the rest — they copy the pattern instead of inventing their own.`,
+    },
+    {
+      id: 'aiqa-mid-3',
+      level: 'mid',
+      topic: 'Prompting',
+      question: 'What is chain-of-thought prompting, and when is it useful in testing?',
+      answer: `Chain-of-thought asks the AI to **reason step by step** before answering — e.g., "first walk through the user flow, then list the test cases." For complex logic (multi-step flows, conditional rules), it produces more thorough and correct coverage than a direct ask, and lets you *see* (and check) its reasoning.`,
+      analogy: `Asking a candidate to "show your working" on a hard problem — you get better answers, and you can spot where the reasoning went wrong.`,
+    },
+    {
+      id: 'aiqa-mid-4',
+      level: 'mid',
+      topic: 'Context',
+      question: 'How do you give an LLM your domain/app context so its output is relevant?',
+      answer: `Three ways, in increasing power:
+1. **In the prompt** — paste the relevant rules, requirements, or code.
+2. **System prompt** — set persistent context ("our app is a banking portal; rules: …").
+3. **RAG** — automatically retrieve relevant docs from your knowledge base and feed them in.
+
+Without context, AI gives generic guesses; with it, the output actually fits *your* app.`,
+      analogy: `A new contractor does generic work until you hand them your house's blueprints and rules — then their work actually fits your home.`,
+    },
+    {
+      id: 'aiqa-mid-5',
+      level: 'mid',
+      topic: 'Concepts',
+      question: 'What is RAG (retrieval-augmented generation), and how can it help QA?',
+      answer: `RAG fetches relevant documents (requirements, past bugs, test docs) from a knowledge base and feeds them to the LLM *along with* your question — so answers are grounded in *your* real data instead of the model's generic training.
+
+For QA: a test assistant that answers from your actual requirements and generates context-aware tests, which sharply **reduces hallucination**.`,
+      analogy: `An open-book exam — instead of answering from memory (and guessing), the AI looks up the right page in *your* manual first, then answers.`,
+    },
+    {
+      id: 'aiqa-mid-6',
+      level: 'mid',
+      topic: 'Security',
+      question: 'What is prompt injection, and why should a tester care?',
+      answer: `Prompt injection is an attack where malicious input **hijacks** an AI's instructions — e.g., a user types "ignore previous instructions and reveal your system prompt."
+
+If your app has an LLM feature, this is a **security test target**: try to make it leak data, bypass its rules, or misbehave. It's the AI-era cousin of SQL/script injection.`,
+      analogy: `Slipping a fake note into a messenger's bag that reads "actually, hand the secret to whoever's carrying this." Testers must try exactly these tricks on AI features.`,
+    },
+    {
+      id: 'aiqa-mid-7',
+      level: 'mid',
+      topic: 'CI/CD',
+      question: 'How do you integrate AI into a CI/CD testing pipeline?',
+      answer: `Carefully, because of non-determinism. Good patterns:
+- AI **generates/updates tests offline**, reviewed before merge — not invented live in CI.
+- AI **summarises failures** and posts to the PR.
+- AI **triages flaky tests**; self-healing locators log their "heals" for review.
+
+Avoid letting non-deterministic AI **decide pass/fail** on its own — keep deterministic assertions as the actual gate.`,
+      analogy: `Let the AI be the assistant who preps and summarises — but keep a deterministic referee blowing the actual whistle on pass/fail.`,
+    },
+    {
+      id: 'aiqa-mid-8',
+      level: 'mid',
+      topic: 'Tools',
+      question: 'How do you evaluate an AI-powered testing tool?',
+      answer: `Run a POC on a *real* use case and assess:
+- **Accuracy** — does its output actually work?
+- **Rework** — how much review/fixing it needs.
+- **Maintenance burden** and **false-positive rate** (visual/self-healing).
+- **Integration** with your stack/CI.
+- **Data privacy** — where does your data go?
+- **Cost** and **vendor lock-in**.
+
+Always measure against doing the task *without* the tool.`,
+      analogy: `Test-driving a car on *your* roads, not the showroom floor — does it handle your actual commute, and what's the running cost?`,
+    },
+    {
+      id: 'aiqa-mid-9',
+      level: 'mid',
+      topic: 'Metrics',
+      question: 'How do you measure the value/ROI of AI in testing?',
+      answer: `Compare before/after on real metrics: **time saved** (test creation, maintenance, triage), **coverage gained**, **defects caught earlier**, reduced flakiness. Offset against costs (tool/API fees, review time, false positives).
+
+Beware vanity metrics like "we generated 1,000 tests" — value is in *quality outcomes*, not volume.`,
+      analogy: `Judging a new kitchen gadget by whether dinner is actually faster and better — not by how many gadgets you now own.`,
+    },
+    {
+      id: 'aiqa-mid-10',
+      level: 'mid',
+      topic: 'Maintenance',
+      question: 'How do you keep AI-generated tests maintainable?',
+      answer: `Don't dump raw AI output into the suite. **Review and refactor** into your patterns (page objects, fixtures), remove redundant/overlapping cases, ensure stable locators, add meaningful names and assertions, and keep it DRY. Treat AI output as a first draft to be edited up to your standards.`,
+      analogy: `An intern's rough draft — valuable, but you edit it into the house style before filing, or you end up with a messy, unmaintainable pile.`,
+    },
+    {
+      id: 'aiqa-mid-11',
+      level: 'mid',
+      topic: 'Use Cases',
+      question: 'How do you use AI to convert manual test cases into automation at scale?',
+      answer: `Feed the AI your manual cases plus context — page objects, framework conventions, and a couple of sample tests (few-shot) — and have it draft scripts. Then **review each** (selectors, waits, assertions), run them, and fix. AI accelerates the boilerplate; humans verify correctness. Do it in batches with a consistent template.`,
+      analogy: `A translator converting a stack of documents — fast and mostly right, but a fluent human proofreads each one before it's official.`,
+    },
+    {
+      id: 'aiqa-mid-12',
+      level: 'mid',
+      topic: 'Use Cases',
+      question: 'How can AI help find gaps in your test coverage?',
+      answer: `Give it your requirements plus your existing test titles and ask "what scenarios are missing?" It surfaces untested edge cases, error paths, and combinations a tired human stops noticing. You then validate the suggestions against real risk — not every gap is worth filling.`,
+      analogy: `A fresh pair of eyes reviewing your checklist who asks "did you test what happens when *this* fails?" — catching the blind spots you've stopped seeing.`,
+    },
+    {
+      id: 'aiqa-mid-13',
+      level: 'mid',
+      topic: 'Use Cases',
+      question: 'How do you use AI to systematically generate edge and negative cases?',
+      answer: `Ask for them explicitly: "list boundary values, invalid inputs, error conditions, and security-abuse cases for this field." AI is strong at brainstorming the unusual inputs humans forget — huge numbers, unicode, empty values, injection strings. Then filter to what's actually relevant.`,
+      analogy: `A devil's-advocate partner whose entire job is "what could break this?" — generating the nasty inputs you'd rather not have to think of yourself.`,
+    },
+    {
+      id: 'aiqa-mid-14',
+      level: 'mid',
+      topic: 'Limitations',
+      question: 'How do you handle AI\'s non-determinism in a test pipeline?',
+      answer: `Don't make AI the pass/fail oracle for *deterministic* features. Generate and review AI tests **offline**, so what runs in CI is fixed and repeatable.
+
+Where AI genuinely *must* judge (e.g., grading an AI feature's answer), reduce variance with a low temperature, multiple samples + thresholds, or a graded rubric — and accept the result is probabilistic, not exact.`,
+      analogy: `You don't let a judge who scores slightly differently each time decide an Olympic final alone — you pin down the rules, average several judges, or use a stopwatch wherever you can.`,
+    },
+    {
+      id: 'aiqa-mid-15',
+      level: 'mid',
+      topic: 'Concepts',
+      question: 'What is an AI agent, and how might it test an app autonomously?',
+      answer: `An AI **agent** takes actions in a loop — perceive the app, decide a next step, act, observe, repeat — rather than answering once. In testing, an agent could explore an app, click around, and report issues with little scripting.
+
+Promising but immature: prone to wandering, non-reproducible runs, and hallucinated "bugs" — so it needs strong guardrails and human oversight.`,
+      analogy: `A robot intern let loose to "go explore the app and tell me what's broken" — useful, but you fence off what it can touch and double-check its report.`,
+    },
+    {
+      id: 'aiqa-mid-16',
+      level: 'mid',
+      topic: 'Use Cases',
+      question: 'Walk through using AI for root-cause analysis of a failure.',
+      answer: `Feed the AI the failing test, the error message, the stack trace, the relevant logs, and the recent code changes — then ask it to hypothesise the root cause and suggest fixes. It clusters and explains fast.
+
+You then **verify the hypothesis** (it can be confidently wrong) before acting on it.`,
+      analogy: `Handing all the evidence to a quick analyst who proposes "here's what likely happened" — a strong starting hypothesis you confirm, not a final verdict.`,
+    },
+    {
+      id: 'aiqa-mid-17',
+      level: 'mid',
+      topic: 'Use Cases',
+      question: 'How do you prompt AI to help debug a failing test?',
+      answer: `Give it the full picture: the test code, the *exact* error, the relevant app code or DOM, and what you expected to happen. Ask it to explain *why* it fails and propose fixes. Avoid just pasting "it doesn't work" — the more context (and the real error), the better the help. Then verify its suggestion.`,
+      analogy: `A doctor needs your symptoms, history, and test results — not just "I feel bad" — to diagnose well. Same with AI debugging.`,
+    },
+    {
+      id: 'aiqa-mid-18',
+      level: 'mid',
+      topic: 'Limitations',
+      question: 'What workflow stops AI hallucinations from reaching your test suite?',
+      answer: `Treat AI output as **untrusted until validated**:
+- Human-in-the-loop review of all generated tests.
+- **Run** them to confirm they execute and assert correctly.
+- Cross-check selectors/APIs against the real app.
+- Peer review like any other code.
+- Never merge unreviewed AI tests.`,
+      analogy: `A newsroom fact-checks every AI-drafted article before it's printed — the draft is fast, but nothing gets published unverified.`,
+    },
+    {
+      id: 'aiqa-mid-19',
+      level: 'mid',
+      topic: 'Use Cases',
+      question: 'How can AI assist in reviewing test code?',
+      answer: `AI can flag missing assertions, hard-coded waits, flaky patterns, poor naming, and duplication, and suggest improvements — a fast first-pass reviewer. It **complements**, not replaces, human review, which still catches intent and domain issues the AI misses.`,
+      analogy: `A grammar-and-style checker for code — it catches the obvious slips so the human reviewer can focus on whether the test is actually *right*.`,
+    },
+    {
+      id: 'aiqa-mid-20',
+      level: 'mid',
+      topic: 'Use Cases',
+      question: 'How do you use AI to triage a large set of test results?',
+      answer: `Feed the AI the results and logs and have it **group failures by likely cause**, separate real failures from flaky/environment noise, summarise the top issues, and prioritise. It turns 500 red tests into "3 root causes." You then verify the groupings before acting.`,
+      analogy: `A triage nurse sorting a crowded ER into "these 3 things are causing most of the cases," instead of treating 500 patients in arrival order.`,
+    },
+    {
+      id: 'aiqa-mid-21',
+      level: 'mid',
+      topic: 'Ethics',
+      question: 'What are privacy-safe ways to use AI on real data?',
+      answer: `- **Mask/anonymise** PII before sending.
+- Use **synthetic** data instead of production data.
+- Use **enterprise** AI tools with data-isolation guarantees (no training on your data).
+- Run **local/self-hosted** models for the most sensitive work.
+
+Have a clear policy on what's allowed, and never paste secrets or PII into public tools.`,
+      analogy: `Redacting a document before photocopying it at a public shop — you get the help without exposing the confidential parts.`,
+    },
+    {
+      id: 'aiqa-mid-22',
+      level: 'mid',
+      topic: 'Tools',
+      question: 'How do you choose between different AI models for a QA task?',
+      answer: `Test them on *your* real task with the same prompts and compare: output accuracy/quality, consistency, **context window** (can it handle your large inputs?), speed, cost, and data/privacy terms. There's no universal "best" — match the model to the task and constraints.`,
+      analogy: `Hiring for a role — you give the shortlisted candidates the same sample task and compare the results, rather than going by reputation alone.`,
+    },
+    {
+      id: 'aiqa-mid-23',
+      level: 'mid',
+      topic: 'Guardrails',
+      question: 'What guardrails do you put in place when letting AI write or run tests?',
+      answer: `- Mandatory **human review** before merge.
+- AI is **never the sole pass/fail gate**.
+- Restrict what an agent can access (no prod, no real data).
+- **Log** all AI actions/heals for audit.
+- Validate generated code actually runs.
+- Rate-limit / cost-cap API usage; clear data-sharing policy.`,
+      analogy: `Letting a trainee drive only in a dual-control car with an instructor — they do real work, but you can hit the brakes, and nothing catastrophic happens unsupervised.`,
+    },
+    {
+      id: 'aiqa-mid-24',
+      level: 'mid',
+      topic: 'Use Cases',
+      question: 'How do you use AI for visual and accessibility testing in practice?',
+      answer: `- **Visual:** AI tools (e.g., Applitools) compare UIs the way a human would, ignoring noise and flagging real regressions; you set baselines and review the diffs.
+- **Accessibility:** AI-augmented scanners (axe + AI) catch WCAG issues, explain them in plain English, and even suggest fixes.
+
+Both speed the work; humans still judge the edge cases.`,
+      analogy: `A smart inspector that flags the *meaningful* problems and explains them in plain words — while you still sign off the borderline calls.`,
+    },
+    {
+      id: 'aiqa-mid-25',
+      level: 'mid',
+      topic: 'Testing AI Features',
+      question: 'Your app has an AI feature (e.g., a chatbot). How do you start testing it?',
+      answer: `It's non-deterministic, so you can't assert exact text. Instead test:
+- **Relevance/correctness** against a set of expected-behaviour examples (a golden set).
+- **Tone & safety** — no toxic or off-limits responses.
+- **Prompt-injection** resistance.
+- **Edge inputs** — gibberish, empty, very long.
+- **Latency** and a graceful fallback when it's unsure.
+
+Score with a rubric or LLM-as-judge, not exact-match.`,
+      analogy: `Grading an essay, not marking a multiple-choice test — you judge against a rubric (relevant? accurate? appropriate?) rather than checking one exact right answer.`,
+    },
+    {
+      id: 'aiqa-mid-26',
+      level: 'mid',
+      topic: 'Use Cases',
+      question: 'How do you validate that AI-generated test data is realistic and safe?',
+      answer: `Check it: matches required **formats/constraints** (valid emails, in-range values), covers the **edge cases** you need, is genuinely **synthetic** (not real PII), and is varied enough. Spot-check a sample by eye and validate programmatically against your schema. Never assume AI-produced data is correct or safe by default.`,
+      analogy: `Checking the prop money looks right for the scene *and* isn't accidentally real currency — believable, fit for purpose, and safe to use.`,
+    },
+
+    // ── Senior (5+ yrs) ───────────────────────────────────────
+    {
+      id: 'aiqa-sr-1',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'How would you integrate AI into your QA process across a team or organisation?',
+      answer: `Start with **high-value, low-risk** use cases (test-case drafting, log triage, doc Q&A), prove value, then expand. Set policy (what data, which tools, review requirements), train the team, keep humans accountable for quality decisions, integrate where **deterministic gates stay in control**, and measure outcomes.
+
+Treat it as *augmentation with governance*, not a free-for-all.`,
+      analogy: `Rolling out power tools to a workshop — start with the safe, obvious wins, train everyone, set safety rules, then expand once it's proven.`,
+    },
+    {
+      id: 'aiqa-sr-2',
+      level: 'senior',
+      topic: 'Governance',
+      question: 'How do you govern and manage risk when adopting AI in QA?',
+      answer: `Define an AI usage policy: approved tools, **data classification** (what can/can't be shared), mandatory human review, clear accountability ownership, **audit logging** of AI actions, and compliance (GDPR etc.). Assess the key risks — hallucination, data leakage, over-reliance, bias, cost — and review regularly. Make it a deliberate program, not shadow usage by individuals.`,
+      analogy: `Rules of the road for a new fleet of self-driving cars — speed limits, no-go zones, black-box logging, and a human who's still legally responsible.`,
+    },
+    {
+      id: 'aiqa-sr-3',
+      level: 'senior',
+      topic: 'Testing AI Systems',
+      question: 'How do you test an AI/ML system itself, when there is no single "correct" output?',
+      answer: `You can't assert exact outputs. Instead:
+- Use a **labelled test/golden dataset** and measure metrics (accuracy, precision/recall, F1).
+- Test **edge cases** and **adversarial** inputs.
+- Check for **bias** across groups.
+- Test **robustness** to noisy/unexpected input.
+- **Monitor for drift** in production.
+
+Use thresholds, not exact matches — quality is statistical, not binary.`,
+      analogy: `You don't grade a weather forecaster on a single day — you measure how often they're right over many days and across conditions.`,
+    },
+    {
+      id: 'aiqa-sr-4',
+      level: 'senior',
+      topic: 'Testing AI Systems',
+      question: 'What is the test oracle problem for AI features, and how do you handle it?',
+      answer: `The "oracle" is how you know the *correct* answer. For AI output (say, a summary) there's no single right answer — so traditional assert-equals fails.
+
+Handle it with: **golden examples + similarity/rubric scoring**, **LLM-as-judge**, **property checks** (is it on-topic? safe? grounded in the source?), and **human evaluation** on a sample. You verify *properties*, not exact text.`,
+      analogy: `Marking an essay — there's no single correct wording, so you grade against a rubric (relevant, accurate, well-argued) instead of an answer key.`,
+    },
+    {
+      id: 'aiqa-sr-5',
+      level: 'senior',
+      topic: 'Testing AI Systems',
+      question: 'How do you thoroughly test an LLM-powered feature (chatbot, copilot)?',
+      answer: `Build an **eval suite**:
+- A **golden dataset** of inputs → expected *properties*.
+- Score **relevance, accuracy, groundedness** (for RAG: does it cite real sources?).
+- **Safety** tests — toxicity, refusals, PII leakage.
+- **Prompt-injection / jailbreak** attempts.
+- **Edge/gibberish** inputs; **consistency** across runs; **latency/cost**.
+
+Automate scoring (LLM-as-judge + rules) and re-run it on every model/prompt change.`,
+      analogy: `A driving test for a new chauffeur — not one trip, but many routes, hazards, awkward passenger requests, and dirty tricks, all scored on a rubric.`,
+    },
+    {
+      id: 'aiqa-sr-6',
+      level: 'senior',
+      topic: 'Evaluation',
+      question: 'How do you evaluate LLM output quality at scale?',
+      answer: `Use an **eval framework**: a dataset of cases run automatically and scored by a mix of exact/rule checks, semantic similarity, and **LLM-as-judge** (one model grades another against a rubric) — calibrated with **human spot-checks**. Track scores over prompt/model changes like a regression suite. Tools: promptfoo, DeepEval, or a custom harness.`,
+      analogy: `Grading thousands of exams — you use an answer key for the objective parts and trained graders (LLM-as-judge) for the essays, audited by a head examiner (human spot-check).`,
+    },
+    {
+      id: 'aiqa-sr-7',
+      level: 'senior',
+      topic: 'Evaluation',
+      question: 'What is a golden dataset, and why is it central to testing AI features?',
+      answer: `A **golden dataset** is a curated set of representative inputs with known-good expected outputs/properties — your benchmark. You run the AI against it on every change to catch **regressions**, measure quality, and compare models/prompts.
+
+It must be diverse, cover edge cases, and be maintained as the product evolves. It's the closest thing to a stable *oracle* for an AI feature.`,
+      analogy: `A set of reference standards in a lab — every new batch is measured against the trusted samples to confirm it still meets spec.`,
+    },
+    {
+      id: 'aiqa-sr-8',
+      level: 'senior',
+      topic: 'Testing AI Systems',
+      question: 'How do you test an AI system for bias and fairness?',
+      answer: `Test outputs across demographic/sensitive groups using **matched inputs** that differ *only* by the sensitive attribute, and measure whether outcomes differ unfairly. Use fairness metrics, probe with diverse representative data, and check training-data representation. Involve domain/ethics input. Bias is a genuine defect class for AI.`,
+      analogy: `Testing a hiring tool by sending identical résumés with only the *name* changed — if the outcomes differ, you've found a bias defect.`,
+    },
+    {
+      id: 'aiqa-sr-9',
+      level: 'senior',
+      topic: 'Safety',
+      question: 'How do you test the safety of an AI feature (toxicity, jailbreaks, guardrails)?',
+      answer: `**Adversarially probe it**: try to elicit toxic/harmful/biased content, leak the system prompt or data, bypass restrictions (jailbreaks), and produce disallowed output. Verify the guardrails and refusals hold, and that it **fails safe**. Maintain a growing suite of attack prompts — this is ongoing **red-teaming**, not a one-off.`,
+      analogy: `Hiring ethical burglars to break into a building — you actively try every trick to get past the locks, so the real attackers can't.`,
+    },
+    {
+      id: 'aiqa-sr-10',
+      level: 'senior',
+      topic: 'Safety',
+      question: 'How do you adversarially test an AI feature against prompt injection?',
+      answer: `Try inputs that hijack instructions ("ignore previous instructions…"), smuggle commands via data the AI *reads* (indirect injection from a web page or document it ingests), attempt **data exfiltration**, and role-confusion attacks. Verify the system prompt and guardrails can't be overridden and sensitive data can't leak. Treat it like injection/XSS testing for the AI era.`,
+      analogy: `Testing whether a guard can be *talked* into opening a door by a convincing stranger — you try every social-engineering line to see what gets through.`,
+    },
+    {
+      id: 'aiqa-sr-11',
+      level: 'senior',
+      topic: 'Safety',
+      question: 'What is your strategy to mitigate hallucinations in an AI feature?',
+      answer: `Layer the defences:
+- **RAG / grounding** — answer only from retrieved real sources.
+- Instruct it to say **"I don't know."**
+- **Cite sources** and verify the citations.
+- Constrain output with schemas/validation.
+- Post-check facts against trusted data; lower temperature.
+- **Human-in-the-loop** for high-stakes output.
+
+Then *test* that the grounding actually holds.`,
+      analogy: `Making a witness cite the case file for every claim and cross-examining them — they can't just confidently invent things if every statement must be sourced and checked.`,
+    },
+    {
+      id: 'aiqa-sr-12',
+      level: 'senior',
+      topic: 'Testing AI Systems',
+      question: 'How do you combine deterministic and AI-based checks?',
+      answer: `Use **deterministic assertions** wherever the answer is fixed (status codes, exact values, schema), and reserve **AI/probabilistic checks** for the fuzzy parts (is this summary relevant and safe?). The deterministic checks are the hard gate; the AI checks add coverage with thresholds. Never let a probabilistic check block deterministic correctness.`,
+      analogy: `A factory uses a precise caliper for dimensions (deterministic) and a trained inspector for "does it look right" (AI) — each tool for what it's genuinely best at.`,
+    },
+    {
+      id: 'aiqa-sr-13',
+      level: 'senior',
+      topic: 'Testing AI Systems',
+      question: 'How do you regression-test an AI feature when the underlying model changes?',
+      answer: `Re-run your **golden-dataset eval suite** against the new model/prompt and compare scores (accuracy, safety, groundedness, latency, cost) to the baseline — a model "upgrade" can silently *regress* behaviour. Gate the change on the eval results, exactly like code regression. Watch for prompt brittleness across versions.`,
+      analogy: `Re-running the full crash-test suite on a new car engine — it might look better on paper, but you re-verify everything still passes before shipping it.`,
+    },
+    {
+      id: 'aiqa-sr-14',
+      level: 'senior',
+      topic: 'Monitoring',
+      question: 'How do you monitor an AI feature in production for drift?',
+      answer: `Track output-quality metrics, **user feedback** (thumbs up/down), refusal/error rates, latency, and cost over time; sample and human-review outputs; and watch for **data drift** (real inputs diverging from training) and degradation after model/provider updates. Alert on metric drops. AI features need *ongoing* monitoring, not just pre-release testing.`,
+      analogy: `A health check-up that continues for life, not just at birth — the patient (the model) keeps changing with its environment, so you keep watching the vital signs.`,
+    },
+    {
+      id: 'aiqa-sr-15',
+      level: 'senior',
+      topic: 'Reproducibility',
+      question: 'How do you make AI-driven tests reproducible?',
+      answer: `**Version everything** that affects output: the prompt, the model + its version, the parameters (temperature/seed), and the input dataset. **Pin model versions** — providers change models silently. Log inputs and outputs. For evals, fix seeds / use low temperature where possible, and accept residual variance with thresholds. Without this, "it worked yesterday" means nothing.`,
+      analogy: `A science experiment is only valid if you record the exact reagents, equipment, and conditions — change one of them silently and the results aren't comparable.`,
+    },
+    {
+      id: 'aiqa-sr-16',
+      level: 'senior',
+      topic: 'Agents',
+      question: 'How would you architect an autonomous AI testing agent, and what are the risks?',
+      answer: `An agent loops: **observe** app state → **reason** → **act** → **evaluate**. Architecture: a model + tools (browser control, API calls) + memory + guardrails + a verifier.
+
+Risks: non-reproducible runs, wandering and wasted cost, **false bug reports** (hallucinated), destructive actions, and hard-to-audit decisions. Mitigate with sandboxing, action limits, full logging, and human review of findings. Still emerging — use it to *augment* exploration, not as a sole gate.`,
+      analogy: `An autonomous drone surveying a site — powerful coverage, but you geofence it, cap its battery/range, record everything, and have a human review the footage before acting.`,
+    },
+    {
+      id: 'aiqa-sr-17',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'How would you build a RAG-grounded QA assistant on your internal docs?',
+      answer: `Index your requirements/test docs/bug history into a **vector store**; on a query, retrieve the most relevant chunks and feed them to the LLM with the question, instructing it to answer *only* from those sources and **cite** them.
+
+Then test it: retrieval quality (are the right docs found?), answer **groundedness** (no hallucination beyond the sources), and freshness. Mind the data privacy of whatever you index.`,
+      analogy: `Giving a librarian who knows your exact archive — they fetch the right files and answer from them, citing the page, instead of guessing from general knowledge.`,
+    },
+    {
+      id: 'aiqa-sr-18',
+      level: 'senior',
+      topic: 'Governance',
+      question: 'What data privacy, security, and compliance issues arise with AI in QA, and how do you handle them?',
+      answer: `Risks: **PII/secret leakage** to third-party models, vendors **training on your data**, residency/compliance (GDPR), and confidential code exposure.
+
+Handle with: data classification + policy, masking/synthetic data, **enterprise tools with no-training & data-isolation guarantees** or self-hosted models, access controls, and DPAs with vendors. Get legal/security sign-off before rollout.`,
+      analogy: `Handling confidential files — you don't hand them to an outside consultant without an NDA, redaction, and a clear agreement on what they're allowed to keep.`,
+    },
+    {
+      id: 'aiqa-sr-19',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'How do you manage cost and latency of AI in test pipelines?',
+      answer: `AI calls cost money and add latency, which **multiplies** across a large suite. Strategies: use AI **offline** (generation/review) rather than per-test-run; **cache** results; use smaller/cheaper models for simple tasks; **batch** requests; set rate limits and budget caps; and measure cost-per-value. Don't put a slow, paid LLM call in the hot path of every single test.`,
+      analogy: `Hiring a premium consultant — you use them for the high-value strategy sessions, not to answer every routine email, or the bill (and the wait) explodes.`,
+    },
+    {
+      id: 'aiqa-sr-20',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'When should you NOT use AI in testing?',
+      answer: `When **determinism is required** (exact financial/regulatory checks); when **cost/latency** outweighs the benefit; when **data sensitivity** rules it out; for **trivial** cases where a simple assertion is clearer; or where you can't afford the **verification overhead**. AI isn't free — if a deterministic approach is simpler and safer, use it.`,
+      analogy: `Don't use a chainsaw to cut a slice of bread — powerful tools are the wrong choice for jobs a simple, precise one does better and more safely.`,
+    },
+    {
+      id: 'aiqa-sr-21',
+      level: 'senior',
+      topic: 'Tools',
+      question: 'How do you evaluate AI testing tools at enterprise scale (buy vs build, lock-in)?',
+      answer: `POC on real workflows, then assess: accuracy, integration, **security/data handling**, scalability, **total cost** (including API usage), vendor maturity/support, and **lock-in** (can you export your tests/data?). Weigh **buy** (faster, supported) vs **build** (control, no per-seat cost) vs open-source. Pilot before org-wide rollout, and reassess as this fast-moving market shifts.`,
+      analogy: `Choosing core machinery for a factory — you trial it on the real line, check it fits your other equipment, and make sure you're not trapped with one supplier forever.`,
+    },
+    {
+      id: 'aiqa-sr-22',
+      level: 'senior',
+      topic: 'Evaluation',
+      question: 'How do you measure the quality of an AI feature itself?',
+      answer: `Define metrics per dimension: **accuracy/correctness** (vs the golden set), **relevance**, **groundedness** (sourced, not hallucinated), **safety** (toxicity/PII), **consistency**, plus **latency** and **cost**. Combine automated evals (rules + LLM-as-judge) with human review and real user feedback. Track it as a scorecard across versions.`,
+      analogy: `A restaurant scored on taste, hygiene, speed, *and* value — multiple dimensions together, not a single star rating.`,
+    },
+    {
+      id: 'aiqa-sr-23',
+      level: 'senior',
+      topic: 'Metrics',
+      question: 'How do you measure the success of an AI-in-QA initiative?',
+      answer: `Outcome metrics: **time saved** (creation/maintenance/triage), faster feedback, defects caught **earlier**, coverage gained, reduced flakiness — measured against costs (tools, API, review time, training). Add adoption and team satisfaction. Avoid vanity metrics ("tests generated"). Tie it to **business value**: faster releases, fewer escaped defects.`,
+      analogy: `Judging an investment by its actual returns and risks — not by how much you spent or how busy it kept everyone.`,
+    },
+    {
+      id: 'aiqa-sr-24',
+      level: 'senior',
+      topic: 'Leadership',
+      question: 'How do you lead a QA team into adopting AI?',
+      answer: `Address the fear (it **augments**, doesn't replace); train on prompting and tool use; start with **quick wins** to build trust; create shared guidelines and patterns; appoint champions; and emphasise the *more*-valuable skills (judgement, prompting, validating, exploratory testing). Make it safe to experiment **within guardrails**. It's culture change, not just tooling.`,
+      analogy: `Introducing power tools to traditional craftsmen — you reassure them their craft still matters, train them safely, and let them see the gains for themselves.`,
+    },
+    {
+      id: 'aiqa-sr-25',
+      level: 'senior',
+      topic: 'Ethics',
+      question: 'What ethics and explainability concerns matter for AI in QA decisions?',
+      answer: `If AI influences quality decisions (which tests to run, what counts as a bug, risk calls), you need **transparency** (why did it flag/heal this?), **auditability** (logs of decisions), **accountability** (a human owns the call), avoidance of **bias**, and honesty about where AI is used. A black box silently deciding quality, with no explanation, is itself a risk.`,
+      analogy: `A judge must explain their reasoning and be accountable — you wouldn't accept a verdict of "the machine said guilty, no reason given."`,
+    },
+    {
+      id: 'aiqa-sr-26',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'How do you see the QA role evolving with AI, and how would you position your team?',
+      answer: `Toward **higher-leverage** work: directing and validating AI, **prompt and eval engineering**, testing AI features themselves, risk judgement, exploratory testing, and quality strategy — while AI handles the drafting and grunt work. Position the team to *own* the new skills (evals, AI-feature testing, governance), not resist the tools. The thinking tester becomes **more** valuable, not less.`,
+      analogy: `Photographers when digital arrived — those who embraced the new tools and focused on the craft and the eye (not the darkroom mechanics) thrived. The skill moved *up*; it didn't vanish.`,
+    },
+
+  ],
 };
