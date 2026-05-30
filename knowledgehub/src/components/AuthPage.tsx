@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen, Eye, EyeOff, Loader2, Mail, Lock, User,
   AlertCircle, Sun, Moon, Volume2, VolumeX, MailCheck,
+  // Tour: zone icons (must match src/data/zones.tsx)
+  ShieldAlert, Database, Cpu, Code, Play, ShieldCheck,
+  // Tour: chrome / scene icons
+  Map as MapIcon, LayoutGrid, Check, Zap, Target, Trophy,
+  Lightbulb, Download,
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useQuestStore } from '../store/useQuestStore';
@@ -19,8 +24,6 @@ const GoogleIcon = () => (
 );
 
 type Mode = 'login' | 'signup';
-
-const PREVIEW_MODULES = ['Data Types', 'Control Flow', 'Functions', 'Async / Await', 'Generics', 'Null Safety'];
 
 export function AuthPage() {
   const navigate = useNavigate();
@@ -86,36 +89,6 @@ export function AuthPage() {
     }
   };
 
-  // ── Live preview animation ────────────────────────────────
-  const [previewModuleIdx, setPreviewModuleIdx] = useState(0);
-  const [previewXp, setPreviewXp]   = useState(750);
-  const [previewBar, setPreviewBar] = useState(42);
-  const [phase, setPhase]           = useState<'studying' | 'completing' | 'badge'>('studying');
-  const [completedSet, setCompletedSet] = useState<number[]>([0, 1]);
-
-  React.useEffect(() => {
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    const cycle = () => {
-      setPhase('studying');
-      timers.push(setTimeout(() => {
-        setPhase('completing');
-        setCompletedSet(prev => [...prev, previewModuleIdx]);
-        timers.push(setTimeout(() => {
-          setPhase('badge');
-          setPreviewXp(prev => Math.min(prev + 100, 1750));
-          setPreviewBar(prev => Math.min(prev + 18, 95));
-          timers.push(setTimeout(() => {
-            setPreviewModuleIdx(prev => (prev + 1) % PREVIEW_MODULES.length);
-            setPhase('studying');
-          }, 1800));
-        }, 1200));
-      }, 2500));
-    };
-    cycle();
-    const loop = setInterval(cycle, 6000);
-    return () => { clearInterval(loop); timers.forEach(clearTimeout); };
-  }, [previewModuleIdx]);
-
   // ── Auth handlers ─────────────────────────────────────────
   const switchMode = (m: Mode) => { clearError(); setMode(m); setName(''); setEmail(''); setPassword(''); setEmailError(''); };
 
@@ -150,189 +123,9 @@ export function AuthPage() {
       <div className="min-h-screen bg-[#eff4fb] dark:bg-[#07050f] font-sans flex overflow-hidden">
 
         {/* ══════════════════════════════════════════
-            LEFT HERO PANEL — narrator + live preview
+            LEFT HERO PANEL — 6-feature tabbed tour
         ══════════════════════════════════════════ */}
-        <div className="relative hidden md:flex w-[58%] flex-col justify-center gap-10 px-14 py-12 overflow-hidden">
-
-          {/* Background blobs */}
-          <div className="pointer-events-none absolute inset-0">
-            <div className="absolute inset-0"
-              style={{ backgroundImage: 'radial-gradient(circle, rgba(148,163,184,0.055) 1px, transparent 1px)', backgroundSize: '26px 26px' }} />
-            <motion.div
-              animate={{ scale: [1, 1.2, 1], opacity: isDark ? [0.2, 0.38, 0.2] : [0.04, 0.08, 0.04] }}
-              transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-              className={`absolute top-[-10%] left-[-5%] w-[600px] h-[600px] rounded-full blur-[130px] ${isDark ? 'bg-fuchsia-500/20' : 'bg-blue-500/30'}`}
-            />
-            <motion.div
-              animate={{ scale: [1.1, 1, 1.1], opacity: isDark ? [0.15, 0.28, 0.15] : [0.03, 0.06, 0.03] }}
-              transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-              className={`absolute bottom-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full blur-[120px] ${isDark ? 'bg-violet-500/20' : 'bg-indigo-500/30'}`}
-            />
-          </div>
-
-          {/* Branding */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
-            className="relative z-10"
-          >
-            {isDark ? (
-              <h1 className="text-7xl font-black bg-gradient-to-r from-fuchsia-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent tracking-tight leading-none mb-3">
-                QA Quest
-              </h1>
-            ) : (
-              <h1 className="text-7xl font-bold text-slate-900 tracking-tight leading-none mb-3">
-                QA Quest
-              </h1>
-            )}
-            <p className="text-2xl font-bold text-slate-900 dark:text-white mb-3">Master QA Engineering.</p>
-            <p className="text-slate-600 dark:text-slate-400 text-base leading-relaxed mb-7">
-              Six realms of knowledge. Real XP. Boss fights. The only QA learning hub built like a game.
-            </p>
-            <div className="flex items-center gap-8">
-              {[{ v: '6', l: 'Realms' }, { v: '50+', l: 'Modules' }, { v: '8', l: 'XP Levels' }].map(s => (
-                <div key={s.l}>
-                  <p className={`text-3xl ${isDark ? 'font-black bg-gradient-to-r from-fuchsia-400 to-violet-400 bg-clip-text text-transparent' : 'font-bold text-blue-600'}`}>{s.v}</p>
-                  <p className="text-slate-500 text-xs mt-0.5">{s.l}</p>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Live animated preview */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
-            className="relative z-10"
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <span className="relative flex h-2 w-2">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isDark ? 'bg-fuchsia-400' : 'bg-blue-500'}`} />
-                <span className={`relative inline-flex rounded-full h-2 w-2 ${isDark ? 'bg-fuchsia-400' : 'bg-blue-500'}`} />
-              </span>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Live session</p>
-            </div>
-
-            {/* App window frame */}
-            <div className={`rounded-2xl overflow-hidden backdrop-blur-sm ${
-              isDark
-                ? 'bg-slate-900/70 border border-violet-900/40 shadow-[0_24px_48px_rgba(0,0,0,0.4)]'
-                : 'bg-white border border-slate-200 shadow-lg'
-            }`}>
-              {/* Window chrome */}
-              <div className={`flex items-center gap-1.5 px-4 py-3 ${
-                isDark ? 'border-b border-violet-900/30 bg-slate-950/50' : 'border-b border-slate-200 bg-slate-50'
-              }`}>
-                <div className="w-2.5 h-2.5 rounded-full bg-rose-500/60" />
-                <div className="w-2.5 h-2.5 rounded-full bg-amber-500/60" />
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/60" />
-                <div className={`flex-1 mx-4 rounded-md h-5 flex items-center px-3 ${isDark ? 'bg-slate-800/80' : 'bg-slate-100'}`}>
-                  <span className={`text-xs ${isDark ? 'text-slate-600' : 'text-slate-500'}`}>qa-quest.app / zone / typescript</span>
-                </div>
-              </div>
-
-              <div className="p-5 flex gap-5">
-                {/* Sidebar */}
-                <div className="w-36 flex-shrink-0 space-y-1">
-                  <p className={`text-xs uppercase tracking-wider mb-2 font-semibold ${isDark ? 'text-slate-600' : 'text-slate-500'}`}>Modules</p>
-                  {PREVIEW_MODULES.map((mod, i) => {
-                    const isDone   = completedSet.includes(i);
-                    const isActive = i === previewModuleIdx;
-                    return (
-                      <div key={mod} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-all duration-500 ${
-                        isActive
-                          ? (isDark ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'bg-blue-50 text-blue-700 border border-blue-200')
-                          : isDone
-                            ? (isDark ? 'text-slate-500' : 'text-slate-700')
-                            : (isDark ? 'text-slate-700' : 'text-slate-400')
-                      }`}>
-                        {isDone
-                          ? <span className={`flex-shrink-0 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>✓</span>
-                          : isActive
-                            ? <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 animate-pulse ${isDark ? 'bg-violet-400' : 'bg-blue-500'}`} />
-                            : <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`} />}
-                        <span className="truncate">{mod}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Main content area */}
-                <div className="flex-1 space-y-4 min-w-0">
-                  {/* Step tabs */}
-                  <div className={`flex items-center gap-2 rounded-xl p-1.5 ${isDark ? 'bg-slate-800/60' : 'bg-slate-100'}`}>
-                    {['📖 Learn', '⚔️ Boss Fight', '✓ Complete'].map((s, i) => (
-                      <div key={s} className={`flex-1 text-center text-xs py-1.5 rounded-lg font-semibold transition-all duration-500 ${
-                        i === 0 && phase === 'studying'   ? (isDark ? 'bg-slate-700 text-white' : 'bg-slate-700 text-white') :
-                        i === 1 && phase === 'completing' ? 'bg-rose-500/80 text-white' :
-                        i === 2 && phase === 'badge'      ? 'bg-emerald-500/80 text-white' :
-                        (isDark ? 'text-slate-600' : 'text-slate-500')
-                      }`}>{s}</div>
-                    ))}
-                  </div>
-
-                  {/* Lesson progress */}
-                  <div>
-                    <div className="flex justify-between text-xs text-slate-500 mb-1.5">
-                      <span className={`font-medium ${isDark ? 'text-slate-400' : 'text-slate-700'}`}>{PREVIEW_MODULES[previewModuleIdx]}</span>
-                      <span>{previewBar}%</span>
-                    </div>
-                    <div className={`h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}>
-                      <motion.div
-                        animate={{ width: phase === 'completing' || phase === 'badge' ? '100%' : `${previewBar}%` }}
-                        transition={{ duration: phase === 'completing' ? 0.8 : 0.3, ease: 'easeOut' }}
-                        className={`h-full rounded-full ${
-                          phase === 'completing' || phase === 'badge'
-                            ? 'bg-emerald-500'
-                            : (isDark ? 'bg-violet-500' : 'bg-blue-600')
-                        }`}
-                      />
-                    </div>
-                  </div>
-
-                  {/* XP bar */}
-                  <div className={`rounded-xl p-3 ${isDark ? 'bg-slate-800/50' : 'bg-slate-50 border border-slate-200'}`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm">⚡</span>
-                        <span className={`text-xs font-bold ${isDark ? 'text-amber-400' : 'text-slate-700'}`}>Bug Whisperer</span>
-                      </div>
-                      <motion.span
-                        key={previewXp}
-                        initial={{ scale: 1.4, color: isDark ? '#fbbf24' : '#2563eb' }}
-                        animate={{ scale: 1, color: isDark ? '#6b7280' : '#475569' }}
-                        transition={{ duration: 0.5 }}
-                        className={`text-xs font-bold ${isDark ? 'text-slate-500' : 'text-slate-600'}`}
-                      >
-                        {previewXp.toLocaleString()} XP
-                      </motion.span>
-                    </div>
-                    <div className={`h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>
-                      <motion.div
-                        animate={{ width: `${(previewXp / 1800) * 100}%` }}
-                        transition={{ duration: 0.8, ease: 'easeOut' }}
-                        className={`h-full rounded-full ${isDark ? 'bg-gradient-to-r from-amber-500 to-yellow-400' : 'bg-blue-600'}`}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Badge flash */}
-                  <motion.div
-                    animate={{ opacity: phase === 'badge' ? 1 : 0, y: phase === 'badge' ? 0 : 8 }}
-                    transition={{ duration: 0.4 }}
-                    className={`flex items-center gap-3 rounded-xl p-3 ${
-                      isDark ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-emerald-50 border border-emerald-200'
-                    }`}
-                  >
-                    <span className="text-lg">🏆</span>
-                    <div>
-                      <p className={`text-xs font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>+100 XP — Module Complete!</p>
-                      <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>Type Guardian badge progress</p>
-                    </div>
-                  </motion.div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
+        <LeftPanelTour isDark={isDark} />
 
         {/* ══════════════════════════════════════════
             RIGHT AUTH PANEL — login / signup form
@@ -759,6 +552,648 @@ export function AuthPage() {
 
       </div>
     </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════
+//  LEFT PANEL — feature tour (6 scenes, tabbed)
+// ════════════════════════════════════════════════════════════
+
+const MAP_NODES = [
+  { id: 'manual',     x: 11, y: 26 },
+  { id: 'sql',        x: 21, y: 65 },
+  { id: 'api',        x: 46, y: 43 },
+  { id: 'typescript', x: 69, y: 17 },
+  { id: 'playwright', x: 74, y: 60 },
+  { id: 'ai-qa',      x: 87, y: 73 },
+] as const;
+
+const MAP_PATHS: ReadonlyArray<readonly [string, string]> = [
+  ['manual', 'sql'], ['manual', 'api'], ['sql', 'api'],
+  ['api', 'typescript'], ['api', 'playwright'],
+  ['typescript', 'playwright'], ['playwright', 'ai-qa'],
+];
+
+type ZoneTheme = { color: string; soft: string; glow: string; name: string };
+const ZONE_THEMES: Record<string, ZoneTheme> = {
+  manual:     { color: '#f97316', soft: 'rgba(249,115,22,0.12)', glow: 'rgba(249,115,22,0.30)', name: 'Manual Testing' },
+  sql:        { color: '#3b82f6', soft: 'rgba(59,130,246,0.12)', glow: 'rgba(59,130,246,0.30)', name: 'SQL Sorcery' },
+  api:        { color: '#a855f7', soft: 'rgba(168,85,247,0.12)', glow: 'rgba(168,85,247,0.30)', name: 'API Testing' },
+  typescript: { color: '#0ea5e9', soft: 'rgba(14,165,233,0.12)', glow: 'rgba(14,165,233,0.30)', name: 'TypeScript' },
+  playwright: { color: '#10b981', soft: 'rgba(16,185,129,0.12)', glow: 'rgba(16,185,129,0.30)', name: 'Playwright' },
+  'ai-qa':    { color: '#f43f5e', soft: 'rgba(244,63,94,0.12)',  glow: 'rgba(244,63,94,0.30)',  name: 'AI for QA' },
+};
+
+function ZoneIcon({ id, size = 18 }: { id: string; size?: number }) {
+  switch (id) {
+    case 'manual':     return <ShieldAlert size={size} />;
+    case 'sql':        return <Database size={size} />;
+    case 'api':        return <Cpu size={size} />;
+    case 'typescript': return <Code size={size} />;
+    case 'playwright': return <Play size={size} />;
+    case 'ai-qa':      return <ShieldCheck size={size} />;
+    default:           return null;
+  }
+}
+
+type TabId = 'hub' | 'learn' | 'war' | 'trial' | 'badges' | 'cert';
+type TourTab = { id: TabId; num: string; name: string; color: string; soft: string; url: string };
+const TABS: ReadonlyArray<TourTab> = [
+  { id: 'hub',    num: '01', name: 'Realm Map',     color: '#3b82f6', soft: 'rgba(59,130,246,0.10)',  url: 'knowledgehub-indol.vercel.app/' },
+  { id: 'learn',  num: '02', name: 'Lessons',       color: '#10b981', soft: 'rgba(16,185,129,0.10)',  url: 'knowledgehub-indol.vercel.app/zone/sql' },
+  { id: 'war',    num: '03', name: 'War Room',      color: '#f43f5e', soft: 'rgba(244,63,94,0.10)',   url: 'knowledgehub-indol.vercel.app/zone/sql/interview' },
+  { id: 'trial',  num: '04', name: 'Mastery Trial', color: '#f97316', soft: 'rgba(249,115,22,0.10)',  url: 'knowledgehub-indol.vercel.app/zone/api/mastery' },
+  { id: 'badges', num: '05', name: 'Badges',        color: '#a855f7', soft: 'rgba(168,85,247,0.10)',  url: 'knowledgehub-indol.vercel.app/badges' },
+  { id: 'cert',   num: '06', name: 'Certificate',   color: '#0ea5e9', soft: 'rgba(14,165,233,0.10)',  url: 'knowledgehub-indol.vercel.app/badges' },
+];
+
+const SCENE_MS = 5500;
+const HUB_VIEW_MS = 2700;
+
+function LeftPanelTour({ isDark }: { isDark: boolean }) {
+  const [sceneIdx, setSceneIdx]   = useState(0);
+  const [hubViewIdx, setHubViewIdx] = useState(0); // 0=map, 1=skill tree
+
+  // Scene auto-rotate
+  useEffect(() => {
+    const id = setInterval(() => setSceneIdx(i => (i + 1) % TABS.length), SCENE_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  // Hub view auto-cycle (only on hub scene)
+  useEffect(() => {
+    if (TABS[sceneIdx].id !== 'hub') return;
+    const id = setInterval(() => setHubViewIdx(v => (v + 1) % 2), HUB_VIEW_MS);
+    return () => clearInterval(id);
+  }, [sceneIdx]);
+
+  const activeTab = TABS[sceneIdx];
+
+  return (
+    <div className="relative hidden md:flex w-[58%] flex-col justify-center gap-7 px-12 py-10 overflow-hidden">
+      {/* Background blobs */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0"
+          style={{ backgroundImage: 'radial-gradient(circle, rgba(148,163,184,0.055) 1px, transparent 1px)', backgroundSize: '26px 26px' }} />
+        <motion.div
+          animate={{ scale: [1, 1.2, 1], opacity: isDark ? [0.2, 0.38, 0.2] : [0.04, 0.08, 0.04] }}
+          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+          className={`absolute top-[-10%] left-[-5%] w-[600px] h-[600px] rounded-full blur-[130px] ${isDark ? 'bg-fuchsia-500/20' : 'bg-blue-500/30'}`}
+        />
+        <motion.div
+          animate={{ scale: [1.1, 1, 1.1], opacity: isDark ? [0.15, 0.28, 0.15] : [0.03, 0.06, 0.03] }}
+          transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+          className={`absolute bottom-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full blur-[120px] ${isDark ? 'bg-violet-500/20' : 'bg-indigo-500/30'}`}
+        />
+      </div>
+
+      {/* Brand */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="relative z-10">
+        {isDark ? (
+          <h1 className="text-6xl font-black bg-gradient-to-r from-fuchsia-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent tracking-tight leading-none mb-4">QA Quest</h1>
+        ) : (
+          <h1 className="text-6xl font-bold text-slate-900 tracking-tight leading-none mb-4">QA Quest</h1>
+        )}
+        <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-6 max-w-xl">
+          Master QA Engineering — gamified, from first test to interview day.
+        </p>
+        <div className="flex items-center gap-9">
+          {[
+            { v: '6',    l: 'ZONES' },
+            { v: '200+', l: 'MODULES' },
+            { v: '400+', l: 'INTERVIEW Q&A' },
+          ].map(s => (
+            <div key={s.l}>
+              <p className={`text-2xl ${isDark ? 'font-black bg-gradient-to-r from-fuchsia-400 to-violet-400 bg-clip-text text-transparent' : 'font-bold text-blue-600'}`}>{s.v}</p>
+              <p className="text-slate-500 text-[10px] mt-1.5 tracking-[0.10em] font-semibold">{s.l}</p>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Tour */}
+      <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="relative z-10 mt-4">
+        {/* Section header */}
+        <div className="flex items-center gap-2 mb-3">
+          <span className="relative flex h-2 w-2">
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isDark ? 'bg-fuchsia-400' : 'bg-blue-500'}`} />
+            <span className={`relative inline-flex rounded-full h-2 w-2 ${isDark ? 'bg-fuchsia-400' : 'bg-blue-500'}`} />
+          </span>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.14em]">Take the tour</p>
+          <p className="ml-auto text-[10px] font-bold text-slate-500 tracking-wide font-mono">
+            <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>{activeTab.num}</span> / 06 · {activeTab.name.toUpperCase()}
+          </p>
+        </div>
+
+        {/* Window */}
+        <div className={`rounded-2xl overflow-hidden backdrop-blur-sm ${
+          isDark
+            ? 'bg-slate-900/70 border border-violet-900/40 shadow-[0_24px_48px_rgba(0,0,0,0.4)]'
+            : 'bg-white border border-slate-200 shadow-lg'
+        }`}>
+          {/* Tabs */}
+          <div className={`flex items-stretch px-1 border-b ${isDark ? 'bg-slate-950/40 border-violet-900/30' : 'bg-slate-50 border-slate-200'}`}>
+            {TABS.map((t, idx) => {
+              const active = idx === sceneIdx;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setSceneIdx(idx)}
+                  className={`flex-1 min-w-0 px-1.5 pt-2 pb-1.5 flex flex-col items-center gap-0.5 border-b-2 transition-colors ${
+                    active
+                      ? ''
+                      : (isDark ? 'border-transparent text-slate-500 hover:text-slate-300 hover:bg-slate-800/40' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100')
+                  }`}
+                  style={active ? { color: t.color, background: t.soft, borderBottomColor: t.color } : undefined}
+                >
+                  <span className="text-[8.5px] font-bold tracking-[0.08em] font-mono" style={active ? { color: t.color } : undefined}>{t.num}</span>
+                  <span className="text-[10.5px] font-extrabold uppercase tracking-[0.04em] whitespace-nowrap overflow-hidden text-ellipsis max-w-full">{t.name}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Chrome */}
+          <div className={`flex items-center gap-1.5 px-3 py-2.5 border-b ${isDark ? 'bg-slate-950/40 border-violet-900/30' : 'bg-slate-50 border-slate-200'}`}>
+            <div className="w-2.5 h-2.5 rounded-full bg-rose-500/65" />
+            <div className="w-2.5 h-2.5 rounded-full bg-amber-500/65" />
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/65" />
+            <div className={`flex-1 mx-3 rounded-md h-5 flex items-center px-3 ${isDark ? 'bg-slate-800/80' : 'bg-slate-100'}`}>
+              <span className="text-[10.5px] font-mono text-slate-500">{activeTab.url}</span>
+            </div>
+          </div>
+
+          {/* Scene */}
+          <div className="relative h-[320px] overflow-hidden">
+            <AnimatePresence mode="wait">
+              {activeTab.id === 'hub'    && <HubScene    key="hub"    isDark={isDark} hubViewIdx={hubViewIdx} onPickView={setHubViewIdx} />}
+              {activeTab.id === 'learn'  && <LearnScene  key="learn"  isDark={isDark} />}
+              {activeTab.id === 'war'    && <WarRoomScene key="war"   isDark={isDark} />}
+              {activeTab.id === 'trial'  && <TrialScene  key="trial"  isDark={isDark} />}
+              {activeTab.id === 'badges' && <BadgesScene key="badges" isDark={isDark} />}
+              {activeTab.id === 'cert'   && <CertScene   key="cert"   isDark={isDark} />}
+            </AnimatePresence>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function Scene({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+      transition={{ duration: 0.4 }}
+      className={`absolute inset-0 p-4 ${className ?? ''}`}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ─── Scene 1: Realm Map + Skill Tree ─────────────────────────
+function HubScene({ isDark, hubViewIdx, onPickView }: { isDark: boolean; hubViewIdx: number; onPickView: (v: number) => void }) {
+  const stars = useMemo(() => Array.from({ length: 32 }, (_, i) => ({
+    id: i,
+    x: 2 + (i * 41 + i * i * 17) % 96,
+    y: 2 + (i * 59 + i * i * 11) % 96,
+    r: 1 + (i % 3),
+    delay: (i * 0.27) % 5,
+    dur: 2.5 + (i % 5),
+    op: 0.15 + (i % 6) * 0.10,
+  })), []);
+
+  return (
+    <Scene>
+      <div className="relative w-full h-full rounded-lg overflow-hidden">
+        {/* Toggle pill */}
+        <div className={`absolute top-2.5 left-3 z-10 flex gap-0.5 rounded-lg p-0.5 backdrop-blur ${
+          isDark ? 'bg-slate-900/80 border border-slate-700/50' : 'bg-white/95 border border-slate-300 shadow-sm'
+        }`}>
+          {[
+            { key: 0, label: 'Map',        Icon: MapIcon },
+            { key: 1, label: 'Skill Tree', Icon: LayoutGrid },
+          ].map(({ key, label, Icon }) => {
+            const active = hubViewIdx === key;
+            return (
+              <button key={key} onClick={() => onPickView(key)}
+                className={`flex items-center gap-1 text-[9px] font-bold uppercase tracking-[0.06em] px-2 py-1 rounded-md transition-all ${
+                  active
+                    ? (isDark ? 'bg-fuchsia-500 text-white' : 'bg-blue-600 text-white')
+                    : 'text-slate-500'
+                }`}
+              >
+                <Icon size={10} /> {label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* MAP view */}
+        <AnimatePresence>
+          {hubViewIdx === 0 && (
+            <motion.div key="map" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}
+              className="absolute inset-0"
+              style={{ background: 'linear-gradient(180deg, #0b1024 0%, #0a0420 100%)' }}
+            >
+              <div className="absolute inset-0 opacity-50" style={{ backgroundImage: 'radial-gradient(circle, rgba(148,163,184,0.07) 1px, transparent 1px)', backgroundSize: '26px 26px' }} />
+              {stars.map(s => (
+                <motion.div key={s.id} className="absolute rounded-full bg-white pointer-events-none"
+                  style={{ left: `${s.x}%`, top: `${s.y}%`, width: s.r, height: s.r }}
+                  animate={{ opacity: [0, s.op, 0] }}
+                  transition={{ duration: s.dur, repeat: Infinity, delay: s.delay, ease: 'easeInOut' }}
+                />
+              ))}
+              <p className="absolute top-3 right-4 text-[9px] font-extrabold uppercase tracking-[0.18em] text-slate-600">🗺️ The QA Realm</p>
+              <p className="absolute bottom-2.5 right-4 font-mono text-[9px] text-slate-600/60">N ↑</p>
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <defs>
+                  <filter id="mglow-tour" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="0.6" result="b"/>
+                    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                </defs>
+                {MAP_PATHS.map(([fId, tId]) => {
+                  const f = MAP_NODES.find(n => n.id === fId)!;
+                  const t = MAP_NODES.find(n => n.id === tId)!;
+                  const mx = (f.x + t.x) / 2, my = (f.y + t.y) / 2;
+                  const dx = t.x - f.x, dy = t.y - f.y;
+                  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                  const cx = mx + (-dy / len) * 5, cy = my + (dx / len) * 5;
+                  const d = `M ${f.x} ${f.y} Q ${cx} ${cy} ${t.x} ${t.y}`;
+                  const fromMastered = fId === 'manual';
+                  const fromActive   = fId === 'sql';
+                  return (
+                    <g key={`${fId}-${tId}`}>
+                      <path d={d} fill="none" stroke="rgba(148,163,184,0.18)" strokeWidth="0.4" strokeDasharray="1.2 2"/>
+                      {fromMastered && <path d={d} fill="none" stroke="rgba(249,115,22,0.70)" strokeWidth="0.55" filter="url(#mglow-tour)"/>}
+                      {fromActive   && <path d={d} fill="none" stroke="rgba(59,130,246,0.45)" strokeWidth="0.4" strokeDasharray="0.8 1.6" filter="url(#mglow-tour)"/>}
+                    </g>
+                  );
+                })}
+              </svg>
+              {MAP_NODES.map(n => {
+                const t = ZONE_THEMES[n.id];
+                const isActive = n.id === 'manual' || n.id === 'sql';
+                const isMastered = n.id === 'manual';
+                const sub = isMastered ? '⭐ Mastered' : n.id === 'sql' ? '62%' : 'Click to explore';
+                return (
+                  <div key={n.id} className="absolute z-10 flex flex-col items-center"
+                    style={{ left: `${n.x}%`, top: `${n.y}%`, transform: 'translate(-50%, -50%)' }}>
+                    <motion.div
+                      className="w-12 h-12 rounded-full flex items-center justify-center border-2"
+                      style={{
+                        borderColor: isActive ? t.color : 'rgba(148,163,184,0.35)',
+                        background: isActive ? t.soft : 'rgba(2,6,23,0.85)',
+                        color: isActive ? t.color : 'rgba(148,163,184,0.70)',
+                        boxShadow: isActive ? `0 0 24px ${t.glow}` : 'none',
+                        opacity: isActive ? 1 : 0.55,
+                      }}
+                      animate={isActive ? { boxShadow: [`0 0 18px ${t.glow}`, `0 0 32px ${t.glow}`, `0 0 18px ${t.glow}`] } : undefined}
+                      transition={isActive ? { duration: 2.2, repeat: Infinity, ease: 'easeInOut' } : undefined}
+                    >
+                      <ZoneIcon id={n.id} size={20} />
+                    </motion.div>
+                    <p className="mt-1 text-[9.5px] font-extrabold leading-tight whitespace-nowrap"
+                       style={{ color: isActive ? t.color : 'rgba(148,163,184,0.55)' }}>
+                      {t.name}
+                    </p>
+                    <p className="text-[8px] font-semibold leading-tight"
+                       style={{ color: isMastered ? '#fbbf24' : '#64748b' }}>
+                      {sub}
+                    </p>
+                  </div>
+                );
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* SKILL TREE view */}
+        <AnimatePresence>
+          {hubViewIdx === 1 && (
+            <motion.div key="grid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}
+              className={`absolute inset-0 grid grid-cols-3 gap-2 px-3 pt-11 pb-3 ${isDark ? 'bg-slate-950/60' : 'bg-white'}`}
+            >
+              {(['manual','sql','api','typescript','playwright','ai-qa'] as const).map(id => {
+                const t = ZONE_THEMES[id];
+                const isStart = id === 'sql';
+                const counts: Record<string, string> = { manual:'40+', sql:'25+', api:'30+', typescript:'30+', playwright:'25+', 'ai-qa':'35+' };
+                return (
+                  <div key={id} className={`relative rounded-xl border px-3 py-2.5 flex flex-col gap-1.5 overflow-hidden ${
+                    isDark ? 'bg-slate-900/60 border-slate-700/50' : 'bg-white border-slate-200'
+                  }`}
+                    style={{
+                      borderTopWidth: 2,
+                      borderTopColor: t.color,
+                      ...(isStart ? { boxShadow: `0 6px 18px ${t.glow}`, transform: 'translateY(-2px)' } : {}),
+                    }}
+                  >
+                    {isStart && (
+                      <span className="absolute top-1.5 right-1.5 text-[7.5px] font-extrabold tracking-[0.10em] text-white px-1.5 py-0.5 rounded animate-pulse"
+                        style={{ background: t.color, boxShadow: `0 2px 6px ${t.glow}` }}>START</span>
+                    )}
+                    <div className="w-[30px] h-[30px] rounded-lg flex items-center justify-center"
+                      style={{ background: t.soft, color: t.color }}>
+                      <ZoneIcon id={id} size={16} />
+                    </div>
+                    <p className={`text-[11.5px] font-bold leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{t.name}</p>
+                    <p className="text-[9.5px] text-slate-500 font-medium">3 tiers · {counts[id]} modules</p>
+                  </div>
+                );
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </Scene>
+  );
+}
+
+// ─── Scene 2: Lessons ───────────────────────────────────────
+function LearnScene({ isDark }: { isDark: boolean }) {
+  return (
+    <Scene>
+      <div className="grid grid-cols-[130px_1fr] gap-3 h-full">
+        <div className={`rounded-xl p-2 border overflow-hidden ${isDark ? 'bg-slate-950/40 border-slate-700/40' : 'bg-white border-slate-200'}`}>
+          <p className="text-[9px] font-extrabold uppercase tracking-[0.10em] text-emerald-500 pb-1 mb-1 border-b border-slate-200/30">BEGINNER</p>
+          <LzMod state="done"  text="SELECT basics" />
+          <LzMod state="done"  text="WHERE clauses" />
+          <p className="text-[9px] font-extrabold uppercase tracking-[0.10em] text-sky-500 pb-1 mb-1 mt-2 border-b border-slate-200/30">INTERMEDIATE</p>
+          <LzMod state="active" text="JOINs" />
+          <LzMod state="todo"  text="GROUP BY" />
+          <p className="text-[9px] font-extrabold uppercase tracking-[0.10em] text-amber-500 pb-1 mb-1 mt-2 border-b border-slate-200/30">EXPERT</p>
+          <LzMod state="todo"  text="Window funcs" />
+          <LzMod state="todo"  text="CTEs" />
+        </div>
+        <div className="flex flex-col gap-2.5 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className={`text-[14px] font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>SQL Joins — INNER vs LEFT</h3>
+            <span className="text-[9px] font-bold uppercase tracking-[0.08em] px-2 py-0.5 rounded-full border border-sky-500/40 bg-sky-500/10 text-sky-600">Intermediate</span>
+          </div>
+          <div className="h-1 rounded-full bg-slate-300/20 overflow-hidden">
+            <div className="h-full rounded-full" style={{ width: '45%', background: 'linear-gradient(90deg, #2563eb, #4f46e5)' }} />
+          </div>
+          <div className={`rounded-xl border p-3 text-[11px] leading-relaxed flex flex-col gap-2 ${
+            isDark ? 'bg-slate-950/40 border-slate-700/40 text-slate-300' : 'bg-white border-slate-200 text-slate-700'
+          }`}>
+            <p>An <b className={isDark ? 'text-white' : 'text-slate-900'}>INNER JOIN</b> returns only rows where both tables match — a strict handshake. A <b className={isDark ? 'text-white' : 'text-slate-900'}>LEFT JOIN</b> keeps every row from the left table, filling unmatched right-side columns with NULL.</p>
+            <pre className={`font-mono text-[10.5px] rounded p-2 border-l-2 whitespace-pre overflow-x-auto ${isDark ? 'bg-slate-800/60 text-slate-300 border-fuchsia-500' : 'bg-slate-100 text-slate-700 border-blue-500'}`}>{`SELECT u.name, o.total
+FROM users u
+LEFT JOIN orders o ON o.user_id = u.id;`}</pre>
+          </div>
+          <span className={`inline-flex items-center gap-1.5 self-start text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+            isDark ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'
+          }`}><Zap size={11} /> +100 XP on completion</span>
+        </div>
+      </div>
+    </Scene>
+  );
+}
+
+function LzMod({ state, text }: { state: 'done' | 'active' | 'todo'; text: string }) {
+  const isDark = useQuestStore(s => s.theme) === 'dark';
+  if (state === 'done') return (
+    <div className="flex items-center gap-1.5 px-2 py-1 text-[10.5px] text-slate-500">
+      <span className="w-3 h-3 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+        <Check size={8} strokeWidth={4} />
+      </span>
+      {text}
+    </div>
+  );
+  if (state === 'active') return (
+    <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10.5px] font-bold border ${
+      isDark ? 'bg-fuchsia-500/15 border-fuchsia-500/40 text-fuchsia-300' : 'bg-blue-50 border-blue-200 text-blue-700'
+    }`}>
+      <span className={`w-3 h-3 rounded-full shrink-0 ${isDark ? 'bg-fuchsia-400' : 'bg-blue-500'}`} />
+      {text}
+    </div>
+  );
+  return (
+    <div className="flex items-center gap-1.5 px-2 py-1 text-[10.5px] text-slate-500">
+      <span className="w-3 h-3 rounded-full bg-slate-400/30 shrink-0" />
+      {text}
+    </div>
+  );
+}
+
+// ─── Scene 3: War Room ──────────────────────────────────────
+function WarRoomScene({ isDark }: { isDark: boolean }) {
+  return (
+    <Scene>
+      <div className="flex flex-col gap-2 h-full">
+        <div className={`flex gap-1 p-0.5 rounded-lg ${isDark ? 'bg-slate-800/40' : 'bg-slate-100'}`}>
+          <div className="flex-1 text-center py-1 rounded text-[10px] font-bold text-slate-500">
+            Junior <span className="block text-[8.5px] font-medium opacity-70">0–2 yrs</span>
+          </div>
+          <div className="flex-1 text-center py-1 rounded text-[10px] font-bold text-white"
+            style={{ background: '#3b82f6', boxShadow: '0 2px 8px rgba(59,130,246,0.35)' }}>
+            Mid <span className="block text-[8.5px] font-medium opacity-90">2–5 yrs</span>
+          </div>
+          <div className="flex-1 text-center py-1 rounded text-[10px] font-bold text-slate-500">
+            Senior <span className="block text-[8.5px] font-medium opacity-70">5+ yrs</span>
+          </div>
+        </div>
+        <div className={`rounded-xl border p-3 flex flex-col gap-2 flex-1 overflow-hidden ${isDark ? 'bg-slate-950/40 border-slate-700/40' : 'bg-white border-slate-200'}`}>
+          <div className="flex items-center justify-between text-[10px] text-slate-500 font-semibold">
+            <span>SQL · Mid · Card 14 of 26</span>
+            <span>💡 with analogy</span>
+          </div>
+          <p className={`text-[13px] font-bold leading-snug ${isDark ? 'text-white' : 'text-slate-900'}`}>Find the second-highest salary in the Employee table.</p>
+          <div className={`text-[11px] leading-relaxed border-l-2 pl-2.5 ${isDark ? 'text-slate-300 border-fuchsia-500' : 'text-slate-700 border-blue-500'}`}>
+            <b className={isDark ? 'text-white' : 'text-slate-900'}>Approach 1 — easiest:</b><br/>
+            <code className={`font-mono text-[10px] rounded px-1 ${isDark ? 'bg-slate-800/80 text-violet-300' : 'bg-slate-100 text-blue-700'}`}>{`SELECT MAX(salary) FROM employee WHERE salary < (SELECT MAX(salary) FROM employee);`}</code><br/>
+            <b className={isDark ? 'text-white' : 'text-slate-900'}>Approach 2:</b> <code className={`font-mono text-[10px] rounded px-1 ${isDark ? 'bg-slate-800/80 text-violet-300' : 'bg-slate-100 text-blue-700'}`}>DENSE_RANK()</code> ordered by salary DESC, filter rank = 2.
+          </div>
+          <div className={`mt-auto rounded-lg border p-2.5 text-[11px] font-medium leading-snug flex items-start gap-2 ${
+            isDark ? 'bg-amber-500/10 border-amber-500/25 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800'
+          }`}>
+            <Lightbulb size={13} className={isDark ? 'text-amber-300 mt-0.5 shrink-0' : 'text-amber-600 mt-0.5 shrink-0'} />
+            <span><b className="font-extrabold">Explain it like this:</b> it's a podium — gold's already on top, so just ask "who's standing on silver?"</span>
+          </div>
+        </div>
+      </div>
+    </Scene>
+  );
+}
+
+// ─── Scene 4: Mastery Trial ─────────────────────────────────
+function TrialScene({ isDark }: { isDark: boolean }) {
+  return (
+    <Scene>
+      <div className="flex flex-col gap-2.5 h-full">
+        <div className="flex items-center justify-between">
+          <span className="inline-flex items-center gap-1.5 text-[9.5px] font-bold uppercase tracking-[0.08em] px-2 py-1 rounded-full border bg-rose-500/10 border-rose-500/30 text-rose-500">
+            <Target size={11} /> Mastery Trial · API · Question 9 of 30
+          </span>
+          <div className={`w-[54px] h-[54px] rounded-full relative flex flex-col items-center justify-center border ${
+            isDark ? 'bg-slate-950/40 border-slate-700/40' : 'bg-white border-slate-200'
+          }`}>
+            <svg className="absolute inset-0" width="54" height="54" style={{ transform: 'rotate(-90deg)' }}>
+              <circle cx="27" cy="27" r="22" stroke="rgba(148,163,184,0.20)" strokeWidth="4" fill="none"/>
+              <circle cx="27" cy="27" r="22" stroke={isDark ? '#d946ef' : '#2563eb'} strokeWidth="4" fill="none"
+                      strokeDasharray="138" strokeDashoffset="48" strokeLinecap="round"/>
+            </svg>
+            <span className={`text-[11px] font-extrabold tabular-nums ${isDark ? 'text-fuchsia-400' : 'text-blue-600'}`}>21:34</span>
+            <span className="text-[7px] font-bold uppercase tracking-[0.10em] text-slate-500 mt-0.5">left</span>
+          </div>
+        </div>
+        <p className={`text-[13px] font-bold leading-snug ${isDark ? 'text-white' : 'text-slate-900'}`}>
+          Which HTTP method is <b>idempotent</b> — i.e., multiple identical requests have the same effect as a single one?
+        </p>
+        <div className="flex flex-col gap-1.5">
+          <TrialOpt letter="A" text="POST" />
+          <TrialOpt letter="B" text="PUT" correct />
+          <TrialOpt letter="C" text="PATCH" />
+        </div>
+        <div className="mt-auto flex items-center justify-between text-[10.5px] font-semibold text-slate-500">
+          <span>30 Qs · pass at 80%</span>
+          <span className="text-emerald-500 font-extrabold inline-flex items-center gap-1"><Check size={11} /> On track · 89% correct</span>
+        </div>
+        <div className="h-1 rounded-full bg-slate-300/20 overflow-hidden">
+          <div className="h-full rounded-full" style={{ width: '30%', background: 'linear-gradient(90deg, #e11d48, #f97316)' }} />
+        </div>
+      </div>
+    </Scene>
+  );
+}
+
+function TrialOpt({ letter, text, correct }: { letter: string; text: string; correct?: boolean }) {
+  const isDark = useQuestStore(s => s.theme) === 'dark';
+  if (correct) return (
+    <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-[11.5px] font-bold bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
+      <span className="w-5 h-5 rounded bg-emerald-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0">{letter}</span>
+      {text}
+      <Check size={13} className="ml-auto" />
+    </div>
+  );
+  return (
+    <div className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[11.5px] border ${
+      isDark ? 'bg-slate-950/40 border-slate-700/40 text-slate-400' : 'bg-white border-slate-200 text-slate-600'
+    }`}>
+      <span className="w-5 h-5 rounded bg-slate-400/20 text-slate-500 flex items-center justify-center text-[10px] font-bold shrink-0">{letter}</span>
+      {text}
+    </div>
+  );
+}
+
+// ─── Scene 5: Badges ────────────────────────────────────────
+function BadgesScene({ isDark }: { isDark: boolean }) {
+  const zones: Array<{ id: string; abbr: string }> = [
+    { id: 'manual', abbr: 'Manual' },
+    { id: 'sql', abbr: 'SQL' },
+    { id: 'api', abbr: 'API' },
+    { id: 'typescript', abbr: 'TS' },
+    { id: 'playwright', abbr: 'PW' },
+    { id: 'ai-qa', abbr: 'AI-QA' },
+  ];
+  return (
+    <Scene>
+      <div className="flex flex-col gap-2.5 h-full">
+        <div className="flex items-baseline justify-between">
+          <h3 className={`text-[13px] font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>My Badges</h3>
+          <span className="text-[10.5px] text-slate-500 font-semibold">5 of 12 earned</span>
+        </div>
+        <BadgeSection isDark={isDark} title="COMPLETION BADGES" count="3/6"
+          zones={zones.map((z, i) => ({ ...z, locked: i > 2, kind: 'completion' as const, isNew: false }))} />
+        <BadgeSection isDark={isDark} title="MASTERY TRIAL BADGES" count="2/6"
+          zones={zones.map((z, i) => ({ ...z, locked: i > 1, kind: 'mastery' as const, isNew: z.id === 'sql' }))} />
+      </div>
+    </Scene>
+  );
+}
+
+function BadgeSection({ isDark, title, count, zones }: {
+  isDark: boolean; title: string; count: string;
+  zones: Array<{ id: string; abbr: string; locked: boolean; kind: 'completion' | 'mastery'; isNew: boolean }>;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-[8.5px] font-extrabold uppercase tracking-[0.12em] text-slate-500">{title}</span>
+        <span className="text-[9px] text-slate-500">{count}</span>
+      </div>
+      <div className="grid grid-cols-6 gap-1.5">
+        {zones.map(z => {
+          const t = ZONE_THEMES[z.id];
+          return (
+            <div key={z.id + z.kind} className={`relative rounded-lg pt-2.5 pb-2 px-1 flex flex-col items-center gap-1.5 border ${
+              isDark ? 'bg-slate-950/40 border-slate-700/40' : 'bg-white border-slate-200'
+            } ${z.locked ? 'opacity-45' : ''}`}
+              style={z.isNew ? { boxShadow: `0 0 0 2px ${t.color}, 0 6px 20px ${t.glow}` } : undefined}
+            >
+              {z.isNew && (
+                <span className="absolute top-1 right-1 text-[7.5px] font-extrabold tracking-[0.10em] text-white px-1 py-0.5 rounded"
+                  style={{ background: 'linear-gradient(135deg, #f59e0b, #f43f5e)' }}>NEW</span>
+              )}
+              <div className="w-[30px] h-[30px] rounded-full flex items-center justify-center border-2"
+                style={{
+                  borderColor: z.locked ? 'rgba(148,163,184,0.35)' : t.color,
+                  background: z.locked ? 'rgba(148,163,184,0.10)' : t.soft,
+                  color: z.locked ? '#94a3b8' : t.color,
+                }}>
+                {z.kind === 'mastery' ? <Trophy size={15} /> : <ZoneIcon id={z.id} size={15} />}
+              </div>
+              <p className="text-[9px] font-bold uppercase tracking-[0.04em] text-slate-500">{z.abbr}</p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Scene 6: Certificate ───────────────────────────────────
+function CertScene({ isDark }: { isDark: boolean }) {
+  const c1 = '#3b82f6', c2 = '#60a5fa', cDark = '#1d4ed8';
+  const accentBar = `linear-gradient(90deg, ${cDark}, ${c1}, ${c2}, ${c1}, ${cDark})`;
+  return (
+    <Scene>
+      <div className="h-full flex flex-col items-center justify-center gap-3">
+        <div className="relative shadow-[0_16px_36px_rgba(15,23,42,0.20)] rounded"
+          style={{ width: 320, aspectRatio: '1.414 / 1', background: 'linear-gradient(180deg, #fff 0%, #f8fafc 100%)', fontFamily: 'Georgia, "Times New Roman", serif' }}>
+          <div className="absolute left-0 right-0 top-0 h-1" style={{ background: accentBar }} />
+          <div className="absolute left-0 right-0 bottom-0 h-1" style={{ background: accentBar }} />
+          <div className="absolute inset-2.5 border border-slate-200" />
+          <div className="absolute inset-3.5 border" style={{ borderColor: 'rgba(59,130,246,0.13)' }} />
+          <span className="absolute w-4 h-4 top-2.5 left-2.5" style={{ borderTop: `2px solid ${c1}`, borderLeft: `2px solid ${c1}` }} />
+          <span className="absolute w-4 h-4 top-2.5 right-2.5" style={{ borderTop: `2px solid ${c1}`, borderRight: `2px solid ${c1}` }} />
+          <span className="absolute w-4 h-4 bottom-2.5 left-2.5" style={{ borderBottom: `2px solid ${c1}`, borderLeft: `2px solid ${c1}` }} />
+          <span className="absolute w-4 h-4 bottom-2.5 right-2.5" style={{ borderBottom: `2px solid ${c1}`, borderRight: `2px solid ${c1}` }} />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none"
+            style={{ fontSize: 200, lineHeight: 1, color: c1, opacity: 0.035, fontFamily: 'Arial, sans-serif' }}>✦</div>
+          <div className="relative z-10 h-full flex flex-col items-center justify-between px-9 py-5">
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-2.5 mb-1.5">
+                <div className="w-9 h-px" style={{ background: `linear-gradient(90deg, transparent, ${c1})` }} />
+                <span className="text-[9px]" style={{ color: c1 }}>✦</span>
+                <div className="w-9 h-px" style={{ background: `linear-gradient(90deg, ${c1}, transparent)` }} />
+              </div>
+              <div className="text-[22px] font-bold uppercase tracking-[0.20em] text-slate-900 leading-none" style={{ paddingLeft: '0.20em' }}>QA Quest</div>
+              <div className="text-[8px] uppercase tracking-[0.18em] font-bold mt-1" style={{ color: cDark }}>Certificate of Mastery</div>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="text-[13px] font-bold text-slate-800">Awarded to You</div>
+              <div className="text-[9px] text-slate-500 italic max-w-[240px] text-center mt-1 leading-snug">For passing the SQL Sorcery Mastery Trial</div>
+            </div>
+            <div className="flex items-end justify-between w-full">
+              <div className="text-[8px] text-slate-400">Issued · 30 May 2026</div>
+              <div className="w-[26px] h-[26px] rounded-full flex items-center justify-center text-white shadow-[0_2px_8px_rgba(59,130,246,0.35)]"
+                style={{ background: `linear-gradient(135deg, ${cDark}, ${c1})` }}>
+                <ShieldCheck size={13} />
+              </div>
+              <div className="text-[8px] text-slate-400">qa-quest · authenticated</div>
+            </div>
+          </div>
+        </div>
+        <button className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-bold text-white animate-pulse ${
+          isDark ? 'bg-fuchsia-500 shadow-[0_6px_18px_rgba(217,70,239,0.35)]' : 'bg-blue-600 shadow-[0_6px_18px_rgba(37,99,235,0.35)]'
+        }`}>
+          <Download size={12} /> Download PDF
+        </button>
+      </div>
+    </Scene>
   );
 }
 
