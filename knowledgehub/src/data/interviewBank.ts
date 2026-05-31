@@ -7374,6 +7374,449 @@ GET  /getUserOrders?id=123 ❌ verb baked into the URL
 Conventions: plural nouns, lowercase, no action verbs in the path.`,
       analogy: `A REST URL should read like a **postal address** (\`/city/street/house\`), not an instruction (\`/deliverLetterToHouse\`). The address says *where*; the HTTP method (GET/POST/…) says *what to do* there.`,
     },
+    {
+      id: 'api-jr-27',
+      level: 'junior',
+      topic: 'Debugging',
+      question: 'You send a POST request and get a 500 error. What is your first step?',
+      answer: `Don't guess — gather information first:
+1. **Read the response body** — most 500s include an error message or stack trace that tells you exactly what broke.
+2. **Check the request** — did you send the right Content-Type, correct body structure, and required headers?
+3. **Check server/application logs** — the real error is almost always logged there, with line numbers.
+4. **Reproduce with a minimal payload** — strip back to the simplest valid request to isolate the cause.
+5. **Check recent changes** — was this endpoint working before? What changed?
+
+A 500 means the server broke, not you — but your request may have triggered it with unexpected input.`,
+      analogy: `A chef's kitchen catching fire when you order. You didn't start the fire, but maybe your order ("extra rare chicken") was the trigger. First read the smoke (error body), then check the kitchen log (server logs), then see if a simpler order works.`,
+    },
+    {
+      id: 'api-jr-28',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'Walk me through the test cases you would write for a login API.',
+      answer: `**Happy path:**
+- Valid username + password → 200 with a token in the response.
+
+**Negative cases:**
+- Wrong password → 401 with a clear error message.
+- Non-existent username → 401 (don't leak whether the user exists).
+- Empty username or password → 400.
+- Missing request body entirely → 400.
+
+**Security cases:**
+- SQL injection in the username field → should return 400, not 500.
+- Brute-force: send 10+ wrong attempts → should get rate-limited (429).
+- Valid login but with an expired account → meaningful error, not 500.
+
+**Data check:**
+- After a successful login, verify the returned token is usable on a protected endpoint.`,
+      analogy: `Testing the front door of a building — does the right key work, does the wrong key fail gracefully, does someone trying every key combination get blocked, and does the issued keycard actually open the right doors?`,
+    },
+    {
+      id: 'api-jr-29',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How do you test pagination in an API?',
+      answer: `**Typical pagination params:** \`page\`, \`limit\` / \`per_page\`, or cursor-based tokens.
+
+Test cases:
+- **First page:** correct number of items, correct \`next\` link, no \`prev\` link.
+- **Middle page:** both \`next\` and \`prev\` present, items are distinct from other pages.
+- **Last page:** correct items, no \`next\` link.
+- **Beyond last page:** empty array, 200 — not a 404.
+- **Invalid values:** \`page=-1\`, \`limit=0\`, \`limit=99999\` → proper 400 with error.
+- **Consistency:** total item count across all pages equals the total count in the metadata field.
+- **Ordering:** items come back in the same order on repeat calls (no shuffling).`,
+      analogy: `Reading a book chapter by chapter — you check each chapter has the right content, the page numbers are sequential, the last chapter doesn't promise a "next chapter," and asking for chapter 999 of a 10-chapter book returns "nothing here" cleanly.`,
+    },
+    {
+      id: 'api-jr-30',
+      level: 'junior',
+      topic: 'Tools',
+      question: 'You need to test a protected endpoint that requires a valid auth token. How do you set that up in Postman?',
+      answer: `**Two common approaches:**
+
+**1 — Environment variable (recommended):**
+- Create a Postman environment with a variable \`token\`.
+- Use a **pre-request script** on the login request to call the login endpoint, grab the token from the response, and store it: \`pm.environment.set("token", pm.response.json().access_token)\`.
+- On all protected requests, set the Authorization header to: \`Bearer {{token}}\`.
+
+**2 — Collection-level auth:**
+- Set **Authorization** at the collection level (Bearer, OAuth 2.0, etc.) so every request in the collection inherits it automatically — no per-request header needed.
+
+This way you re-use one login and one token across all tests without copy-pasting.`,
+      analogy: `Getting a hotel key card at check-in (login request) and using that same card to open your room, the gym, and the pool (protected endpoints) — you don't re-check-in for every door.`,
+    },
+    {
+      id: 'api-jr-31',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How do you verify that a POST request actually created the resource correctly?',
+      answer: `Never trust the POST response alone — **verify via a GET:**
+
+1. Send the POST with valid data.
+2. Assert the response is **201 Created** and the body contains the new resource (with an \`id\`).
+3. Immediately send **GET /resource/{id}** using that returned \`id\`.
+4. Assert the GET response matches every field you sent in the POST.
+
+This two-step check catches bugs where the API returns a fake 201 but never actually wrote to the database, or where a field gets silently dropped or transformed.`,
+      analogy: `After asking a librarian to add a new book, you don't just trust their "done!" — you walk to the shelf and check the book is actually there, with the right title and author.`,
+    },
+    {
+      id: 'api-jr-32',
+      level: 'junior',
+      topic: 'Debugging',
+      question: 'An API returns 200 OK but the response body has wrong or missing data. How do you handle it?',
+      answer: `A 200 with wrong data is often **worse** than a 4xx — it's a silent failure. Steps:
+1. **Compare against the spec/contract** — is the field missing from the docs too, or is this a deviation?
+2. **Check if it's environment-specific** — does staging return the same wrong data, or only dev?
+3. **Trace the data source** — is the wrong value coming from the DB, a cache, or a transformation layer?
+4. **Reproduce with a known-good payload** — narrow down which input causes the wrong output.
+5. **Raise a bug** with the exact request, expected vs actual response, and the relevant spec reference.
+
+Don't assume a 200 means "correct" — always assert on the body content, not just the status code.`,
+      analogy: `A vending machine that accepts your money and clicks "done," but gives you a Diet Coke when you pressed the button for water. The machine thinks it succeeded — only you know the output was wrong.`,
+    },
+    {
+      id: 'api-jr-33',
+      level: 'junior',
+      topic: 'Tools',
+      question: 'What is Swagger / OpenAPI and how do you use it during testing?',
+      answer: `**Swagger (OpenAPI)** is a standard format for documenting REST APIs. It describes every endpoint, HTTP method, request params, request/response schemas, status codes, and auth requirements — all in one place (usually a JSON or YAML file, rendered as interactive UI).
+
+**How testers use it:**
+- **Understand the contract** before writing test cases — what fields are required, what types are expected, what statuses are possible.
+- **Generate test cases** — the spec lists every field; use it to derive positive, negative, and boundary tests.
+- **Spot undocumented behavior** — test something not in the spec and it breaks → raise a documentation or implementation bug.
+- **Try requests directly** — Swagger UI has a "Try it out" button for quick exploratory calls.`,
+      analogy: `An API's official blueprint and instruction manual. Testers use it the same way a building inspector uses architectural drawings — to know exactly what was supposed to be built, so you can check if it was.`,
+    },
+    {
+      id: 'api-jr-34',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How do you test required vs optional fields in a request body?',
+      answer: `**For required fields:**
+- Send the request with the field **missing entirely** → expect **400** with a clear error naming the field.
+- Send with the field **present but empty** (\`""\` or \`null\`) → expect **400**.
+- Send with the field as the **wrong type** (number instead of string) → expect **400**.
+
+**For optional fields:**
+- Send the request **without the optional field** → expect **200/201**, the API should use the default or omit the field gracefully.
+- Send with **unexpected extra fields** → API should ignore them (or return 400 if it's strict) — no 500.
+
+The goal: no required field should be silently ignored, and no missing optional field should crash the server.`,
+      analogy: `Filling a form: leaving a required field blank should block submission with a clear message. Leaving an optional field blank should just submit with a sensible default — not crash the form.`,
+    },
+    {
+      id: 'api-jr-35',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'You are asked to test a DELETE endpoint. What test cases do you cover?',
+      answer: `**Happy path:**
+- Delete an existing resource → **204 No Content** (or 200 with confirmation body).
+- Immediately GET the deleted resource → **404** (confirm it's gone).
+
+**Negative cases:**
+- Delete a resource that does **not exist** → **404**.
+- Delete with a **missing/invalid auth token** → **401**.
+- Delete a resource the current user **does not own** → **403**.
+- Delete with an **invalid ID format** (e.g. letters where a number is expected) → **400**.
+
+**Side effects:**
+- Check related resources — if deleting a user should also remove their orders, verify that.
+- Check audit trail — is the deletion logged?
+
+**Idempotency:**
+- Send the DELETE twice — second call should return 404, not crash with 500.`,
+      analogy: `Deleting a file — confirm it's gone, confirm you get "file not found" if you try again, confirm someone without access can't delete it, and confirm anything that referenced the file is handled cleanly.`,
+    },
+    {
+      id: 'api-jr-36',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'What is API chaining and when do you use it in tests?',
+      answer: `**API chaining** means using the output of one API call as the input for the next — because real user flows span multiple calls.
+
+**Example flow:**
+\`\`\`http
+POST /users          → creates a user, returns { "id": 42 }
+POST /users/42/cart  → creates a cart for that user
+POST /cart/items     → adds an item using the cart ID
+GET  /orders/confirm → places the order
+\`\`\`
+
+In Postman: use a **test script** on each request to extract the returned ID and save it to an environment variable, then the next request references \`{{userId}}\`.
+
+When to use it: any test that covers a real end-to-end business flow — registration, checkout, booking, etc. — where each step depends on data produced by the previous one.`,
+      analogy: `An assembly line — each station takes what the previous one produced and does the next operation. You chain API calls the same way: the output of step 1 is the raw material for step 2.`,
+    },
+    {
+      id: 'api-jr-37',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How do you test a search API that accepts multiple filter parameters?',
+      answer: `**Single filter tests:**
+- Each filter individually → returns only matching results.
+- Filter value that matches nothing → empty array, **200** (not 404).
+- Filter with invalid value → **400** with clear error.
+
+**Combination tests:**
+- Multiple filters AND-ed together → results satisfy all filters simultaneously.
+- Conflicting filters → graceful empty result or clear error, not 500.
+
+**Boundary tests:**
+- Minimum/maximum values for numeric filters.
+- Very long strings, special characters, SQL/script injection in filter values.
+
+**Ordering and pagination:**
+- Results in the expected sort order.
+- Pagination works correctly alongside filters (total count is consistent).
+
+**Key assertion:** never just check the status code — always verify the *contents* of the results match the filter you applied.`,
+      analogy: `Testing a Spotify search — searching by artist should return only that artist's songs; combining artist + genre should narrow further; searching for a non-existent artist returns an empty list, not an error.`,
+    },
+    {
+      id: 'api-jr-38',
+      level: 'junior',
+      topic: 'Testing Concepts',
+      question: 'What is the difference between smoke testing and regression testing an API?',
+      answer: `**Smoke testing** — a quick, broad check that the API is basically alive and the critical paths work. Run it first after a deployment to confirm nothing is catastrophically broken before deeper testing begins. Fast, narrow, high signal.
+
+Example: does GET /health return 200? Does the login endpoint respond? Does the main data endpoint return data?
+
+**Regression testing** — a full check that existing functionality still works after a change. Covers all features, edge cases, and known past bugs. Slower and broader.
+
+The flow: deploy → smoke test first (fast pass/fail) → if smoke passes, run the full regression suite.`,
+      analogy: `Smoke = turning the car key and checking it starts and the dashboard lights work before the long journey. Regression = the full service check — all systems, fluids, brakes, everything — once you're confident the car runs.`,
+    },
+    {
+      id: 'api-jr-39',
+      level: 'junior',
+      topic: 'Negative Testing',
+      question: 'How do you test that an API handles malformed or invalid JSON in the request body?',
+      answer: `Send deliberate bad payloads and assert on the response:
+
+- **Missing closing brace:** \`{ "name": "Asha"\` (no \`}\`) → expect **400**.
+- **Wrong data type:** \`{ "age": "twenty" }\` where age is an integer field → expect **400**.
+- **Extra unknown fields:** \`{ "name": "Asha", "hacked": true }\` → API should ignore or reject cleanly, not 500.
+- **Completely empty body** when a body is required → expect **400**, not 500.
+- **Null body** with Content-Type: application/json → expect **400**.
+- **Array instead of object** (or vice versa) at the root → expect **400**.
+
+Key principle: the API should **never return a 500** for any client-supplied input — that's a server bug. 4xx errors are expected; 5xx means the server wasn't hardened against bad input.`,
+      analogy: `Handing a form to a clerk with half the fields scribbled out or filled with gibberish. A well-trained clerk says "I can't process this — here's what's wrong" (400). A poorly trained one has a breakdown and walks off (500).`,
+    },
+    {
+      id: 'api-jr-40',
+      level: 'junior',
+      topic: 'Security',
+      question: 'What is rate limiting in APIs and how do you test it?',
+      answer: `**Rate limiting** caps how many requests a client can make in a time window (e.g. 100 requests per minute) to prevent abuse, protect the server, and ensure fair usage.
+
+**How to test it:**
+1. Send requests in rapid succession past the documented limit.
+2. Assert the API returns **429 Too Many Requests** once the limit is hit.
+3. Check the response includes a **Retry-After** header (or similar) indicating when to try again.
+4. Wait for the time window to reset and confirm requests succeed again.
+5. Test that **different users/API keys** have separate counters — one user's limit-hit should not block another.
+
+Check the docs for the specific limit and window before testing, so you know exactly when to expect the 429.`,
+      analogy: `A nightclub with a one-in-one-out rule. For the first 99 people it's fine. The 100th person gets "come back in 10 minutes." Critically — your friend being turned away shouldn't stop you from getting in if you have your own invite.`,
+    },
+    {
+      id: 'api-jr-41',
+      level: 'junior',
+      topic: 'Environments',
+      question: 'How do you manage testing across different environments — dev, staging, and production?',
+      answer: `Use **environment variables** in your test tool (Postman environments, or a config file in code) to swap base URLs and credentials without changing the test logic:
+
+\`\`\`
+dev:     https://api-dev.company.com
+staging: https://api-staging.company.com
+prod:    https://api.company.com
+\`\`\`
+
+Key differences to watch for:
+- **Dev** — unstable, used for first-pass testing, data resets often.
+- **Staging** — closest to prod, run full regression here before releases.
+- **Prod** — only smoke tests and monitoring; never create/delete real data; never run load tests.
+
+Never hardcode a base URL in test scripts — parameterise it so the same test suite works in every environment by switching the environment config.`,
+      analogy: `A chef testing a recipe — first tries in the test kitchen (dev), then a full dress rehearsal at a tasting event (staging), then very carefully in the actual restaurant service (prod) — only checking, never experimenting.`,
+    },
+    {
+      id: 'api-jr-42',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How do you write a useful bug report for an API defect?',
+      answer: `A good API bug report includes:
+
+1. **Title:** short, specific — e.g. "POST /users returns 500 when phone field is null."
+2. **Environment:** which env, which API version.
+3. **Steps to reproduce:** the exact request — method, URL, headers, request body (copy-paste ready).
+4. **Expected result:** what the spec/docs say should happen.
+5. **Actual result:** exact response — status code, response headers, response body (full JSON).
+6. **Frequency:** always, intermittent, or under specific conditions.
+7. **Severity/Priority:** is this blocking a release?
+
+Attach the Postman collection export or a cURL command so the developer can reproduce with one click.`,
+      analogy: `Reporting a broken ATM — you don't just say "it's broken." You say: "At 3pm, at the Main Street branch, I inserted my Visa, selected €50, and got error code 5003 instead of cash. Here's the receipt printout."`,
+    },
+    {
+      id: 'api-jr-43',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'You accidentally called a DELETE on a real production resource during testing. What do you do?',
+      answer: `**Immediately:**
+1. **Don't panic and don't try to cover it up** — act fast and be transparent.
+2. **Stop further actions** that could make it worse.
+3. **Notify your lead or the on-call engineer right away** — time matters for recovery.
+4. **Document exactly what you deleted:** endpoint, resource ID, timestamp, your auth credentials used.
+
+**Recovery:**
+5. Check if the system has **soft deletes** (is_deleted flag) — it may be restorable via DB.
+6. Check if there is a **backup or audit log** that can restore the data.
+
+**Prevention going forward:**
+- API tests on non-dev environments should use **read-only credentials** or a test-user scope.
+- Use **test data namespacing** (resources with a test prefix/flag) so real data is never touched.
+- Run destructive test cases in an **isolated test environment only**.`,
+      analogy: `Accidentally pressing the fire alarm in a real building — tell someone immediately, don't pretend it didn't happen, help assess the impact, and then figure out how to prevent it happening again (put a cover on the alarm).`,
+    },
+    {
+      id: 'api-jr-44',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How would you test a file upload API?',
+      answer: `**Happy path:**
+- Upload a valid file of the expected type and size → **200/201**, file is accessible via GET.
+
+**File type validation:**
+- Upload a disallowed type (e.g. .exe when only .pdf is allowed) → **400**.
+- Rename a disallowed file to an allowed extension → API should inspect the actual content, not just the name.
+
+**Size limits:**
+- Upload a file exactly at the size limit → should succeed.
+- Upload a file slightly over the limit → **413 Payload Too Large**.
+- Upload an empty file (0 bytes) → 400 or meaningful error.
+
+**Content validation:**
+- Corrupt file (truncated, invalid encoding) → **400**, not 500.
+
+**Security:**
+- Upload a file with a script inside (e.g. malicious SVG, macro-embedded DOCX) → server should not execute it.
+
+**After upload:**
+- Download the file and compare it byte-for-byte — verify no corruption during upload/storage.`,
+      analogy: `Testing a post box that only accepts standard envelopes — try oversized envelopes, empty ones, stuffed ones, sealed ones with dangerous contents — and check the system handles each correctly without jamming.`,
+    },
+    {
+      id: 'api-jr-45',
+      level: 'junior',
+      topic: 'Fundamentals',
+      question: 'What does it mean for an API to be "stateless" and how does it affect your testing?',
+      answer: `**Stateless** means the server keeps **no memory between requests**. Every request must carry all the information needed to process it — auth token, session context, everything.
+
+**Effect on testing:**
+- You cannot rely on a previous request having "set something up" on the server — every request must be self-contained.
+- **Token on every call:** forget to include the auth header on a request, and you get a 401 — even if your last request was authenticated.
+- **Order independence:** each test should be able to run in isolation, without depending on another test having run first.
+- **Test data must be explicit:** don't assume a resource exists from a prior test; create it in your test setup.
+
+This is why Postman's environment variables are so useful — they carry state *on the client side* between chained calls.`,
+      analogy: `A goldfish waiter — no memory of your last visit. You have to show your membership card and re-order from scratch every single time. Testers must design tests assuming the waiter remembers nothing.`,
+    },
+    {
+      id: 'api-jr-46',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How do you test an API endpoint that depends on another call being made first?',
+      answer: `Use **API chaining with setup steps:**
+
+1. **In Postman:** use a Pre-request Script to call the dependent endpoint first (e.g. create a user), extract the ID from the response, store it as an environment variable, then use \`{{userId}}\` in the actual test request.
+
+2. **In code (RestAssured/Axios/etc.):** write an explicit setup function that creates the prerequisite data and returns the IDs needed.
+
+3. **Test isolation rule:** each test should create its own data in setup and clean it up in teardown — never depend on a previous test having run first (test order should not matter).
+
+**Example:** to test GET /orders/{id}, you must first POST /orders to create one — otherwise you're always testing with a hardcoded ID that might not exist in every environment.`,
+      analogy: `Assembling furniture — before you can attach the drawer, the frame must exist. You build the frame first (setup), attach the drawer (the test), and check it opens correctly (assertion).`,
+    },
+    {
+      id: 'api-jr-47',
+      level: 'junior',
+      topic: 'Testing Concepts',
+      question: 'What is the difference between a mock API and the real API, and when do you use a mock?',
+      answer: `**Real API:** the actual running service backed by a real database and real business logic. Test results are authoritative.
+
+**Mock API:** a fake server that returns pre-defined responses — it mimics the real API's interface without any real logic behind it.
+
+**When to use mocks:**
+- The real API is **not built yet** and your frontend/another service needs to develop against a contract.
+- The real API is a **third-party service** (payment gateway, SMS provider) you can't call freely in tests.
+- You need to **simulate error conditions** (500s, timeouts) that are hard to trigger on the real service.
+- **Speed:** mocks respond instantly, no network calls needed.
+
+**When not to use mocks:**
+- For integration or end-to-end testing where you need to verify the real system works correctly.
+
+Mocks validate *your code works with the expected contract*, not that *the contract itself is correct*.`,
+      analogy: `A flight simulator vs a real plane. Simulators are perfect for training and testing specific scenarios (engine failure) safely and cheaply. But at some point you have to fly the real plane to know it actually works.`,
+    },
+    {
+      id: 'api-jr-48',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How do you test that an API returns proper, meaningful error messages?',
+      answer: `Trigger each error condition and verify two things: the **status code** is correct, and the **error body** is useful.
+
+A good error response should:
+- Use the **right status code** (400, 401, 403, 404, 422 — not always 400 for everything).
+- Include a **human-readable message** saying what went wrong: \`"The 'email' field is required."\`
+- Optionally include an **error code** for the client to programmatically handle.
+- **Not expose internals** — no stack traces, database names, internal server paths, or SQL in production error responses.
+
+Test cases:
+- Missing required field → error names the missing field.
+- Invalid format → error describes the expected format.
+- Unauthorized → message says to authenticate, not "null pointer exception."
+- 404 → message says the resource wasn't found, not just a generic "error."`,
+      analogy: `A GPS that says "Turn not permitted on this road" vs one that just shows a red screen and crashes. Both fail, but only the first helps you understand what went wrong and what to do next.`,
+    },
+    {
+      id: 'api-jr-49',
+      level: 'junior',
+      topic: 'Fundamentals',
+      question: 'What is API versioning and why does it matter for testers?',
+      answer: `**API versioning** is how teams release breaking changes without breaking existing consumers. Common patterns:
+- **URL versioning:** \`/v1/users\`, \`/v2/users\` — most visible, easiest to test.
+- **Header versioning:** \`Accept: application/vnd.api+json;version=2\`.
+- **Query parameter:** \`/users?version=2\`.
+
+**Why it matters for testers:**
+- When v2 launches, you must still **run regression on v1** (existing clients haven't migrated yet).
+- Test cases should specify which version they target — don't let v2 tests silently run against v1.
+- **Breaking changes** in v2 (renamed fields, removed endpoints, changed response shapes) must be explicitly tested.
+- **Deprecation testing:** check that deprecated v1 endpoints return the correct deprecation warning headers and still function until the stated EOL date.`,
+      analogy: `A phone manufacturer releasing iOS 17 while still supporting iOS 16. Testers must verify that apps built for iOS 16 still work on iOS 16 devices — not just that iOS 17 works.`,
+    },
+    {
+      id: 'api-jr-50',
+      level: 'junior',
+      topic: 'Security',
+      question: 'You find that an API response is returning sensitive user data it should not be — like passwords or full card numbers. What do you do?',
+      answer: `Treat this as a **critical security defect** — prioritize above normal bugs:
+
+1. **Do not share, screenshot, or forward** the sensitive data unnecessarily — limit exposure.
+2. **Document carefully** with just enough evidence: the endpoint, the response structure (mask the actual values in the report, e.g. \`"password": "***REDACTED***"\`).
+3. **Raise it immediately** as a Severity-1/Critical security bug — flag to your security team or lead, not just through the normal backlog.
+4. **Note the scope:** is it one endpoint or all? Does it affect all users or just some roles?
+5. **Do not log the actual sensitive data** in your test reports — use a note like "sensitive data visible" instead.
+
+**Root cause to expect:** missing field filtering on the serializer, or a developer returning the full ORM model directly instead of a DTO.`,
+      analogy: `Finding a bank statement left face-up on a public counter. You don't stand there reading it — you cover it, tell the manager immediately, and document that it happened, without spreading the contents further.`,
+    },
     // ── Mid (2–5 yrs) ─────────────────────────────────────────
     {
       id: 'api-mid-1',
@@ -7713,6 +8156,522 @@ In testing, send or capture it, then use it to follow that one request through a
       analogy: `REST is a fixed-menu restaurant (each dish is preset). GraphQL is a build-your-own bowl — you specify exactly the ingredients. You test that you get precisely what you asked for, no more and no less.`,
     },
 
+    {
+      id: 'api-mid-27',
+      level: 'mid',
+      topic: 'Debugging',
+      question: 'Your automated API tests pass locally but fail in CI — how do you debug that?',
+      answer: `Classic CI/local mismatch. Investigate in this order:
+
+1. **Environment differences** — local points to dev; CI may point to a different base URL, different credentials, or a different env entirely. Check CI environment variables.
+2. **Test data** — local DB has data your CI environment does not. Tests that depend on pre-existing records fail in a clean CI environment. Fix: create all data in test setup.
+3. **Timing/flakiness** — CI machines are slower or have network latency. A response that arrives in 200ms locally takes 2s in CI and times out. Fix: increase timeouts or add proper waits.
+4. **Auth token expiry** — a hardcoded token that was valid when you committed it has since expired. Fix: generate tokens dynamically in test setup.
+5. **Dependency services** — CI may not have a running instance of a dependent service. Fix: use Docker Compose or mocks in CI.
+6. **Order-dependent tests** — tests accidentally sharing state that happened to run in the right order locally.
+
+Always run with verbose logging in CI so you see the actual request/response, not just "assertion failed."`,
+      analogy: `A recipe that works in your kitchen but fails at a friend's house — same steps, but their oven runs hotter, they use salted butter, and they don't have that one spice. You have to check each ingredient and condition, not just re-read the recipe.`,
+    },
+    {
+      id: 'api-mid-28',
+      level: 'mid',
+      topic: 'Strategy',
+      question: 'A third-party API your product depends on is flaky and sometimes returns errors. What is your testing strategy?',
+      answer: `Don't let external unreliability break your test suite or hide real bugs. Strategy:
+
+**In tests:**
+- **Mock or stub the third-party** in unit/integration tests — control the response, test your code's handling of success, failure, and timeout independently.
+- **Keep a small set of real integration tests** that run against the actual third-party — but tag them separately and don't block CI on them.
+
+**In the application:**
+- Verify your code implements **retry logic with exponential backoff** for transient failures.
+- Verify **circuit breaker** behavior — if the third-party is down, your app degrades gracefully, not crashes.
+- Test **timeout handling** — what happens when the third-party hangs for 30 seconds?
+
+**Monitoring:**
+- Track the third-party's error rate in production separately from your own error rate, so on-call can tell the difference.`,
+      analogy: `Your restaurant depends on a supplier who sometimes delivers late. You keep a freezer stocked as backup (retry/fallback), you have a rule that after 3 no-shows you switch supplier for the day (circuit breaker), and you track supplier failures separately so your kitchen's performance report stays clean.`,
+    },
+    {
+      id: 'api-mid-29',
+      level: 'mid',
+      topic: 'Security',
+      question: 'How do you test an OAuth 2.0 authorization code flow end-to-end?',
+      answer: `OAuth 2.0 has multiple steps — test each one:
+
+**Step 1 — Authorization request:**
+- Correct redirect to the auth server with valid \`client_id\`, \`scope\`, \`state\`, and \`redirect_uri\`.
+- Invalid \`client_id\` → error returned to caller.
+- Missing \`state\` → should still work, but test CSRF protection is in place.
+
+**Step 2 — Auth code exchange:**
+- Valid code + client secret → access token + refresh token returned.
+- Expired or already-used auth code → **400**.
+- Wrong \`client_secret\` → **401**.
+- Mismatched \`redirect_uri\` → **400**.
+
+**Step 3 — Token usage:**
+- Valid access token → 200 on protected endpoint.
+- Expired access token → **401**.
+- Use refresh token to get new access token → works once.
+- Use the same refresh token twice → second use should fail (token rotation).
+
+**Scope enforcement:**
+- Token with read-only scope cannot call write endpoints → **403**.`,
+      analogy: `A two-step hotel check-in: you get a temporary voucher at the desk (auth code), exchange it for a key card at the concierge (token exchange), and then use the card to open your room (API call). Test every handoff point for tampering or expired vouchers.`,
+    },
+    {
+      id: 'api-mid-30',
+      level: 'mid',
+      topic: 'Maintenance',
+      question: 'You have 200 API test cases and maintenance is becoming painful. How do you clean it up?',
+      answer: `Treat your test suite like production code — it needs refactoring too:
+
+1. **Audit for duplicates** — find tests that cover the same scenario; merge or delete.
+2. **Separate test layers** — smoke (5–10 tests), regression (full suite), performance. Don't run everything every time.
+3. **Extract common setup** — if 50 tests each manually create a user and log in, move that into a shared setup function or fixture.
+4. **Parameterise similar tests** — instead of 10 nearly-identical negative tests, one data-driven test with 10 input rows.
+5. **Delete tests for deleted features** — stale tests that test functionality no longer in the product are noise, not signal.
+6. **Tag/categorise tests** — by priority, by feature, by speed — so you can run subsets intelligently.
+7. **Name tests like documentation** — a test named \`should_return_404_for_nonexistent_user\` is self-explanatory; \`test_023\` is not.`,
+      analogy: `Decluttering a workshop — you don't throw everything out, but you group the tools by type, get rid of broken ones you haven't touched in two years, and put the most-used ones front and centre. The same job takes half the time after.`,
+    },
+    {
+      id: 'api-mid-31',
+      level: 'mid',
+      topic: 'Versioning',
+      question: 'A breaking API change is about to be released — how do you handle it in your test suite?',
+      answer: `Breaking changes require coordinated test updates. My approach:
+
+1. **Identify what is breaking** — field renamed, removed, type changed, new required field, status code changed. Get the spec diff before the release.
+2. **Update tests against the new version (v2)** — update assertions to reflect the new contract.
+3. **Keep v1 regression tests running** — if v1 is still live for existing consumers, its test suite must remain intact and green.
+4. **Test the migration path** — if clients need to change headers or URLs to get v2, test that the routing works correctly.
+5. **Test backward compatibility claims** — if the team says "v1 still works," verify that every v1 test still passes against the live v1 endpoint.
+6. **Update test documentation** — tag tests with the version they apply to so it's clear to the next person.`,
+      analogy: `A road being rerouted — the new road (v2) needs to be tested end-to-end before opening, but the old road (v1) must stay open and inspected until the last driver has migrated. You don't close the old road the day you build the new one.`,
+    },
+    {
+      id: 'api-mid-32',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you test idempotency of PUT and DELETE endpoints?',
+      answer: `Idempotency means the same request made multiple times produces the same result as making it once. Test it explicitly:
+
+**PUT idempotency:**
+\`\`\`http
+PUT /users/123  { "name": "Asha" }   → 200, name is "Asha"
+PUT /users/123  { "name": "Asha" }   → 200 again, name is still "Asha"
+\`\`\`
+Assert: second response is identical to the first. The resource's state did not change beyond the first call.
+
+**DELETE idempotency:**
+\`\`\`http
+DELETE /users/123   → 204 (deleted successfully)
+DELETE /users/123   → 404 (not found — this is the correct idempotent behavior)
+\`\`\`
+The second DELETE should return 404, not 500. Some APIs return 204 on both — either is acceptable as long as it does not crash.
+
+**Why it matters:** clients retry requests on network errors. If a PUT or DELETE is not idempotent, retries cause unintended side effects.`,
+      analogy: `Setting a thermostat to 22°C — do it once or ten times, the temperature is still 22°C. The tenth press does not make it 220°C. Idempotency ensures repeated operations land on the same stable outcome.`,
+    },
+    {
+      id: 'api-mid-33',
+      level: 'mid',
+      topic: 'CI/CD',
+      question: 'Your API test suite takes 45 minutes to run in CI. How do you speed it up?',
+      answer: `Slow suites get skipped — fix the speed before the team stops trusting them:
+
+1. **Profile first** — find the slowest 20% of tests, they usually account for 80% of the time. Don't optimise blindly.
+2. **Parallelise** — run tests across multiple threads or CI workers simultaneously. Most frameworks support this.
+3. **Tier the suite** — \`smoke\` (2 min, runs on every commit), \`regression\` (full suite, runs nightly or pre-release). Don't block every PR on a 45-minute run.
+4. **Fix slow test data setup** — creating 50 records in setup instead of the 2 you actually need multiplies across hundreds of tests.
+5. **Eliminate unnecessary waits** — replace hardcoded \`sleep(5000)\` with polling until a condition is met.
+6. **Reduce external calls** — mock third-party APIs instead of hitting real ones over the network.
+7. **Cache auth tokens** — re-login for every single test is expensive. Generate once per suite run.`,
+      analogy: `A road works crew blocking traffic because they work one lane at a time instead of in parallel shifts. Profile where the bottleneck is (one slow machine, one slow database call), parallelise the work, and put the fastest-finishing jobs on the critical path.`,
+    },
+    {
+      id: 'api-mid-34',
+      level: 'mid',
+      topic: 'Security',
+      question: 'How do you test role-based access control (RBAC) in an API?',
+      answer: `RBAC tests must cover every role trying every operation — not just happy paths:
+
+**Test matrix approach:** for each endpoint × each role, assert the expected outcome:
+
+| Endpoint | Admin | Manager | Viewer |
+|---|---|---|---|
+| GET /users | ✅ 200 | ✅ 200 | ✅ 200 |
+| POST /users | ✅ 201 | ❌ 403 | ❌ 403 |
+| DELETE /users/{id} | ✅ 204 | ❌ 403 | ❌ 403 |
+
+**Key scenarios to test:**
+- A Viewer calling a write endpoint → **403**.
+- A Manager calling an Admin-only endpoint → **403**.
+- A user trying to access **another user's data** (horizontal privilege escalation) → **403**.
+- Token with one role trying to impersonate another role by modifying the JWT payload → server must reject.
+- Expired token on a protected endpoint → **401**, not access granted.
+
+Privilege escalation bugs (a user accessing things they shouldn't) are among the most common and serious API security issues.`,
+      analogy: `Access control in a hospital — a nurse can read patient records but not prescribe medication. A junior doctor can prescribe but not view billing. An admin can view billing but not prescribe. Test that no one can sneak through a door their badge doesn't open.`,
+    },
+    {
+      id: 'api-mid-35',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you test webhooks?',
+      answer: `Webhooks are outbound HTTP calls — your system calls a URL when an event happens. Testing requires you to be the receiver:
+
+**Set up a listener:**
+- Use **webhook.site**, **ngrok + a local server**, or a test endpoint in your own test infrastructure to receive webhook calls.
+
+**Test cases:**
+- Trigger the event → webhook is delivered to the correct URL within the expected time window.
+- Assert the **payload shape** — correct fields, correct event type, correct resource data.
+- Assert the **HTTP method** (usually POST) and **Content-Type** header.
+- Assert a **signature header** (HMAC) is present and valid — this proves the webhook came from your system, not a forger.
+
+**Failure handling:**
+- Your listener returns **500** → does your system retry? How many times, with what backoff?
+- Your listener is **down/unreachable** → does your system queue the webhook and retry?
+- **Replay/idempotency** — if the same webhook is delivered twice (retry), does your receiver handle it safely?`,
+      analogy: `Testing a burglar alarm that calls the security company when triggered. You don't just check the alarm goes off — you check the security company actually received the call, it had the right address, and if the line was busy, the alarm tried again.`,
+    },
+    {
+      id: 'api-mid-36',
+      level: 'mid',
+      topic: 'Security',
+      question: 'How do you handle secrets and credentials securely in your automated API test suite?',
+      answer: `Never hardcode credentials in test files — that is a one-way ticket to a production breach via source code.
+
+**The right approach:**
+- **Environment variables:** inject credentials at runtime from CI secrets store (GitHub Secrets, Azure Key Vault, etc.). Tests read \`process.env.API_KEY\`, never a hardcoded string.
+- **Postman:** use environment variables and store the env file outside version control; in CI, inject via the Newman \`--env-var\` flag.
+- **Rotate test credentials regularly** — treat them like production secrets.
+- **Least privilege:** test accounts should have only the permissions the tests actually need — not admin keys.
+- **Never log tokens** — strip auth headers from test output/reports.
+- **Separate credentials per environment** — dev, staging, and prod each have their own credentials; a dev token cannot reach prod.
+
+Scan your repo with a tool like **GitLeaks or TruffleHog** to catch any credentials that slipped in historically.`,
+      analogy: `A hotel key card system — staff cards are issued for specific zones and specific shifts, never shared, deactivated when staff leave, and logged every time they're used. You don't hand the master key to the cleaning crew.`,
+    },
+    {
+      id: 'api-mid-37',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you validate deeply nested or complex JSON response structures?',
+      answer: `Don't just assert \`status == 200\` — validate the schema and key data:
+
+**Schema validation (recommended for complex responses):**
+- Use **JSON Schema validation** (Postman's \`tv4\` or \`ajv\` library, or RestAssured's \`matchesJsonSchema\`).
+- Define the expected schema (field names, types, required vs optional, array shapes) and assert the response matches it.
+
+**Key field assertions:**
+- Assert specific critical values, not just the structure.
+- For arrays: check the count is as expected, check at least one item has the correct shape.
+- For nested objects: drill down — \`response.data.user.address.city === "Mumbai"\`.
+
+**What to avoid:**
+- Asserting the *entire* response equals a hardcoded JSON string — this is brittle; any new optional field added breaks the test.
+- Only asserting the top-level status code — a deeply nested field being null or wrong is the real bug.
+
+Use **JSON path expressions** (e.g. \`$.data.items[0].price\`) for readable, targeted assertions.`,
+      analogy: `Inspecting a package from a supplier — you don't just check the outer box is sealed. You open it, check the item is the right model, the accessories are all there, and the serial number matches the invoice. Schema validation is the checklist; targeted assertions are the spot-checks.`,
+    },
+    {
+      id: 'api-mid-38',
+      level: 'mid',
+      topic: 'Resilience',
+      question: 'How do you test how an API behaves when its database is down or unavailable?',
+      answer: `This tests **resilience and error handling** — not just happy paths.
+
+**Approach:**
+1. **In lower environments** (dev/staging): stop or block the database service, then call the API.
+2. **Using mocks/fault injection:** use a test double or proxy (like Toxiproxy or WireMock) to simulate database latency, connection refused, or query timeouts.
+
+**What to assert:**
+- API returns **503 Service Unavailable** or **500** — not a 200 with null data.
+- Error response has a **meaningful message** — not a raw database stack trace exposed to the caller.
+- **No sensitive information leaked** in the error (DB hostname, SQL error details).
+- **Timeout** is enforced — API does not hang indefinitely waiting for the DB; it returns an error within a reasonable time.
+- **Circuit breaker** (if implemented) trips after repeated failures and fast-fails without hammering a dead DB.`,
+      analogy: `Testing a vending machine when the stock management system is offline. It should say "temporarily unavailable, try later" — not give you food for free, not explode, and definitely not show you the internal inventory database error on the screen.`,
+    },
+    {
+      id: 'api-mid-39',
+      level: 'mid',
+      topic: 'Tools',
+      question: 'How do you structure your Postman collection for a large API project?',
+      answer: `Structure mirrors the API itself — organised for both human navigation and CI automation:
+
+**Folder hierarchy:**
+\`\`\`
+Collection
+├── Auth/
+│   ├── Login (stores token in env var)
+│   └── Refresh Token
+├── Users/
+│   ├── Create User (POST)
+│   ├── Get User (GET)
+│   ├── Update User (PATCH)
+│   └── Delete User (DELETE)
+├── Orders/
+│   └── ...
+└── _Regression Suite/ (ordered folder for CI run)
+\`\`\`
+
+**Best practices:**
+- **Collection-level variables** for base URL and auth — not hardcoded per request.
+- **Pre-request scripts** at the collection level for common auth setup.
+- **Tests on every request** — not just exploratory calls sitting there with no assertions.
+- **Environment files** for dev/staging/prod — committed as templates with secrets stripped out.
+- **Tags/names** are searchable — name requests like \`POST /users - valid data (201)\`.
+- **Newman-ready** — every regression request must pass with \`newman run collection.json --environment staging.json\`.`,
+      analogy: `Filing system in a law firm — cases grouped by client, sub-divided by matter type, with a clearly labelled index. Anyone walking in can find the right file without asking, and the system produces the same result whether it's a junior or senior clerk running it.`,
+    },
+    {
+      id: 'api-mid-40',
+      level: 'mid',
+      topic: 'Integration',
+      question: 'How do you test APIs that integrate with third-party payment gateways like Stripe?',
+      answer: `Payment integrations need both sandbox testing and real contract verification:
+
+**Use the provider's sandbox/test environment:**
+- Stripe, Razorpay, etc. all provide test credentials and test card numbers. Use these for all automated tests — never use real card data.
+- Test the full flow: initiate payment → get payment intent → confirm → receive webhook confirmation.
+
+**Test cases:**
+- Successful payment with a test card → order status updated to "paid."
+- Declined card (test card number for declines) → order stays "pending," meaningful error shown to user.
+- Insufficient funds test card → correct error code returned.
+- 3DS/authentication required → flow handles the extra step.
+- Webhook delivery: payment succeeded event → your system updates the order.
+- Webhook with invalid signature → your system rejects it (not process the payment).
+
+**What not to do:**
+- Never run automated load tests against a payment gateway's sandbox — you will get your test account banned.
+- Never log full card details or payment tokens — even in test environments.`,
+      analogy: `Flight simulators for pilots — you use a full-fidelity simulator (the sandbox) to practice every scenario including engine failures, without risking a real plane. The real payment rails only get touched in controlled, monitored production conditions.`,
+    },
+    {
+      id: 'api-mid-41',
+      level: 'mid',
+      topic: 'Strategy',
+      question: 'How do you test backward compatibility when an API changes?',
+      answer: `Backward compatibility means existing clients keep working without changes. Test it explicitly:
+
+**Consumer contract tests (ideal):**
+- Use **Pact** or similar — each consumer declares what it expects from the API, and those expectations are verified against the provider in CI. Any provider change that breaks a consumer contract fails the build.
+
+**Manual regression approach:**
+- Identify all consumers of the API (your own frontend, mobile apps, partner integrations).
+- Run their existing test suites against the new version of the API.
+- Specifically check: **no fields removed or renamed**, **no type changes** (e.g. string → integer), **no required fields added without a default**, **no status code changes on existing flows**.
+
+**Schema diff:**
+- Generate the OpenAPI spec before and after the change, and diff them. Any removed or changed field is a breaking change candidate.
+
+**Version header/routing:**
+- If v1 is still live, verify v1 requests still route to v1 behavior — not silently upgraded to v2.`,
+      analogy: `Renovating a house while the tenants still live there — you can add a new bathroom (non-breaking addition), but you cannot remove the only existing bathroom or change the locks without giving tenants new keys first.`,
+    },
+    {
+      id: 'api-mid-42',
+      level: 'mid',
+      topic: 'Performance',
+      question: 'What is the difference between load testing and stress testing an API, and when do you use each?',
+      answer: `Both are performance tests but with different goals:
+
+**Load testing:**
+- Simulates **expected, realistic traffic** — e.g. "our API gets 500 concurrent users during peak hours."
+- Goal: confirm the API meets **response time and error rate SLAs** under normal + peak load.
+- Run: regularly, before major releases, before seasonal events (sales, launches).
+
+**Stress testing:**
+- Pushes the API **beyond its limits** — ramp up load until it breaks.
+- Goal: find the **breaking point**, observe failure mode (graceful degradation vs crash), and define capacity limits.
+- Run: occasionally, during architecture planning, when scaling decisions are being made.
+
+**Tools:** k6, JMeter, Gatling, Locust.
+
+**Key metrics to track:** response time (p50, p95, p99), error rate, throughput (requests/sec), CPU and memory on the server side.`,
+      analogy: `Load testing is checking your car handles normal motorway speeds (100 km/h) reliably. Stress testing is flooring it to find at what speed the engine starts overheating — not because you plan to drive that fast, but so you know the margin.`,
+    },
+    {
+      id: 'api-mid-43',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you test a multi-step business flow end-to-end through the API — for example, user registers, verifies email, logs in, and places an order?',
+      answer: `Multi-step flows must be tested as a **chain**, not as isolated endpoint checks:
+
+**Structure:**
+\`\`\`
+Step 1: POST /users           → creates user, returns userId
+Step 2: POST /auth/verify     → verifies email token (grab token from DB or test email service)
+Step 3: POST /auth/login      → authenticate, capture access token
+Step 4: POST /products/search → find a product, capture productId
+Step 5: POST /cart/items      → add item using productId
+Step 6: POST /orders          → place order, assert orderId returned
+Step 7: GET  /orders/{id}     → verify order status = "confirmed"
+\`\`\`
+
+**Key principles:**
+- Each step passes its output (IDs, tokens) to the next via variables.
+- Assert the expected state **at each step** — don't just check the final outcome.
+- **Cleanup** after the test: delete the test user and order so the test is repeatable.
+- Run this test in a **staging environment** with a real email service mock (Mailhog/Mailtrap) to capture verification emails.`,
+      analogy: `A restaurant health inspection — you don't just taste the final dish. You follow the food from delivery to cold storage to prep to cooking to serving, checking each handoff point for compliance. The end product being fine doesn't tell you the process was safe.`,
+    },
+    {
+      id: 'api-mid-44',
+      level: 'mid',
+      topic: 'Strategy',
+      question: 'The API documentation does not match the actual behavior. What do you do?',
+      answer: `This is a common real-world situation. My approach:
+
+1. **Verify it is a genuine discrepancy** — not a version mismatch (am I reading v1 docs for a v2 endpoint?).
+2. **Decide which is the source of truth** — is the **code** wrong (should match the docs) or is the **docs** wrong (should match the code)? Ask the developer or product owner for clarification.
+3. **Raise a bug or docs task** — either "implementation deviates from spec" (code bug) or "documentation is outdated" (docs task), depending on the answer above.
+4. **Test the actual behavior** for now — write tests that reflect how the API actually works, with a note that the spec needs to be updated.
+5. **Flag it to the team** — other developers or consumers may be coding against the docs and will build broken integrations.
+
+Undocumented behavior is a **contract liability** — consumers who rely on undocumented behavior will be broken by any future "correction."`,
+      analogy: `A fire exit sign pointing left, but the actual exit is on the right. First figure out whether the sign is wrong or the exit was moved. Either way, someone needs to fix the discrepancy before people get hurt — and until then, you navigate by the actual exit.`,
+    },
+    {
+      id: 'api-mid-45',
+      level: 'mid',
+      topic: 'Architecture',
+      question: 'How do you test APIs in a microservices architecture without violating test isolation?',
+      answer: `In microservices, each service should be independently testable. Approaches:
+
+**Unit/component level — mock dependencies:**
+- When testing Service A, mock Service B's API responses. Test A's logic in isolation.
+- Use **WireMock, MockServer, or nock** to stub the downstream services.
+
+**Contract testing — shared truth:**
+- Use **consumer-driven contract tests (Pact)** so each service publishes what it expects from its dependencies, and those expectations are verified in CI. Catches breaking changes without integration tests.
+
+**Integration testing — selective real stacks:**
+- For critical flows, spin up only the involved services together (not the whole system) using Docker Compose. Test the interaction between A and B only.
+
+**E2E testing — narrow and expensive:**
+- Full stack tests covering real user journeys — keep these few and run them pre-release, not on every commit.
+
+The principle: push as much confidence as possible to lower, faster, isolated tests. Only escalate to full-stack when isolated tests can't cover the scenario.`,
+      analogy: `Testing components in a car — test the engine alone, test the gearbox alone, then test engine + gearbox together, then a full road test. You don't need the full car running to know each component works.`,
+    },
+    {
+      id: 'api-mid-46',
+      level: 'mid',
+      topic: 'Security',
+      question: 'How do you test for injection attacks in API inputs — SQL injection, command injection, etc.?',
+      answer: `Injection testing belongs in every API test suite, not just penetration tests:
+
+**SQL injection tests — send in string fields:**
+\`\`\`
+' OR '1'='1
+'; DROP TABLE users; --
+1 UNION SELECT * FROM users
+\`\`\`
+- Expected: **400** with validation error or safe sanitised response — never a 500, never unexpected data returned.
+
+**NoSQL injection (MongoDB):**
+\`\`\`json
+{ "username": { "$gt": "" } }
+\`\`\`
+- Should be treated as an invalid string, not a query operator.
+
+**Command injection (in endpoints that execute system commands):**
+\`\`\`
+; ls -la
+&& cat /etc/passwd
+\`\`\`
+- Should return 400 or be sanitised — never execute.
+
+**General principle:** all user-supplied input that reaches a query, file system, or shell command must be **parameterised or sanitised server-side**. Test that it is.
+
+Use **OWASP ZAP** or **Burp Suite** to automate a sweep of injection test payloads across all endpoints.`,
+      analogy: `A form asking for your name — you write \`Robert'); DROP TABLE Students;--\`. A safe system treats it as a name (bad data). An unsafe one executes it (catastrophic). Testing injection is checking the form knows the difference.`,
+    },
+    {
+      id: 'api-mid-47',
+      level: 'mid',
+      topic: 'Performance',
+      question: 'How do you test API response time SLAs — for example, the API must respond in under 500ms at p95?',
+      answer: `SLA validation requires both functional and performance test infrastructure:
+
+**In functional tests (baseline check):**
+- Assert response time on every test: \`pm.expect(pm.response.responseTime).to.be.below(500)\` in Postman.
+- This catches regressions where a code change makes a single endpoint slow.
+
+**In load tests (real SLA verification):**
+- Use **k6, JMeter, or Gatling** to simulate realistic concurrent load.
+- Define thresholds: p95 < 500ms, p99 < 1s, error rate < 0.1%.
+- Run the load test and assert the thresholds — fail the build if they are exceeded.
+
+**Measurement discipline:**
+- Measure from the **client side** (total round-trip including network) and from the **server side** (processing time) separately.
+- Always capture **p95 and p99**, not just averages — averages hide the slow outliers that real users experience.
+- Track trends over time — a slow drift from 100ms to 400ms over 3 months is as dangerous as a sudden spike.`,
+      analogy: `Speed cameras on a motorway — you don't just clock one car, you monitor every car over time and alert when a pattern of speeding develops, not just when one car is dramatically over the limit.`,
+    },
+    {
+      id: 'api-mid-48',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you set up reproducible test environments so API tests give consistent results?',
+      answer: `Flaky environments are the #1 reason teams lose trust in automated tests. Key practices:
+
+1. **Infrastructure as code** — use Docker Compose, Terraform, or similar to spin up identical environments on demand. No manual configuration.
+2. **Known test data state** — start each test run from a clean, seeded database state. Use seed scripts or test fixtures, not leftover data from previous runs.
+3. **Isolated test users** — each test run creates its own user/session; shared accounts cause interference between parallel tests.
+4. **Mock external dependencies** — third-party APIs that are unreliable or paid-per-call should be mocked in test environments.
+5. **Deterministic time** — if tests involve dates (e.g. "active in the last 30 days"), freeze the clock or use date offsets relative to the test, not absolute dates.
+6. **Document the setup** — a README with "how to spin up the test environment" that actually works, verified by a new team member.`,
+      analogy: `A chemistry lab with a standard preparation protocol — same equipment, same quantities, same temperature. The experiment gives consistent results not because chemistry changed, but because the conditions are controlled identically every time.`,
+    },
+    {
+      id: 'api-mid-49',
+      level: 'mid',
+      topic: 'Strategy',
+      question: 'How do you ensure your API test cases actually cover the real business requirements, not just the technical contract?',
+      answer: `There is a common gap between "the API returns the right status codes" and "the business requirement is actually met." Bridge it like this:
+
+1. **Start from user stories, not the spec** — for each story ("as a buyer I can cancel my order within 1 hour of placing it"), write test cases that verify the business rule, not just the endpoint.
+2. **Three-amigos during requirement review** — QA, developer, and product meet before development starts to agree on acceptance criteria and turn them into API test cases.
+3. **Trace tests to requirements** — tag each test with the story or requirement ID it covers. Gaps in coverage become visible immediately.
+4. **Test the rule, not just the response** — e.g. for the cancellation story: does cancellation after 1 hour return the correct error? Does the order status update? Is the refund triggered? A 200 status doesn't answer those questions.
+5. **Review with product** — share test cases with the product owner before running them. They often spot scenarios that technically pass but violate the intent.`,
+      analogy: `A building inspector checking permits vs a client checking their vision. The inspector confirms the walls meet code (technical contract). The client confirms the kitchen is where they asked for it (business requirement). You need both perspectives — the inspector's alone misses whether the building is actually what was ordered.`,
+    },
+    {
+      id: 'api-mid-50',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you test a data export endpoint that generates large CSV or Excel files?',
+      answer: `Large file exports have unique failure modes that small responses don't:
+
+**Functional checks:**
+- Send a valid export request → **200** (or 202 for async generation).
+- Response \`Content-Type\` is \`text/csv\` or the appropriate MIME type.
+- \`Content-Disposition: attachment; filename="export.csv"\` header is present.
+- Download the file and parse it — verify **header row is correct**, **row count matches** the expected data set, **no garbled characters** (encoding correct, usually UTF-8).
+
+**Edge cases:**
+- Export with **zero matching records** → empty CSV with header row, not a 404.
+- Export with a **very large dataset** (100k+ rows) — does it stream, or does it time out?
+- **Special characters** in data (commas, quotes, newlines) — are they properly escaped in the CSV?
+
+**Async export pattern (common for large files):**
+- POST /exports → 202 Accepted, returns a jobId.
+- Poll GET /exports/{jobId} → status moves from "processing" to "ready."
+- GET /exports/{jobId}/download → delivers the file.
+- Test: what happens if you download before it is ready (409 or 202 with retry-after)?`,
+      analogy: `Testing a print shop's bulk order service — verify it prints the right number of copies, in the right format, handles special characters in the text, and that ordering 10,000 copies doesn't make the machine overheat and crash.`,
+    },
     // ── Senior (5+ yrs) ───────────────────────────────────────
     {
       id: 'api-sr-1',
@@ -8032,6 +8991,603 @@ The goal: catch mismatches at *design time*, where they're cheap, instead of dur
 - For **high-risk** changes (auth, payments, data-affecting), insist on coverage and make the risk **explicit with data**.
 - Offer **options** — feature flag, phased rollout, extra monitoring — rather than a flat "no." You're a risk advisor, not a roadblock.`,
       analogy: `A structural engineer signing off a bridge — fast on a garden footbridge, but firm on a motorway span. And they explain *why* in terms of consequences, not stubbornness.`,
+    },
+    {
+      id: 'api-sr-27',
+      level: 'senior',
+      topic: 'Incident Response',
+      question: 'A production API is returning 503 Service Unavailable intermittently. Walk me through your RCA process.',
+      answer: `503 intermittent means the service is sometimes available, which narrows the cause. My RCA process:
+
+**Immediate triage (first 15 minutes):**
+- Check **error rate and traffic graphs** — did load spike? Did a deployment go out?
+- Check **upstream health dashboards** — is the database, cache, or a downstream service the bottleneck?
+- Identify **which specific endpoints** are 503-ing — all of them, or one? Narrows the scope dramatically.
+
+**Data collection:**
+- Pull **application logs** for the 503 window — what errors are logged server-side?
+- Check **connection pool metrics** — are all DB or HTTP client connections exhausted?
+- Check **memory and CPU** on the affected instances — are they being crushed under load?
+- Check **load balancer logs** — are requests timing out before reaching the app, or is the app returning 503 itself?
+
+**Common root causes:**
+- DB connection pool exhaustion under load.
+- A slow downstream dependency causing request queuing.
+- Memory leak causing OOM kills and restarts (explains intermittency).
+- Misconfigured health checks causing healthy instances to be marked down.
+
+**Resolution and follow-up:**
+- Document the timeline, root cause, contributing factors, and a fix.
+- Add monitoring/alerting so the same issue is caught faster next time.`,
+      analogy: `An intermittent power outage in a building — you don't guess. You check the main breaker, then the building's meter, then individual floor fuses, while watching whether the outage tracks to specific times (shift change = load spike) or specific zones (one server rack).`,
+    },
+    {
+      id: 'api-sr-28',
+      level: 'senior',
+      topic: 'Framework Design',
+      question: 'How do you design an API testing framework from scratch for a team of 20 engineers?',
+      answer: `Design for **adoption and maintainability**, not perfection. My approach:
+
+**Foundation decisions:**
+- **Language:** match the team's primary language (TypeScript/JS → supertest + jest; Java → RestAssured; Python → requests + pytest). Lowering the learning barrier increases adoption.
+- **Structure:** request builder layer, assertion helpers, test data factories, environment config — clear separation of concerns.
+- **Shared utilities:** auth token management, common headers, retry logic, response schema validators — written once, used everywhere.
+
+**For a 20-person team:**
+- **Onboarding doc and examples** — a new engineer writes their first test in under 30 minutes.
+- **Code review standards** for test code — naming conventions, no hardcoded IDs, assertions on content not just status.
+- **CI integration from day one** — tests run automatically on every PR; flaky tests are immediately quarantined, not ignored.
+- **Reporting** — clear dashboards showing pass/fail trends, coverage by feature area, slowest tests.
+- **Governance** — a small "test champions" group per squad who own quality standards; avoids the framework becoming one person's hobby project.
+
+**Anti-patterns to avoid:**
+- Over-engineering: a beautiful DSL no one uses.
+- Under-engineering: 200 Postman collections with no structure.`,
+      analogy: `Designing a company's road network — not one massive highway (nobody uses it), not every team building their own dirt track (chaos). A shared main road with clear on-ramps, signage (docs), and maintenance crews (test champions) per district.`,
+    },
+    {
+      id: 'api-sr-29',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'Your team is migrating from REST to GraphQL. How does your testing approach change?',
+      answer: `GraphQL is fundamentally different — one endpoint, client-defined queries. Testing must adapt:
+
+**What changes:**
+- **No more per-endpoint tests** — instead, test **query/mutation scenarios**. The same endpoint handles everything.
+- **Schema testing** — validate the GraphQL schema itself: required fields, correct types, deprecated fields flagged.
+- **Query depth/complexity limits** — send deeply nested or highly complex queries; verify the server enforces limits to prevent abuse.
+- **Error format** — GraphQL errors come back as \`200\` with an \`errors\` array, not as HTTP 4xx/5xx. Assert on the errors array, not status code alone.
+- **Partial success** — GraphQL can return partial data with partial errors in one response. Test and assert on both the \`data\` and \`errors\` fields.
+- **N+1 query testing** — a query requesting 100 items with nested relations can trigger 101 DB queries. Test that DataLoader or batching is working correctly (check DB query counts or use APM).
+
+**Tools:** Apollo Studio, graphql-inspector (schema diffing), Postman (supports GraphQL), Insomnia.
+
+**What stays the same:** auth, rate limiting, security, response time SLAs — these carry over.`,
+      analogy: `Switching from a fixed-menu restaurant (REST — you order from a predefined list) to a custom-order kitchen (GraphQL — you describe exactly what you want). Testing shifts from "does dish 7 taste right" to "does the kitchen produce exactly what was requested, no more, no less."`,
+    },
+    {
+      id: 'api-sr-30',
+      level: 'senior',
+      topic: 'Contract Testing',
+      question: 'How do you architect consumer-driven contract tests across 15 microservices?',
+      answer: `At 15 services, integration tests become unmaintainable. Consumer-driven contracts (Pact) scale where integration tests cannot:
+
+**Architecture:**
+1. **Each consumer** (e.g. the orders service consuming the users API) writes a Pact test declaring exactly what it sends and expects back.
+2. **Pact publishes the contract** to a central **Pact Broker** (hosted or PactFlow).
+3. **The provider's CI pipeline** pulls all contracts for its API from the broker and verifies them against its actual code on every build.
+4. **"Can I Deploy?"** gates — before any service is deployed, the Pact Broker confirms all its consumer contracts are verified against the version about to go live.
+
+**Governance at scale:**
+- Each team owns its consumer tests — no centralised bottleneck.
+- The broker is the **shared source of truth** for what each service expects from its dependencies.
+- Breaking changes are caught **in the provider's CI**, before deployment, not in production.
+
+**What to watch for:**
+- Teams writing overly prescriptive contracts (asserting on fields they don't use) — creates false failures.
+- Contracts not being updated when consumers change — stale contracts.
+- Broker becoming a single point of failure — host it with high availability.`,
+      analogy: `An international trade agreement framework — each country (consumer) publishes what it needs from its trading partners (providers), those agreements are filed in a central registry (Pact Broker), and no country ships a policy change that violates an existing agreement.`,
+    },
+    {
+      id: 'api-sr-31',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'How do you test an event-driven architecture where services communicate via Kafka or SQS queues?',
+      answer: `Event-driven systems are harder to test because the interaction is asynchronous — you publish an event and eventually observe a side effect. Approach:
+
+**Component testing — test each service in isolation:**
+- For a **producer**: assert it publishes the correct event payload when triggered (use an in-memory broker or check the output topic directly).
+- For a **consumer**: publish a test event to the topic and assert the consumer processes it correctly (database update, outgoing call, etc.).
+
+**Contract testing for events:**
+- Apply consumer-driven contracts (Pact) to async messages too — Pact supports message contracts. The consumer defines the message shape it expects; the producer is verified against it.
+
+**Integration / end-to-end:**
+- Use a real (or test-instance) Kafka/SQS broker.
+- Publish the triggering action, then **poll** the downstream system (with a timeout) until the expected side effect is visible.
+- Assert on **exactly-once semantics** if claimed: duplicate events should not cause duplicate side effects.
+
+**Key failure modes to test:**
+- **Poison pill messages** — a malformed event; consumer should dead-letter it, not crash.
+- **Consumer lag** — what happens when the consumer falls behind? Does the system degrade gracefully?
+- **Out-of-order messages** — if order matters, test that the system handles it correctly.`,
+      analogy: `A postal sorting office — you test each sorting machine individually, then test the full chain by dropping a letter in the postbox and verifying it arrives at the right house within the expected time. You also test what happens when a letter arrives damaged (poison pill).`,
+    },
+    {
+      id: 'api-sr-32',
+      level: 'senior',
+      topic: 'Security',
+      question: 'How do you implement OWASP API Security Top 10 testing in your CI/CD pipeline?',
+      answer: `OWASP API Top 10 covers the most critical API security risks. Integrate testing across multiple pipeline stages:
+
+**In unit/integration tests (shift left):**
+- **API1 (Broken Object Level Auth):** test that User A cannot access User B's resources — add this to every "get by ID" test.
+- **API3 (Broken Object Property Level Auth):** assert that mass assignment does not allow setting privileged fields (e.g. \`role\`, \`isAdmin\`).
+- **API8 (Security Misconfiguration):** assert correct CORS headers, no sensitive data in error bodies.
+
+**In automated security scans (CI gate):**
+- Run **OWASP ZAP** (DAST) against the staging API on every release branch — fails the pipeline on high severity findings.
+- Integrate **dependency scanning** (OWASP Dependency Check) for vulnerable libraries.
+
+**In regular manual/specialist testing:**
+- **API2 (Broken Auth):** token expiry, refresh token rotation, JWT tampering.
+- **API4 (Unrestricted Resource Consumption):** rate limiting, large payload handling, deep query limits.
+- **API6 (Unrestricted Access to Sensitive Business Flows):** business logic abuse — bulk account creation, coupon stacking.
+
+**Quarterly pen testing:** bring in specialists for deep coverage of API5 (BFLA), API7 (SSRF), API9 (Improper Asset Management).`,
+      analogy: `Home security — some checks you do daily (lock the door = automated scans), some monthly (check window latches = sprint security review), and annually you hire a professional locksmith to try every entry point (pen test).`,
+    },
+    {
+      id: 'api-sr-33',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'How do you decide what level of API test coverage is "enough"?',
+      answer: `"Enough" is defined by **risk and confidence**, not by a line coverage percentage.
+
+**Risk-based model:**
+- **Tier 1 — Critical (100% coverage):** auth flows, payment processing, data-modifying endpoints, PII-handling paths. These break the business if wrong.
+- **Tier 2 — High value (full happy path + key negatives):** core read endpoints, user-facing workflows.
+- **Tier 3 — Low risk (smoke only):** rarely-used admin endpoints, reporting endpoints that don't modify data.
+
+**Practical signals that coverage is insufficient:**
+- Bugs repeatedly escape to production from a specific area — increase coverage there.
+- A team member cannot confidently change an endpoint without fear of breaking something unknown.
+- Post-release hotfixes are common.
+
+**Signals you may have too much:**
+- Suite takes hours, nobody runs it.
+- Trivial changes break dozens of tightly-coupled tests that test implementation, not behavior.
+
+**My rule:** every user-facing business rule should have at least one test asserting it. Not every line of code — every business rule.`,
+      analogy: `Insurance: you don't insure every object in your house equally. You insure the expensive, hard-to-replace, high-impact items fully and accept the risk on the small stuff. API coverage is the same — concentrate protection where failure hurts most.`,
+    },
+    {
+      id: 'api-sr-34',
+      level: 'senior',
+      topic: 'Framework Design',
+      question: 'How do you build a resilient, self-healing automated API test suite that does not produce false failures?',
+      answer: `False failures destroy team trust faster than bugs do. Build reliability in from the start:
+
+**Test isolation (biggest single impact):**
+- Every test creates its own data and cleans up. No shared state between tests. Parallel execution is safe.
+- No dependency on execution order.
+
+**Deterministic test data:**
+- Use factories/builders with unique identifiers (e.g. timestamp or UUID in email: \`test+{uuid}@company.com\`). No conflicts between concurrent runs.
+
+**Smart retry for genuine infrastructure noise:**
+- Retry on network errors (503, timeout) with a maximum of 2–3 retries and exponential backoff — not on assertion failures (those are real bugs).
+
+**Quarantine flaky tests:**
+- Any test that fails intermittently without a code change is tagged \`@flaky\` and moved to a separate non-blocking suite immediately. Fix it within one sprint.
+
+**Environment health check:**
+- A pre-suite smoke check that verifies the target environment is up and the auth service is responding before running 500 tests.
+
+**Immutable infrastructure:**
+- Tests run against a freshly provisioned environment (Docker, ephemeral cloud env) — not a long-running env with accumulated drift.`,
+      analogy: `A well-maintained race car vs a street car — every component is purpose-built, regularly inspected, and immediately replaced when it shows wear. You don't wait for the car to stop working to fix it, and you never race with a dodgy component "that usually works."`,
+    },
+    {
+      id: 'api-sr-35',
+      level: 'senior',
+      topic: 'Security',
+      question: 'How do you test a multi-tenant API where one tenant\'s data must never be visible to another?',
+      answer: `Tenant isolation is a critical security requirement — a breach here is a regulatory incident.
+
+**Test matrix — cross-tenant access attempts:**
+For every data endpoint, test with credentials from Tenant B attempting to access Tenant A's resources:
+\`\`\`http
+GET  /api/reports/{reportId}      ← reportId belongs to Tenant A
+Authorization: Bearer tenant-b-token
+→ Expected: 403 or 404 (not the data)
+\`\`\`
+
+**Scenarios:**
+- Direct ID access (BOLA/IDOR): Tenant B uses a known Tenant A resource ID.
+- Enumeration: Tenant B iterates through IDs to find Tenant A's data.
+- Filter bypass: Tenant B adds \`?tenantId=tenantA\` to a query.
+- JWT claim tampering: Tenant B modifies their JWT to claim they are Tenant A.
+- Bulk export: Tenant B's export contains only Tenant B's data.
+
+**Implementation verification:**
+- Verify tenant filtering is applied **at the data layer** (database query level), not just in the application layer (which can be bypassed).
+- Check that error messages do not confirm whether a resource exists for another tenant — always return 404, not 403 (which leaks existence).`,
+      analogy: `An apartment building where every tenant has their own letterbox — test not just that your key opens your letterbox, but that it specifically does NOT open your neighbour's, even if you know their apartment number and guess their lock combination.`,
+    },
+    {
+      id: 'api-sr-36',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'A service mesh like Istio is introduced to your microservices platform. What changes in your API testing approach?',
+      answer: `A service mesh moves cross-cutting concerns (TLS, retries, timeouts, circuit breaking, observability) out of application code and into the infrastructure layer. Testing must account for it:
+
+**New things to test:**
+- **mTLS:** inter-service calls are now mutually authenticated. Test that services without valid certificates are rejected. Test that certificate rotation does not cause service disruption.
+- **Traffic policies:** Istio-managed retries and timeouts override application-level ones. Verify the mesh retry policy matches your intended behavior — application retries + mesh retries can double-fire.
+- **Traffic shifting (canary deployments):** when rolling out a new API version, test that traffic is split at the configured percentages and that the right headers route to the right version.
+- **Circuit breakers at the mesh level:** confirm Istio's circuit breaker trips correctly when a service is unhealthy (test by injecting faults with Istio's fault injection feature).
+- **Observability:** verify distributed traces (Jaeger/Zipkin) include the correct spans and that correlation IDs propagate through the mesh correctly.
+
+**Fault injection testing:**
+- Istio provides native fault injection: inject 500ms delays or 50% error rates on a specific service route. Use this to test your system's resilience without modifying application code.`,
+      analogy: `Adding a professional network operations team to a building — they now manage all the wiring, security cameras, and intercom. The tenants (services) do less, but the infrastructure must be tested too: do the cameras actually cover the right doors? Does the intercom route calls correctly?`,
+    },
+    {
+      id: 'api-sr-37',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'How do you test API gateway configurations — routing, throttling, request/response transforms, and auth enforcement?',
+      answer: `API gateways (Kong, AWS API Gateway, Apigee) are infrastructure — but they have complex configuration that can silently break your API. Test each layer:
+
+**Routing:**
+- Verify each route reaches the correct backend service and version.
+- Test path rewriting: \`/api/v2/users\` → backend receives \`/users\`.
+- Test wildcard routes do not accidentally match paths they should not.
+
+**Auth enforcement:**
+- Valid token → passes through to backend.
+- Missing token → gateway returns 401 before reaching the backend (verify the backend was NOT called).
+- Invalid/expired token → 401 from gateway.
+
+**Throttling/rate limiting:**
+- Hit the per-client rate limit → 429 from the gateway.
+- Verify the gateway's limit applies per API key, not globally.
+
+**Request/response transforms:**
+- Headers added or stripped by the gateway are correct.
+- Request body transformations produce the exact shape the backend expects.
+- Sensitive headers (internal service tokens) are stripped from external responses.
+
+**Caching (if configured):**
+- Cached responses are served after the first request.
+- Cache is invalidated correctly on POST/PUT/DELETE.
+- Cache keys include required dimensions (user ID, tenant, Accept header).`,
+      analogy: `Testing a hotel switchboard — not just that calls connect, but that Room 101's calls go to Room 101 (not 102), that premium guests get priority, that internal extension calls don't get routed outside the building, and that the automated greeting message plays correctly.`,
+    },
+    {
+      id: 'api-sr-38',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'How do you test eventual consistency and data consistency across microservices that do not share a database?',
+      answer: `No shared DB means consistency is **eventual** — data propagates asynchronously, so tests must account for the time lag.
+
+**Testing eventual consistency:**
+- After triggering an action in Service A, **poll Service B** for the expected state change with a timeout and backoff — don't assert immediately.
+- Define acceptable propagation latency in SLAs (e.g. "consistent within 5 seconds under normal load") and test that it is met.
+
+**Specific scenarios:**
+- **Order placed (Service A) → inventory decremented (Service B):** place an order, wait, then verify the product's stock count decreased.
+- **User deleted (Auth service) → user's data removed from downstream services:** verify eventual deletion propagation.
+- **Duplicate event handling:** publish the same event twice (network retry scenario); verify the consumer is idempotent and the data is not corrupted.
+
+**Saga testing:**
+- For distributed transactions using the saga pattern, test **compensating transactions**: when Step 3 of a 5-step saga fails, verify Steps 1 and 2 are correctly rolled back.
+
+**Chaos testing:**
+- Intentionally delay or drop messages between services to verify the system reaches a consistent state eventually, even under degraded conditions.`,
+      analogy: `A library with branches — when a book is returned at Branch A, Branch B's catalogue eventually shows it available. Testing eventual consistency is checking: how long does Branch B take to show it? What if the update message got lost? Does it sort itself out?`,
+    },
+    {
+      id: 'api-sr-39',
+      level: 'senior',
+      topic: 'Leadership',
+      question: 'A new team of 8 engineers is joining your org and needs to integrate with your existing API test suite. How do you onboard them?',
+      answer: `Onboarding is a forcing function to check your documentation and framework are actually usable:
+
+**Before they arrive:**
+- Verify the README is accurate — have a fresh pair of eyes (not someone who wrote it) follow the setup instructions end-to-end.
+- Create a "starter test" — a simple, complete example test they can copy and modify as their first contribution.
+
+**Week 1 — pair on a real test:**
+- Don't give them documentation and send them away. Pair-write their first test with them. Surface friction points — those become doc fixes.
+- Review framework conventions together: naming, folder structure, how to handle auth, how to create test data.
+
+**Structural decisions:**
+- Does their API go in the existing framework or a separate one? If separate, share the core utilities (auth, schema validators) as a library.
+- Define their team's quality bar: what makes a test "done"? Shared definition of done across teams.
+
+**Ongoing:**
+- Weekly office hours for framework questions for the first month.
+- They get a test champion — one engineer from the existing team available for questions.
+- Their test suite PRs are reviewed by someone outside their team for the first 4 weeks.`,
+      analogy: `Onboarding a new contractor to a building site — you don't hand them the blueprint and leave. You walk the site with them, introduce the site foreman, do the first day together, and check in regularly until they're fully productive.`,
+    },
+    {
+      id: 'api-sr-40',
+      level: 'senior',
+      topic: 'Leadership',
+      question: 'How do you measure and communicate the ROI of API test automation to engineering leadership?',
+      answer: `Leadership cares about **business outcomes**, not test counts. Frame it that way:
+
+**Metrics that matter:**
+- **Defect escape rate:** bugs reaching production before vs after automation. A drop from 15 to 4 per release is a concrete number.
+- **Time to detect:** how quickly does a regression surface? If it used to take a week (manual regression) and now takes 10 minutes (CI), that is time-to-market impact.
+- **Release frequency:** did automation enable the team to release more often? From monthly to weekly is a business outcome.
+- **Cost per test cycle:** hours of manual regression × engineer hourly rate vs automation maintenance cost. Show the crossover point.
+- **Mean time to resolution (MTTR):** faster test feedback → faster fix loop.
+
+**How to communicate it:**
+- Tie metrics to **a real incident**: "The payment flow bug caught last quarter would have cost X in chargebacks. The automated test caught it in CI before it reached staging."
+- Show trends, not snapshots — a chart of escape rate declining over 6 months is compelling.
+- Be honest about costs: automation has ongoing maintenance overhead. Show the net value, not just the wins.`,
+      analogy: `Justifying a dishwasher to someone who thinks hand-washing is fine — show them the time saved per cycle, the error rate (missed food), and the breakage rate, measured over a year. The data makes the case; the anecdote just makes it memorable.`,
+    },
+    {
+      id: 'api-sr-41',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'How do you handle API versioning strategy from a testing perspective when you have three active versions simultaneously?',
+      answer: `Three active versions means three full test suites to maintain. Strategy to keep this sustainable:
+
+**Separate test suites per version:**
+- v1, v2, v3 each have their own suite, clearly named and independently runnable.
+- Each suite targets its version explicitly via base URL or version header.
+
+**Shared test data and utilities:**
+- Authentication, test data factories, and assertion helpers are shared across versions — don't duplicate these.
+
+**Deprecation-driven pruning:**
+- When v1 enters deprecation: strip its suite down to a smaller set of critical smoke tests. Document the deprecation date.
+- When v1 reaches EOL: archive the suite and delete it from CI. Running tests for dead endpoints is waste.
+
+**Regression on provider side:**
+- Any change to the shared infrastructure (DB schema, auth service) must run regression suites for all three active versions before deployment.
+
+**Testing the version routing itself:**
+- Send v1, v2, and v3 requests and assert each lands on the correct backend version.
+- Test that an unrecognised version returns a clear error with a list of supported versions.
+
+**Documentation for the team:**
+- A single table showing: version → supported until → test suite location → CI pipeline. Updated whenever a version status changes.`,
+      analogy: `An airline operating three aircraft models simultaneously — each needs its own maintenance checklist and certified engineers, but the shared facilities (runway, fuel, check-in) are shared. You maintain all three fleets, retire models on schedule, and don't let the legacy DC-9 procedures creep into the A320 manual.`,
+    },
+    {
+      id: 'api-sr-42',
+      level: 'senior',
+      topic: 'Observability',
+      question: 'How do you build observability into your API test suite — beyond just pass/fail?',
+      answer: `Pass/fail tells you what broke. Observability tells you why, how often, and where the trend is heading.
+
+**In the test run itself:**
+- Log the **full request and response** (sanitised of secrets) for every failure — so the CI log is a complete reproduction package.
+- Record **response times per test** — track p95 trends over time, not just whether the test passed.
+- Tag failures by category: assertion failure vs infrastructure failure vs timeout — different root causes, different owners.
+
+**At the suite level:**
+- Publish test results to a **test management or analytics platform** (TestRail, Allure, Datadog CI Visibility). Track: pass rate trend, flaky test rate, slowest tests.
+- Correlate test results with deployments — a pass rate drop always after a specific team's deployment is signal.
+
+**In production observation:**
+- Instrument your test suite to emit metrics that mirror production monitoring: response time histograms, error rate per endpoint.
+- A staging test run that shows response time degrading on /checkout before a deployment is production insight, not just test insight.
+
+**Alerting:**
+- Alert on suite pass rate dropping below 95% — not just on individual test failures.
+- Alert on response time SLA breaches in the test suite, not just production.`,
+      analogy: `A flight recorder vs a warning light — the warning light (pass/fail) tells you something is wrong. The flight recorder (observability) tells you what happened in the 30 minutes before the light turned on, which is what you actually need to fix it.`,
+    },
+    {
+      id: 'api-sr-43',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'How do you test APIs under geographic distribution — CDN caching, regional failover, and edge deployments?',
+      answer: `Geo-distributed APIs have failure modes that local testing misses entirely. Testing approach:
+
+**CDN and caching:**
+- Send GET requests from multiple regions and assert the correct \`X-Cache\` headers (HIT vs MISS) and \`Cache-Control\` values.
+- After a POST/PUT/DELETE, verify the CDN cache is **purged** — a GET from another region should reflect the update, not serve stale data.
+- Test cache key correctness: vary by language header, user tier, tenant — verify the right users get the right cached response.
+
+**Regional failover:**
+- Simulate a regional outage (disable the primary region endpoint) and verify traffic routes to the secondary region automatically within the defined RTO.
+- Assert the failover region returns correct data — it may have slightly stale data if replication lag is involved.
+- Test the **failback:** when the primary region recovers, traffic returns to it without data loss.
+
+**Edge deployments:**
+- Test edge function logic independently (unit tests for edge workers).
+- Test that edge routing rules direct the correct request types to edge vs origin.
+- Verify latency SLAs from each target geography — use a synthetic monitoring tool with agents in each region.
+
+**Geo-restriction compliance:**
+- Test that requests from restricted regions (e.g. GDPR-restricted data) are properly blocked or redirected.`,
+      analogy: `Testing a franchise chain — not just testing the head office's kitchen, but verifying each regional franchise makes the same burger to the same spec, that if one branch closes the nearest branch handles the overflow, and that "no serving alcohol in this county" rules are enforced location by location.`,
+    },
+    {
+      id: 'api-sr-44',
+      level: 'senior',
+      topic: 'Framework Design',
+      question: 'How do you design test data management for a complex microservices system at scale?',
+      answer: `Test data management is one of the hardest problems in large-scale testing. My approach:
+
+**Principles:**
+- **Tests own their data** — each test creates what it needs and cleans up after itself. No dependency on pre-seeded shared data.
+- **Data factories** — a library of builder functions per entity type that generate valid, unique test objects. One call creates a user with sensible defaults; override only what the test cares about.
+- **Namespacing** — all test data is tagged with a test-run ID or prefix so cleanup is safe (only delete records with the test prefix, never production data).
+
+**For complex cross-service data:**
+- **Orchestrated setup:** a test setup service that makes API calls across all required services to establish a complex starting state (e.g. "a user with 3 orders, one pending refund").
+- **Snapshot isolation:** for heavy tests, restore a known-good database snapshot rather than building state from scratch.
+
+**Cleanup strategies:**
+- **In-test teardown** (preferred) — delete what you created, in reverse order.
+- **Periodic cleanup jobs** — sweep records older than 24h with the test namespace prefix.
+- **Ephemeral environments** — the whole environment is destroyed after the test run; no cleanup needed.
+
+**Cross-service data consistency:**
+- Creating a user in the Auth service must also exist in the Profile service. Setup utilities handle all required downstream propagation, not individual tests.`,
+      analogy: `A film studio's props department — every production gets its own prop set, built to spec, labelled with the production name, returned and catalogued after the shoot. Nobody is rummaging through another production's props mid-scene.`,
+    },
+    {
+      id: 'api-sr-45',
+      level: 'senior',
+      topic: 'Leadership',
+      question: 'How do you establish API quality gates for a platform API used by external developers and partners?',
+      answer: `External APIs carry a higher quality bar — you cannot hotfix a partner's production integration the way you can your own frontend.
+
+**Quality gate levels:**
+
+**Gate 1 — Every commit:**
+- Contract tests pass (no breaking changes to existing consumers).
+- Schema linting (no new required fields without deprecation notice, no type changes).
+- Security scan (automated DAST, no high-severity findings).
+
+**Gate 2 — Pre-release:**
+- Full regression suite on staging.
+- Backward compatibility verified against published SDKs and client libraries.
+- Performance benchmarks within SLA (p95 response time, error rate).
+- API changelog reviewed and approved by developer relations.
+
+**Gate 3 — Rollout:**
+- Canary deployment to 5% of traffic — monitor error rate.
+- Partner sandbox verified by at least one external developer.
+- Support team briefed on changes.
+
+**Governance:**
+- An API review board for breaking changes — cross-functional (engineering, product, devrel, legal).
+- A deprecation policy: minimum 6–12 months notice for any breaking change, communicated in-band (deprecation headers) and out-of-band (email/changelog).`,
+      analogy: `A car manufacturer releasing a new engine spec — internal testing is thorough, but before garages (partners) start stocking parts for it, you certify the spec, publish the manual, and commit to a support lifecycle. You can't ask every mechanic to re-train every time you change a bolt.`,
+    },
+    {
+      id: 'api-sr-46',
+      level: 'senior',
+      topic: 'Security',
+      question: 'How do you test for race conditions and concurrency issues in APIs?',
+      answer: `Race conditions in APIs are some of the hardest bugs to find and reproduce. Deliberate testing approach:
+
+**Classic scenarios to target:**
+- **Double-spend / duplicate order:** send two purchase requests for the last item in stock simultaneously — verify exactly one succeeds.
+- **Coupon abuse:** apply the same one-time-use coupon twice in parallel — only one should apply.
+- **Account balance deduction:** concurrent withdrawal requests — total deducted must not exceed the balance.
+- **Unique constraint bypass:** two users trying to register the same email at the same moment — only one account created.
+
+**How to test:**
+- Send concurrent requests using **parallel HTTP clients** — k6, artillery, or a simple Promise.all in a test script with 10–50 simultaneous calls.
+- Assert post-condition: query the database / a GET endpoint to verify the final state is correct and consistent.
+
+**Tooling:**
+- **k6:** fire N concurrent virtual users at the same endpoint simultaneously.
+- Database-level verification: after the race, check row counts, balance totals, unique record counts directly.
+
+**Fix indicators:**
+- Correct implementations use **database-level locking** (SELECT FOR UPDATE, optimistic concurrency with version fields, atomic operations) — not application-level checks.`,
+      analogy: `Two people simultaneously trying to buy the last concert ticket online. A well-built system gives exactly one person the ticket, charges exactly one credit card, and tells the other "sold out" — not charges both and creates one booking, or charges neither and loses the sale.`,
+    },
+    {
+      id: 'api-sr-47',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'When do you declare an API "not testable" and what do you do about it?',
+      answer: `An API is not testable when the conditions for testing cannot be established or when testing produces no reliable signal. Real scenarios:
+
+**Legitimate "not testable" conditions:**
+- **No test environment:** the API only exists in production and there is no sandbox. Resolution: advocate for a staging environment; in the interim, read-only smoke tests in prod only.
+- **No test credentials:** auth is tied to real external accounts (e.g. requires a live bank account). Resolution: mock the auth provider for automated tests; negotiate test accounts with the external party.
+- **Non-deterministic outputs:** the API returns AI-generated content that is different every call. Resolution: test structural assertions (response schema, field presence) rather than content equality; test behavior at the boundary inputs.
+- **No observable side effects:** the API triggers async processes with no way to observe completion. Resolution: work with the development team to add test hooks, event flags, or a test-mode header.
+
+**What to do:**
+1. Document the testability gap explicitly — it is a risk, and the risk owner (product/engineering lead) should acknowledge it.
+2. Define what *can* be tested and test that thoroughly.
+3. Compensate with monitoring and alerting in production.
+4. Push for changes that enable testability — testability is a design quality, like performance or security.`,
+      analogy: `A doctor who cannot examine a patient directly — you don't write "healthy" on the chart. You document what you could and couldn't assess, order the tests you can, and escalate to get the conditions for a proper examination.`,
+    },
+    {
+      id: 'api-sr-48',
+      level: 'senior',
+      topic: 'Leadership',
+      question: 'How do you build a culture of API quality across multiple engineering teams that are moving at different speeds?',
+      answer: `Quality culture is built through standards, visibility, and incentives — not mandates. Approach:
+
+**Standards without bureaucracy:**
+- Publish a lightweight **API quality checklist** (1 page): security headers, error format, rate limiting, contract tests, versioning policy. Teams use it; no approval required.
+- **Golden example service** — a reference microservice with exemplary tests, well-documented. Teams copy the pattern, not the rules.
+
+**Visibility creates accountability:**
+- **Test coverage and escape rate dashboards** per team, visible to engineering leadership. Teams with high escape rates get support (not blame), but the data is public.
+- **Post-release reports** that include test coverage and any issues escaped. Patterns become obvious.
+
+**Incentives and enablement:**
+- **Test champions** embedded in each team — engineers who care about quality and get time to invest in it.
+- **Inner source the framework** — any team can contribute improvements to the shared test framework. Contributions are celebrated.
+- Fast-moving teams get **fast feedback** — a 10-minute CI suite with the essential gates, not a 45-minute blocker. Speed removes the excuse to skip testing.
+
+**Handling teams that resist:**
+- Understand *why* — is it pressure from their manager? Technical debt making testing hard? Skill gap? Each cause has a different fix.
+- Use data to make the cost of low quality visible to the team's own stakeholders.`,
+      analogy: `Building a safety culture in a hospital — you don't just post rules on the wall. You train people, make reporting near-misses easy and blameless, track outcomes visibly, celebrate teams with good records, and support — not punish — the teams struggling.`,
+    },
+    {
+      id: 'api-sr-49',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'How do you handle backward-compatible API change testing at the platform level when 50+ internal and external services consume your API?',
+      answer: `At 50+ consumers, manual coordination is impossible. The answer is **automated contract verification at scale**:
+
+**Consumer-driven contracts as the backbone:**
+- Every consumer publishes a Pact contract to the central broker — what they send, what they expect back.
+- Every provider build runs all consumer contracts as a verification step. A breaking change fails CI before any deployment.
+- **"Can I Deploy"** check: before any service version is deployed, the broker confirms all its verified consumer contracts are compatible with the pending deployment.
+
+**Schema governance:**
+- Use **OpenAPI diff tooling** (openapi-diff, Optic) in the provider's CI. Any detected breaking change (removed field, type change, required field added) fails the build — the developer must either fix the change or bump the API version and maintain the old version.
+
+**Large-scale migration playbook:**
+- For intentional breaking changes: publish the new version, give all consumers a migration window (6–12 months), monitor adoption via API gateway analytics.
+- Use **deprecation headers** to signal to consumers programmatically that they should migrate.
+- Track which consumers are still on the old version via gateway logs — contact their owners as the EOL date approaches.
+
+**Retrospective safety net:**
+- Periodic automated test runs against all consumer contract versions to catch drift.`,
+      analogy: `A building changing its electrical standard — 50 tenants all have appliances wired to the old spec. You can't just rewire overnight. You publish the new spec, provide adapters during the transition, track which floors have migrated, and only remove the old wiring when the last tenant has switched over.`,
+    },
+    {
+      id: 'api-sr-50',
+      level: 'senior',
+      topic: 'Leadership',
+      question: 'How do you integrate DAST (Dynamic Application Security Testing) into your API CI/CD pipeline without slowing down deployments?',
+      answer: `DAST is slow by nature — a full scan can take hours. The key is **stratified integration**, not a single blocking scan:
+
+**Tier 1 — Every PR (fast, targeted, non-blocking):**
+- Run a **baseline / passive DAST scan** (OWASP ZAP baseline mode) — scans for obvious misconfigurations, exposed admin paths, missing security headers. Takes 5–10 minutes.
+- Integrate results as warnings into the PR. Critical findings block merge; low/medium are flagged.
+
+**Tier 2 — Pre-release (full scan, blocking):**
+- Run a **full active scan** against the staging environment after all tests pass. This triggers attack payloads and takes 30–60 minutes.
+- Gate the deployment to production on no new high/critical findings.
+- Compare against baseline — only alert on **new** findings, not pre-existing known issues.
+
+**Tier 3 — Scheduled (deep + specialist):**
+- Weekly scheduled full scan plus authenticated scan (using a test account that can reach authenticated endpoints).
+- Monthly manual review of medium findings from accumulated scans.
+- Quarterly engagement with an external penetration tester for deep coverage.
+
+**Tooling:** OWASP ZAP, StackHawk, 42Crunch (OpenAPI-native), Snyk API security.
+
+**Dependency:** DAST requires a running environment — tie it to the same ephemeral staging environment that integration tests use.`,
+      analogy: `Airport security at different checkpoints — bag X-ray at the gate (quick scan, everyone goes through), a full secondary screening for flagged passengers (deep scan, targeted), and a quarterly red team exercise where trained agents try to get through (pen test). Layered, proportionate, and not a single bottleneck.`,
     },
 
   ],
