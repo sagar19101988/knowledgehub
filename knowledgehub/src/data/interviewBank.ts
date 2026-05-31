@@ -2761,6 +2761,589 @@ R3 having no test cases jumps out — that's the RTM doing its job.`,
 Mentioning all these buckets — functional, negative, security, usability, compatibility — is what an interviewer is listening for.`,
       analogy: `Testing a door lock: you confirm the *right* key opens it, the *wrong* key doesn't, *no* key doesn't, a *hairpin* (a hacker) doesn't, and that it still locks behind you. You'd never sign off just because the right key worked once.`,
     },
+    {
+      id: 'manual-jr-27',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'You find a critical bug one hour before the release is due to go live. What do you do?',
+      answer: `Don't stay quiet — **surface it immediately** to the team lead and PM with full facts:
+- What the bug is, exact steps to reproduce, severity, and whether a workaround exists.
+
+From there, the decision is the **business's**, not yours alone:
+- **Block the release** if it causes data loss, a security breach, or complete flow failure with no workaround.
+- **Release with a documented workaround** if it's minor and a safe mitigation exists.
+- **Hotfix** if a developer can fix and re-test it safely within the window.
+
+Your job: give them the clearest possible risk picture so they decide with eyes open, not in the dark. The worst outcome is staying quiet and hoping it doesn't get noticed.`,
+      analogy: `A co-pilot who spots an instrument warning an hour before landing doesn't file it away for the post-flight report. They call it out, the crew assesses options together, and the captain decides — abort, divert, or continue with the crew watching closely. Your job is to make the decision visible and informed.`,
+    },
+    {
+      id: 'manual-jr-28',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'The build you received for testing keeps crashing every few minutes. How do you handle it?',
+      answer: `First, **document it**: the exact crash steps, frequency, environment, and any error messages. Then raise it with the developer right away — testing on an unstable build wastes everyone's time and generates false defects that aren't real application bugs.
+
+Ask them to triage: is this a known issue with a quick fix, or is the build fundamentally broken? If it's the latter, **reject the build** and request a stable one before beginning proper testing.
+
+While waiting, use the time productively — **review test cases, update the test plan, clarify requirements with the BA**, or write test data. There's always prep work that doesn't require the build.`,
+      analogy: `A chef can't cook if the oven breaks every few minutes. First thing: tell the kitchen manager, document what's happening, and stop trying to cook on a broken oven. Prep your ingredients while you wait for it to be fixed.`,
+    },
+    {
+      id: 'manual-jr-29',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'Walk me through the test cases you would write for a user registration form.',
+      answer: `Cover multiple angles — don't just test the happy path:
+
+**Functional / positive**
+- All valid fields filled → account created, confirmation email sent.
+- Optional fields left blank → still registers successfully.
+
+**Field-level validation**
+- Email: no @ sign, already-registered email, maximum length exceeded.
+- Password: too short, no special character if required, confirm-password mismatch.
+- Required fields left blank → clear per-field validation messages.
+
+**Boundary cases**
+- Username at exactly max allowed length → accepted.
+- Username one character over limit → rejected with a message.
+- Special characters in name fields (hyphens, apostrophes).
+
+**Security**
+- SQL injection or script text in any field → safely rejected.
+- Password masked; not visible in plain text in network calls.
+
+**Usability**
+- Tab order is logical; errors appear next to the relevant field, not just at the top.
+- Form works across browsers and on mobile.`,
+      analogy: `Testing a new lock — you don't just confirm the right key works. You try the wrong key, a blank key, forcing it, and leaving it halfway. And you check the key is actually needed to get in at all.`,
+    },
+    {
+      id: 'manual-jr-30',
+      level: 'junior',
+      topic: 'Defect Management',
+      question: 'You log a bug and the developer marks it "Not a Bug" or "Works as Designed." How do you respond?',
+      answer: `Don't fight — **investigate first**:
+1. Re-read the requirement and acceptance criteria. Were you both looking at the same spec?
+2. Check if the behaviour is explicitly defined somewhere you missed.
+
+If you still believe it's a defect:
+- **Share the specific requirement or user expectation it violates** — data, not opinion. "The acceptance criteria on this story says the system should show an error — what I'm seeing is a blank page."
+- Bring in the PM or BA to clarify intent if it's genuinely ambiguous.
+- Stay factual and collaborative — the goal is the right outcome, not winning the argument.
+
+If it truly is "by design" but confusing to users, consider raising it as a **UX improvement** instead of closing it silently.`,
+      analogy: `A building inspector who thinks a staircase is too steep doesn't just give up. They open the code book to the right page and point to the exact standard. If the spec says it's fine, they raise it as a safety recommendation — not a code violation.`,
+    },
+    {
+      id: 'manual-jr-31',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How would you test a "forgot password" / password reset feature end to end?',
+      answer: `Think end-to-end, not just one click:
+
+**Happy path**
+- Valid registered email → reset link arrives; link opens the password-reset page.
+- Set a new valid password → can log in with it; old password no longer works.
+
+**Negative / edge cases**
+- Unregistered email entered → system shows a **generic message** (don't reveal whether the email is registered — security).
+- Expired reset link → clear "link expired" message, not a blank error.
+- Same reset link used a second time → rejected.
+
+**Security**
+- Reset link is long, random, and not guessable from a previous link.
+- Link sent only to the registered address; not visible in clear text in the URL.
+- Rate limiting: submitting the form repeatedly with the same email doesn't flood that inbox.
+
+**Usability**
+- Clear instructions at each step; user knows what to do next.
+- Works correctly on mobile.`,
+      analogy: `Testing a lost-key service for a safe: confirm it works for the right owner, that old key codes expire, that a used code can't be reused, and that the locksmith won't hand the code to a stranger claiming to be the owner.`,
+    },
+    {
+      id: 'manual-jr-32',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'You have just 3 hours to test a new feature before it goes live. What do you do first?',
+      answer: `With limited time, **prioritise ruthlessly** — don't spend the first hour writing a test plan:
+
+1. **Understand the feature and its risk** (5 min) — what does it do, what's the critical path, and what breaks hardest if it fails?
+2. **Test the happy path first** — confirm the core use case works end to end.
+3. **Hit the most likely failure points** — boundary values, invalid inputs, and anything that touches shared or payment-related code.
+4. **Quick smoke check of adjacent features** — did this change break something nearby?
+5. **Document what you covered and what you skipped** — so stakeholders know the risk going in.
+
+If you finish early, go deeper on edge cases. If you run out of time, communicate what wasn't covered before the release — not after.`,
+      analogy: `A doctor in a 30-minute clinic slot: check the most important vitals first, focus on the reason for the visit, quick scan for obvious red flags elsewhere — and note what needs a follow-up appointment rather than pretending a full examination was done.`,
+    },
+    {
+      id: 'manual-jr-33',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'Write test cases for an ATM cash withdrawal.',
+      answer: `**Happy path**
+- Valid card + correct PIN + sufficient balance → cash dispensed, balance updated, receipt offered.
+
+**Card and PIN validation**
+- Wrong PIN once, twice → warning shown.
+- Wrong PIN 3 times → card locked or swallowed.
+- Expired or blocked card → rejected with a clear message.
+
+**Amount validation**
+- Amount exceeds available balance → declined.
+- Amount above the daily withdrawal limit → declined with a message.
+- Amount not a multiple of the available denomination (e.g. £7 where only £10 notes available) → rejected.
+- Zero or negative amount entered → rejected.
+
+**ATM state**
+- ATM out of cash → clear "unable to dispense" message; balance unchanged.
+- ATM has enough cash for the request → dispenses correctly.
+
+**Session behaviour**
+- Card not removed after timeout → ATM retracts it.
+- Customer cancels mid-transaction → balance unchanged, card returned.
+- Network drops during transaction → no double debit; account in a consistent state.`,
+      analogy: `Testing a vending machine: the right money and selection work; wrong money, unknown selections, out-of-stock, and partial money all need graceful handling — and the machine should never take your money and deliver nothing.`,
+    },
+    {
+      id: 'manual-jr-34',
+      level: 'junior',
+      topic: 'Defect Management',
+      question: 'Give an example of a high-severity but low-priority bug, and a low-severity but high-priority bug.',
+      answer: `**High severity, low priority:**
+An admin-only export feature crashes the entire application when given corrupt data. The crash is severe — but it only affects 2 internal admins, it's a rarely-used path, and there's a workaround (clean the data first). The business rates it low priority.
+
+**Low severity, high priority:**
+The company logo on the homepage is displaying the old branding the day before a major investor presentation. The system works fine — users aren't blocked. But the CEO wants it fixed immediately. It's a trivial code change, so it gets top priority.
+
+The lesson: **severity = technical damage to the system; priority = business urgency**. They're set by different people and can point in opposite directions.`,
+      analogy: `A small chip inside the spare tyre of a racing car (high severity technically, but you won't need it today — low priority). A coffee stain on the front of the driver's uniform 10 minutes before a live TV interview (low severity, fix it *now* — high priority).`,
+    },
+    {
+      id: 'manual-jr-35',
+      level: 'junior',
+      topic: 'Defect Management',
+      question: 'How do you decide whether something is worth raising as a bug?',
+      answer: `Ask three questions:
+1. **Does it differ from expected behaviour?** (requirements, acceptance criteria, or general user expectations)
+2. **Could it affect users or the business?** (blocks a flow, causes data loss, confuses users, creates a security risk)
+3. **Is it reproducible?** (once might be noise; consistently reproducible is a bug)
+
+If all three are yes → log it.
+
+**Grey areas:** if the requirement is silent on the behaviour, document your assumption and check with the PM or dev whether it's intentional. When in doubt, log it and let the team decide severity — a bug that gets closed as "by design" is far better than one you stayed quiet about that later causes a production incident.`,
+      analogy: `A hotel inspector deciding whether to write up an issue: a burnt-out light in the lobby is worth noting even if guests can still see. A single microscopic scratch inside one wardrobe probably isn't — unless 20 rooms have it, which suggests a process problem worth flagging.`,
+    },
+    {
+      id: 'manual-jr-36',
+      level: 'junior',
+      topic: 'Defect Management',
+      question: 'The same bug keeps reappearing in every release even after it has been marked "Fixed." What do you do?',
+      answer: `A recurring bug means the fix isn't sticking — which usually points to a deeper problem:
+
+1. **Add it to the regression suite immediately** so it's caught automatically in every future release.
+2. **Investigate the root cause** — is the fix actually wrong? Is another change overwriting it? Is it only fixed in one environment?
+3. **Check the fix itself** — was it a proper fix or a patch that masks the symptom?
+4. **Flag the pattern to the team** — a bug that returns 3 times is a process issue, not just a code issue. Push for a post-fix review.
+
+Don't just cycle it through "fixed → reopen → fixed → reopen." Push for a permanent fix and the regression test to prove it holds.`,
+      analogy: `A leak that keeps appearing in the same spot after patching. At some point you stop re-patching and check whether the root pipe is cracked — a recurring symptom always points to a deeper cause that hasn't been properly addressed.`,
+    },
+    {
+      id: 'manual-jr-37',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'You are new to the team and your first task is to test a feature you know nothing about. How do you start?',
+      answer: `Don't test blind — **gather context first**:
+1. Read the **requirement or acceptance criteria** for the feature.
+2. Look at **existing test cases** for similar features to understand the team's style and coverage approach.
+3. Ask the developer or PM for a quick walkthrough — 10 minutes to understand the happy path.
+4. Check if there are **known risks or recent changes** in this area.
+5. Do a brief exploratory pass on the feature with no test cases — just to see how it behaves before writing anything.
+
+Then start with the happy path and work outward to edge cases. Ask questions rather than assume — it's always better to clarify once than to test the wrong thing for two days.`,
+      analogy: `A new chef joining a kitchen for the first time doesn't dive straight into cooking a complex dish. They read the menu, watch the head chef demo it, and taste the existing version first. Context before execution.`,
+    },
+    {
+      id: 'manual-jr-38',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How would you test a notifications feature (email, push, or in-app)?',
+      answer: `Notifications have more failure modes than they look:
+
+**Triggering**
+- The right event triggers the notification (e.g. order placed, password changed).
+- Notifications don't fire for events that shouldn't trigger them.
+- No duplicate notifications for the same event.
+
+**Content**
+- Correct recipient, subject, and body.
+- Dynamic fields (user name, order number) populate correctly.
+- Formatting is correct across email clients and devices.
+
+**Delivery**
+- Notification actually arrives (not just marked "sent" in the system).
+- Arrives within an acceptable time window.
+- Correct behaviour when the user's email is invalid or push notifications are disabled.
+
+**User preferences**
+- Opting out stops notifications.
+- Re-enabling restores them.
+- Notification preferences for different event types work independently.
+
+**Edge cases**
+- Notifications during maintenance windows.
+- High-volume scenario: 1,000 orders placed at once — are notifications queued and delivered, or lost?`,
+      analogy: `Testing a post office: the right letter reaches the right person, the content is correct, it arrives on time, returned mail is handled, and bulk mailings don't collapse the system.`,
+    },
+    {
+      id: 'manual-jr-39',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How would you test a date picker / calendar input field?',
+      answer: `Date pickers have more edge cases than they appear:
+
+**Valid inputs**
+- Select a date by clicking — correct date populates the field.
+- Type a date manually — accepted in the expected format (dd/mm/yyyy or mm/dd/yyyy depending on locale).
+
+**Boundary cases**
+- Minimum and maximum allowed dates: dates outside the range should be greyed out and unselectable.
+- Today's date — is it selectable or blocked?
+- Leap year: February 29 on a leap year vs. a non-leap year.
+- End of month: 30th, 31st, last day of February.
+
+**Navigation**
+- Forward and backward month/year navigation works correctly.
+- Navigating to a distant year (e.g. 1900 or 2099) doesn't crash.
+
+**Invalid input**
+- Typing an invalid date (e.g. 31 Feb, 00/00/0000) → clear error message.
+- Leaving the field blank when it's required → validation message.
+
+**Usability**
+- Keyboard navigation works (tab, arrow keys, enter to select).
+- On mobile the native date picker appears.
+- Correct locale date format displayed.`,
+      analogy: `Testing a booking desk calendar — you check the agent can pick any valid date, is blocked from choosing past dates or fully booked days, and gets a clear "that date doesn't exist" message if they try 31st February.`,
+    },
+    {
+      id: 'manual-jr-40',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How would you test a multi-step form (a wizard or stepper)?',
+      answer: `Multi-step forms have unique failure points beyond single-page forms:
+
+**Happy path**
+- Complete all steps in order → final submission works, data saved correctly.
+
+**Navigation**
+- "Back" button returns to the previous step with data still populated.
+- "Next" button validates the current step before proceeding.
+- Clicking a completed step header jumps back correctly.
+- Cannot skip a required step.
+
+**Validation**
+- Required fields on each step block "Next" with a clear message.
+- Validation triggers on the correct step, not only on final submit.
+
+**Data persistence**
+- Data entered on Step 1 survives navigating to Step 3 and back.
+- Page refresh mid-flow — is progress saved or lost? (If saved, test it restores correctly.)
+
+**Edge cases**
+- Browser back button — does it go to the previous step or leave the form entirely?
+- Submitting the form twice (double-click on the final submit button) — does it create duplicate records?
+- Very long input in any field — layout doesn't break.`,
+      analogy: `A driving test with multiple checkpoints. You can't start the road section without passing the theory — each stage must be completed before the next unlocks. And if you go back to re-answer a question, your earlier answers should still be there.`,
+    },
+    {
+      id: 'manual-jr-41',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How would you test a "delete account" or "cancel subscription" feature?',
+      answer: `Destructive actions need especially careful testing:
+
+**Happy path**
+- User confirms deletion → account removed, session ends, login no longer works.
+- Confirmation email sent acknowledging the deletion.
+
+**Confirmation flow**
+- A confirmation step is required (e.g. type "DELETE" or enter password) — can't delete by accident.
+- Cancelling the confirmation leaves the account intact.
+
+**Data handling**
+- User's personal data is removed or anonymised per the privacy policy.
+- Associated records (orders, posts) are handled as per the spec (deleted, anonymised, or preserved).
+
+**Edge cases**
+- User with an active paid subscription — are they billed correctly for the remaining period?
+- Deleting an admin account — are other users affected?
+- Reusing the deleted account's email address to register again — is it allowed?
+
+**Security**
+- Another logged-in user cannot delete someone else's account.
+- The deletion endpoint requires authentication.`,
+      analogy: `Shredding an important document — you confirm it's the right document, you need a key to access the shredder, the shredding is complete and irreversible, and the paper trail shows it was done properly.`,
+    },
+    {
+      id: 'manual-jr-42',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How would you test an autocomplete / type-ahead search field?',
+      answer: `**Triggering and results**
+- Typing triggers suggestions after the minimum character threshold (e.g. 2 or 3 chars).
+- Suggestions are relevant to what was typed.
+- Selecting a suggestion populates the field correctly.
+- No suggestion for a query with no matches — shows a clear "no results" message, not a crash.
+
+**Input variations**
+- Uppercase, lowercase, mixed case — results are case-insensitive.
+- Leading/trailing spaces ignored.
+- Special characters handled safely (no crash, no SQL injection).
+- Very long input — field and dropdown don't break.
+
+**Performance**
+- Suggestions appear quickly — no noticeable lag on each keystroke.
+- Rapid typing (faster than network can respond) — no duplicate or out-of-order results.
+
+**Keyboard and accessibility**
+- Arrow keys navigate the dropdown; Enter selects; Escape closes it.
+- Screen reader announces the suggestions.
+
+**Edge cases**
+- Network drops mid-search — graceful handling, no crash.
+- The user clears the field — suggestions disappear.`,
+      analogy: `Testing a smart assistant that completes your sentences — it should suggest relevant options quickly, handle weird inputs gracefully, and let you pick or dismiss with a single key press.`,
+    },
+    {
+      id: 'manual-jr-43',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How would you test pagination on a results page?',
+      answer: `**Basic navigation**
+- "Next" moves to the next page; "Previous" returns to the prior page.
+- Clicking a specific page number goes to that page.
+- First page: "Previous" button is disabled. Last page: "Next" button is disabled.
+
+**Data correctness**
+- Records on page 2 don't duplicate records from page 1.
+- Total record count and page count are accurate.
+- Records are in a consistent sort order across pages (no items appearing twice or disappearing).
+
+**Edge cases**
+- Only one page of results — pagination controls hidden or disabled correctly.
+- Zero results — no pagination shown.
+- Last page has fewer items than the page size — correct count displayed, no empty slots or errors.
+- Changing the "results per page" setting resets to page 1 and updates the total pages.
+
+**URL / deep-linking**
+- The page number is reflected in the URL so the user can share or bookmark page 5.
+- Navigating directly to a page URL (e.g. ?page=3) loads the correct results.`,
+      analogy: `Testing the page-turning on a well-organised book — you confirm the chapters are in the right order, no chapter is printed twice, the last page ends properly, and you can open the book directly to a chapter using the contents page.`,
+    },
+    {
+      id: 'manual-jr-44',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'A developer just fixed the bug you reported. What do you test beyond just the fix itself?',
+      answer: `Retesting the fix is only step one. A good tester also checks:
+
+**Retest the original bug**
+- Follow the exact steps from the original bug report — confirm the issue is gone.
+- Test the boundary conditions around the fix (not just the exact scenario).
+
+**Regression check**
+- Check the areas that the fix could have touched — same module, shared components, related flows.
+- Run any existing regression cases for that area.
+
+**Related scenarios**
+- Test other variations of the same feature (e.g. if a login bug was fixed for email login, also check SSO and social login).
+
+**Check the fix doesn't introduce new issues**
+- A rushed fix can move the bug to a different scenario. Test the "nearby" behaviour, not just the reported case.
+
+**Close the loop on the bug report**
+- Confirm the environment and build version matches the fix.
+- Update the defect ticket with retest results and the build it was verified on.`,
+      analogy: `After a plumber fixes a leaking tap: you turn *that* tap on to confirm it's fixed (retest), then check the other taps, shower, and toilet still work — because they all share the same pipes (regression).`,
+    },
+    {
+      id: 'manual-jr-45',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How would you test a "Remember Me" / stay logged in feature?',
+      answer: `**Happy path**
+- Check "Remember Me" at login → close and reopen the browser → user is still logged in.
+- Without "Remember Me" → close and reopen → user is logged out.
+
+**Session duration**
+- The session persists for the expected duration (e.g. 30 days) — confirm the expiry time is correctly set.
+- After the remember-me period expires, the user is prompted to log in again.
+
+**Security**
+- The remember-me token stored in the cookie is long, random, and not guessable.
+- The cookie has the **HttpOnly** and **Secure** flags set — not accessible via JavaScript or over HTTP.
+- Logging out explicitly invalidates the remember-me token so it can't be reused.
+- If the same account is remembered on two devices, revoking one doesn't break the other (unless "log out all devices" is used).
+
+**Cross-browser**
+- Clearing browser cookies removes the remembered session.
+- Private/incognito mode does not persist the remember-me token after the window closes.`,
+      analogy: `Testing a hotel key card set to work for 30 days — confirm it opens the right door for the right guest for the full period, expires at the correct time, and is immediately deactivated when the guest checks out early.`,
+    },
+    {
+      id: 'manual-jr-46',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How would you test a profile picture or image upload feature?',
+      answer: `**Valid uploads**
+- Supported formats (JPG, PNG, WebP) within the size limit upload and display correctly.
+- Image is stored and the correct image shows on the profile.
+
+**Invalid uploads**
+- Unsupported format (PDF, EXE, GIF if not allowed) → clear rejection message.
+- File exceeds the size limit → clear message with the limit stated.
+- Zero-byte or corrupted image file → gracefully rejected, no crash.
+
+**Image handling**
+- Very large resolution image — is it resized/compressed correctly or does it break the layout?
+- Portrait vs. landscape vs. square images — layout handles all orientations.
+- Special characters in the filename — handled safely.
+
+**Security**
+- A file with an image extension but malicious content is rejected.
+- Uploaded files are not directly executable from the server.
+
+**Usability**
+- Upload progress shown for large files.
+- The old profile picture is replaced (not stacked on top).
+- Works on mobile (camera or gallery selection).`,
+      analogy: `Testing a passport photo booth — it accepts the right dimensions and format, rejects sunglasses and hats, gives a clear message when the photo doesn't meet requirements, and securely stores only the approved image.`,
+    },
+    {
+      id: 'manual-jr-47',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'What would you test on a product detail page of an e-commerce site?',
+      answer: `More test cases here than most juniors expect:
+
+**Content accuracy**
+- Product name, description, price, and images match the catalogue data.
+- Multiple images: thumbnail navigation and zoom work correctly.
+- Out-of-stock products show the correct status and block "Add to Cart."
+
+**Variations**
+- Size/colour/variant selectors: each combination shows the correct price, stock, and image.
+- Selecting a sold-out variant disables the Add to Cart button.
+
+**Add to Cart**
+- Adding the item updates the cart count and total.
+- Adding the same item multiple times increments the quantity.
+- Adding when not logged in — guest cart works, or user is prompted to log in.
+
+**Non-functional**
+- Page loads quickly (product images are a common performance bottleneck).
+- Layout is correct on mobile.
+- Back button from the cart returns to the correct product page.
+
+**Edge cases**
+- Price changed while the page was open — what does the user see on checkout?
+- Very long product name or description — layout doesn't break.`,
+      analogy: `Inspecting a shop window display — you check the price tag is right, the item matches the photo, the "sold out" sign is up when needed, and the display looks correct on a phone screen as well as in-store.`,
+    },
+    {
+      id: 'manual-jr-48',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How would you test a form with conditional fields — fields that appear or disappear based on other selections?',
+      answer: `Conditional logic is a common source of bugs:
+
+**Triggering conditions**
+- The correct fields appear when the triggering option is selected.
+- The correct fields disappear (or are hidden) when the triggering option is deselected.
+- Fields hidden by logic are also excluded from validation — a hidden required field should not block submission.
+
+**Data persistence**
+- Fill in a conditional field, then toggle the condition off and back on — does the data reset or persist? (Check against the spec.)
+- Submitted data should not include values from hidden fields.
+
+**Multiple conditions**
+- Test combinations: what if Condition A shows Field 1 and Condition B also triggers Field 1 — does it appear and disappear correctly for both?
+- Nested conditionals: Field 3 only appears when both A and B are selected.
+
+**Validation**
+- Required conditional fields only validate when visible.
+- Optional conditional fields don't block submission whether filled or not.
+
+**Edge cases**
+- Rapid toggling of the condition — no flicker or duplicate fields.
+- JavaScript disabled (if supported) — form still submits or shows a clear message.`,
+      analogy: `A car insurance form that only shows "named driver details" if you select "yes, I have a named driver" — the section must appear when needed, disappear when not, and never ask you to fill in a section you can't see.`,
+    },
+    {
+      id: 'manual-jr-49',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How do you test across multiple environments (dev, staging, production)? What do you watch out for?',
+      answer: `Each environment has a different purpose and different risks:
+
+**Dev environment**
+- Used for early exploratory testing and smoke checks on new code.
+- Data is often messy or synthetic — don't rely on it for realistic scenarios.
+- May be unstable — expected.
+
+**Staging / pre-production**
+- Should mirror production as closely as possible: same config, same infrastructure.
+- This is where formal test execution happens before a release.
+- Watch for config differences: API keys, feature flags, payment gateway sandbox vs. live.
+
+**What to check across environments:**
+- A bug fixed in dev should be retested in staging on the same build.
+- Confirm environment-specific config is correct — wrong API endpoint or flag value causes bugs that only appear in one env.
+- Test data in staging should be realistic but not real PII.
+- After production deployment, a **smoke test** confirms the release is live and working.
+
+**Common traps:**
+- "It works in staging but not prod" — usually a config, data, or scale difference.
+- Testing against the wrong build version — always note the build number when logging a defect.`,
+      analogy: `A movie production: rehearsals (dev), a full dress rehearsal with the real set (staging), and opening night (production). Each stage has a different tolerance for mistakes — you don't find out the set collapses on opening night.`,
+    },
+    {
+      id: 'manual-jr-50',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How would you test a two-factor authentication (2FA) feature?',
+      answer: `2FA protects user accounts — test both the security and usability:
+
+**Happy path**
+- Login with valid credentials → 2FA prompt appears → enter correct OTP → access granted.
+- OTP via SMS, email, and authenticator app each work (whichever is supported).
+
+**Invalid OTP**
+- Wrong OTP → access denied with a clear message.
+- Correct OTP entered after it expires → rejected with a message about expiry.
+- OTP reused after it was already consumed → rejected (one-time use only).
+
+**Rate limiting and lockout**
+- Multiple wrong OTP attempts → account locked or rate-limited.
+
+**Backup / recovery**
+- "Use a backup code" flow works for users who lost access to their device.
+- Recovery flow doesn't bypass security (e.g. requires email verification).
+
+**Setup and removal**
+- Enabling 2FA: QR code or code for the authenticator app scans/works correctly.
+- Disabling 2FA requires re-authentication before it can be turned off.
+
+**Edge cases**
+- OTP entered with leading/trailing spaces — accepted or trimmed gracefully.
+- User has 2FA enabled and changes their phone number — existing 2FA method still works until they update it.`,
+      analogy: `Testing a bank vault with a dual-lock system — the right password alone doesn't open it, the second key alone doesn't open it, only both together do. And a used key must never open the vault again.`,
+    },
+
     // ── Mid (2–5 yrs) ─────────────────────────────────────────
     {
       id: 'manual-mid-1',
@@ -3088,6 +3671,569 @@ It's "good enough for the stakes," not "we found every bug."`,
       analogy: `Proofreading a book — you could always read it once more, but at some point the remaining-error risk is low and the deadline is here. You stop when it's good enough for what's at stake, not when it's provably perfect.`,
     },
 
+    {
+      id: 'manual-mid-27',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'You have 50 test cases to execute and only 2 days to do it. What is your approach?',
+      answer: `Don't execute sequentially and hope — **triage and prioritise first**:
+
+1. **Categorise by risk** — which cases cover critical business flows (login, payment, core features), recently changed code, or historically buggy areas? These run first.
+2. **Group by area** — running related tests together saves context-switching and environment setup time.
+3. **Estimate effort** — is 50 cases genuinely feasible in 2 days, or do you need to raise a flag early? Surface this on day 1, not at 5pm on day 2.
+4. **Communicate scope risk now** — if not all 50 can be covered well, agree with the lead what will be fully executed vs. lightly checked vs. deferred.
+5. **Track progress in real time** — if a showstopper blocks 10 cases, escalate immediately rather than silently losing half a day.
+
+**Typical split:** critical/P1 cases fully executed on day 1, medium-risk on day 2, low-risk given a smoke check if time remains.`,
+      analogy: `A triage nurse with 50 incoming patients and 2 days of clinic time doesn't see them in registration order. They assess urgency first, treat the most critical immediately, and are honest with management if the list is too long to fully clear — rather than quietly giving everyone a 2-minute check and calling it done.`,
+    },
+    {
+      id: 'manual-mid-28',
+      level: 'mid',
+      topic: 'Process',
+      question: 'You join a sprint that is already halfway through. How do you get up to speed and contribute quickly?',
+      answer: `Don't wait to be handed work — **actively plug in**:
+
+1. **Read the sprint board and stories** to understand what's in flight and what's nearly done.
+2. **Attend the next standup** and ask what needs testing first.
+3. **Pick up the stories nearest "done"** — whatever the dev is about to hand off is where you add value fastest.
+4. **Get environment access and test data** set up while code is still being written — don't lose a day getting credentials after the feature lands.
+5. Ask one team member to walk you through the **testing conventions**: bug tracker, severity model, what "done" means here.
+
+You won't know the full codebase in 3 days — that's fine. Prioritise being useful on what's landing *this sprint* and learn the rest incrementally.`,
+      analogy: `Joining a relay race midway — you don't stop to read the race manual from page 1. You watch the runner ahead, get in your lane, and be ready to take the baton the moment it reaches you.`,
+    },
+    {
+      id: 'manual-mid-29',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'You discover a Severity-1 bug 2 hours before the deployment window. What do you do?',
+      answer: `**Act fast and escalate immediately** — this is not a decision you make alone:
+
+1. **Reproduce it** — confirm it's real, note exact steps, environment, and whether it's consistent or intermittent.
+2. **Escalate immediately** to the QA lead, release manager, and PM with the full picture: what it is, how to reproduce, user impact, and whether any workaround exists.
+3. **Assess options together:**
+   - **Block the release** if the bug causes data loss, a security breach, or complete flow failure with no workaround.
+   - **Hotfix** if a developer can fix and re-test it safely within the window.
+   - **Release with mitigation** — disable the affected feature via a flag and fix in a follow-up.
+4. **Document your recommendation clearly**, with reasoning — then let the stakeholders make the final call.
+
+The worst outcome: staying quiet hoping it's not noticed, or approving it silently to avoid conflict.`,
+      analogy: `A co-pilot who spots a hydraulic warning 2 hours before landing doesn't file it for the post-flight report. They call it out, the crew assesses options together, and the captain decides. Your job is to make the decision visible and informed — not invisible.`,
+    },
+    {
+      id: 'manual-mid-30',
+      level: 'mid',
+      topic: 'Defect Management',
+      question: 'A developer tells you your test case is wrong and the feature "works as designed." You still think it\'s a bug. How do you handle it?',
+      answer: `Keep it factual and data-driven — **not a battle of opinions**:
+
+1. Go back to the **acceptance criteria, user story, or requirement** and check: does the current behaviour match what's written?
+2. If the spec supports the dev → accept it, and if the behaviour is confusing, raise it as a UX improvement instead.
+3. If the spec supports you → **share the exact line from the requirement** calmly: "The acceptance criteria says the system should show an error — what I'm seeing is a blank page."
+4. If the spec is silent or ambiguous → **bring in the PM or BA** to clarify intent. That's their job, and you shouldn't be left guessing.
+5. Stay professional throughout. You're both after the same outcome.
+
+Remember: whether something is "by design" is a product decision. Whether it meets the requirement is a measurable fact. Keep those two questions separate.`,
+      analogy: `A structural engineer and an architect disagreeing about a load-bearing wall. You don't raise your voice — you open the approved plans to the right page and point to the spec. Evidence, not volume, settles it.`,
+    },
+    {
+      id: 'manual-mid-31',
+      level: 'mid',
+      topic: 'Test Strategy',
+      question: 'You have 3 features to test but time allows only one full test cycle. How do you decide which gets full coverage?',
+      answer: `Apply **risk-based prioritisation** — rank each feature by:
+
+- **Business impact**: which has the biggest consequence if broken? (payments > search > profile photo)
+- **Change scope**: which had the most code changed? More change = more risk.
+- **Complexity**: which has the most integration points, edge cases, or new logic?
+- **Historical fragility**: which area has a track record of bugs?
+
+The highest-risk feature gets the full cycle. The other two get a **smoke check** of their critical happy paths.
+
+Then **communicate clearly**: "Feature A gets full coverage. B and C will get smoke checks only — these are the specific risks if we ship those without deep testing." Let the PM and lead make the final call with full information. Never silently shrink coverage without flagging it.`,
+      analogy: `A firefighting crew responding to 3 simultaneous calls with one truck. They go to the house fire first (highest risk), do a drive-past on the smoking BBQ to confirm no one's in danger (smoke check), and radio in the third call for follow-up — and they tell dispatch exactly what they're covering and what they're not.`,
+    },
+    {
+      id: 'manual-mid-32',
+      level: 'mid',
+      topic: 'Test Types',
+      question: 'How do you approach testing a mobile app? What is different compared to web testing?',
+      answer: `Mobile testing has unique dimensions that web doesn't:
+
+**Device and OS fragmentation**
+- Real devices for priority combos (top iOS and Android versions); cloud device farms for breadth.
+- OS upgrades can break apps — test on the latest beta release when possible.
+
+**Network conditions**
+- Slow 3G, airplane mode triggered mid-task, switching between WiFi and cellular.
+
+**Mobile-specific interactions**
+- Gestures: swipe, pinch, long-press, screen rotation, split-screen.
+- Push notifications, deep links, back-button behaviour (especially Android).
+- App interrupted by a phone call or a system alert mid-flow.
+
+**Performance and battery**
+- The app should not drain battery abnormally or cause the device to overheat.
+
+**Permissions**
+- Location, camera, contacts, or storage denied or revoked mid-use — does the app handle it gracefully?
+
+**Installation lifecycle**
+- Fresh install, upgrade from a previous version, uninstall and reinstall (does data persist correctly?).
+
+**What stays the same:** functional coverage, negative testing, security, and API-layer checks are identical to web — the mobile layer adds context-specific risks on top.`,
+      analogy: `Testing a delivery truck and a sports car both require brakes, steering, and fuel checks. But the truck also needs axle load, height clearance, and loading bay tests that a sports car doesn't. Same fundamentals, different context-specific layer on top.`,
+    },
+    {
+      id: 'manual-mid-33',
+      level: 'mid',
+      topic: 'Process',
+      question: 'Your test environment goes down and you are told it won\'t be fixed for 2 days. How do you stay productive?',
+      answer: `An environment outage doesn't have to mean two wasted days:
+
+**Stay productive with:**
+- **Review and update test cases** — are they accurate and complete? Do any need rewriting for upcoming features?
+- **Review requirements and acceptance criteria** for the next sprint — flag ambiguities and missing details early, before testing starts.
+- **Desk-check test cases with developers** — go through your cases with the dev who can confirm expected behaviour without needing the environment.
+- **API testing on a local or staging environment** if one is accessible.
+- **Clean up the defect backlog** — close stale tickets, update statuses, update the RTM.
+- **Automate something stable** if you have an existing automation setup.
+
+Also: escalate the environment issue clearly. 2 days of QA downtime has a real delivery cost — the team and PM should be aware.`,
+      analogy: `A surgeon whose operating theatre is being cleaned for 2 days doesn't go home. They review case files, consult with colleagues, update clinical notes, and prep for next week's list. The idle time is an opportunity to get ahead.`,
+    },
+    {
+      id: 'manual-mid-34',
+      level: 'mid',
+      topic: 'Process',
+      question: 'You are asked to sign off on a release that you haven\'t fully tested due to time constraints. What do you do?',
+      answer: `**Never sign off silently on something you haven't fully tested.** But don't be a roadblock — be a risk communicator:
+
+1. **Document clearly** what you tested, what you didn't, and the specific risk each untested area carries.
+2. **Give a recommendation**: "I'm comfortable releasing Areas A and B. Area C has not been tested and carries X risk — a payment failure scenario is possible."
+3. **Propose mitigations**: a feature flag to disable the untested part, monitoring for errors post-release, a fast-follow hotfix plan within 24 hours.
+4. The **go/no-go is ultimately a business decision** — your job is to ensure it's made with full information.
+
+Sign-off means "I tested X and it passed." Not "I assume everything is fine." That distinction protects both you and the product.`,
+      analogy: `An aircraft engineer who couldn't complete the full pre-flight inspection doesn't write "all clear." They log exactly what was and wasn't checked, give the captain the risk picture, and let the captain decide whether to fly with a qualified "we checked everything except the right flap sensor."`,
+    },
+    {
+      id: 'manual-mid-35',
+      level: 'mid',
+      topic: 'Regression',
+      question: 'Your regression suite keeps failing intermittently and developers have stopped trusting it. How do you fix this?',
+      answer: `A suite no one trusts is worse than no suite — it creates noise and kills automation's credibility. Fix it systematically:
+
+1. **Quarantine flaky tests immediately** — move them to a separate CI job so they stop polluting the main run.
+2. **Triage each failure**: timing issue, bad test data, environment dependency, or an actual intermittent application bug?
+3. **Fix or delete** — fix the ones worth saving; delete tests that test nothing meaningful or are duplicates.
+4. **Stabilise test data and the environment** — many flaky tests are environment problems in disguise.
+5. **Establish a rule**: any new test that fails 3 times unexpectedly in CI gets quarantined before being merged.
+6. **Communicate the plan to the team** — show them the trend (failures going down) to rebuild trust incrementally.
+
+The goal: the suite should be something developers *want* to look at, not something they've learned to ignore.`,
+      analogy: `A car alarm that keeps triggering at random — people stop reacting to it, which means when there's a real break-in, no one looks up. Fix the alarm so it only fires when it actually means something.`,
+    },
+    {
+      id: 'manual-mid-36',
+      level: 'mid',
+      topic: 'Defect Management',
+      question: 'Three bugs escaped to production from your last release. How do you run the postmortem?',
+      answer: `Run a **blameless postmortem** — the goal is to fix the system, not find a person to blame:
+
+1. **Establish the facts**: what were the three bugs, when were they introduced, what areas did they affect?
+2. **Trace the escape path for each**: were they in scope? Were test cases written for these flows? Were those cases run? Did they pass? Did the environment differ from production?
+3. **Find the root cause per bug**: coverage gap, environment mismatch, requirement ambiguity, rushed execution, or a deployment issue?
+4. **Define specific actions** — a test case added, a process step changed, an environment configuration fixed. Not vague commitments like "be more careful."
+5. **Track actions to completion** and measure: does leakage reduce in the next release?
+
+Share the findings openly with the team — transparency builds trust, and the lessons often apply to more than just QA.`,
+      analogy: `An airline incident review. The question isn't "who made a mistake?" — it's "what sequence of events and process gaps allowed this to happen, and how do we make those conditions impossible next time?"`,
+    },
+    {
+      id: 'manual-mid-37',
+      level: 'mid',
+      topic: 'Process',
+      question: 'How do you estimate testing for a large feature when requirements keep changing?',
+      answer: `Acknowledge the uncertainty upfront — don't pretend it doesn't exist:
+
+1. **Estimate what's known** with rough task breakdown: test design, execution, retesting, and regression impact.
+2. **Give a range, not a point**: "3–6 days, depending on final scope" is more honest than "4 days."
+3. **State your assumptions explicitly**: "This estimate assumes requirements are finalised by Thursday."
+4. **Build in a buffer** for change cycles and retesting revised flows — requirements that shift once will usually shift again.
+5. **Agree a re-estimate checkpoint**: when requirements crystallise, revisit and confirm the number.
+6. **Three-point estimation** helps: optimistic (scope stays), likely, pessimistic (scope expands) — take a weighted average.
+
+The goal is keeping the team informed with a realistic range rather than locking into a number that becomes impossible the moment the spec moves.`,
+      analogy: `Estimating a renovation where the architect keeps changing the plans. You give a range based on what you see today, identify the biggest unknowns, and agree a checkpoint once the final blueprint is signed off — you don't quote a fixed price and silently absorb all the risk.`,
+    },
+    {
+      id: 'manual-mid-38',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How would you test a payment gateway integration? Walk through your full approach.',
+      answer: `Payment is the highest-risk area in most applications — test it more thoroughly than anything else.
+
+**Functional**
+- Successful payment with a valid card → order confirmed, amount debited, confirmation email sent.
+- Multiple payment methods (card, wallet, net banking) each work end to end.
+- Correct amount charged — no rounding errors; discount codes apply correctly.
+
+**Failure scenarios**
+- Declined card → clear message, no charge, user can retry.
+- Insufficient funds → user informed, order not placed.
+- Network timeout during payment → **no double charge**; session state is consistent.
+- 3DS / OTP flow: success, wrong OTP, and timeout all handled correctly.
+
+**Security**
+- Card details are never logged or visible in plain text anywhere in the system.
+- Transactions require a valid authentication token.
+- Test with expired card, invalid CVV, mismatched billing address.
+
+**Edge cases**
+- Maximum transaction limit.
+- Currency conversion where applicable.
+- Refund flow — partial and full; original payment method credited.
+- Back button or page refresh during payment must **not** create a duplicate charge.
+
+**Integration**
+- Webhook / callback received correctly after payment success and failure.
+- Idempotency: retrying a failed request does not create a duplicate charge.
+
+**Non-functional**
+- Response time under normal and peak load.
+- PCI-DSS compliance: verify card data is not stored or transmitted in clear text.`,
+      analogy: `Testing a cash register at a bank counter. Confirm the right amount changes hands, the wrong amount doesn't, a power cut mid-transaction leaves no one out of pocket, and the audit trail is complete and tamper-proof.`,
+    },
+    {
+      id: 'manual-mid-39',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you test a third-party API integration where you don\'t control the external service?',
+      answer: `Third-party integrations have unique risks because the external service can change, go down, or behave unexpectedly.
+
+**Test in a sandbox / mock first**
+- Use the vendor's sandbox environment for functional testing — never hit their production API during test runs.
+- Use contract mocks (WireMock, MSW) to simulate the external service for unit and integration tests so your suite doesn't depend on the third party being up.
+
+**What to cover functionally**
+- Happy path: your system sends the correct request and handles the expected response correctly.
+- Error responses: 400, 401, 404, 500 from the external API — does your system handle each gracefully?
+- Timeout: what happens if the external API takes too long? Does your app wait forever or time out cleanly?
+
+**Contract validation**
+- Confirm the request you send matches the vendor's documented contract (correct headers, payload structure, auth).
+- Confirm you handle all fields in the response, including optional ones that might be absent.
+
+**Rate limits and quotas**
+- Know the vendor's rate limit — test how your app behaves when it's hit.
+
+**Monitoring**
+- Add logging for all external calls so failures in production can be traced quickly.`,
+      analogy: `Testing a food delivery platform that connects to a restaurant's ordering system. You test your side of the connection thoroughly, simulate the restaurant's responses in a lab, and build in a "restaurant not responding" fallback — because you can't control when the restaurant's system goes down.`,
+    },
+    {
+      id: 'manual-mid-40',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How would you test a reporting or analytics dashboard?',
+      answer: `Dashboards look simple but have subtle correctness risks:
+
+**Data accuracy (the most important)**
+- Each metric, chart, and table shows the correct values — cross-check against the source database or a known data set.
+- Aggregations (sums, averages, counts) are calculated correctly.
+- Filters and date ranges apply correctly to all widgets on the page.
+
+**Filters and interactions**
+- Applying a filter updates all relevant charts consistently.
+- Clearing a filter restores the original unfiltered view.
+- Date range picker: start date after end date is blocked or shows an error.
+
+**Edge cases in data**
+- No data for the selected period — shows a clear "no data" state, not a zero or a blank chart.
+- Very large numbers — layout doesn't break, values are formatted correctly.
+- Negative values (e.g. refunds) — handled and displayed correctly.
+
+**Performance**
+- Dashboard loads within an acceptable time even with large datasets.
+- Applying a complex filter doesn't cause a timeout.
+
+**Export**
+- Exported CSV/Excel matches exactly what's displayed on screen.
+- PDF export renders charts correctly (not broken images).`,
+      analogy: `Auditing a company's financial dashboard — every number must tie back to the source ledger, every filter must consistently affect the whole report, and "no transactions this quarter" should show a clear empty state, not a zero that looks like real data.`,
+    },
+    {
+      id: 'manual-mid-41',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How would you test a real-time feature like live chat or live price updates?',
+      answer: `Real-time features have failure modes that batch systems don't:
+
+**Connectivity**
+- Messages / updates arrive without manual refresh.
+- What happens when the connection drops? Does the app reconnect automatically and catch up on missed updates?
+- Slow connection: messages queue and deliver in order, not duplicated or lost.
+
+**Ordering and consistency**
+- Messages appear in the correct chronological order even with slight network latency.
+- Two users sending messages simultaneously — both appear in the correct sequence for all participants.
+
+**Concurrency**
+- Multiple browser tabs open on the same account — updates appear on all tabs.
+- Scale test: does the feature hold up with many concurrent users?
+
+**Edge cases**
+- Sending a very long message — UI doesn't break.
+- Sending an empty message — blocked with a validation message.
+- Special characters and emojis — displayed correctly.
+- User goes offline mid-conversation — their status updates correctly; messages sent while offline are delivered on reconnect.
+
+**Security**
+- User A cannot read or send messages in User B's chat.`,
+      analogy: `Testing a live sports scoreboard — you confirm scores update the moment a goal is scored, that a dropped connection catches up correctly when restored, and that two goals scored in quick succession both appear in the right order.`,
+    },
+    {
+      id: 'manual-mid-42',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you test for data integrity when a feature updates records across multiple database tables?',
+      answer: `Multi-table updates are one of the most common sources of silent data corruption — test them carefully:
+
+**Verify all tables are updated**
+- After the operation, query each affected table directly and confirm the expected changes landed in all of them.
+
+**Atomicity — all or nothing**
+- Simulate a failure mid-operation (e.g. a timeout, a constraint violation on the second table) and confirm the first table was also rolled back — no partial updates left behind.
+
+**Referential integrity**
+- Foreign key relationships are maintained — no orphaned records, no broken references.
+- Deleting a parent record handles child records correctly per the spec (cascade delete, set null, or block).
+
+**Concurrency**
+- Two users updating the same record simultaneously — no data is silently lost. The app either applies both changes correctly or shows a conflict.
+
+**Audit trail**
+- If the system logs changes, confirm the log entries are correct and match the actual data changes.
+
+**Before/after snapshots**
+- For complex operations, capture the state of all affected tables before the action and compare against expected after.`,
+      analogy: `Testing a bank transfer: money must leave Account A and arrive in Account B in the same instant. If anything goes wrong mid-transfer, neither account should have moved — no money disappears, no money is created.`,
+    },
+    {
+      id: 'manual-mid-43',
+      level: 'mid',
+      topic: 'Test Data',
+      question: 'The test environment data doesn\'t reflect real production patterns. How does this affect testing and what do you do?',
+      answer: `Unrealistic test data is a major source of false confidence — bugs that only surface with real volumes or real patterns get missed entirely.
+
+**The risks:**
+- Performance issues invisible on 100-row test data that appear on 10 million production rows.
+- Bugs that only trigger on real user patterns (e.g. names with special characters, addresses in unusual formats, edge-case currency values).
+- Missing production scenarios: inactive accounts, partially completed records, legacy data formats.
+
+**What to do:**
+1. **Document the gap** — make the team aware that coverage has limits because of data quality.
+2. **Create targeted realistic data**: work with devs or the DBA to seed the environment with production-like data (anonymised and masked, never real PII).
+3. **Import a sanitised production snapshot** if allowed by data governance policies.
+4. **Generate edge-case data** specifically for your test scenarios rather than relying on whatever happens to be there.
+5. **Flag any bugs you suspect may be environment-specific** clearly in the defect report.`,
+      analogy: `Crash-testing a car using a model made of cardboard. The test runs fine, but you haven't actually learned anything about how a real car behaves. Realistic test data is the real steel — it's what makes the test results mean something.`,
+    },
+    {
+      id: 'manual-mid-44',
+      level: 'mid',
+      topic: 'Process',
+      question: 'A developer asks you to review their pull request and unit tests before merging. What do you look for?',
+      answer: `A QA reviewing a PR adds a different lens to the code review — not the same as a developer's review:
+
+**Test coverage**
+- Are the happy path, key error paths, and boundary conditions covered?
+- Are there tests for the specific acceptance criteria on the story?
+
+**Test quality**
+- Do the tests assert the *right* outcome, or just that the code runs without crashing?
+- Are tests isolated — do they set up their own state rather than depending on other tests?
+- Are edge cases included or only the easy middle cases?
+
+**Code smell from a testing perspective**
+- Are there hard-coded values that will make the test brittle when data changes?
+- Is test data realistic enough to catch real-world issues?
+
+**Coverage gaps**
+- Are there flows mentioned in the AC that have no corresponding test?
+- Are negative scenarios (invalid input, error handling) tested?
+
+**What you don't own:** code style, architecture decisions, naming conventions — those are for the dev reviewers. Your job is the *quality of the testing*, not the code itself.`,
+      analogy: `A food safety inspector reviewing a restaurant's kitchen checklist — you're not checking whether the chef used the right knife technique, you're checking whether the food safety steps (temperature checks, allergy handling, cross-contamination) are actually on the list and being done.`,
+    },
+    {
+      id: 'manual-mid-45',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How would you test a CSV or Excel bulk import feature?',
+      answer: `Bulk imports are high-risk because a single bad file can corrupt a lot of data at once.
+
+**Valid file**
+- A correctly formatted file with typical data imports successfully — all rows appear in the system.
+- Large file (thousands of rows) imports within an acceptable time.
+
+**File format validation**
+- Wrong file type (e.g. a PDF or image) → clear rejection message.
+- Correct extension but corrupt content → handled gracefully, not a crash.
+- Empty file → clear message.
+
+**Data validation**
+- Row with a missing required field → error reported for that row, other valid rows still imported (or the whole file rejected — check the spec).
+- Invalid data types (text in a numeric column, invalid date format) → clear per-row error message.
+- Duplicate records in the file → handled per spec (skip, merge, or reject).
+- Duplicate records that conflict with existing data → clear conflict message.
+
+**Encoding**
+- File with special characters (accents, non-ASCII names) → imported correctly, not garbled.
+- Windows (CRLF) and Unix (LF) line endings both handled.
+
+**Feedback**
+- The user sees a clear success or partial-success report after import (X rows imported, Y failed, with reasons).`,
+      analogy: `Testing a warehouse receiving dock — a correct delivery gets checked in quickly, a delivery with missing items generates a discrepancy report, a delivery of entirely wrong goods is rejected at the door, and the warehouse manager gets a clear summary of what was accepted and what wasn't.`,
+    },
+    {
+      id: 'manual-mid-46',
+      level: 'mid',
+      topic: 'Process',
+      question: 'How do you approach testing a release that changes the database schema?',
+      answer: `Schema changes are high-risk — a bad migration can corrupt or lose data permanently.
+
+**Pre-migration checks**
+- Review the migration script: does it handle existing data correctly (backfill, default values, nullability)?
+- Test the migration on a copy of production data — not just the empty dev schema.
+- Confirm a **rollback script** exists and has been tested.
+
+**During migration testing**
+- Run the migration in the test environment and verify: schema changed correctly, no data lost, no constraint violations.
+- Confirm old data is correctly transformed (e.g. a column split into two contains the right values).
+
+**Application testing post-migration**
+- Test all features that touch the changed tables — both new behaviour and existing flows that must keep working.
+- Check for any queries still referencing old column names (should be caught by the build, but verify).
+
+**Performance**
+- On large tables, migrations can lock the table or take a long time. Test the migration duration on realistic data volumes.
+
+**Rollback**
+- Test the rollback script on a copy: does rolling back restore the original state cleanly?`,
+      analogy: `Renovating the foundation of a building while people are still inside. You need a solid plan, a tested rollback to the original structure, and confirmation that every room above still stands correctly after the foundation work is done.`,
+    },
+    {
+      id: 'manual-mid-47',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you handle test data pollution — other testers or automated runs are corrupting your test environment?',
+      answer: `Test data pollution is one of the most common causes of false failures in shared environments. Fix it at the source:
+
+**Short-term — isolate your tests**
+- Use **dedicated test accounts** that only your tests use — not shared logins.
+- Use **unique identifiers** in test data you create (e.g. prefix with your name or a timestamp) so you can identify and clean up your own data.
+- Run tests against a **specific data snapshot** or seed known state before executing.
+
+**Medium-term — establish environment hygiene rules**
+- Define a team agreement: test data created during a run must be cleaned up after.
+- Schedule a daily reset of the environment to a known baseline state.
+- Separate environments by purpose: one for manual exploratory testing, one for automated regression.
+
+**Long-term — design tests to be self-contained**
+- Automated tests should **set up their own data** and **tear it down** after the run.
+- Parameterise tests with dynamic data so two runs don't collide.
+
+**Escalate when needed:** if the pollution is severe and blocking releases, it's an infrastructure problem — flag it as a blocker with the team lead, not just a personal workaround.`,
+      analogy: `Shared lab benches where each scientist leaves their chemicals out. The fix isn't just cleaning up your own bench — you establish lab rules, assign dedicated bench space, and clean up after every experiment so the next person starts fresh.`,
+    },
+    {
+      id: 'manual-mid-48',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How would you test a user permission and role-based access control system?',
+      answer: `RBAC bugs can expose sensitive data or block legitimate users — both are serious. Test systematically:
+
+**Positive — correct access**
+- Each role can perform every action they are supposed to (view, create, edit, delete per role).
+- A user with multiple roles gets the combined permissions correctly.
+
+**Negative — blocked access**
+- Each role is blocked from actions they shouldn't have.
+- Test *every restricted action* for *every lower-privileged role* — don't assume.
+
+**Privilege escalation**
+- A standard user cannot grant themselves admin permissions through the UI or via API calls.
+- Manipulating a URL or API request to access a higher-privilege resource is blocked (returns 403, not the resource).
+
+**Boundary cases**
+- A user whose role is changed mid-session: do permissions update immediately or only on next login?
+- A user account is deactivated — they cannot continue using an active session.
+- A user belongs to no role — what access do they have? (Should be none.)
+
+**API layer**
+- RBAC must be enforced at the API level, not just the UI — test restricted endpoints directly with lower-privilege tokens.`,
+      analogy: `Testing key card access in an office building. The receptionist can enter the lobby and meeting rooms but not the server room. The IT admin can access the server room but not payroll. And an ex-employee's deactivated card opens nothing.`,
+    },
+    {
+      id: 'manual-mid-49',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you test an application across different time zones, date formats, and DST (Daylight Saving Time)?',
+      answer: `Time and locale handling is a subtle but frequent source of production bugs:
+
+**Time zone handling**
+- Timestamps stored in UTC and displayed correctly in the user's local time zone.
+- A user in UTC+5 and a user in UTC-8 both see the correct local time for the same event.
+- Scheduling features (e.g. "send email at 9am") fire at 9am in the user's zone, not the server's zone.
+
+**DST transitions**
+- Events scheduled across a DST boundary (e.g. "weekly at 10am" over a clock-change weekend) fire at the correct time after the change.
+- The DST transition hour (e.g. 2am → 3am or 2am → 1am) doesn't create duplicate or missing events.
+
+**Date formats**
+- Users in dd/mm/yyyy regions see and input dates in their format; mm/dd/yyyy regions see theirs.
+- Date input validation rejects 13/01 as a month but accepts it as a day (and vice versa by locale).
+
+**Currency and number formats**
+- Correct decimal separator (1,234.56 vs 1.234,56) and currency symbol by locale.
+
+**How to test**
+- Change your OS or browser time zone to simulate different regions.
+- Use test accounts with locale settings configured for each target region.`,
+      analogy: `A global flight booking system — a flight departing London at 10am must show as 6am in New York and 3pm in Dubai, and a booking made across a DST boundary must still depart at the right local time after the clocks change.`,
+    },
+    {
+      id: 'manual-mid-50',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How would you approach end-to-end testing of a user journey that spans multiple systems or services?',
+      answer: `End-to-end tests across system boundaries are expensive but valuable — they catch the integration failures that unit and service tests miss.
+
+**Map the journey first**
+- Draw out every system involved: frontend → API → third-party service → database → email service. Know exactly where data flows and where it could fail.
+
+**Test from the user's perspective**
+- Drive the test through the UI or the top-level API — not by directly calling internal services.
+- Verify the outcome the user would see, not just that internal state changed.
+
+**Identify the integration seams**
+- The riskiest points are the handoffs between systems. Test: correct data format passed, correct error handling when a downstream service fails, correct retry or fallback behaviour.
+
+**Use realistic test data**
+- Each system may have its own data requirements. Coordinate test data that satisfies all of them end-to-end.
+
+**Keep E2E tests lean**
+- E2E tests are slow and brittle — cover the critical journeys only. Use unit and service-level tests for the detail.
+- A broken E2E test must be investigated the same day — don't let it become background noise.
+
+**Monitor in staging**
+- After a release, run the E2E suite against staging immediately to catch integration regressions before they reach production.`,
+      analogy: `Testing a parcel delivery from online order to doorstep — you check the website accepted the order, the warehouse received it, the courier picked it up, and the customer got the right parcel on time. You test the whole chain, not just each step in isolation.`,
+    },
+
     // ── Senior (5+ yrs) ───────────────────────────────────────
     {
       id: 'manual-sr-1',
@@ -3400,6 +4546,587 @@ Then introduce automation gradually for the stable areas, and start building a *
 
 When demand exceeds capacity, be transparent about the trade-offs — *which* areas get lighter coverage and the risk that carries — rather than quietly stretching thin.`,
       analogy: `An ER charge nurse staffing shifts — you put more nurses where the danger and volume are, keep a reserve for emergencies, and you're honest with management when you're too stretched to cover everything safely.`,
+    },
+    {
+      id: 'manual-sr-27',
+      level: 'senior',
+      topic: 'Leadership',
+      question: 'Your manager asks you to cut testing time by 50% for the next sprint. How do you respond?',
+      answer: `Don't say yes or no immediately — **quantify the risk and present options**:
+
+1. Map what 50% of current testing covers: which flows, which risk areas.
+2. Identify what would *not* get tested if you halve the time, and what the failure cost of each gap is.
+3. Present this back: "If we cut by 50%, we skip X, Y, Z. The risk is [specific business impact]. Here are three options with different risk-vs-speed profiles."
+4. **Offer alternatives** — can you reduce sprint scope instead? Automate some cases to free manual time? Descope lower-risk areas while keeping full depth on critical ones?
+
+The answer is never a flat "no" — it's an informed trade-off that the business decides with eyes open. Your job is to make the cost of the decision visible, not absorb it silently.`,
+      analogy: `A structural engineer asked to cut inspection time by 50% on a bridge doesn't just say yes. They say: "We can skip these non-load-bearing checks. But if we also skip the cable tension checks, there's a real failure risk at X load. Here are three inspection plans at different cost-risk points — you choose."`,
+    },
+    {
+      id: 'manual-sr-28',
+      level: 'senior',
+      topic: 'Metrics',
+      question: 'How do you present QA status and metrics to non-technical stakeholders or leadership?',
+      answer: `Translate technical facts into **business outcomes** — stakeholders care about risk and decisions, not test counts.
+
+**Lead with:**
+- Is the release safe? What is the overall risk posture right now?
+- Key numbers in plain terms: "3 open defects — 2 minor, 1 is a payment flow issue we're fixing today."
+- **Trend, not just snapshot**: "Defect leakage has reduced from 5 per release to 1 over the last quarter."
+
+**Avoid:**
+- Raw test case counts ("we ran 412 tests") — meaningless without context.
+- Jargon: say "critical issues that affect users" not "P1 blockers."
+
+**Format:** a traffic-light dashboard (Red / Amber / Green per area) plus 3 bullet points works better in a steering meeting than a 20-row spreadsheet.
+
+**Always end with a recommendation** — don't just present data, give a view. "Our recommendation is to proceed. The one open risk is X, and our mitigation is Y."`,
+      analogy: `A weather forecaster doesn't present raw atmospheric pressure readings to the public — they say "80% chance of heavy rain, bring an umbrella." Translate complexity into the decision that matters.`,
+    },
+    {
+      id: 'manual-sr-29',
+      level: 'senior',
+      topic: 'Automation',
+      question: 'Your automated regression suite is failing consistently in CI and the team has stopped trusting it. What is your plan?',
+      answer: `Treat it as a **credibility crisis** — a suite being actively ignored is worse than no suite.
+
+**Immediate actions:**
+1. **Categorise every failure**: true application bug, flaky test, environment issue, or stale test (testing behaviour that was intentionally changed)?
+2. **Fix or quarantine** — don't let red builds stay red for days. Failing fast only works if the team acts on the signal.
+3. Communicate triage results transparently: "30 failures — 8 are real bugs, 15 are flaky, 7 are stale. Here's the fix plan and timeline."
+
+**Structural fixes:**
+- Implement a **quarantine job** for flaky tests so the main suite stays reliable.
+- Set a **policy**: the main build must be green before merge; flaky tests get fixed within one sprint.
+- Assign **test ownership** — each area has an owner responsible for keeping it green.
+- Rebuild trust gradually: start with 100% reliable on a small set, then expand.
+
+The test suite should be a heartbeat — something the team checks because they trust it, not noise they've learned to ignore.`,
+      analogy: `A factory quality sensor that keeps firing false alerts — workers eventually tape over it. The fix isn't to shout "trust the sensor." It's to fix the sensor until it earns trust again, then rebuild the habit of checking it.`,
+    },
+    {
+      id: 'manual-sr-30',
+      level: 'senior',
+      topic: 'Incident Management',
+      question: 'Three Severity-1 bugs reached production in the last release and leadership is asking questions. How do you handle it?',
+      answer: `**Contain, then learn, then prevent — in that order:**
+
+**Immediately:**
+- Support the incident response: help teams reproduce, triage severity, and communicate the fix timeline.
+- Stick to facts — don't speculate or assign blame under pressure.
+
+**Postmortem (within the week):**
+- **Blameless root cause analysis** on all three: how did each escape, at which stage, and why did testing miss it?
+- Look for patterns across the three: same area, same data gap, same process step skipped?
+- Define **specific, measurable actions** — not "be more careful," but "add regression test for X," "enforce Y gate in the pipeline."
+
+**Reporting to leadership:**
+- Honest and factual: what happened, what we found, what actions are being taken and by when.
+- Present the actions and a timeline — not just explanations.
+- If this is a trend, say so with data. If it's an outlier, demonstrate that with the historical record.
+
+Every escaped bug should feed back into the test suite so it cannot recur undetected.`,
+      analogy: `An airline with 3 incidents in one month. Leadership doesn't want to hear "we'll try harder." They want to see: root cause per incident, the systemic fixes, and a projected timeline for each to be in place. Accountability with a plan, not accountability with excuses.`,
+    },
+    {
+      id: 'manual-sr-31',
+      level: 'senior',
+      topic: 'Leadership',
+      question: 'Your QA team has low morale — testers feel their bugs get deprioritised and their work undervalued. What do you do?',
+      answer: `This is both a **cultural problem and a visibility problem** — fix both:
+
+**Understand it first:**
+- Run 1:1s with each team member. What specifically feels broken? Deprioritised bugs, late involvement, no recognition?
+
+**Structural fixes:**
+- Push for QA to be **involved earlier** — in story refinement and design reviews, where their input visibly shapes outcomes rather than being reactive.
+- **Make bug impact visible**: share metrics on defects caught pre-production and their estimated cost if they'd escaped. "This defect would have blocked 40% of users from checking out" lands differently than a closed ticket.
+- Work with the PM to establish a clear, **agreed bug triage process** — so deprioritisation is a conscious, documented business decision, not silent dismissal.
+
+**Cultural fixes:**
+- Recognise quality wins publicly and specifically — "this regression catch prevented a production outage" not just "good job."
+- Advocate for the team in planning meetings. Be the person who pushes back when QA is being squeezed.
+
+A team that feels heard and sees their work land will reengage. A team that keeps raising issues into a void won't.`,
+      analogy: `A security team always called in after a break-in rather than asked to review the locks beforehand. Fix the process — involve them in the design — and celebrate when their review prevents the incident that never happened.`,
+    },
+    {
+      id: 'manual-sr-32',
+      level: 'senior',
+      topic: 'Release Management',
+      question: 'A PM is strongly pushing to release a feature you believe carries significant untested risk. How do you handle it?',
+      answer: `Make the risk **explicit, documented, and decision-ready** — don't just resist, be a data-driven risk advisor:
+
+1. **Write down the specific untested areas** and the failure scenarios each could produce (user impact, revenue impact, security).
+2. **Present options — not just objections:**
+   - Release with the risky part feature-flagged off for now.
+   - Release to 5% of users (canary) with close monitoring.
+   - 2-day delay to cover the critical test areas.
+   - Release as-is with an agreed hotfix SLA and on-call team ready.
+3. **Frame the decision clearly**: "If we proceed as-is, these are the known risks. My recommendation is Option B — what's your call?"
+4. **Document the decision and who made it.** If the PM decides to proceed, send a written summary of the risks raised and the decision taken.
+
+You're a risk advisor — your job is to ensure decisions are informed, not to block every release or rubber-stamp every one.`,
+      analogy: `A structural engineer who believes a bridge isn't ready for public opening doesn't chain themselves to the gate. They write a clear report: "These cable tensions are within tolerance; this joint is not. Here are 3 options. This is my recommendation." The authority makes the call — the engineer is on record.`,
+    },
+    {
+      id: 'manual-sr-33',
+      level: 'senior',
+      topic: 'Automation',
+      question: 'You need to build a test automation strategy from scratch for a team that has never automated before. Where do you start?',
+      answer: `Start with **people and problems before tools**:
+
+**Step 1 — Understand the context:**
+- What's the tech stack? What testing types matter most (API, UI, unit)?
+- Where is the biggest pain right now — slow feedback loops, flaky manual regression, release bottlenecks?
+- What are the team's existing skills?
+
+**Step 2 — Start small and prove value:**
+- Pick a **high-value, low-complexity** area (e.g. API smoke tests or a login regression).
+- Build 5–10 reliable tests, integrate them into CI, and show what "this caught a real bug before it merged" looks like in practice.
+
+**Step 3 — Follow the pyramid:**
+- Many unit tests (fast, cheap), moderate API/integration tests, few UI tests (slow and fragile).
+- Don't start with UI automation — it's the hardest to maintain and gives the worst ROI for a team just starting.
+
+**Step 4 — Build the habit:**
+- Any bug found manually that could have been caught automatically → a test is added.
+- Automate the regression cases that are run every sprint.
+- Train the team on reading, running, and contributing to tests.
+
+**Step 5 — Measure and show it:** track time saved, defects caught automatically, and coverage trend. Make the value visible to stakeholders.`,
+      analogy: `Building a delivery fleet from scratch. You don't start by buying 50 trucks. You start with one reliable van on the most important route, prove it works, and expand. Start small, prove value, then scale.`,
+    },
+    {
+      id: 'manual-sr-34',
+      level: 'senior',
+      topic: 'Test Strategy',
+      question: 'How do you test a feature that involves AI or machine learning output?',
+      answer: `AI/ML testing is fundamentally different because **there is no single correct output** — you're testing a probabilistic system:
+
+**What to check:**
+- **Accuracy and quality** — define measurable thresholds upfront. E.g., "the recommendation engine must return a relevant result 90% of the time" — then test against a labelled dataset.
+- **Boundary behaviour** — how does it handle edge-case inputs: empty data, unusual formatting, ambiguous or adversarial queries?
+- **Consistency** — does the same input reliably return an appropriate response, or is it wildly variable?
+- **Bias and fairness** — does the model behave equitably across user groups, demographics, or input types?
+- **Confidence and fallback** — does the system know when it doesn't know? Does it gracefully surface uncertainty rather than confidently returning garbage?
+- **Regression after model updates** — does accuracy hold or degrade when the model is retrained or updated?
+
+**Approach:**
+- Build a **golden dataset** of known inputs and expected outputs (human-labelled) for repeatable checks.
+- Set measurable quality thresholds with the product team *before* testing starts.
+- Test the **system around the model** (API contract, UI, error handling) with standard approaches.`,
+      analogy: `Testing a human translator, not a spell checker. You can't verify each word mechanically — you need a defined quality bar ("80% of translations rated acceptable by reviewers"), a labelled test set, and a process for spotting consistent errors, not just one-offs.`,
+    },
+    {
+      id: 'manual-sr-35',
+      level: 'senior',
+      topic: 'Leadership',
+      question: 'You manage 3 QA engineers with very different skill levels. How do you allocate work and develop each of them?',
+      answer: `Match work to **current skill and growth edge** — not just availability:
+
+**Work allocation:**
+- **Junior:** well-defined test cases, known stable areas, tasks with clear acceptance criteria and a safety net (you or a peer reachable for questions). Avoid open-ended or ambiguous areas without support.
+- **Mid-level:** own a feature end-to-end — test design through execution and defect management. Stretch them with slightly complex areas where they'll need to make judgement calls.
+- **Senior:** ambiguous or high-risk areas, cross-team dependencies, reviewing others' test designs, driving process improvements, and setting up test environments.
+
+**Development:**
+- **Junior:** pair on test design and bug investigation, show your thought process, give specific feedback on their reports.
+- **Mid:** give ownership, let them make decisions, then debrief — what would you do differently?
+- **Senior:** involve them in strategy, give them a problem to solve (not just a task), get them presenting to stakeholders.
+
+**Universal:** regular 1:1s, clarity on career goals, and recognising good work specifically and publicly.`,
+      analogy: `A rowing coach with athletes at different levels. The beginner learns technique on a flat lake. The intermediate rows a training race under conditions. The advanced athlete gets the hardest course, coaches the junior during cross-training, and analyses their own race footage. Same sport, different development paths.`,
+    },
+    {
+      id: 'manual-sr-36',
+      level: 'senior',
+      topic: 'Process',
+      question: 'Your team is moving from monthly releases to 2-week sprints. How does QA adapt?',
+      answer: `A shorter cycle isn't just a calendar change — it forces *how* QA integrates to change:
+
+**What must change:**
+- **QA starts in parallel with dev**, not after handover. Review stories during development and be ready to test the day code lands.
+- **Test cases written before dev finishes** — not after. Add "test cases written" to the Definition of Ready.
+- **Regression must be automated** — a 2-week sprint can't sustain a 3-day manual regression cycle. Automate critical paths.
+- **Defect triage is daily**, not weekly — in a 2-week sprint, a 2-day triage delay is a sprint killer.
+
+**What you need:**
+- A solid CI pipeline with automated smoke and regression.
+- Clear entry criteria for QA (what state must code be in before QA picks it up?).
+- A shared, agreed definition of "done."
+
+**Risk to manage:** velocity pressure in short sprints pushes teams to skip QA steps silently. Enforce the definition of done early — or quality erodes within 3 sprints and no one notices until production breaks.`,
+      analogy: `Switching from monthly long-haul flights to daily short-haul. You can't do a 4-hour preflight check before a 45-minute hop — but you still need reliable, fast checks before every flight. The inspection doesn't disappear; it gets leaner, faster, and more automated.`,
+    },
+    {
+      id: 'manual-sr-37',
+      level: 'senior',
+      topic: 'Quality',
+      question: 'Business pressure consistently overrides quality gates. Features ship with known bugs repeatedly. How do you change this?',
+      answer: `This is a **systemic and cultural problem** — individual conversations won't fix it. Attack the root:
+
+**Make the cost visible:**
+- Calculate and share the cost of escaped defects — support tickets raised, developer time to hotfix, customer churn. "The last 3 production bugs cost 14 dev-days post-release" is a number leadership understands in a way "quality is important" isn't.
+- Track defect leakage over time and show the trend to stakeholders.
+
+**Change the framing:**
+- Overriding a quality gate shouldn't feel free. Require a written, named exception: "PM X approved release with known bug Y — risk accepted." Accountability changes behaviour.
+
+**Build structural safeguards:**
+- Push for quality gates to be **automated in the pipeline**, not a manual QA sign-off that can be bypassed under pressure.
+- Agree a **non-negotiable list** of what always blocks a release (data loss, auth broken, security vulnerability).
+
+**Ally with engineering leadership:**
+- Tech debt and post-release firefighting hurt developers too. Find an engineering champion who wants reliable gates.
+
+Change here is slow — pick one measurable win, prove it, and build from there.`,
+      analogy: `A city where traffic lights are routinely run because no one enforces them. You don't fix it by asking nicely. You add speed cameras (automated gates), publish accident statistics (cost visibility), and make running a red a documented exception requiring a signature — not a free choice anyone can make on a whim.`,
+    },
+    {
+      id: 'manual-sr-38',
+      level: 'senior',
+      topic: 'Process',
+      question: 'How do you approach testing in a regulated industry (finance, healthcare, pharma) where every defect needs full traceability?',
+      answer: `Regulated testing isn't fundamentally different in *what* you test — it's different in **how rigorously you document and trace everything**:
+
+**Traceability requirements:**
+- Every test case must trace back to a **specific requirement or regulatory control**.
+- Every executed test must have a logged outcome, tester name, date, and build version.
+- Every defect must link to the affected requirement and the test that found it.
+- An RTM isn't optional here — it's the artefact that proves coverage to an auditor.
+
+**Change management:**
+- Any change to requirements, code, or test cases must go through a formal change process — no undocumented tweaks.
+- Regression scope after any change must be explicitly defined, documented, and approved.
+
+**Tooling:**
+- Use a **validated test management tool** (Xray, Zephyr, etc.) that provides a full audit trail.
+- Automation scripts must be under version control with a signed-off change history.
+
+**Validation levels:**
+- Regulated industries often use IQ / OQ / PQ: *Installation Qualification* (is it installed correctly?), *Operational Qualification* (does it work per spec?), *Performance Qualification* (does it work in real conditions?).
+
+The core mindset shift: **if it isn't documented, it didn't happen.**`,
+      analogy: `Flying a commercial airliner versus driving your car. Both require competent operation — but the airliner requires a signed-off preflight checklist, a flight log, and a maintenance record for every part. The paperwork isn't bureaucracy — it's the proof that due diligence happened and can be audited.`,
+    },
+    {
+      id: 'manual-sr-39',
+      level: 'senior',
+      topic: 'Leadership',
+      question: 'How do you build a QA knowledge-transfer process so quality doesn\'t drop when a key tester leaves the team?',
+      answer: `Bus factor is a real risk in QA — if one person holds all the context, their departure causes an immediate quality gap. Build resilience deliberately:
+
+**Documentation**
+- Maintain a living test strategy, area ownership map, and "gotchas" guide for complex features.
+- Every critical test area has written coverage notes — not just test cases, but *why* those cases exist and what they've historically caught.
+
+**Cross-training and pairing**
+- Rotate testers across features periodically — no single person should be the only one who knows an area.
+- Pair junior or mid testers with the senior on complex features so knowledge transfers continuously, not just at departure.
+
+**Ownership model**
+- Each test area has a primary and a secondary owner. The secondary must be able to cover the area independently.
+
+**Handover process**
+- When a team member leaves, enforce a structured handover: shadow sessions, documentation review, a transition period where the outgoing tester reviews the incoming person's first few cycles.
+
+**Automation as a safety net**
+- Automated test suites capture institutional knowledge in code — even if the person leaves, the tests document what matters.`,
+      analogy: `A kitchen where only one chef knows the signature dish recipe. The restaurant trains a sous-chef on the recipe, writes it down in the kitchen manual, and rotates both chefs on the dish so the restaurant survives if the head chef moves on.`,
+    },
+    {
+      id: 'manual-sr-40',
+      level: 'senior',
+      topic: 'Metrics',
+      question: 'How do you measure and demonstrate the ROI of test automation investment to leadership?',
+      answer: `Leadership cares about time, money, and risk — frame ROI in those terms, not in technical metrics:
+
+**Time saved**
+- Track the manual execution time for the regression suite before automation.
+- Compare against the automated run time. "We saved 40 person-hours per sprint" is concrete.
+
+**Cost of automation vs. cost of not automating**
+- Build cost: time to write + review tests.
+- Ongoing cost: maintenance per sprint.
+- Compare against: manual regression cost per sprint × number of sprints + estimated cost of defects that escaped (hotfix time, customer impact).
+
+**Defects caught**
+- Track how many defects the automated suite catches per quarter vs. how many escape to production.
+- "Automation caught 23 regressions this quarter before they reached staging" is a powerful number.
+
+**Release velocity**
+- Before automation: regression took 3 days, delayed releases.
+- After: regression runs in 45 minutes overnight, no release delay.
+
+**Caveats to be honest about**
+- Maintenance cost is real and often underestimated — report it alongside the savings.
+- Coverage gaps: automation doesn't replace exploratory testing.`,
+      analogy: `A factory justifying a new automated assembly line to the board. You don't say "it's technically impressive." You say: "It produces 3× more units per hour at 40% lower cost, paid back the investment in 8 months, and has reduced defects reaching customers by 60%."`,
+    },
+    {
+      id: 'manual-sr-41',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'How do you approach contract testing in a microservices architecture?',
+      answer: `In a microservices system, services evolve independently — a change in Service A can silently break Service B's expectations without anyone noticing until it reaches production. Contract testing prevents this.
+
+**What contract testing does**
+- Defines the *agreed interface* between a consumer (the service that calls) and a provider (the service that responds).
+- The consumer writes tests asserting what it expects from the provider.
+- The provider runs those consumer-defined expectations against its own code to confirm it still satisfies them.
+- Changes that would break a consumer are caught immediately in the provider's CI — before deployment.
+
+**Tools**
+- **Pact** is the most common framework. Consumer publishes a pact file; the provider verifies it.
+- A **Pact Broker** stores and shares pact files between teams.
+
+**QA's role**
+- Work with each service team to ensure pacts exist for all critical inter-service dependencies.
+- Integrate pact verification into each service's CI pipeline as a mandatory gate.
+- Own the visibility of the pact broker — surface broken contracts as blockers, not noise.
+
+**What contract testing doesn't replace**
+- End-to-end tests for critical user journeys still needed.
+- Contract testing only covers the interface agreement, not business logic correctness.`,
+      analogy: `Two companies agreeing on an electrical plug standard before manufacturing. The contract testing equivalent is each company independently verifying their plug meets the agreed spec — so when you connect them, it works without anyone having to physically test every combination.`,
+    },
+    {
+      id: 'manual-sr-42',
+      level: 'senior',
+      topic: 'Test Types',
+      question: 'As a QA lead, what do you own in security testing versus what a dedicated security team owns?',
+      answer: `The boundary depends on the organisation, but there's a clear core split:
+
+**QA owns:**
+- **OWASP Top 10 basics** as part of standard testing: input validation (SQL injection, XSS), authentication and session handling, IDOR (can User A access User B's data?), insecure direct object references in URLs.
+- Security checks built into test cases for every feature — not a separate "security phase."
+- Ensuring sensitive data (passwords, card numbers, PII) is never logged or exposed in API responses or the UI.
+- Verifying that role-based access controls work correctly (covered in functional testing).
+
+**Dedicated security team / penetration testers own:**
+- Deep exploitation: advanced attack chains, zero-day research, complex authentication bypasses.
+- Infrastructure and network security.
+- Formal penetration tests and security certifications.
+- Security tooling (DAST scanners, SAST integration, dependency vulnerability scanning).
+
+**The collaboration:**
+- QA should embed security thinking into every test cycle, not wait for a pentest.
+- Pentest findings should feed back into QA's regression suite so they can't recur.
+- In smaller teams without a dedicated security function, QA takes on more of this — which means more investment in security testing skills.`,
+      analogy: `A restaurant's food safety. The kitchen staff (QA) own daily hygiene — hand washing, temperature checks, correct storage. The health inspector (security team) does the formal audit and finds the systematic issues the kitchen might miss. Both are necessary; neither replaces the other.`,
+    },
+    {
+      id: 'manual-sr-43',
+      level: 'senior',
+      topic: 'Test Strategy',
+      question: 'How do you ensure testing stays effective after a major technology migration — new platform, framework, or cloud move?',
+      answer: `A major migration is a high-risk moment — existing tests may break, new risks emerge, and coverage gaps open up. Lead the testing strategy proactively:
+
+**Before the migration**
+- Establish a **baseline**: run the full test suite and document the current pass rate. This is your reference point.
+- Identify which tests are tightly coupled to the old technology (e.g. browser-specific selectors, infrastructure assumptions) — flag them for rewriting.
+- Map the new risk areas: what does the new platform introduce that the old one didn't? (Different auth model, new caching layer, cloud-specific networking behaviour.)
+
+**During the migration**
+- Run tests in parallel against both old and new environments where possible — compare outputs.
+- Prioritise smoke coverage of critical paths on the new platform before anything else.
+- Create new test cases specifically for migration-specific risks (data migration correctness, config differences, performance on new infra).
+
+**After the migration**
+- Run the full regression suite and triage every new failure — is it a test that needs updating, or a real regression?
+- Monitor production closely for the first weeks — new environments surface issues that staging misses.
+- Update the test strategy to reflect the new stack — don't run old test approaches against new technology blindly.`,
+      analogy: `Moving a factory to a new building. You don't just move the machines and assume everything works — you re-validate every production line in the new space, check the power and ventilation are correct, and run test batches before shipping to customers.`,
+    },
+    {
+      id: 'manual-sr-44',
+      level: 'senior',
+      topic: 'Automation',
+      question: 'You are brought in to review and improve an existing test automation framework. What is your approach?',
+      answer: `Start by understanding the current state before changing anything:
+
+**Assess first**
+- Run the suite: what passes, what fails, what's flaky? Establish a baseline.
+- Review the architecture: page object model or not, test data management, CI integration, parallelisation.
+- Talk to the team: what are the biggest pain points? What slows them down? What do they not trust?
+
+**Common problems to diagnose**
+- **Flakiness**: timing issues, shared mutable state, environmental dependencies.
+- **Slow execution**: missing parallelisation, too many heavy UI tests, no API-level shortcuts.
+- **High maintenance**: tests with hard-coded selectors, magic numbers, duplicated logic.
+- **Poor coverage**: critical paths not automated, only happy paths covered.
+- **No CI integration**: tests run manually, not on every merge.
+
+**Fix in order of impact**
+1. Stabilise first — a flaky suite provides no value.
+2. Integrate into CI if it isn't already.
+3. Refactor the highest-pain areas (not everything at once).
+4. Fill coverage gaps on critical paths.
+5. Add documentation so the team can maintain and extend it.
+
+**Never refactor and add coverage simultaneously** — separate concerns or you can't tell what caused a new failure.`,
+      analogy: `A new head mechanic inheriting a workshop. First: take stock of every tool, run a diagnostic on every car, ask the team what keeps breaking. Then fix the most dangerous faults first — don't start adding new equipment until the existing tools are reliable.`,
+    },
+    {
+      id: 'manual-sr-45',
+      level: 'senior',
+      topic: 'Quality',
+      question: 'How do you balance paying down test automation technical debt against delivery pressure?',
+      answer: `Ignoring test automation debt compounds — eventually the suite becomes unmaintainable and gets abandoned entirely. But you can't halt delivery to fix it all at once. Treat it like any technical debt:
+
+**Make the debt visible**
+- Quantify it: number of flaky tests, average daily maintenance time, tests that are disabled or skipped. Put this in front of the team as a concrete cost, not a vague concern.
+
+**Negotiate dedicated time**
+- Push for a regular allocation — "20% of QA capacity each sprint" or a dedicated tech-debt sprint every quarter. Frame it as: "Without this, we lose X hours/sprint to maintenance and our suite reliability is deteriorating."
+
+**Fix opportunistically**
+- When you touch a test area for a new feature, improve the tests in that area at the same time (the "boy scout rule").
+- New tests are written to the higher standard; don't create more debt.
+
+**Prioritise ruthlessly**
+- Fix the debt that causes the most daily pain first (flaky tests that burn time) over the cosmetically messy but stable tests.
+
+**Track and show improvement**
+- Measure: suite reliability, maintenance time per sprint, coverage. Show the trend to justify the ongoing investment.`,
+      analogy: `A restaurant that never cleans the kitchen equipment. Eventually something breaks mid-service. The solution isn't a 2-week closure — it's cleaning one piece of equipment per shift, scheduling a deep clean quarterly, and never letting new dirt accumulate.`,
+    },
+    {
+      id: 'manual-sr-46',
+      level: 'senior',
+      topic: 'CI/CD',
+      question: 'How do you design an on-call and production monitoring strategy that QA contributes to?',
+      answer: `QA's role doesn't end at deployment — shift-right means owning quality in production too:
+
+**What QA contributes to monitoring**
+- Define the **key user journeys** that must be monitored continuously in production (login, checkout, core workflows) — these become synthetic monitors.
+- Set the **alerting thresholds**: what error rate or latency constitutes an incident? QA understands the user impact better than pure infra teams.
+- Own **synthetic transaction monitors** — automated checks that run in production every few minutes to confirm critical paths are working.
+
+**On-call contribution**
+- QA should be in the on-call rotation for major releases — not necessarily for infrastructure alerts, but for functional regression alerts.
+- Maintain a **production smoke test** runbook: a short, fast manual check the on-call person can run in 5 minutes to confirm the release is healthy.
+
+**Feedback loop**
+- Every production incident triggers a post-mortem that feeds back into the test suite.
+- Any monitoring alert that fires repeatedly is a gap in pre-release testing — close that gap.
+
+**Tooling**
+- Work with the team to instrument key journeys in observability tools (Datadog, Grafana, New Relic) and set up dashboards QA can read and contribute to.`,
+      analogy: `A hospital's patient monitoring system. Doctors (developers) design the equipment, but nurses (QA) define what vital signs to monitor, set the alarm thresholds based on patient risk, and are the first to respond when a monitor fires.`,
+    },
+    {
+      id: 'manual-sr-47',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'How do you design a testing strategy for a complete platform migration — monolith to microservices?',
+      answer: `A monolith-to-microservices migration is one of the highest-risk engineering changes a team can make. The testing strategy must match that risk.
+
+**Phase 1 — Before any migration**
+- Establish a comprehensive regression baseline on the monolith. Every passing test is a reference point.
+- Identify the riskiest migration areas: shared database tables, complex transaction flows, high-traffic endpoints.
+
+**Phase 2 — Strangler fig migration (gradual)**
+- For each extracted service, define its **contract** with the monolith and other services (use contract testing — Pact).
+- Run tests against both the old monolith path and the new service path in parallel — compare outputs for parity.
+- Don't remove monolith coverage until the new service is fully proven.
+
+**Phase 3 — Integration and E2E**
+- As more services are extracted, integration test coverage at the seams becomes critical.
+- Key user journeys must be tested end-to-end across all the new service boundaries.
+- Chaos testing: what happens when one service is slow or unavailable? Does the system degrade gracefully?
+
+**Phase 4 — Post-migration**
+- Full regression on the final microservices architecture.
+- Monitor production aggressively for the first 90 days — migration bugs often surface under real-world patterns.`,
+      analogy: `Rebuilding an aircraft mid-flight, one component at a time. You don't swap the engine all at once. Each component is tested before being swapped, you fly with both old and new in parallel during the transition, and you only decommission the old part once the new one is proven in real flight conditions.`,
+    },
+    {
+      id: 'manual-sr-48',
+      level: 'senior',
+      topic: 'Quality',
+      question: 'How do you establish shared quality ownership with developers — shifting quality left rather than leaving it all to QA?',
+      answer: `Shared quality ownership doesn't happen by announcement — it's built through structural changes and culture:
+
+**Structural changes**
+- **Shift Definition of Ready**: stories must include testable acceptance criteria *before* development starts — QA reviews these with the dev at the story level.
+- **Test-first conversations**: QA and dev discuss how a feature will be tested *during* design, not after.
+- **Developers own unit tests**: make this non-negotiable in the Definition of Done. QA reviews unit test coverage as part of the PR review.
+- **Shared quality dashboards**: defect leakage, test coverage, and build stability visible to the whole team — not just QA.
+
+**Culture changes**
+- Reframe QA's role: not the "last line of defence" but a quality coach enabling the team.
+- Celebrate when a developer catches their own bug in a unit test — that's the behaviour to reinforce.
+- Run team retrospectives on escaped defects together, not QA postmortems in isolation.
+
+**What doesn't work**
+- Simply saying "quality is everyone's job" without structural support.
+- Removing QA as a way to "force" developers to own quality — this just means less testing.`,
+      analogy: `Food safety in a restaurant kitchen. It's not the inspector's job alone — every cook washes their hands, checks temperatures, and flags contamination risks. The inspector enables and audits. One safety officer at the door can't rescue a careless kitchen.`,
+    },
+    {
+      id: 'manual-sr-49',
+      level: 'senior',
+      topic: 'CI/CD',
+      question: 'How do you manage QA in a team using continuous deployment — code ships to production multiple times a day?',
+      answer: `Continuous deployment breaks the traditional "testing phase" model entirely. QA must be woven into every step of the pipeline:
+
+**Testing must be automated and fast**
+- The test suite that gates deployment must run in minutes, not hours. Slow suites block CD pipelines.
+- Unit and API tests run on every commit. UI tests run on a scheduled basis or on merge to main.
+
+**Feature flags are essential**
+- Code ships continuously but features are hidden behind flags — QA can test a feature in production-like conditions before it's visible to users.
+
+**Progressive delivery**
+- New features roll out to internal users, then 1%, then 10%, then 100%. QA monitors each stage and defines the metrics that trigger a rollback.
+
+**Shift-left hard**
+- No time to test after a PR merges — QA reviews stories and acceptance criteria during refinement, pairs with devs during development, and agrees test scenarios before code is written.
+
+**Production observability**
+- With code shipping multiple times a day, monitoring *is* testing at that cadence. QA owns the definition of what to alert on and what a healthy system looks like.
+
+**What changes for QA:**
+- Less manual regression, more test strategy and automation.
+- More time in refinement and design, less time executing test cases post-build.`,
+      analogy: `Air traffic control at a busy airport where planes land and take off every few minutes. You can't inspect every plane on the ground for hours — you need automated pre-flight checks, continuous monitoring in the air, and a rapid-response rollback (divert) if something goes wrong after takeoff.`,
+    },
+    {
+      id: 'manual-sr-50',
+      level: 'senior',
+      topic: 'Test Strategy',
+      question: 'How do you design a testing strategy for a system that processes real-time financial transactions?',
+      answer: `Financial transaction systems have the highest stakes in most organisations — data loss, incorrect amounts, or race conditions directly cost money or breach regulations.
+
+**Functional correctness**
+- Every transaction type tested end-to-end: debit, credit, transfer, refund.
+- Amount precision: no rounding errors — test to the exact decimal specification.
+- Idempotency: the same transaction request retried twice must not debit twice.
+- Atomicity: a transfer must either complete fully or roll back fully — no partial states.
+
+**Concurrency and race conditions**
+- Two transactions on the same account processed simultaneously — no double spend, no balance inconsistency.
+- High-volume load tests to simulate real peak traffic.
+
+**Failure and recovery**
+- Network drop mid-transaction — system recovers to a consistent state.
+- Downstream service failure (payment processor down) — correct error handling and retry logic.
+- Transaction timeout — correct outcome (committed or rolled back, never ambiguous).
+
+**Security**
+- All transactions require authenticated, authorised requests — no anonymous or cross-user transactions possible.
+- Sensitive data encrypted in transit and at rest.
+
+**Audit and compliance**
+- Every transaction logged with a complete, tamper-proof audit trail.
+- Reconciliation: end-of-day totals match individual transaction records.
+
+**Non-functional**
+- Response time SLA under normal and peak load.
+- Disaster recovery: if the primary system fails, transactions do not get lost.`,
+      analogy: `The testing strategy for a bank vault and its ledger. Every deposit and withdrawal is verified to the penny, every transaction leaves a permanent record, two people trying to withdraw the last £100 simultaneously can only succeed once, and a power failure during a transaction leaves the accounts in a known, auditable state.`,
     },
 
   ],
