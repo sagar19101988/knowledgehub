@@ -767,6 +767,522 @@ SELECT * FROM active_customers WHERE name LIKE 'A%';
 (If you need the *results stored* for speed, that's a materialized view — a more advanced topic; see the senior question.)`,
       analogy: `A view is a saved filter on a spreadsheet, or a TV channel preset — not a new copy of everything, just a convenient, named window onto the data you care about.`,
     },
+    {
+      id: 'sql-jr-32',
+      level: 'junior',
+      topic: 'Filtering',
+      question: 'What is the difference between WHERE and HAVING? When do you use each?',
+      answer: `Both filter rows, but at different stages of the query:
+
+- **WHERE** filters *individual rows before* grouping. It cannot reference aggregate functions like COUNT or SUM.
+- **HAVING** filters *groups after* GROUP BY runs. Use it to filter on aggregated values.
+
+\`\`\`sql
+-- WHERE filters rows before they're grouped:
+SELECT department_id, COUNT(*) AS headcount
+FROM Employees
+WHERE status = 'active'          -- only count active employees
+GROUP BY department_id
+HAVING COUNT(*) > 10;            -- only departments with more than 10
+\`\`\`
+
+The rule: if you're filtering on a raw column value → WHERE. If you're filtering on the result of COUNT, SUM, AVG, MIN, MAX → HAVING.`,
+      analogy: `A restaurant kitchen. **WHERE** is the chef checking ingredients *before* cooking — only fresh vegetables get in. **HAVING** is the manager checking finished dishes *after* plating — only plates with more than 3 items go out. Two different inspection points in the same pipeline.`,
+    },
+    {
+      id: 'sql-jr-33',
+      level: 'junior',
+      topic: 'Query Writing',
+      question: 'Write a query to find each customer\'s total order count, showing only customers who have placed more than 5 orders.',
+      code: `-- Customers(id, name)
+-- Orders(id, customer_id, order_date)`,
+      codeLanguage: 'sql',
+      answer: `\`\`\`sql
+SELECT c.name, COUNT(o.id) AS order_count
+FROM Customers c
+JOIN Orders o ON o.customer_id = c.id
+GROUP BY c.id, c.name
+HAVING COUNT(o.id) > 5
+ORDER BY order_count DESC;
+\`\`\`
+
+**Key points the interviewer is listening for:**
+- JOIN on customer_id to link the tables.
+- GROUP BY the customer (not the order) to get one row per customer.
+- HAVING (not WHERE) to filter on the aggregate COUNT — WHERE runs before grouping, so it can't see COUNT yet.
+- ORDER BY makes the result useful.`,
+      analogy: `Counting letters per person in a stack of mail. You group the stack by recipient first (GROUP BY), count each person's pile, then only hand over the piles with more than 5 letters (HAVING). Checking individual letters with WHERE can't tell you how big each pile is — you need to count first.`,
+    },
+    {
+      id: 'sql-jr-34',
+      level: 'junior',
+      topic: 'Query Writing',
+      question: 'Write a query to find all employees who work in the \'Engineering\' department.',
+      code: `-- Employees(id, name, department_id)
+-- Departments(id, name)`,
+      codeLanguage: 'sql',
+      answer: `\`\`\`sql
+SELECT e.id, e.name
+FROM Employees e
+JOIN Departments d ON d.id = e.department_id
+WHERE d.name = 'Engineering';
+\`\`\`
+
+**Also valid — subquery approach:**
+\`\`\`sql
+SELECT id, name
+FROM Employees
+WHERE department_id = (
+  SELECT id FROM Departments WHERE name = 'Engineering'
+);
+\`\`\`
+
+The JOIN is preferred when you need other department columns in the result. The subquery is fine for a simple lookup. Both are correct — knowing both shows the interviewer you understand the trade-offs.`,
+      analogy: `Finding all staff on a specific office floor. You look up which floor number belongs to "Engineering" (the Departments table), then find everyone registered on that floor number (the Employees table). Two tables, one shared key to link them.`,
+    },
+    {
+      id: 'sql-jr-35',
+      level: 'junior',
+      topic: 'Filtering',
+      question: 'How do you find rows where a column is NULL? Why can\'t you use = NULL?',
+      answer: `NULL means "unknown" — and in SQL, comparing anything to "unknown" gives "unknown", not true or false. So \`column = NULL\` never matches.
+
+The correct operators are:
+- **IS NULL** — find rows where the column has no value.
+- **IS NOT NULL** — find rows where the column does have a value.
+
+\`\`\`sql
+-- Find customers with no phone number:
+SELECT * FROM Customers WHERE phone IS NULL;
+
+-- Find customers who have a phone number:
+SELECT * FROM Customers WHERE phone IS NOT NULL;
+
+-- WRONG — always returns zero rows:
+SELECT * FROM Customers WHERE phone = NULL;
+\`\`\`
+
+**Bonus:** COALESCE replaces NULL with a fallback:
+\`\`\`sql
+SELECT name, COALESCE(phone, 'no phone') AS contact
+FROM Customers;
+\`\`\``,
+      analogy: `Asking someone "is your unknown phone number the same as this unknown number?" — you can't compare unknowns. The only valid question is "do you *have* a phone number at all?" That's IS NULL.`,
+    },
+    {
+      id: 'sql-jr-36',
+      level: 'junior',
+      topic: 'Query Writing',
+      question: 'Write a query to get the top 5 most expensive products.',
+      code: `-- Products(id, name, price)`,
+      codeLanguage: 'sql',
+      answer: `\`\`\`sql
+SELECT id, name, price
+FROM Products
+ORDER BY price DESC
+LIMIT 5;
+\`\`\`
+
+On SQL Server use TOP instead of LIMIT:
+\`\`\`sql
+SELECT TOP 5 id, name, price
+FROM Products
+ORDER BY price DESC;
+\`\`\`
+
+**What an interviewer looks for:**
+- ORDER BY price DESC (highest first).
+- LIMIT / TOP to cap the result.
+- If there are ties at position 5, LIMIT cuts arbitrarily. If you need all products tied for 5th, use DENSE_RANK with a window function instead.`,
+      analogy: `Sorting a product catalogue by price from highest to lowest and tearing off the first 5 pages. Simple — but if two products share the same price at the 5th slot, the tear is arbitrary. If ties matter, you need a smarter approach.`,
+    },
+    {
+      id: 'sql-jr-37',
+      level: 'junior',
+      topic: 'Query Writing',
+      question: 'What does DISTINCT do, and write an example where it actually matters?',
+      answer: `DISTINCT removes duplicate rows from the result — any two rows that are identical across all selected columns are collapsed into one.
+
+\`\`\`sql
+-- Without DISTINCT — shows a row for every order (many per customer):
+SELECT customer_id FROM Orders;
+
+-- With DISTINCT — one row per customer, even if they have many orders:
+SELECT DISTINCT customer_id FROM Orders;
+\`\`\`
+
+**A real use case:** you want a list of countries your customers come from — not one row per customer, just the unique countries.
+\`\`\`sql
+SELECT DISTINCT country FROM Customers ORDER BY country;
+\`\`\`
+
+**Watch out:** DISTINCT applies to the *whole row*, not just the first column. Adding more columns means two rows must match on *all* of them to be considered duplicates.`,
+      analogy: `A guest list after a wedding. The raw RSVP log has the same name appearing 3 times (they emailed, called, and texted). DISTINCT shows each guest once — deduplicated, clean.`,
+    },
+    {
+      id: 'sql-jr-38',
+      level: 'junior',
+      topic: 'Query Writing',
+      question: 'How do you rename a column in a query result? Show an example.',
+      answer: `Use **AS** to give a column a new label in the output (the underlying table is unchanged):
+
+\`\`\`sql
+SELECT
+  first_name AS "First Name",
+  last_name  AS "Last Name",
+  salary * 12 AS annual_salary
+FROM Employees;
+\`\`\`
+
+AS is optional in most databases — you can write the alias directly after the expression — but writing AS makes the intent clear.
+
+**Why it matters in practice:**
+- Calculated columns (like salary * 12) have no name without an alias.
+- Aggregates like COUNT(*) output as "COUNT(*)" — giving them a clean alias makes downstream code and reports readable.
+- Joining two tables with the same column name (both have "id") — alias one to avoid ambiguity.`,
+      analogy: `A name badge at a conference. The employee badge might say "Priya Sharma, Senior Engineer, ID 4421" — but you stick a badge on top saying "Priya" for the networking event. The person is unchanged; the label is just friendlier for the context.`,
+    },
+    {
+      id: 'sql-jr-39',
+      level: 'junior',
+      topic: 'Query Writing',
+      question: 'Write a query to find all customers who placed an order in the last 30 days.',
+      code: `-- Customers(id, name, email)
+-- Orders(id, customer_id, order_date)`,
+      codeLanguage: 'sql',
+      answer: `\`\`\`sql
+SELECT DISTINCT c.id, c.name, c.email
+FROM Customers c
+JOIN Orders o ON o.customer_id = c.id
+WHERE o.order_date >= CURRENT_DATE - INTERVAL '30 days';
+\`\`\`
+
+On MySQL:
+\`\`\`sql
+WHERE o.order_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+\`\`\`
+
+**Key points:**
+- DISTINCT prevents the same customer appearing multiple times if they placed several orders in the period.
+- Filter with a bare column (\`order_date >= ...\`) not \`WHERE MONTH(order_date) = ...\` — the bare column version can use an index, the function wrapper usually can't.`,
+      analogy: `Checking the gym's sign-in book for everyone who visited in the past 30 days. You want each member's name once — not one line per visit. DISTINCT and a date range does exactly that.`,
+    },
+    {
+      id: 'sql-jr-40',
+      level: 'junior',
+      topic: 'Joins',
+      question: 'What is the difference between INNER JOIN and LEFT JOIN? When would you use each?',
+      answer: `- **INNER JOIN** — returns only rows where there is a match in *both* tables. Rows with no match on either side are excluded.
+- **LEFT JOIN** — returns *all* rows from the left table, plus matched rows from the right. Where there's no match, the right-side columns come back as NULL.
+
+\`\`\`sql
+-- INNER JOIN: only customers who have at least one order
+SELECT c.name, o.id AS order_id
+FROM Customers c
+INNER JOIN Orders o ON o.customer_id = c.id;
+
+-- LEFT JOIN: all customers, even those with no orders
+SELECT c.name, o.id AS order_id
+FROM Customers c
+LEFT JOIN Orders o ON o.customer_id = c.id;
+-- Customers with no orders appear once, with order_id = NULL
+\`\`\`
+
+**When to use which:**
+- INNER JOIN — you only care about records that exist on both sides.
+- LEFT JOIN — you want everything from the primary table, with optional enrichment from the second (e.g. all customers whether or not they've ordered).`,
+      analogy: `A student roll-call with grades. **INNER JOIN** only lists students who have a grade — everyone else is invisible. **LEFT JOIN** lists every student; those without a grade just get a blank in the grade column.`,
+    },
+    {
+      id: 'sql-jr-41',
+      level: 'junior',
+      topic: 'Query Writing',
+      question: 'Write a query to list every customer and how many orders they have placed, including customers with zero orders.',
+      code: `-- Customers(id, name)
+-- Orders(id, customer_id)`,
+      codeLanguage: 'sql',
+      answer: `\`\`\`sql
+SELECT c.id, c.name, COUNT(o.id) AS order_count
+FROM Customers c
+LEFT JOIN Orders o ON o.customer_id = c.id
+GROUP BY c.id, c.name
+ORDER BY order_count DESC;
+\`\`\`
+
+**Why LEFT JOIN, not INNER JOIN?**
+An INNER JOIN would drop customers who have never ordered — their order_count would be 0 but they'd be invisible. LEFT JOIN keeps them and the COUNT of NULLs returns 0, which is correct.
+
+**Note:** COUNT(o.id) counts non-NULL values — so it correctly returns 0 when there are no matching orders (all NULLs from the LEFT JOIN). COUNT(*) would return 1 instead of 0 for those customers, which is wrong.`,
+      analogy: `A school attendance report including students who were absent. You list every student first (LEFT JOIN keeps all customers), then count how many days each one showed up (COUNT of non-NULL order IDs). Absent students show 0, not "missing from the report."`,
+    },
+    {
+      id: 'sql-jr-42',
+      level: 'junior',
+      topic: 'DML',
+      question: 'Write a query to give all products in the \'Electronics\' category a 10% price increase.',
+      code: `-- Products(id, name, price, category)`,
+      codeLanguage: 'sql',
+      answer: `\`\`\`sql
+UPDATE Products
+SET price = price * 1.10
+WHERE category = 'Electronics';
+\`\`\`
+
+**Before running any UPDATE in an interview or in production, always test your WHERE clause with a SELECT first:**
+\`\`\`sql
+-- Step 1: confirm which rows will be affected
+SELECT id, name, price, price * 1.10 AS new_price
+FROM Products
+WHERE category = 'Electronics';
+
+-- Step 2: only then run the UPDATE
+UPDATE Products
+SET price = price * 1.10
+WHERE category = 'Electronics';
+\`\`\`
+
+Mentioning this habit shows the interviewer you are careful with destructive statements — it's one of the real differentiators between juniors and seniors.`,
+      analogy: `Before repainting a room, you tape up everything that shouldn't be painted and do a test patch first. The SELECT is the test patch — confirm you've masked the right areas before the roller goes on.`,
+    },
+    {
+      id: 'sql-jr-43',
+      level: 'junior',
+      topic: 'Filtering',
+      question: 'What is the difference between = and LIKE in a WHERE clause?',
+      answer: `- **=** matches an *exact* value. Fast — can use an index.
+- **LIKE** matches a *pattern* using wildcards: **%** (any sequence of characters) and **_** (exactly one character). Slower on large tables, especially with a leading %.
+
+\`\`\`sql
+-- Exact match — only finds 'Smith', nothing else:
+SELECT * FROM Customers WHERE last_name = 'Smith';
+
+-- Pattern match — finds 'Smith', 'Smithson', 'Blacksmith':
+SELECT * FROM Customers WHERE last_name LIKE '%smith%';
+
+-- Starts with 'Sm':
+SELECT * FROM Customers WHERE last_name LIKE 'Sm%';
+
+-- Exactly 5 characters:
+SELECT * FROM Customers WHERE postcode LIKE '_____';
+\`\`\`
+
+**Performance note:** LIKE with a leading % (e.g. **LIKE '%smith'**) cannot use a standard B-tree index — it must scan the whole table. LIKE without a leading wildcard (e.g. **LIKE 'Sm%'**) can still use an index.`,
+      analogy: `Finding a book. **=** is looking up an exact ISBN number — one precise match, instant. **LIKE** is searching for any title *containing* the word "dragon" — you have to browse the whole shelf.`,
+    },
+    {
+      id: 'sql-jr-44',
+      level: 'junior',
+      topic: 'Query Writing',
+      question: 'Write a query to find all products with a price between 100 and 500.',
+      code: `-- Products(id, name, price)`,
+      codeLanguage: 'sql',
+      answer: `\`\`\`sql
+-- Using BETWEEN (inclusive on both ends):
+SELECT id, name, price
+FROM Products
+WHERE price BETWEEN 100 AND 500
+ORDER BY price;
+
+-- Equivalent explicit version:
+SELECT id, name, price
+FROM Products
+WHERE price >= 100 AND price <= 500
+ORDER BY price;
+\`\`\`
+
+**Important:** BETWEEN is *inclusive* — it includes both 100 and 500. If you want to exclude the boundaries, use the explicit >= / <= form with your chosen limits.
+
+**Follow-up interviewers often ask:** BETWEEN also works on dates and strings:
+\`\`\`sql
+WHERE order_date BETWEEN '2024-01-01' AND '2024-12-31'
+\`\`\``,
+      analogy: `A price filter on a shopping website. Sliding the range slider to 100–500 includes products *at* those prices — same as BETWEEN. "Greater than 100 and less than 500" would exclude the boundary prices.`,
+    },
+    {
+      id: 'sql-jr-45',
+      level: 'junior',
+      topic: 'Query Writing',
+      question: 'Write a query to display each customer\'s full name as a single column, combining first and last name.',
+      code: `-- Customers(id, first_name, last_name, email)`,
+      codeLanguage: 'sql',
+      answer: `\`\`\`sql
+-- Standard SQL (works in Postgres, SQL Server, Oracle):
+SELECT id,
+       first_name || ' ' || last_name AS full_name,
+       email
+FROM Customers;
+
+-- MySQL uses CONCAT:
+SELECT id,
+       CONCAT(first_name, ' ', last_name) AS full_name,
+       email
+FROM Customers;
+\`\`\`
+
+**Edge case the interviewer might probe:** what if either name is NULL?
+
+\`\`\`sql
+-- NULL + anything = NULL, so 'John' || NULL gives NULL, not 'John'
+-- Fix with COALESCE:
+SELECT COALESCE(first_name, '') || ' ' || COALESCE(last_name, '') AS full_name
+FROM Customers;
+\`\`\`
+
+Handling the NULL edge case is usually what separates a good answer from a great one.`,
+      analogy: `Writing a name tag. If you only have a first name, just use that — don't leave the tag blank because the last name field is empty. COALESCE is the fallback: "use the real value, or use this default if it's missing."`,
+    },
+    {
+      id: 'sql-jr-46',
+      level: 'junior',
+      topic: 'Aggregation',
+      question: 'Write a query to get the total, average, minimum, maximum, and count of salaries from an Employee table.',
+      code: `-- Employees(id, name, salary, department_id)`,
+      codeLanguage: 'sql',
+      answer: `\`\`\`sql
+SELECT
+  COUNT(*)          AS total_employees,
+  SUM(salary)       AS total_salary,
+  AVG(salary)       AS average_salary,
+  MIN(salary)       AS lowest_salary,
+  MAX(salary)       AS highest_salary
+FROM Employees;
+\`\`\`
+
+**Per department:**
+\`\`\`sql
+SELECT
+  department_id,
+  COUNT(*)     AS headcount,
+  ROUND(AVG(salary), 2) AS avg_salary,
+  MIN(salary)  AS min_salary,
+  MAX(salary)  AS max_salary
+FROM Employees
+GROUP BY department_id
+ORDER BY avg_salary DESC;
+\`\`\`
+
+**NULL behaviour:** all aggregate functions except COUNT(*) ignore NULLs. COUNT(*) counts all rows; COUNT(salary) counts only rows where salary is not NULL.`,
+      analogy: `A payroll summary on a spreadsheet. Instead of listing every employee line by line, you use the SUM, AVERAGE, MIN, and MAX formulas to get the key numbers at a glance — that's what SQL aggregate functions do at the database level.`,
+    },
+    {
+      id: 'sql-jr-47',
+      level: 'junior',
+      topic: 'Filtering',
+      question: 'Write a query to find all customers who live in either London or New York.',
+      answer: `\`\`\`sql
+-- Using IN (cleanest when checking multiple values):
+SELECT id, name, city
+FROM Customers
+WHERE city IN ('London', 'New York')
+ORDER BY city;
+
+-- Equivalent with OR:
+SELECT id, name, city
+FROM Customers
+WHERE city = 'London' OR city = 'New York';
+\`\`\`
+
+**IN is preferred** when checking against 3 or more values — more readable and the database can optimise it better than a long OR chain.
+
+**What NOT to do:**
+\`\`\`sql
+-- Wrong — this will never match anything:
+WHERE city = 'London' AND city = 'New York'
+-- A single value can't equal two different things simultaneously.
+\`\`\`
+
+The AND vs OR trap is one of the most common junior mistakes interviewers look for.`,
+      analogy: `A door list at a club with two VIP entrances — London and New York. IN is the bouncer checking a short list: "are you on this list?" Any match lets you in. AND would mean "you must simultaneously be from both cities" — nobody qualifies.`,
+    },
+    {
+      id: 'sql-jr-48',
+      level: 'junior',
+      topic: 'Query Writing',
+      question: 'Write a query to find all duplicate email addresses in a Customers table and show how many times each appears.',
+      code: `-- Customers(id, name, email)`,
+      codeLanguage: 'sql',
+      answer: `\`\`\`sql
+SELECT email, COUNT(*) AS occurrences
+FROM Customers
+GROUP BY email
+HAVING COUNT(*) > 1
+ORDER BY occurrences DESC;
+\`\`\`
+
+**If you also want to see the full rows (not just the emails):**
+\`\`\`sql
+SELECT *
+FROM Customers
+WHERE email IN (
+  SELECT email
+  FROM Customers
+  GROUP BY email
+  HAVING COUNT(*) > 1
+)
+ORDER BY email;
+\`\`\`
+
+**Why HAVING, not WHERE?** COUNT(*) is an aggregate — it only exists after the GROUP BY runs. WHERE filters rows *before* grouping and can't see aggregate values.`,
+      analogy: `Checking a school's enrolment records for duplicate names. You group students by name, count each group, and only raise your hand for groups with more than one — those are the duplicates worth investigating.`,
+    },
+    {
+      id: 'sql-jr-49',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'You ran a DELETE or UPDATE without a WHERE clause and affected all rows. What do you do?',
+      answer: `This is a critical situation — act immediately:
+
+**If you are inside an open transaction (BEGIN/START TRANSACTION):**
+\`\`\`sql
+ROLLBACK;
+\`\`\`
+This undoes all changes since the BEGIN. Check immediately — most databases auto-commit by default, so this window may be very small.
+
+**If auto-commit was on and the changes are committed:**
+1. **Stop any dependent processes** — prevent further writes that compound the damage.
+2. **Restore from the most recent backup** — this is why backups and regular restore tests exist.
+3. **Use transaction logs / point-in-time recovery** — most production databases (Postgres, SQL Server, MySQL with binlog) can replay or replay-minus changes from the log.
+4. **Escalate immediately** — don't try to fix it quietly; every minute matters.
+
+**How to prevent it next time:**
+- Always run a SELECT with the same WHERE first to preview affected rows.
+- Wrap destructive statements in an explicit BEGIN so you can ROLLBACK.
+- Restrict production write permissions so full-table DELETEs require elevated access.`,
+      analogy: `Accidentally erasing the whole whiteboard in a meeting room. If the cleaner is still in the room (transaction open), shout STOP and they can undo it. If they've already left and the room's been reset (auto-committed), you need the photo someone took earlier (the backup) — and you need to act fast before anything else overwrites it.`,
+    },
+    {
+      id: 'sql-jr-50',
+      level: 'junior',
+      topic: 'Query Writing',
+      question: 'Write a query to insert a new product only if a product with the same name does not already exist in the table.',
+      code: `-- Products(id, name, price, category)`,
+      codeLanguage: 'sql',
+      answer: `**Approach 1 — INSERT with NOT EXISTS (portable):**
+\`\`\`sql
+INSERT INTO Products (name, price, category)
+SELECT 'Wireless Mouse', 29.99, 'Electronics'
+WHERE NOT EXISTS (
+  SELECT 1 FROM Products WHERE name = 'Wireless Mouse'
+);
+\`\`\`
+
+**Approach 2 — Upsert / ON CONFLICT (Postgres):**
+\`\`\`sql
+INSERT INTO Products (name, price, category)
+VALUES ('Wireless Mouse', 29.99, 'Electronics')
+ON CONFLICT (name) DO NOTHING;
+-- Requires a UNIQUE constraint on the name column
+\`\`\`
+
+**Approach 3 — MySQL INSERT IGNORE:**
+\`\`\`sql
+INSERT IGNORE INTO Products (name, price, category)
+VALUES ('Wireless Mouse', 29.99, 'Electronics');
+\`\`\`
+
+**Best practice:** the safest long-term solution is a UNIQUE constraint on the column — then the database itself prevents duplicates regardless of how the insert is written.`,
+      analogy: `Adding a contact to a phone book. Before writing the name, you check if it already exists — if it does, you skip it; if it doesn't, you add it. A UNIQUE constraint is like the phone book rejecting duplicate entries automatically, no manual check needed.`,
+    },
 
     // ── Mid (2–5 yrs) ─────────────────────────────────────────
     {
@@ -1670,6 +2186,629 @@ SELECT customer_id FROM Orders WHERE year = 2024;
 Both remove duplicates automatically (like UNION, unlike UNION ALL).`,
       analogy: `Picture two overlapping circles (a Venn diagram). **INTERSECT** is the overlap in the middle; **EXCEPT** is the part of the left circle that the right one doesn't cover.`,
     },
+    {
+      id: 'sql-mid-32',
+      level: 'mid',
+      topic: 'Performance',
+      question: 'A query that ran in 2 seconds now takes 3 minutes after the table grew from 1M to 50M rows. How do you investigate and fix it?',
+      answer: `**Step 1 — Get the execution plan.**
+\`\`\`sql
+EXPLAIN ANALYZE SELECT ...;   -- Postgres
+EXPLAIN SELECT ...;           -- MySQL
+SET STATISTICS IO ON; SELECT ...; -- SQL Server
+\`\`\`
+Look for: **table scans** (Seq Scan / Table Scan) where you expected index seeks, and **nested loop joins** on large result sets.
+
+**Step 2 — Common culprits and fixes:**
+
+- **Missing index** — the plan shows a full scan on a 50M-row table. Add an index on the columns in WHERE, JOIN, and ORDER BY.
+- **Non-sargable WHERE clause** — a function wrapped around the column stops the index being used:
+\`\`\`sql
+-- Bad (can't use index):
+WHERE YEAR(order_date) = 2024
+
+-- Good (uses index):
+WHERE order_date >= '2024-01-01' AND order_date < '2025-01-01'
+\`\`\`
+- **Stats are stale** — the query planner makes bad decisions when it thinks the table still has 1M rows. Run ANALYZE (Postgres) or UPDATE STATISTICS (SQL Server).
+- **Cartesian product / bad JOIN** — a missing or wrong JOIN condition multiplies rows.
+- **SELECT *** — pulling 50 columns when you need 3 increases I/O dramatically.
+
+**Step 3 — Measure after each change.** Don't pile on fixes blindly; change one thing at a time and re-EXPLAIN.`,
+      analogy: `A delivery driver whose 5-minute route now takes 45 minutes because the city grew. First, look at the map (execution plan) to see where the bottleneck is — a missing shortcut (index), a road closure (bad join), or outdated map data (stale stats). Fix the biggest blockage first, then re-time the route.`,
+    },
+    {
+      id: 'sql-mid-33',
+      level: 'mid',
+      topic: 'Window Functions',
+      question: 'Write a query showing each salesperson\'s total revenue alongside the overall team average, in the same row.',
+      code: `-- Sales(salesperson_id, salesperson_name, amount)`,
+      codeLanguage: 'sql',
+      answer: `\`\`\`sql
+SELECT
+  salesperson_name,
+  SUM(amount)                        AS total_revenue,
+  ROUND(AVG(SUM(amount)) OVER (), 2) AS team_average,
+  SUM(amount) - AVG(SUM(amount)) OVER () AS diff_from_average
+FROM Sales
+GROUP BY salesperson_id, salesperson_name
+ORDER BY total_revenue DESC;
+\`\`\`
+
+**Why a window function?** A plain AVG(amount) in a GROUP BY would aggregate everything into one row. The window function **OVER ()** (empty window = whole result set) computes the average *across all salespeople* while still keeping one row per salesperson.
+
+**Alternative — CTE approach (often clearer in a real codebase):**
+\`\`\`sql
+WITH totals AS (
+  SELECT salesperson_name, SUM(amount) AS revenue
+  FROM Sales
+  GROUP BY salesperson_id, salesperson_name
+)
+SELECT
+  salesperson_name,
+  revenue,
+  ROUND(AVG(revenue) OVER (), 2) AS team_average
+FROM totals
+ORDER BY revenue DESC;
+\`\`\``,
+      analogy: `A school report card showing each student's grade *and* the class average on every line. You want both numbers visible at once — not a separate summary row. The window function is what puts the class average on every individual line without collapsing everything into one.`,
+    },
+    {
+      id: 'sql-mid-34',
+      level: 'mid',
+      topic: 'Query Writing',
+      question: 'Write a query to find the first purchase date and the most recent purchase date for each customer.',
+      code: `-- Orders(id, customer_id, order_date, amount)`,
+      codeLanguage: 'sql',
+      answer: `\`\`\`sql
+SELECT
+  customer_id,
+  MIN(order_date) AS first_purchase,
+  MAX(order_date) AS latest_purchase,
+  COUNT(*)        AS total_orders,
+  DATEDIFF(MAX(order_date), MIN(order_date)) AS days_as_customer  -- MySQL
+FROM Orders
+GROUP BY customer_id
+ORDER BY latest_purchase DESC;
+\`\`\`
+
+**A common follow-up:** also show the amount of their first and last order:
+\`\`\`sql
+SELECT DISTINCT
+  customer_id,
+  FIRST_VALUE(amount) OVER w AS first_order_amount,
+  LAST_VALUE(amount)  OVER w AS last_order_amount,
+  MIN(order_date)     OVER w AS first_date,
+  MAX(order_date)     OVER w AS latest_date
+FROM Orders
+WINDOW w AS (PARTITION BY customer_id ORDER BY order_date
+             ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING);
+\`\`\`
+The GROUP BY version handles most real-world cases; the window function approach is needed when you want values from specific rows (like the amount).`,
+      analogy: `Looking at a customer's file and noting when they first walked through the door and when they last visited. MIN gives the first date, MAX the latest — the simplest summary of their relationship history with the business.`,
+    },
+    {
+      id: 'sql-mid-35',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'You ran UPDATE without a WHERE clause and updated every row in a large table in production. What do you do?',
+      answer: `**This is a production incident — respond immediately:**
+
+**If inside an open transaction:**
+\`\`\`sql
+ROLLBACK;
+\`\`\`
+Confirm auto-commit is off first — if it was on, the changes are already committed.
+
+**If already committed:**
+1. **Assess blast radius first** — how many rows, which table, what was changed? Inform your team lead immediately.
+2. **Stop dependent processes** — prevent downstream systems from reading or acting on the corrupted data.
+3. **Point-in-time recovery** — most production databases support this. Restore to a snapshot taken just before the incident.
+4. **Replay from transaction logs** if a full restore is too slow — reconstruct the original values from the WAL (Postgres), binlog (MySQL), or transaction log (SQL Server).
+5. **Communicate with stakeholders** — don't hide it; be transparent about impact and timeline.
+
+**How to never repeat this:**
+- Always preview with SELECT using the same WHERE before running UPDATE or DELETE.
+- Wrap destructive statements in explicit BEGIN / ROLLBACK / COMMIT.
+- Add a database role restriction: application accounts should not have permission to run unfiltered mass updates.`,
+      analogy: `Accidentally sending a mass email to every customer with the wrong name merged in. You can't un-send it — but you can send a correction quickly, figure out exactly who received the wrong email (blast radius), and change the process so a confirmation step is required before any bulk send.`,
+    },
+    {
+      id: 'sql-mid-36',
+      level: 'mid',
+      topic: 'Data Modification',
+      question: 'How do you find duplicate rows in a table and delete them, keeping only one row per group?',
+      code: `-- Customers(id, name, email)  -- email should be unique but has duplicates`,
+      codeLanguage: 'sql',
+      answer: `**Step 1 — Find the duplicates:**
+\`\`\`sql
+SELECT email, COUNT(*) AS cnt
+FROM Customers
+GROUP BY email
+HAVING COUNT(*) > 1;
+\`\`\`
+
+**Step 2 — Delete duplicates, keeping the row with the lowest id (Postgres/MySQL):**
+\`\`\`sql
+DELETE FROM Customers
+WHERE id NOT IN (
+  SELECT MIN(id)
+  FROM Customers
+  GROUP BY email
+);
+\`\`\`
+
+**Postgres with CTE (cleaner and safer — preview before you delete):**
+\`\`\`sql
+-- First, see what will be deleted:
+WITH ranked AS (
+  SELECT id,
+         ROW_NUMBER() OVER (PARTITION BY email ORDER BY id) AS rn
+  FROM Customers
+)
+SELECT * FROM ranked WHERE rn > 1;
+
+-- Then delete:
+WITH ranked AS (
+  SELECT id,
+         ROW_NUMBER() OVER (PARTITION BY email ORDER BY id) AS rn
+  FROM Customers
+)
+DELETE FROM Customers
+WHERE id IN (SELECT id FROM ranked WHERE rn > 1);
+\`\`\`
+
+Always run the SELECT version first — confirm exactly which rows will go before you delete.`,
+      analogy: `Deduplicating a contacts list. You group by name and phone number, keep the oldest entry (the original), and remove all the later copies. But before pressing delete, you check the list of what's about to be removed to make sure it's right.`,
+    },
+    {
+      id: 'sql-mid-37',
+      level: 'mid',
+      topic: 'Window Functions',
+      question: 'Write a query to calculate the running total of daily sales.',
+      code: `-- DailySales(sale_date, amount)`,
+      codeLanguage: 'sql',
+      answer: `\`\`\`sql
+SELECT
+  sale_date,
+  amount,
+  SUM(amount) OVER (
+    ORDER BY sale_date
+    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  ) AS running_total
+FROM DailySales
+ORDER BY sale_date;
+\`\`\`
+
+**Breaking it down:**
+- **SUM(amount) OVER (...)** — a window function, so it gives a value per row without collapsing the result.
+- **ORDER BY sale_date** — tells the window to accumulate in date order.
+- **ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW** — "from the very first row up to and including this one." This is often the default when ORDER BY is specified, but writing it explicitly makes the intent clear.
+
+**Variation — running total per category:**
+\`\`\`sql
+SUM(amount) OVER (PARTITION BY category ORDER BY sale_date)
+\`\`\`
+PARTITION BY restarts the running total for each category.`,
+      analogy: `A bank statement balance column. Each line shows the transaction amount *and* the total balance so far. The balance is the running sum — each row adds its amount to everything above it.`,
+    },
+    {
+      id: 'sql-mid-38',
+      level: 'mid',
+      topic: 'Query Writing',
+      question: 'Write a query to find gaps in a sequential ID column — IDs that are missing from the sequence.',
+      code: `-- Orders(id)  -- id should be 1, 2, 3... but some are missing`,
+      codeLanguage: 'sql',
+      answer: `**Approach 1 — self-join to find missing numbers:**
+\`\`\`sql
+SELECT t1.id + 1 AS gap_start
+FROM Orders t1
+LEFT JOIN Orders t2 ON t2.id = t1.id + 1
+WHERE t2.id IS NULL
+  AND t1.id < (SELECT MAX(id) FROM Orders)
+ORDER BY gap_start;
+\`\`\`
+This finds every ID where the *next* ID doesn't exist.
+
+**Approach 2 — window function (cleaner, finds gap ranges):**
+\`\`\`sql
+WITH numbered AS (
+  SELECT id,
+         LEAD(id) OVER (ORDER BY id) AS next_id
+  FROM Orders
+)
+SELECT id + 1      AS gap_start,
+       next_id - 1 AS gap_end
+FROM numbered
+WHERE next_id > id + 1;
+\`\`\`
+LEAD looks at the next row's ID. If next_id > current id + 1, there's a gap between them.`,
+      analogy: `Checking a numbered ticket roll for missing stubs. You look at each stub and check whether the next number up exists. If ticket 47 is there but 48 is not and 49 is, there's a gap at 48. LEAD is what lets you peek at the next ticket in one query.`,
+    },
+    {
+      id: 'sql-mid-39',
+      level: 'mid',
+      topic: 'Performance',
+      question: 'Your query has 4 JOINs and is very slow. What do you look at first?',
+      answer: `**Start with EXPLAIN ANALYZE** — don't guess. The plan tells you where the time is actually going.
+
+**What to look for in the plan:**
+
+1. **Table scans on large tables** — are any of the 4 joined tables being fully scanned? Add indexes on the JOIN keys and any filtered columns.
+
+2. **Join order** — the database should join small filtered sets first. If the planner is joining two huge tables before filtering, a hint or a CTE that filters first can help.
+
+3. **Nested loops on large sets** — a nested loop JOIN is O(n×m). For large tables, a hash join or merge join is better. Check if missing indexes are forcing nested loops.
+
+4. **Cartesian product** — a missing or incorrect JOIN condition creates a row explosion. Check that every JOIN has a proper ON condition.
+
+5. **Pulling too many columns** — SELECT * across 4 JOINed tables drags in enormous amounts of data. Select only the columns you need.
+
+6. **Intermediate result sizes** — add a CTE or subquery to filter a large table *before* joining it, rather than joining 50M rows and filtering afterward.
+
+**Practical rule:** index every foreign key column and every column that appears in WHERE or JOIN conditions.`,
+      analogy: `A traffic map with 4 intersections all backed up. You don't just add lanes everywhere — you look at the map to find which intersection is the actual bottleneck, fix that one, and re-check before touching the others.`,
+    },
+    {
+      id: 'sql-mid-40',
+      level: 'mid',
+      topic: 'Query Writing',
+      question: 'Write a query to find the percentage contribution of each product category to total revenue.',
+      code: `-- OrderItems(order_id, category, amount)`,
+      codeLanguage: 'sql',
+      answer: `\`\`\`sql
+SELECT
+  category,
+  SUM(amount)                                            AS category_revenue,
+  ROUND(SUM(amount) * 100.0 / SUM(SUM(amount)) OVER (), 2) AS pct_of_total
+FROM OrderItems
+GROUP BY category
+ORDER BY category_revenue DESC;
+\`\`\`
+
+**Breaking it down:**
+- **SUM(amount)** — total revenue per category (GROUP BY).
+- **SUM(SUM(amount)) OVER ()** — the window function with an empty OVER() spans the entire result set, summing all the per-category totals into the grand total.
+- *** 100.0** — forces decimal division (integer / integer truncates in some databases).
+
+**Alternative with CTE (avoids nested aggregates):**
+\`\`\`sql
+WITH totals AS (
+  SELECT category, SUM(amount) AS revenue
+  FROM OrderItems
+  GROUP BY category
+),
+grand AS (SELECT SUM(revenue) AS total FROM totals)
+SELECT t.category, t.revenue,
+       ROUND(t.revenue * 100.0 / g.total, 2) AS pct
+FROM totals t, grand g
+ORDER BY t.revenue DESC;
+\`\`\``,
+      analogy: `A budget pie chart. Each slice is a category's share. To find each slice's percentage you need each slice's size *and* the whole pie's size. The window function is what gives you the whole pie size without a separate query.`,
+    },
+    {
+      id: 'sql-mid-41',
+      level: 'mid',
+      topic: 'Window Functions',
+      question: 'How do you compare a value in the current row with the value in the previous row — for example, month-over-month revenue change?',
+      code: `-- MonthlySales(month, revenue)`,
+      codeLanguage: 'sql',
+      answer: `Use the **LAG** window function to look back one row:
+
+\`\`\`sql
+SELECT
+  month,
+  revenue,
+  LAG(revenue) OVER (ORDER BY month)                          AS prev_month_revenue,
+  revenue - LAG(revenue) OVER (ORDER BY month)                AS change,
+  ROUND(
+    (revenue - LAG(revenue) OVER (ORDER BY month))
+    * 100.0 / LAG(revenue) OVER (ORDER BY month), 2
+  )                                                           AS pct_change
+FROM MonthlySales
+ORDER BY month;
+\`\`\`
+
+- **LAG(revenue)** — returns the revenue from the *previous* row in the ORDER BY sequence.
+- **LEAD(revenue)** — looks *forward* one row instead.
+- The first row has no previous row, so LAG returns NULL — your reporting layer handles that as "no comparison available."
+
+**For year-over-year (same month, prior year):**
+\`\`\`sql
+LAG(revenue, 12) OVER (ORDER BY month)
+\`\`\`
+The second argument is how many rows back to look.`,
+      analogy: `Reading a bank statement where each line also shows last month's balance for comparison. LAG is what reaches back one row to get that "previous" number — without a self-join or a subquery.`,
+    },
+    {
+      id: 'sql-mid-42',
+      level: 'mid',
+      topic: 'Joins',
+      question: 'Your JOIN query is returning more rows than expected — duplicates in the result. What are the likely causes and how do you fix them?',
+      answer: `Duplicate rows from JOINs almost always come from one of these:
+
+**1. Many-to-many relationship without a bridging table**
+If Orders and Products are joined directly, and an order has 3 products and a product is in 5 orders, you get 15 rows — the Cartesian product. Fix: join through the correct junction table (OrderItems).
+
+**2. Duplicate rows in one of the source tables**
+Check each table independently before joining:
+\`\`\`sql
+SELECT customer_id, COUNT(*) FROM Orders GROUP BY customer_id HAVING COUNT(*) > 1;
+\`\`\`
+If the source is dirty, clean it or deduplicate before joining.
+
+**3. Missing or wrong JOIN condition**
+A join with no ON clause or an always-true condition creates a full Cartesian product.
+\`\`\`sql
+-- Accidental Cartesian product:
+SELECT * FROM Customers, Orders;  -- missing WHERE/ON
+\`\`\`
+
+**4. Multiple matching rows on the right side**
+A customer with 3 addresses LEFT JOINed to their orders will duplicate every order 3 times. Fix: filter to one address per customer before joining, or aggregate first.
+
+**Diagnostic approach:**
+Run each table/join step in isolation, count the rows at each stage, and find where the count first exceeds what you expect.`,
+      analogy: `Photocopying a document where one page accidentally gets fed through three times. Each extra copy multiplies everything that follows. Identify which table is the "three-copy page" and deduplicate it before it enters the stack.`,
+    },
+    {
+      id: 'sql-mid-43',
+      level: 'mid',
+      topic: 'Query Writing',
+      question: 'Write a query to list every department and its employee headcount, including departments with zero employees.',
+      code: `-- Departments(id, name)
+-- Employees(id, name, department_id)`,
+      codeLanguage: 'sql',
+      answer: `\`\`\`sql
+SELECT d.name AS department,
+       COUNT(e.id) AS headcount
+FROM Departments d
+LEFT JOIN Employees e ON e.department_id = d.id
+GROUP BY d.id, d.name
+ORDER BY headcount DESC;
+\`\`\`
+
+**Key points:**
+- **LEFT JOIN** keeps all departments even if no employee rows match.
+- **COUNT(e.id)** counts non-NULL employee IDs — returns 0 for departments with no employees. **COUNT(*)** would return 1 instead of 0, which is wrong.
+- If you used INNER JOIN, departments with no employees would silently disappear from the result.
+
+**A common follow-up:** also show the highest salary per department:
+\`\`\`sql
+SELECT d.name,
+       COUNT(e.id)   AS headcount,
+       MAX(e.salary) AS top_salary
+FROM Departments d
+LEFT JOIN Employees e ON e.department_id = d.id
+GROUP BY d.id, d.name;
+\`\`\``,
+      analogy: `A company org chart including empty seats. You want every department to appear — even the one that just lost its whole team. LEFT JOIN is what keeps the empty departments visible; COUNT of the employee ID is what correctly reports them as 0 rather than pretending one ghost employee is there.`,
+    },
+    {
+      id: 'sql-mid-44',
+      level: 'mid',
+      topic: 'Aggregation',
+      question: 'How does NULL behave inside aggregate functions like SUM, COUNT, and AVG? Show an example where it matters.',
+      answer: `**The rule:** all aggregate functions *except* COUNT(*) silently ignore NULL values.
+
+\`\`\`sql
+-- Table: Sales(id, amount)
+-- Rows: 100, NULL, 200, NULL, 300
+SELECT
+  COUNT(*)        AS total_rows,     -- 5  (counts everything including NULLs)
+  COUNT(amount)   AS non_null_rows,  -- 3  (skips NULLs)
+  SUM(amount)     AS total,          -- 600 (NULLs ignored)
+  AVG(amount)     AS average         -- 200 (600 / 3, not 600 / 5!)
+FROM Sales;
+\`\`\`
+
+**The trap:** AVG divides by the count of non-NULL values (3), not total rows (5). If NULLs mean "zero" in your domain, you must replace them first:
+\`\`\`sql
+AVG(COALESCE(amount, 0))   -- treats NULL as 0: 600 / 5 = 120
+\`\`\`
+
+**NULL in GROUP BY:** NULL values form their own group — all rows where the grouped column is NULL are placed together, not discarded.
+
+This is one of the most common sources of wrong aggregate results in real reports — always check what NULLs in your data actually mean before writing the query.`,
+      analogy: `Calculating a class average. If 2 students were absent and got NULL (no grade), AVG ignores them and divides by the students who showed up. If the absent students should count as zero, you have to fill in the zero yourself before calculating.`,
+    },
+    {
+      id: 'sql-mid-45',
+      level: 'mid',
+      topic: 'Query Writing',
+      question: 'Write a query to find customers who placed at least one order in every month of the current year.',
+      code: `-- Orders(id, customer_id, order_date)`,
+      codeLanguage: 'sql',
+      answer: `\`\`\`sql
+SELECT customer_id
+FROM Orders
+WHERE order_date >= DATE_TRUNC('year', CURRENT_DATE)
+  AND order_date <  DATE_TRUNC('year', CURRENT_DATE) + INTERVAL '1 year'
+GROUP BY customer_id
+HAVING COUNT(DISTINCT EXTRACT(MONTH FROM order_date)) = 12;
+\`\`\`
+
+**Breaking it down:**
+- Filter to the current year with a date range (avoids wrapping the column in a function).
+- GROUP BY customer_id — one group per customer.
+- COUNT(DISTINCT EXTRACT(MONTH FROM order_date)) — how many distinct months this customer ordered in.
+- HAVING = 12 — only keep customers present in all 12 months.
+
+**If running mid-year** and you want "every month so far":
+\`\`\`sql
+HAVING COUNT(DISTINCT EXTRACT(MONTH FROM order_date)) = EXTRACT(MONTH FROM CURRENT_DATE)
+\`\`\``,
+      analogy: `Finding gym members who checked in every single month of the year — not just those who visit frequently, but those with no month where they completely vanished. COUNT DISTINCT months and keep only those with 12.`,
+    },
+    {
+      id: 'sql-mid-46',
+      level: 'mid',
+      topic: 'Query Writing',
+      question: 'How do you pivot rows into columns in SQL? Show a practical example.',
+      code: `-- Sales(salesperson, month, revenue)
+-- Rows: Alice/Jan/1000, Alice/Feb/1200, Bob/Jan/900, Bob/Feb/800`,
+      codeLanguage: 'sql',
+      answer: `**Approach 1 — Conditional aggregation (most portable):**
+\`\`\`sql
+SELECT
+  salesperson,
+  SUM(CASE WHEN month = 'Jan' THEN revenue ELSE 0 END) AS jan,
+  SUM(CASE WHEN month = 'Feb' THEN revenue ELSE 0 END) AS feb,
+  SUM(CASE WHEN month = 'Mar' THEN revenue ELSE 0 END) AS mar
+FROM Sales
+GROUP BY salesperson;
+\`\`\`
+
+**Approach 2 — PIVOT syntax (SQL Server / Oracle):**
+\`\`\`sql
+SELECT salesperson, [Jan], [Feb], [Mar]
+FROM Sales
+PIVOT (SUM(revenue) FOR month IN ([Jan], [Feb], [Mar])) AS pvt;
+\`\`\`
+
+**Result:**
+| salesperson | jan  | feb  |
+|---|---:|---:|
+| Alice | 1000 | 1200 |
+| Bob | 900 | 800 |
+
+The CASE/SUM approach works in every major database and is easier to read for most teams. PIVOT is cleaner but vendor-specific.`,
+      analogy: `Rotating a spreadsheet. The months were row labels and you want them as column headers. You're not changing the data — just reshaping how it's laid out so comparison across months becomes a left-right scan instead of a top-down one.`,
+    },
+    {
+      id: 'sql-mid-47',
+      level: 'mid',
+      topic: 'Performance',
+      question: 'How do you identify which queries are consuming the most resources on the database right now?',
+      answer: `Each database has its own tooling, but the approach is the same: **look at the query stats views**.
+
+**Postgres:**
+\`\`\`sql
+SELECT query,
+       calls,
+       total_exec_time,
+       mean_exec_time,
+       rows
+FROM pg_stat_statements
+ORDER BY total_exec_time DESC
+LIMIT 10;
+\`\`\`
+Requires the pg_stat_statements extension enabled.
+
+**MySQL:**
+\`\`\`sql
+SELECT * FROM performance_schema.events_statements_summary_by_digest
+ORDER BY sum_timer_wait DESC
+LIMIT 10;
+\`\`\`
+
+**SQL Server:**
+\`\`\`sql
+SELECT TOP 10
+  total_elapsed_time / execution_count AS avg_elapsed_ms,
+  execution_count,
+  SUBSTRING(st.text, 1, 200) AS query_snippet
+FROM sys.dm_exec_query_stats qs
+CROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) st
+ORDER BY avg_elapsed_ms DESC;
+\`\`\`
+
+**For live active queries (what's running right now):**
+\`\`\`sql
+SELECT * FROM pg_stat_activity WHERE state = 'active';  -- Postgres
+SHOW PROCESSLIST;                                        -- MySQL
+\`\`\`
+
+The stat views tell you cumulative cost since last reset — great for finding which queries to tune. The activity views show you what's blocking or slow right now.`,
+      analogy: `A call centre's performance dashboard. You don't guess which agent is overwhelmed — you look at the metrics: who has the longest call duration, the highest call volume, the most hold time. The database stat views are that dashboard for queries.`,
+    },
+    {
+      id: 'sql-mid-48',
+      level: 'mid',
+      topic: 'Window Functions',
+      question: 'Write a query to rank customers by their total spending, with the highest spender ranked 1. Handle ties correctly.',
+      code: `-- Orders(id, customer_id, amount)
+-- Customers(id, name)`,
+      codeLanguage: 'sql',
+      answer: `\`\`\`sql
+SELECT
+  c.name,
+  SUM(o.amount)                                AS total_spent,
+  RANK()       OVER (ORDER BY SUM(o.amount) DESC) AS rank_with_gaps,
+  DENSE_RANK() OVER (ORDER BY SUM(o.amount) DESC) AS rank_no_gaps,
+  ROW_NUMBER() OVER (ORDER BY SUM(o.amount) DESC) AS row_num
+FROM Customers c
+JOIN Orders o ON o.customer_id = c.id
+GROUP BY c.id, c.name
+ORDER BY total_spent DESC;
+\`\`\`
+
+**Which to use:**
+- **DENSE_RANK** — if two customers tie for 1st, both get rank 1 and the next gets rank 2. Best for "Top 10 spenders" where ties should count once.
+- **RANK** — ties both get rank 1 but the next rank jumps to 3 (the gap). Reflects competition style: two gold medals, no silver.
+- **ROW_NUMBER** — unique position for every row, ties broken arbitrarily. Best when you need exactly N rows.
+
+The interviewer is listening for you to know the difference — it shows you've dealt with real ranking requirements.`,
+      analogy: `A marathon finishing list. DENSE_RANK: two runners cross simultaneously — both are 1st, next runner is 2nd. RANK: both are 1st, next runner is 3rd (no 2nd place given out). ROW_NUMBER: a photo finish picks one as 1st regardless of the tie.`,
+    },
+    {
+      id: 'sql-mid-49',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you test a complex stored procedure or SQL function before deploying it to production?',
+      answer: `Testing a stored procedure is systematic, not ad-hoc:
+
+**1. Test in a non-production environment first**
+Never run untested logic against production data. Use a staging or dev database with a realistic data set.
+
+**2. Boundary and edge cases**
+- Valid inputs that cover all code paths.
+- Empty inputs / NULL parameters — does it handle them gracefully or throw an unhandled error?
+- Boundary values (zero rows, one row, maximum rows).
+- Invalid inputs — what error does the caller receive?
+
+**3. Verify the output**
+Cross-check the stored procedure's output against a manually written query that produces the expected result. If they disagree, find out why.
+
+**4. Test transaction behaviour**
+- Does it commit correctly on success?
+- Does it roll back cleanly on failure without leaving partial data?
+- Does it handle concurrent calls safely?
+
+**5. Performance check**
+Run EXPLAIN ANALYZE on the key statements inside the procedure. A procedure that works correctly on 1,000 rows may be unacceptably slow on 10 million.
+
+**6. Regression test after any change**
+Any modification to the procedure re-triggers the full test cycle — not just the changed path.`,
+      analogy: `Testing a new recipe before serving it at a dinner party. You cook it in your own kitchen first (dev environment), taste it with the edge-case ingredient variations (NULL inputs, empty lists), confirm the dish matches what the menu promised (output verification), and make sure it scales before cooking for 200 guests (performance).`,
+    },
+    {
+      id: 'sql-mid-50',
+      level: 'mid',
+      topic: 'Window Functions',
+      question: 'Write a query to show month-over-month revenue change — both the absolute difference and the percentage change.',
+      code: `-- MonthlySales(month DATE, revenue NUMERIC)`,
+      codeLanguage: 'sql',
+      answer: `\`\`\`sql
+SELECT
+  month,
+  revenue,
+  LAG(revenue) OVER (ORDER BY month)                              AS prev_revenue,
+  revenue - LAG(revenue) OVER (ORDER BY month)                    AS abs_change,
+  ROUND(
+    (revenue - LAG(revenue) OVER (ORDER BY month))
+    * 100.0
+    / NULLIF(LAG(revenue) OVER (ORDER BY month), 0),
+  2)                                                              AS pct_change
+FROM MonthlySales
+ORDER BY month;
+\`\`\`
+
+**Why NULLIF(..., 0)?** If last month's revenue was zero, dividing by it causes a divide-by-zero error. NULLIF returns NULL instead of 0, so the division produces NULL gracefully — which is correct ("undefined % change from zero").
+
+**Interviewer follow-up — what does the first row show?** LAG returns NULL for the first row (no prior month). The abs_change and pct_change columns correctly show NULL, meaning "no comparison available."`,
+      analogy: `A finance dashboard showing each month's revenue and the arrow next to it — up 12%, down 3%. LAG is what puts last month's number next to this month's so you can compute the arrow. NULLIF protects against the embarrassing divide-by-zero on a brand-new product's first month.`,
+    },
 
     // ── Senior (5+ yrs) ───────────────────────────────────────
     {
@@ -2383,6 +3522,714 @@ CREATE INDEX idx_active_signup ON Users(is_active, signup_date);
 \`\`\`
 Rule of thumb: index for the queries you actually run, and measure — don't index "just in case."`,
       analogy: `An index is like adding a detailed table-of-contents to a document. For a 2-page memo it's pointless overhead; for a section that's just "yes/no" it barely helps you find anything; and if the document changes constantly, you're forever reprinting the contents page. Add one only where it genuinely speeds up finding things.`,
+    },
+    {
+      id: 'sql-sr-32',
+      level: 'senior',
+      topic: 'Performance',
+      question: 'Production database CPU is at 100% and queries are timing out. Walk me through your investigation.',
+      answer: `**Don't restart first — investigate first. A restart hides the evidence.**
+
+**Step 1 — Find what's running:**
+\`\`\`sql
+-- Postgres: active queries right now
+SELECT pid, now() - query_start AS duration, query, state
+FROM pg_stat_activity
+WHERE state = 'active'
+ORDER BY duration DESC;
+
+-- MySQL
+SHOW PROCESSLIST;
+\`\`\`
+
+**Step 2 — Identify the heaviest queries:**
+\`\`\`sql
+-- Postgres: top queries by total CPU time
+SELECT query, calls, total_exec_time, mean_exec_time
+FROM pg_stat_statements
+ORDER BY total_exec_time DESC LIMIT 10;
+\`\`\`
+
+**Step 3 — Check for locks:**
+\`\`\`sql
+-- Postgres: who is blocked?
+SELECT blocked.pid, blocking.pid AS blocking_pid, blocked.query
+FROM pg_stat_activity blocked
+JOIN pg_stat_activity blocking ON blocking.pid = ANY(pg_blocking_pids(blocked.pid));
+\`\`\`
+
+**Common causes in order of likelihood:**
+1. A new slow query (missing index after schema change or data growth).
+2. A lock chain — one long-running transaction blocking many others.
+3. A runaway loop in a stored procedure.
+4. Sudden traffic spike — check application logs alongside DB logs.
+5. Autovacuum storm on a write-heavy table (Postgres-specific).
+
+**Mitigate:** kill the worst offending query (\`pg_cancel_backend(pid)\`) only if you understand what it is — not blindly.`,
+      analogy: `A hospital A&E with all beds occupied and new patients still arriving. First thing: who are the patients taking the longest and why? Find the blocked beds (locks), identify who's been there longest (long queries), and triage — not turn everyone away at the door.`,
+    },
+    {
+      id: 'sql-sr-33',
+      level: 'senior',
+      topic: 'Schema Design',
+      question: 'You need to migrate a 500-million-row table with zero downtime. How do you approach it?',
+      answer: `A full table migration with a lock is not an option at this scale. The approach is a **dual-write / shadow table migration**:
+
+**Phase 1 — Create the new table**
+Create the target table (new schema, new name) alongside the existing one — no traffic impact yet.
+
+**Phase 2 — Backfill in batches**
+Copy rows in small chunks (e.g., 10,000 rows at a time), with a short sleep between batches to avoid overwhelming the database:
+\`\`\`sql
+INSERT INTO orders_new SELECT * FROM orders WHERE id BETWEEN 1 AND 10000;
+-- commit, sleep, next batch
+\`\`\`
+This runs for hours or days without locking.
+
+**Phase 3 — Dual-write**
+Update the application to write to *both* old and new tables simultaneously. New rows land in both; backfill catches up to the cutover point.
+
+**Phase 4 — Verify**
+Run checksums or row counts to confirm the new table is complete and consistent.
+
+**Phase 5 — Cutover**
+Briefly pause writes (maintenance window of seconds, not hours), do a final top-up of any rows written since the last batch, then switch reads and writes entirely to the new table.
+
+**Phase 6 — Cleanup**
+Drop the old table once confirmed stable.
+
+Tools like **gh-ost** (MySQL) or **pg_repack** (Postgres) automate this pattern.`,
+      analogy: `Replacing a motorway while keeping traffic flowing. You build the new lane alongside the old one, gradually move traffic over (dual-write), run both in parallel until you confirm no cars are on the old road, then close and demolish it. You never close the whole motorway at once.`,
+    },
+    {
+      id: 'sql-sr-34',
+      level: 'senior',
+      topic: 'Indexing',
+      question: 'What is a covering index and how does it eliminate a table lookup?',
+      answer: `A **covering index** is an index that contains every column a query needs — so the database can answer the query entirely from the index, without ever touching the actual table rows.
+
+Normally a query uses an index to find *which rows* match, then does a separate **table lookup** (heap fetch / key lookup) to get the actual column values. This second step is expensive on large result sets.
+
+A covering index eliminates that second step:
+
+\`\`\`sql
+-- Query:
+SELECT name, email FROM Customers WHERE status = 'active';
+
+-- Standard index on status alone:
+-- 1. Seek index to find matching rows → get row pointers
+-- 2. Fetch each row from the table to get name and email  ← extra I/O
+
+-- Covering index includes name and email too:
+CREATE INDEX idx_covering ON Customers(status) INCLUDE (name, email);
+-- Now the index itself has status + name + email
+-- Step 2 is eliminated entirely
+\`\`\`
+
+**INCLUDE** (SQL Server, Postgres) adds columns to the index leaf pages without making them part of the sort key — so the index stays narrow for seeking, but wide enough for the query to be self-contained.
+
+**When to use:** high-frequency queries on large tables where the table fetch is visibly expensive in the execution plan (look for "Key Lookup" or "Heap Fetches" in EXPLAIN).`,
+      analogy: `A library catalogue card that also shows the full book summary, not just the shelf location. Normally you use the card to find the shelf, then walk there to read. A covering index is the card that has everything — you never leave the catalogue room.`,
+    },
+    {
+      id: 'sql-sr-35',
+      level: 'senior',
+      topic: 'Performance',
+      question: 'EXPLAIN shows a table scan despite an index existing on the filtered column. What are the possible reasons?',
+      answer: `This is a common senior interview question — there are several reasons the planner might ignore an index:
+
+**1. Low cardinality / poor selectivity**
+The column has very few distinct values (e.g. status = 'active' covers 90% of rows). The planner calculates that a full scan is faster than reading the index and then fetching 90% of the table anyway.
+
+**2. Stale statistics**
+The planner thinks the table has 1,000 rows (old stats) but it now has 50 million. Run ANALYZE (Postgres) or UPDATE STATISTICS (SQL Server) to refresh.
+
+**3. Non-sargable predicate — function on the column**
+\`\`\`sql
+WHERE UPPER(email) = 'USER@X.COM'   -- index on email is bypassed
+WHERE YEAR(created_at) = 2024       -- index on created_at is bypassed
+\`\`\`
+Fix: rewrite the predicate so the column is bare, or create a functional index.
+
+**4. Small table**
+Below a certain row count, a full scan is faster than index overhead. The planner is correct to ignore the index here.
+
+**5. Wrong data type / implicit conversion**
+\`\`\`sql
+WHERE user_id = '123'  -- user_id is INT; string comparison forces a cast
+\`\`\`
+The implicit conversion prevents the index from being used.
+
+**6. Index is bloated or fragmented**
+Rebuild or reindex to recover efficiency.
+
+**Diagnosis:** add an index hint temporarily to force the index and compare execution times — if forcing it is slower, the planner was right.`,
+      analogy: `A shortcut on your commute that you ignore when it's rush hour because the main road is actually faster despite the distance. The planner looked at the traffic (data distribution) and made the same rational call. Understanding *why* it chose the main road is more useful than forcing it back onto the shortcut.`,
+    },
+    {
+      id: 'sql-sr-36',
+      level: 'senior',
+      topic: 'Schema Design',
+      question: 'How do you design a table to store hierarchical data — an org chart or category tree?',
+      answer: `There are three main approaches, each with real trade-offs:
+
+**1. Adjacency List (simplest — one parent_id column)**
+\`\`\`sql
+CREATE TABLE Categories (
+  id        INT PRIMARY KEY,
+  name      VARCHAR(100),
+  parent_id INT REFERENCES Categories(id)  -- NULL = root
+);
+\`\`\`
+Pros: simple to implement and update. Cons: traversing the whole tree requires recursive CTEs or application-side loops.
+
+**Querying the full tree (Postgres/SQL Server with recursive CTE):**
+\`\`\`sql
+WITH RECURSIVE tree AS (
+  SELECT id, name, parent_id, 0 AS depth
+  FROM Categories WHERE parent_id IS NULL   -- start at root
+  UNION ALL
+  SELECT c.id, c.name, c.parent_id, t.depth + 1
+  FROM Categories c
+  JOIN tree t ON t.id = c.parent_id
+)
+SELECT * FROM tree ORDER BY depth;
+\`\`\`
+
+**2. Nested Set (fast reads, complex writes)**
+Each node stores left and right bounds. Any node whose bounds fall inside another's is a descendant. Reads are a simple range query; inserts/deletes require renumbering every node — painful for frequently-changing trees.
+
+**3. Closure Table (best for complex traversal)**
+A separate table stores every ancestor-descendant pair. Reads and traversal are simple joins; writes insert multiple rows.
+
+**Practical advice:** use Adjacency List + recursive CTEs for most applications — it's maintainable and correct. Move to a Closure Table only if complex tree queries are frequent and performance is a proven problem.`,
+      analogy: `Storing a family tree. Adjacency List is writing each person's parent's name — simple, but finding all descendants of a great-grandmother takes multiple lookups. Nested Set is drawing boxes within boxes on a map — one scan finds all descendants, but moving someone means redrawing all the boxes.`,
+    },
+    {
+      id: 'sql-sr-37',
+      level: 'senior',
+      topic: 'Schema Design',
+      question: 'How do you design a full audit trail system that records every INSERT, UPDATE, and DELETE on a critical table?',
+      answer: `An audit trail must capture who changed what, when, and what the old value was. Two main approaches:
+
+**Approach 1 — Trigger-based audit table**
+\`\`\`sql
+CREATE TABLE Orders_Audit (
+  audit_id    BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  operation   CHAR(1),       -- 'I', 'U', 'D'
+  changed_at  TIMESTAMPTZ DEFAULT NOW(),
+  changed_by  TEXT,
+  old_data    JSONB,         -- full row before change
+  new_data    JSONB          -- full row after change
+);
+
+CREATE OR REPLACE FUNCTION audit_orders() RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO Orders_Audit(operation, changed_by, old_data, new_data)
+  VALUES (
+    LEFT(TG_OP, 1),
+    current_user,
+    row_to_json(OLD),
+    row_to_json(NEW)
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_audit_orders
+AFTER INSERT OR UPDATE OR DELETE ON Orders
+FOR EACH ROW EXECUTE FUNCTION audit_orders();
+\`\`\`
+
+**Approach 2 — Application-level audit log**
+The application writes to an audit table explicitly before/after every change. More control, no trigger overhead, but easy to miss in code paths.
+
+**What a good audit record must contain:**
+- The operation (INSERT / UPDATE / DELETE).
+- The timestamp (with time zone).
+- Who did it (user ID, not just DB user).
+- The old value and new value — not just a flag that it changed.
+- The source (which application, which endpoint, which IP).
+
+**Compliance note:** audit tables should be append-only — no application user should have UPDATE or DELETE rights on them.`,
+      analogy: `A CCTV system for a bank vault. Every door open and close is recorded with a timestamp, who opened it, and what was inside before and after. The recording system itself must be tamper-proof — no one who uses the vault should be able to edit the footage.`,
+    },
+    {
+      id: 'sql-sr-38',
+      level: 'senior',
+      topic: 'Performance',
+      question: 'How do you partition a large table and what types of partitioning are available?',
+      answer: `Partitioning splits one large table into smaller physical pieces (partitions) while keeping the logical appearance of one table. The database can then skip entire partitions when querying — called **partition pruning**.
+
+**Types of partitioning:**
+
+**1. Range partitioning** (most common — usually by date)
+\`\`\`sql
+CREATE TABLE Orders (order_date DATE, ...) PARTITION BY RANGE (order_date);
+CREATE TABLE orders_2023 PARTITION OF Orders FOR VALUES FROM ('2023-01-01') TO ('2024-01-01');
+CREATE TABLE orders_2024 PARTITION OF Orders FOR VALUES FROM ('2024-01-01') TO ('2025-01-01');
+\`\`\`
+Query for 2024 data → only the 2024 partition is scanned.
+
+**2. List partitioning** — partition by discrete values (region, country, status):
+\`\`\`sql
+PARTITION BY LIST (region);
+CREATE TABLE orders_eu PARTITION OF Orders FOR VALUES IN ('EU');
+\`\`\`
+
+**3. Hash partitioning** — distribute rows evenly across N partitions by hashing a column. Good for balancing write load when there is no natural range or list key.
+
+**When partitioning helps:**
+- Tables over ~100GB where most queries filter on the partition key.
+- Archiving: drop or detach old partitions instantly (no DELETE needed).
+- Parallel query: each partition can be scanned by a separate worker.
+
+**When it doesn't help:**
+- Queries that don't filter on the partition key — all partitions are still scanned.
+- Small tables — overhead outweighs benefit.`,
+      analogy: `A filing cabinet with drawers labelled by year. To find a 2024 contract, you open only the 2024 drawer — not all 10 drawers. Partition pruning is the database opening only the relevant drawer instead of searching the whole cabinet.`,
+    },
+    {
+      id: 'sql-sr-39',
+      level: 'senior',
+      topic: 'Concurrency',
+      question: 'A long-running query is blocking all other queries. How do you resolve it without taking down the system?',
+      answer: `**Identify the blocker first:**
+\`\`\`sql
+-- Postgres: find blocking sessions
+SELECT pid, now() - query_start AS duration, state, query
+FROM pg_stat_activity
+WHERE state != 'idle'
+ORDER BY duration DESC;
+
+-- See the lock chain:
+SELECT blocked.pid, blocked.query, blocking.pid AS blocking_pid, blocking.query
+FROM pg_stat_activity blocked
+JOIN pg_stat_activity blocking
+  ON blocking.pid = ANY(pg_blocking_pids(blocked.pid));
+\`\`\`
+
+**Options — in order of invasiveness:**
+
+1. **Wait and monitor** — if the query is nearly done, waiting is safer than killing it (a rollback of a large transaction can take as long as the transaction itself).
+
+2. **Cancel the query (soft kill)** — sends a cancellation signal; the session stays alive:
+\`\`\`sql
+SELECT pg_cancel_backend(pid);   -- Postgres
+KILL QUERY thread_id;            -- MySQL
+\`\`\`
+
+3. **Terminate the session (hard kill)** — use if cancel doesn't work:
+\`\`\`sql
+SELECT pg_terminate_backend(pid);  -- Postgres
+KILL thread_id;                    -- MySQL (terminates session)
+\`\`\`
+
+**After resolution — root cause analysis:**
+- Was it a runaway query (missing WHERE, bad plan)?
+- Was it expected but too long (large batch, report)?
+- Add a **statement_timeout** to prevent this in future:
+\`\`\`sql
+SET statement_timeout = '5min';
+\`\`\`
+- For known long-running reports, run them off a read replica so they can't block the primary.`,
+      analogy: `One lorry broken down and blocking the whole motorway. You assess first — is it about to move? If not, call for a tow (cancel). If it's on fire, close the lane and remove it (terminate). Then investigate why the lorry was allowed on this road in the first place.`,
+    },
+    {
+      id: 'sql-sr-40',
+      level: 'senior',
+      topic: 'Security',
+      question: 'How do you implement row-level security — different users see different rows of the same table?',
+      answer: `**Postgres — Row-Level Security (RLS):**
+\`\`\`sql
+-- Enable RLS on the table
+ALTER TABLE Orders ENABLE ROW LEVEL SECURITY;
+
+-- Policy: users can only see their own orders
+CREATE POLICY user_own_orders ON Orders
+  USING (customer_id = current_setting('app.current_user_id')::INT);
+
+-- Application sets the context before querying:
+SET app.current_user_id = '42';
+SELECT * FROM Orders;  -- only returns orders for customer 42
+\`\`\`
+
+**SQL Server — Row-Level Security:**
+\`\`\`sql
+CREATE FUNCTION dbo.fn_security_predicate(@customer_id INT)
+RETURNS TABLE AS RETURN
+  SELECT 1 AS result WHERE @customer_id = CAST(SESSION_CONTEXT(N'user_id') AS INT);
+
+CREATE SECURITY POLICY OrderFilter
+ADD FILTER PREDICATE dbo.fn_security_predicate(customer_id) ON dbo.Orders;
+\`\`\`
+
+**How it works:** the policy is a filter that the database applies transparently on every SELECT, UPDATE, and DELETE — users physically cannot retrieve rows the policy blocks, even if they write the query correctly.
+
+**Key design points:**
+- The application must set the user context before any query — don't rely on application-layer filtering alone.
+- Superusers / table owners bypass RLS by default — use FORCE ROW LEVEL SECURITY for full enforcement.
+- Test thoroughly: try querying as a low-privilege user to confirm the policy works.`,
+      analogy: `A hospital records system where each doctor can only see their own patients' records. The filter isn't enforced by the application — the database itself applies it on every read. Even a rogue query can't pull records that belong to another doctor.`,
+    },
+    {
+      id: 'sql-sr-41',
+      level: 'senior',
+      topic: 'Internals',
+      question: 'What is MVCC (Multi-Version Concurrency Control) and why does it mean readers don\'t block writers in Postgres?',
+      answer: `**MVCC** keeps multiple versions of every row simultaneously — each transaction sees a *snapshot* of the data as it existed at the moment the transaction started, regardless of what other transactions are doing.
+
+**How it works:**
+- When a row is updated, Postgres doesn't overwrite it. It writes a *new version* of the row and marks the old version as "deleted after transaction X."
+- A concurrent reader sees the old version (the snapshot from when their transaction began) — no lock needed.
+- The writer writes the new version — also no lock needed.
+
+**The result:** readers and writers work on different row versions simultaneously. Neither has to wait for the other.
+
+\`\`\`
+Transaction A (UPDATE): writes new row version   → committed at t=5
+Transaction B (SELECT, started at t=3): reads old version → no blocking
+\`\`\`
+
+**The cost:** old row versions accumulate — they must be cleaned up. This is what **VACUUM** does in Postgres. A table with very high write rates needs regular vacuuming or it bloats (dead row versions pile up and slow queries).
+
+**Why this matters to a DBA:** long-running transactions hold snapshots that prevent VACUUM from cleaning up old versions. A 3-hour analytics query on a busy table can cause significant bloat.`,
+      analogy: `A Google Doc with version history. When you edit, Google doesn't delete the old version — it creates a new one. Your colleague reading the document at the same moment sees the version from when they opened it, not your half-finished edits. No one has to wait. VACUUM is periodically archiving the old versions to keep the document history manageable.`,
+    },
+    {
+      id: 'sql-sr-42',
+      level: 'senior',
+      topic: 'Performance',
+      question: 'You are asked to tune a legacy database with no documentation, no query history, and no one to ask. Where do you start?',
+      answer: `**Start by observing, not changing anything.**
+
+**Step 1 — Understand what the system is doing:**
+\`\`\`sql
+-- Top queries by cumulative time (Postgres):
+SELECT query, calls, total_exec_time, mean_exec_time
+FROM pg_stat_statements ORDER BY total_exec_time DESC LIMIT 20;
+\`\`\`
+This gives you the actual workload — not what you think the system does.
+
+**Step 2 — Find the expensive queries:**
+Run EXPLAIN ANALYZE on the top 5 offenders. Look for table scans, missing indexes, bad join orders, and stale statistics.
+
+**Step 3 — Understand the schema:**
+\`\`\`sql
+-- List tables by size:
+SELECT relname, pg_size_pretty(pg_total_relation_size(oid))
+FROM pg_class WHERE relkind = 'r' ORDER BY pg_total_relation_size(oid) DESC;
+
+-- Check existing indexes:
+SELECT * FROM pg_indexes WHERE tablename = 'your_table';
+\`\`\`
+
+**Step 4 — Check index usage:**
+\`\`\`sql
+SELECT indexrelname, idx_scan, idx_tup_read
+FROM pg_stat_user_indexes ORDER BY idx_scan;
+\`\`\`
+Indexes with zero or near-zero scans are unused — they cost write overhead for no benefit.
+
+**Step 5 — Make one change at a time.** Add one index, measure, confirm improvement before the next change.
+
+**What not to do:** don't add indexes everywhere speculatively, don't rebuild everything, and don't change isolation levels without understanding concurrency patterns first.`,
+      analogy: `Taking over a messy workshop with no manual. You don't start reorganising immediately — you watch how work actually flows through the space for a week, identify the three most painful bottlenecks, fix the worst one first, and confirm it helped before touching anything else.`,
+    },
+    {
+      id: 'sql-sr-43',
+      level: 'senior',
+      topic: 'Schema Design',
+      question: 'What is the difference between a regular view and a materialized view, and when do you choose each?',
+      answer: `**Regular view:** a saved query with no stored data. Every time you query it, the underlying SELECT runs fresh. Up to date always; no extra storage; can be as slow as the underlying query.
+
+**Materialized view:** the result set is computed once and stored physically on disk, like a snapshot. Queries against it are fast (reading a table). But it goes stale — you must explicitly refresh it.
+
+\`\`\`sql
+-- Postgres materialized view:
+CREATE MATERIALIZED VIEW monthly_revenue AS
+SELECT DATE_TRUNC('month', order_date) AS month, SUM(amount) AS revenue
+FROM Orders GROUP BY 1;
+
+-- Refresh when data changes:
+REFRESH MATERIALIZED VIEW monthly_revenue;
+
+-- Refresh without blocking reads (Postgres):
+REFRESH MATERIALIZED VIEW CONCURRENTLY monthly_revenue;
+\`\`\`
+
+**Choose a regular view when:**
+- Data must be real-time.
+- The underlying query is fast.
+- Freshness is more important than query speed.
+
+**Choose a materialized view when:**
+- The query is expensive (aggregations over millions of rows).
+- Slight staleness is acceptable (e.g. a dashboard refreshed every hour).
+- The same expensive result is needed by many queries.`,
+      analogy: `A regular view is a live camera feed — always current but requires the camera to be running. A materialized view is a photograph — fast to look at, but it shows the scene as it was when the photo was taken, not right now. Refresh it to take a new photo.`,
+    },
+    {
+      id: 'sql-sr-44',
+      level: 'senior',
+      topic: 'Incident Management',
+      question: 'Your database log file (WAL / transaction log) has filled the disk and the database is now refusing writes. What do you do?',
+      answer: `**This is a production outage — act fast and methodically:**
+
+**Immediate containment:**
+1. **Do not delete log files blindly** — transaction logs are needed for recovery. Deleting the wrong file can corrupt the database.
+2. **Confirm the cause** — is it a log backup that hasn't run, a replication slot holding back WAL, or a genuine runaway log growth?
+
+**Postgres — check for stale replication slots:**
+\`\`\`sql
+SELECT slot_name, pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn))
+FROM pg_replication_slots;
+\`\`\`
+A stale slot prevents WAL from being cleaned up. Drop the stale slot if no replica is consuming it:
+\`\`\`sql
+SELECT pg_drop_replication_slot('stale_slot_name');
+\`\`\`
+
+**SQL Server — force a log backup:**
+\`\`\`sql
+BACKUP LOG MyDatabase TO DISK = 'NUL';  -- emergency truncation (dev/staging only)
+-- In production: backup to a real location, then shrink
+\`\`\`
+
+**General — free space quickly:**
+- Add disk space / extend the volume if infrastructure allows.
+- Clean up other large files on the same volume to buy time.
+- Run a log backup to a remote location to truncate the log.
+
+**After recovery — root cause:**
+- Why wasn't the log backup running? (Check the backup job.)
+- Was a replication consumer silently failing?
+- Set up disk usage alerts at 70% and 85% so this is never a surprise.`,
+      analogy: `A filing room where someone forgot to clear the filing trays — they fill up and new documents can't come in. You don't burn the room down. You identify the clog (stale replication slot, missed backup), clear the backlog carefully, and set up an alarm so the trays never silently fill again.`,
+    },
+    {
+      id: 'sql-sr-45',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'What is connection pooling, why does it matter at scale, and how do you configure it correctly?',
+      answer: `Opening a database connection is expensive — it involves authentication, memory allocation, and process/thread creation. At scale, with hundreds of web workers each opening their own connections, this becomes the bottleneck.
+
+**Connection pooling** maintains a pool of pre-opened, reusable connections. Application threads borrow a connection from the pool, use it, and return it — no open/close overhead per request.
+
+**Without pooling at scale:**
+- Each web request opens a new connection → database thread limit hit (Postgres default: 100).
+- Connection overhead dominates response time.
+- Under sudden traffic spikes, the DB crashes from connection storms.
+
+**Recommended tools:**
+- **PgBouncer** (Postgres) — transaction-mode pooling: one connection reused across many clients.
+- **HikariCP** (Java), **node-postgres pool** (Node.js) — application-level pools.
+
+**Key configuration to get right:**
+- **Pool size** — not "as large as possible." Optimal is usually ≈ (num_cpu_cores * 2) + effective_spindle_count per Postgres documentation. Too large causes context-switching overhead.
+- **Max idle time** — return idle connections to the pool before the database kills them.
+- **Connection timeout** — fail fast if the pool is exhausted rather than queuing forever.
+- **Health checks** — pools must test connections before lending them (detect stale connections after a DB restart).`,
+      analogy: `A taxi rank instead of hailing a new cab from scratch every trip. Cars wait at the rank (the pool). You jump in an available one, use it, and return it to the rank. No waiting for a cab to be manufactured each time — just borrowing one that's already ready.`,
+    },
+    {
+      id: 'sql-sr-46',
+      level: 'senior',
+      topic: 'Testing',
+      question: 'How do you verify a database migration script is safe before running it on production?',
+      answer: `A bad migration on a production database with 500M rows can mean hours of downtime or permanent data loss. Verify it rigorously:
+
+**1. Run on a production-sized clone first**
+Test on a copy of production (same row counts, same data distribution) — not on a 1,000-row dev database. Performance and lock behaviour are completely different at scale.
+
+**2. Time the migration**
+Run EXPLAIN ANALYZE or time the actual execution. A migration that takes 2 seconds on dev may take 45 minutes on prod and lock the table the entire time.
+
+**3. Verify correctness**
+Before and after row counts, checksums on key columns:
+\`\`\`sql
+-- Before:
+SELECT COUNT(*), SUM(amount), MAX(updated_at) FROM Orders;
+
+-- Run migration
+
+-- After: same query should show expected changes only
+\`\`\`
+
+**4. Test the rollback script**
+Every migration must have a verified rollback. Run the rollback on the clone and confirm it returns the schema and data to the original state.
+
+**5. Check for table locks**
+Some DDL operations (adding a NOT NULL column, changing a column type) lock the whole table. Use online schema change tools (pt-online-schema-change, gh-ost, pg_repack) for tables you can't afford to lock.
+
+**6. Run in a transaction where possible**
+\`\`\`sql
+BEGIN;
+-- migration steps
+-- verify: SELECT COUNT(*), spot-check data
+ROLLBACK;  -- dry run — confirm, then COMMIT on the real run
+\`\`\``,
+      analogy: `A surgeon rehearsing a complex procedure on a simulation model before the real patient. The simulation has the same anatomy, the same constraints, and the same risks — what takes 5 minutes on a mannequin and 5 hours on a real patient is worth knowing before you pick up the scalpel.`,
+    },
+    {
+      id: 'sql-sr-47',
+      level: 'senior',
+      topic: 'Best Practices',
+      question: 'How do you write SQL that stays readable and maintainable as the codebase grows?',
+      answer: `SQL that works on day one becomes a maintenance nightmare two years later without intentional style. The principles that survive in real teams:
+
+**1. CTEs over nested subqueries**
+\`\`\`sql
+-- Unreadable:
+SELECT * FROM (SELECT * FROM (SELECT ...) a WHERE ...) b WHERE ...;
+
+-- Readable:
+WITH active_users AS (...),
+     recent_orders AS (...)
+SELECT ... FROM active_users JOIN recent_orders ...;
+\`\`\`
+
+**2. One column per line, aligned**
+\`\`\`sql
+SELECT
+  customer_id,
+  SUM(amount)    AS total_revenue,
+  COUNT(*)       AS order_count
+FROM Orders
+WHERE status = 'completed'
+GROUP BY customer_id;
+\`\`\`
+
+**3. Name everything meaningfully**
+Avoid single-letter aliases for non-obvious tables (\`o\`, \`c\` is fine; \`a\`, \`b\` is not). Name CTEs after what they represent.
+
+**4. Comment the why, not the what**
+\`\`\`sql
+-- Exclude test accounts from all revenue reports
+WHERE email NOT LIKE '%@internal.company.com'
+\`\`\`
+
+**5. Avoid SELECT ***
+List explicit columns — implicit columns break when the schema changes.
+
+**6. Keep transactions short and explicit**
+Wrap every multi-statement write in an explicit BEGIN / COMMIT so intent is clear.
+
+**7. Store complex queries in version-controlled files**
+Not in application strings, not in stored procedures nobody can find. Version-controlled SQL files can be reviewed, diffed, and tested like any other code.`,
+      analogy: `Well-written SQL is like well-written legal language — precise, structured, and named so that anyone reading it a year later understands the intent without asking the author. Ambiguity and abbreviations that save 30 seconds today cost hours of confusion next year.`,
+    },
+    {
+      id: 'sql-sr-48',
+      level: 'senior',
+      topic: 'Security',
+      question: 'A developer asks for read access to the database. How do you grant access to specific tables only, not the whole database?',
+      answer: `Use **principle of least privilege** — grant only what is needed, nothing more.
+
+**Postgres:**
+\`\`\`sql
+-- Create a role for this developer
+CREATE ROLE dev_readonly;
+
+-- Grant CONNECT to the specific database
+GRANT CONNECT ON DATABASE myapp TO dev_readonly;
+
+-- Grant USAGE on the schema (required before table access)
+GRANT USAGE ON SCHEMA public TO dev_readonly;
+
+-- Grant SELECT on specific tables only
+GRANT SELECT ON orders, customers TO dev_readonly;
+
+-- NOT this — too broad:
+-- GRANT ALL ON ALL TABLES IN SCHEMA public TO dev_readonly;
+
+-- Create the user and assign the role
+CREATE USER alice WITH PASSWORD 'secure_password';
+GRANT dev_readonly TO alice;
+\`\`\`
+
+**Revoke when no longer needed:**
+\`\`\`sql
+REVOKE dev_readonly FROM alice;
+DROP USER alice;
+\`\`\`
+
+**Best practices:**
+- Use roles, not per-user grants — roles scale to teams.
+- Never grant on production directly. Prefer a read replica for developer queries — it can't lock the primary and can be revoked without touching production permissions.
+- Audit who has access regularly and revoke stale accounts promptly.
+- Never share the superuser / sa account for developer access.`,
+      analogy: `Giving a contractor a key card to the building. You don't give them the master key — you give them a key that opens the two rooms they need and nothing else, with an expiry date. If they leave, you deactivate that key, not the whole building's security system.`,
+    },
+    {
+      id: 'sql-sr-49',
+      level: 'senior',
+      topic: 'Performance',
+      question: 'How do you identify and resolve index fragmentation on a production database?',
+      answer: `Index fragmentation builds up over time as INSERT, UPDATE, and DELETE operations scatter index pages out of logical order. A fragmented index takes more I/O to traverse.
+
+**Postgres — fragmentation via page bloat:**
+Postgres doesn't have traditional fragmentation but suffers from bloat (dead rows and empty pages). Check with:
+\`\`\`sql
+SELECT indexrelname,
+       pg_size_pretty(pg_relation_size(indexrelid)) AS index_size,
+       idx_scan
+FROM pg_stat_user_indexes
+ORDER BY pg_relation_size(indexrelid) DESC;
+\`\`\`
+Fix with: **REINDEX CONCURRENTLY** (Postgres 12+) — rebuilds the index without locking:
+\`\`\`sql
+REINDEX INDEX CONCURRENTLY idx_orders_customer;
+\`\`\`
+
+**SQL Server — check fragmentation:**
+\`\`\`sql
+SELECT object_name(object_id) AS table_name,
+       name AS index_name,
+       avg_fragmentation_in_percent
+FROM sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, 'LIMITED')
+JOIN sys.indexes ON object_id AND index_id
+WHERE avg_fragmentation_in_percent > 10
+ORDER BY avg_fragmentation_in_percent DESC;
+\`\`\`
+- **< 10% fragmentation** — leave it.
+- **10–30%** — REORGANIZE (online, low impact).
+- **> 30%** — REBUILD (offline by default; use ONLINE = ON for minimal locking).
+
+**Rule:** run fragmentation checks and maintenance as a scheduled job, not reactively.`,
+      analogy: `A filing cabinet where new files get inserted wherever there's space, not in alphabetical order. After months of this, finding a file means skipping around the drawer. Rebuilding the index is reorganising the cabinet back into alphabetical order — fast lookups restored.`,
+    },
+    {
+      id: 'sql-sr-50',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'How do you approach database capacity planning for a system that is growing rapidly?',
+      answer: `Capacity planning is about knowing *when* you'll hit a limit — not finding out when the system falls over.
+
+**What to measure continuously:**
+- **Storage growth rate** — GB per week. Project forward 6 and 12 months. When do you need more storage?
+- **Query response time trends** — are p95 and p99 latencies creeping up? Which queries?
+- **Connection usage** — what percentage of max connections are typically in use?
+- **CPU and I/O utilisation** — sustained above 70% is a warning sign.
+- **Table and index sizes** — which tables are growing fastest?
+
+**Tooling:**
+\`\`\`sql
+-- Postgres: track table growth over time
+SELECT relname, pg_size_pretty(pg_total_relation_size(oid)) AS size
+FROM pg_class WHERE relkind = 'r'
+ORDER BY pg_total_relation_size(oid) DESC LIMIT 20;
+\`\`\`
+Store this result daily in a metrics table and chart the trend.
+
+**Planning decisions driven by the data:**
+- **Archiving strategy** — at what table size do queries degrade? Archive old data before you hit that threshold, not after.
+- **Read replicas** — add before read latency becomes a problem, not after users complain.
+- **Partitioning** — plan before a table becomes so large that partitioning it causes downtime.
+- **Hardware / cloud tier upgrades** — plan 2–3 months ahead, not the day you need it.
+
+**The rule:** measure everything, graph it, set alerts at 70% of each limit, and act at 80%.`,
+      analogy: `Managing fuel for a long road trip. You don't wait until the light comes on — you check the gauge regularly, know how far each tank gets you, and plan the refuel stop before you need it. Capacity planning is the same: measure, project, act early.`,
     },
   ],
 
