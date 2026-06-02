@@ -10001,6 +10001,724 @@ const safe  = 0 ?? 5;   // 0  (?? only replaces null/undefined)
 \`\`\``,
       analogy: `\`?.\` is tip-toeing down a corridor, checking each door exists before opening it — no faceplant if one's missing. \`??\` is "use my backup plan only if there's *genuinely* nothing there."`,
     },
+    {
+      id: 'ts-jr-27',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'You are getting "Object is possibly null" errors everywhere. How do you fix them?',
+      answer: `This error means TypeScript found a code path where a value could be \`null\` or \`undefined\` and you used it without checking. Fix options:
+
+**1 — Guard with an if check (safest):**
+\`\`\`ts
+const el = document.getElementById("name");
+if (el) {
+  el.textContent = "Hi";   // safe — null is ruled out
+}
+\`\`\`
+
+**2 — Optional chaining (when null is acceptable):**
+\`\`\`ts
+const text = el?.textContent;   // undefined if el is null, no crash
+\`\`\`
+
+**3 — Non-null assertion \`!\` (only when you are certain):**
+\`\`\`ts
+const el = document.getElementById("name")!;   // you're promising it exists
+\`\`\`
+
+**4 — Nullish coalescing for a fallback:**
+\`\`\`ts
+const name = user?.name ?? "Guest";
+\`\`\`
+
+Avoid \`!\` unless you're 100% sure — it silences the compiler but won't save you at runtime.`,
+      analogy: `A "slippery floor" warning sign. You can walk around it safely (if check), tiptoe carefully (optional chaining), or confidently step on it if you know it's dry (!). The warning is there because someone could fall.`,
+    },
+    {
+      id: 'ts-jr-28',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'Your colleague used `any` everywhere in a TypeScript file. What is the problem and how do you start fixing it?',
+      answer: `\`any\` turns off TypeScript's type-checking entirely — you lose all the safety TypeScript provides. Problems:
+- No autocompletion or type errors even if you pass the wrong thing.
+- Bugs that TypeScript would have caught slip through to runtime.
+- It spreads — an \`any\` value assigned to a typed variable infects that variable's type too.
+
+**How to fix it incrementally:**
+
+1. Replace \`any\` with \`unknown\` first — forces you to narrow before using it.
+2. Where the shape is known, define an \`interface\` or \`type\` and replace \`any\` with it.
+3. For function parameters, add proper type annotations.
+4. Turn on \`"noImplicitAny": true\` in tsconfig to prevent new \`any\` creeping in.
+
+Don't try to fix the whole file at once — tackle the most-used functions first.`,
+      analogy: `\`any\` is duct tape holding the codebase together. It works for now, but everything underneath is unchecked. Fixing it is removing the tape piece by piece and replacing with proper joins — more work up front, much more reliable long-term.`,
+    },
+    {
+      id: 'ts-jr-29',
+      level: 'junior',
+      topic: 'Types',
+      question: 'You have a function that searches a database and might find nothing. How do you type the return value?',
+      answer: `Return \`T | null\` (or \`T | undefined\`) to be explicit that "not found" is a valid outcome:
+
+\`\`\`ts
+async function findUser(id: number): Promise<User | null> {
+  const row = await db.query(id);
+  return row ?? null;
+}
+
+const user = await findUser(42);
+if (user) {
+  console.log(user.name);   // TypeScript knows user is User here, not null
+}
+\`\`\`
+
+**Why not just return \`User\`?** — callers would assume it always returns something and skip the null check, causing a runtime crash when nothing is found.
+
+A typed null return forces every caller to handle the "not found" case explicitly — which is exactly what you want.`,
+      analogy: `A library search — you tell the librarian what you want and they come back with either the book or "we don't have it." A well-designed system makes both outcomes explicit in the return type so you're not surprised by an empty shelf.`,
+    },
+    {
+      id: 'ts-jr-30',
+      level: 'junior',
+      topic: 'Tooling',
+      question: 'How would you add TypeScript to an existing JavaScript project?',
+      answer: `Do it incrementally — never force a big-bang conversion:
+
+\`\`\`bash
+npm install -D typescript
+npx tsc --init           # creates tsconfig.json
+\`\`\`
+
+**tsconfig.json — start permissive:**
+\`\`\`json
+{
+  "compilerOptions": {
+    "allowJs": true,          // accept existing .js files
+    "checkJs": false,         // don't check JS yet — too noisy
+    "strict": false,          // loosen strictness at first
+    "outDir": "dist",
+    "target": "ES2020"
+  }
+}
+\`\`\`
+
+**Rename files one by one** from \`.js\` to \`.ts\`, starting with the most-shared utilities. Fix type errors as you go. Once comfortable, enable \`strict: true\` and tighten further.
+
+The goal is that the project keeps running throughout — no big-bang rewrite.`,
+      analogy: `Renovating a house room by room while still living in it — you don't demolish everything at once. You make each room solid before moving to the next, and the family still has somewhere to sleep each night.`,
+    },
+    {
+      id: 'ts-jr-31',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How do you type the event parameter in a button click handler in TypeScript?',
+      answer: `Use the DOM's built-in event types — TypeScript knows exactly what properties each event has:
+
+\`\`\`ts
+const btn = document.getElementById("submit") as HTMLButtonElement;
+btn.addEventListener("click", (e: MouseEvent) => {
+  e.preventDefault();
+  console.log(e.clientX, e.clientY);   // MouseEvent-specific props
+});
+\`\`\`
+
+**In React:**
+\`\`\`ts
+function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
+  e.preventDefault();
+}
+
+function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+  console.log(e.target.value);
+}
+\`\`\`
+
+The event type tells TypeScript which properties are available (e.g. \`clientX\` on MouseEvent, \`target.value\` on InputEvent). Don't type it as \`any\` — you lose all IntelliSense.`,
+      analogy: `Handling a letter differently depending on whether it is a parcel (MouseEvent), a postcard (InputEvent), or a legal notice (KeyboardEvent). The type tells you what's inside so you know how to handle it.`,
+    },
+    {
+      id: 'ts-jr-32',
+      level: 'junior',
+      topic: 'Types',
+      question: 'What is a type guard and when do you actually need one?',
+      answer: `A **type guard** is any check that lets TypeScript narrow a value from a broad type to a specific one inside a branch. You need them whenever you have a union or \`unknown\` and must act differently depending on the actual type.
+
+**Built-in guards:**
+\`\`\`ts
+function format(x: string | number) {
+  if (typeof x === "string") {
+    return x.toUpperCase();    // TS: x is string here
+  }
+  return x.toFixed(2);         // TS: x is number here
+}
+\`\`\`
+
+**Custom guard (for objects):**
+\`\`\`ts
+function isError(x: unknown): x is Error {
+  return x instanceof Error;
+}
+
+if (isError(caught)) {
+  console.log(caught.message);   // safe
+}
+\`\`\`
+
+When to use: any time you receive \`unknown\` (from an API or catch block), or have a union type and need to branch on the actual type.`,
+      analogy: `A bouncer checking IDs — before letting someone through the "over 18 door" or the "VIP door," they verify which type of person is standing there. The guard is the check; the narrowed type is the door they're allowed through.`,
+    },
+    {
+      id: 'ts-jr-33',
+      level: 'junior',
+      topic: 'Types',
+      question: 'You have a function that needs to accept either a string ID or a numeric ID. How do you type it?',
+      answer: `Use a **union type** and narrow inside:
+
+\`\`\`ts
+function findUser(id: string | number): User {
+  const query = typeof id === "number"
+    ? \`SELECT * FROM users WHERE id = \${id}\`
+    : \`SELECT * FROM users WHERE uuid = '\${id}'\`;
+  // ...
+}
+\`\`\`
+
+**Or use overloads if the return type also differs:**
+\`\`\`ts
+function findUser(id: number): UserById;
+function findUser(id: string): UserByUUID;
+function findUser(id: number | string): User {
+  // implementation
+}
+\`\`\`
+
+Avoid typing the parameter as \`any\` — a union gives you safety. Narrow with \`typeof\` inside to handle each case correctly.`,
+      analogy: `A reception desk that accepts either a staff badge (number ID) or a visitor QR code (string ID). The receptionist checks what they're looking at before deciding how to process it — a union type models exactly this "either/or" input.`,
+    },
+    {
+      id: 'ts-jr-34',
+      level: 'junior',
+      topic: 'Utility Types',
+      question: 'What is Pick<T, K> and when would you use it?',
+      answer: `\`Pick<T, K>\` creates a new type containing **only the fields you name** from an existing type — useful when you only want to expose or pass a subset of a type.
+
+\`\`\`ts
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  passwordHash: string;
+}
+
+type PublicUser = Pick<User, "id" | "name">;
+// { id: number; name: string }
+// passwordHash and email are excluded
+\`\`\`
+
+**When to use it:**
+- API responses that should expose only certain fields.
+- Form types that only need some user fields.
+- Props types derived from a larger model.
+
+It keeps your types DRY — you define the full model once and derive subsets from it.`,
+      analogy: `Picking specific items off a menu to create a set meal. The full menu (User) still exists — you're just selecting the items you want to serve (Pick), without having to write a separate menu from scratch.`,
+    },
+    {
+      id: 'ts-jr-35',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'An API returns an object with keys you don\'t know in advance. How do you type it?',
+      answer: `Use an **index signature** — you describe the *pattern* of keys and values, not each specific key:
+
+\`\`\`ts
+interface StringMap {
+  [key: string]: string;
+}
+
+const headers: StringMap = {
+  "Content-Type": "application/json",
+  "X-Request-ID": "abc123",
+};
+\`\`\`
+
+For mixed-value objects use \`Record<string, unknown>\` or \`Record<string, string | number>\`.
+
+**More type-safe alternative — intersect with known fields:**
+\`\`\`ts
+interface Response {
+  id: number;
+  [key: string]: unknown;   // known id + arbitrary extras
+}
+\`\`\`
+
+Avoid typing it as \`any\` — \`Record<string, unknown>\` at minimum forces you to narrow before using any value.`,
+      analogy: `A hotel register — you know every entry has a name column, but the extra notes column can be anything. An index signature is declaring "any text label maps to any value" without listing every possible label in advance.`,
+    },
+    {
+      id: 'ts-jr-36',
+      level: 'junior',
+      topic: 'Types',
+      question: 'What does TypeScript do when you pass extra properties to a typed function?',
+      answer: `It depends on *how* you pass them:
+
+**Direct object literal — TypeScript runs an excess property check and errors:**
+\`\`\`ts
+function save(user: { name: string }) {}
+save({ name: "Asha", age: 30 });   // ❌ 'age' is not expected
+\`\`\`
+
+**Variable assignment — TypeScript only checks structural compatibility (extra fields allowed):**
+\`\`\`ts
+const person = { name: "Asha", age: 30 };
+save(person);   // ✅ — structural typing passes
+\`\`\`
+
+**Why the difference?** Excess property checks only apply to freshly written object literals because those extra fields are almost certainly a typo or mistake. Variables are trusted because they may be used elsewhere.
+
+This distinction trips up many developers — important to understand.`,
+      analogy: `Filling a form at the front desk — if you write extra fields on a fresh blank form, the clerk points them out (literal check). If you hand over a pre-filled card from your wallet with extra info on the back, the clerk only reads the fields they care about (structural compatibility).`,
+    },
+    {
+      id: 'ts-jr-37',
+      level: 'junior',
+      topic: 'Types',
+      question: 'How do you make one interface extend another in TypeScript?',
+      answer: `Use the \`extends\` keyword — the child interface inherits all properties from the parent and can add more:
+
+\`\`\`ts
+interface Animal {
+  name: string;
+  age: number;
+}
+
+interface Dog extends Animal {
+  breed: string;
+}
+
+const dog: Dog = { name: "Rex", age: 3, breed: "Labrador" };
+// must have all fields from Animal + Dog
+\`\`\`
+
+**Multiple inheritance is also supported:**
+\`\`\`ts
+interface Employee extends Person, HasRole {
+  employeeId: string;
+}
+\`\`\`
+
+Using \`extends\` is cleaner than repeating parent fields — and any change to the parent propagates automatically.`,
+      analogy: `A job application form for a senior role that inherits all the fields from the base application form (name, address, experience) and adds a few more (leadership history, certifications). You fill in everything from both.`,
+    },
+    {
+      id: 'ts-jr-38',
+      level: 'junior',
+      topic: 'Utility Types',
+      question: 'What is Partial<T> and when is it useful in practice?',
+      answer: `\`Partial<T>\` makes **all properties of T optional**. Useful anywhere you need a "partial update" or a type where only some fields are filled in:
+
+\`\`\`ts
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+function updateUser(id: number, updates: Partial<User>) {
+  // caller can pass any subset of fields
+}
+
+updateUser(1, { name: "New Name" });   // ✅ only name, no need for all fields
+\`\`\`
+
+**Common use cases:**
+- PATCH request bodies (update only what changed).
+- Form state before all fields are filled.
+- Test factories where you want sensible defaults and override only what matters.
+
+Without \`Partial\`, you'd have to manually mark every property optional or create a separate type.`,
+      analogy: `A "top-up" form — you only fill in what you want to change. The full profile still exists; you're just passing the delta. \`Partial<T>\` is the type that describes that delta.`,
+    },
+    {
+      id: 'ts-jr-39',
+      level: 'junior',
+      topic: 'Functions',
+      question: 'How do you type a function that accepts a callback in TypeScript?',
+      answer: `Define the callback's type inline or as a named type — specify its parameters and return type:
+
+\`\`\`ts
+// Inline callback type
+function fetchData(url: string, onSuccess: (data: User[]) => void) {
+  // ...
+}
+
+// Named type alias for reuse
+type OnSuccess = (data: User[]) => void;
+function fetchData(url: string, onSuccess: OnSuccess) {}
+
+// Optional callback
+function retry(fn: () => void, onError?: (e: Error) => void) {}
+\`\`\`
+
+The callback signature tells callers exactly what arguments it will receive and what it should return. This enables TypeScript to check both the callback definition and its call site.`,
+      analogy: `Giving someone a task with specific instructions: "When the download finishes, you'll receive a list of User objects — do something with them." The type is the instruction sheet that defines the exact hand-off.`,
+    },
+    {
+      id: 'ts-jr-40',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How do you avoid using `any` when you don\'t know the shape of data coming from an API?',
+      answer: `Use \`unknown\` as the initial type — it forces you to validate before using the data:
+
+\`\`\`ts
+async function fetchUser(id: number): Promise<User> {
+  const res = await fetch(\`/users/\${id}\`);
+  const data: unknown = await res.json();
+
+  // Narrow before using
+  if (isUser(data)) {
+    return data;
+  }
+  throw new Error("Invalid user response");
+}
+
+function isUser(x: unknown): x is User {
+  return typeof x === "object" && x !== null && "id" in x && "name" in x;
+}
+\`\`\`
+
+**Better yet — use a runtime validation library like Zod:**
+\`\`\`ts
+import { z } from "zod";
+const UserSchema = z.object({ id: z.number(), name: z.string() });
+const user = UserSchema.parse(await res.json());   // validated + typed
+\`\`\`
+
+Runtime validation means TypeScript types match reality, not just your assumption.`,
+      analogy: `Receiving a package labelled "fragile" — before moving it as if it's fragile, you open it and check. \`unknown\` forces that check. \`any\` trusts the label blindly and lets you drop it.`,
+    },
+    {
+      id: 'ts-jr-41',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'You are seeing "Property \'x\' does not exist on type \'Y\'" — what does this mean and how do you fix it?',
+      answer: `This error means you're trying to access a property that TypeScript doesn't know exists on that type. Common causes and fixes:
+
+**1 — Typo in the property name:**
+\`\`\`ts
+user.nane;    // ❌ should be user.name
+\`\`\`
+
+**2 — The type is too narrow (doesn't include the property):**
+\`\`\`ts
+// Add the property to the interface
+interface User { name: string; age: number }  // forgot age initially
+\`\`\`
+
+**3 — Union type — property only exists on one branch:**
+\`\`\`ts
+type Shape = Circle | Square;
+// shape.radius only exists on Circle — narrow first:
+if (shape.kind === "circle") { shape.radius; }
+\`\`\`
+
+**4 — Value from API typed as \`unknown\` or a too-broad type:**
+- Validate/narrow with a type guard or schema library.
+
+Always trust the error — TypeScript is usually right. Resist using \`as any\` to silence it.`,
+      analogy: `Asking a vending machine for a sandwich when the panel only shows drinks. The machine is right to say "that doesn't exist here" — the fix is either ordering something the machine actually has, or upgrading the machine.`,
+    },
+    {
+      id: 'ts-jr-42',
+      level: 'junior',
+      topic: 'Utility Types',
+      question: 'What is Omit<T, K> and when would you reach for it?',
+      answer: `\`Omit<T, K>\` creates a new type with **specific properties removed** from T:
+
+\`\`\`ts
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  passwordHash: string;
+}
+
+// Safe user object for sending to the frontend:
+type SafeUser = Omit<User, "passwordHash">;
+// { id: number; name: string; email: string }
+\`\`\`
+
+**Common use cases:**
+- Remove sensitive fields before sending data to the client.
+- Create a "creation" type that omits auto-generated fields (\`Omit<User, "id" | "createdAt">\`).
+- Derive a "form model" from a domain model by removing server-generated metadata.
+
+\`Omit\` and \`Pick\` are complementary — use \`Pick\` when you want to keep a small subset, \`Omit\` when you want to remove a small subset.`,
+      analogy: `Preparing a public press release from an internal document — you start with the full document and black out the sections marked "confidential." \`Omit\` is the black marker.`,
+    },
+    {
+      id: 'ts-jr-43',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How do you define and use a string enum for order statuses in an API response?',
+      answer: `String enums map each value to an explicit string — readable in logs and API responses:
+
+\`\`\`ts
+enum OrderStatus {
+  Pending   = "PENDING",
+  Confirmed = "CONFIRMED",
+  Shipped   = "SHIPPED",
+  Delivered = "DELIVERED",
+  Cancelled = "CANCELLED",
+}
+
+function processOrder(status: OrderStatus) {
+  if (status === OrderStatus.Shipped) {
+    sendTrackingEmail();
+  }
+}
+
+// Called with the enum:
+processOrder(OrderStatus.Confirmed);
+
+// Can also parse an API string:
+const raw = apiResponse.status;   // "CONFIRMED"
+const status = raw as OrderStatus;
+\`\`\`
+
+String enums are preferable to numeric enums for API data because the values are human-readable in logs and network traffic.`,
+      analogy: `Status labels on packages — "PENDING", "SHIPPED", "DELIVERED" rather than 0, 1, 2. When the package shows up in a log, you instantly know its state without a lookup table.`,
+    },
+    {
+      id: 'ts-jr-44',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How do you type a React component\'s props in TypeScript?',
+      answer: `Define an interface (or type alias) for the props and pass it as the generic to the component:
+
+\`\`\`ts
+interface ButtonProps {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;       // optional prop
+  variant?: "primary" | "danger";
+}
+
+function Button({ label, onClick, disabled = false }: ButtonProps) {
+  return <button onClick={onClick} disabled={disabled}>{label}</button>;
+}
+
+// Usage — TypeScript checks every prop:
+<Button label="Submit" onClick={handleSubmit} />
+<Button label="Delete" onClick={handleDelete} variant="danger" />
+\`\`\`
+
+This gives you autocompletion for props, compile-time errors for missing required props, and clear documentation for anyone using the component.`,
+      analogy: `A clear component API contract — like a product spec sheet listing which buttons and knobs a device has, which ones are required, and what values they accept. The type makes it impossible to wire it up wrong.`,
+    },
+    {
+      id: 'ts-jr-45',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How do you convert a simple JavaScript utility function to TypeScript?',
+      answer: `Add type annotations to parameters and the return type, then handle edge cases that TypeScript surfaces:
+
+**Before (JavaScript):**
+\`\`\`js
+function formatCurrency(amount, currency) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency", currency
+  }).format(amount);
+}
+\`\`\`
+
+**After (TypeScript):**
+\`\`\`ts
+type Currency = "USD" | "EUR" | "INR";
+
+function formatCurrency(amount: number, currency: Currency): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+  }).format(amount);
+}
+\`\`\`
+
+Steps:
+1. Annotate each parameter with its type.
+2. Add the return type after the parameter list.
+3. Replace loose \`string\` with literal unions where the values are known.
+4. Let TypeScript flag any inconsistencies and fix them.`,
+      analogy: `Adding labels to every ingredient in a recipe — "2 cups flour (type: dry ingredient), 1 tsp salt (type: seasoning)" — so anyone following the recipe knows exactly what to use and can't substitute the wrong thing.`,
+    },
+    {
+      id: 'ts-jr-46',
+      level: 'junior',
+      topic: 'Types',
+      question: 'What is the spread operator and how does TypeScript handle its types?',
+      answer: `The spread operator (\`...\`) copies properties/elements. TypeScript infers the merged type:
+
+\`\`\`ts
+// Object spread — merges types
+const defaults = { color: "blue", size: 12 };
+const custom = { size: 16, bold: true };
+const merged = { ...defaults, ...custom };
+// type: { color: string; size: number; bold: boolean }
+// later properties overwrite earlier ones
+
+// Array spread
+const a = [1, 2];
+const b = [3, 4];
+const c = [...a, ...b];   // number[]
+
+// In function calls
+function add(x: number, y: number) {}
+const args: [number, number] = [1, 2];
+add(...args);   // ✅ TypeScript checks the tuple matches the params
+\`\`\`
+
+TypeScript correctly handles conflicting types when properties overlap — the last spread wins.`,
+      analogy: `Merging two recipe cards onto one — everything from the first card is copied, then anything on the second card is added on top (overwriting if the same step appears on both). The final card has the union of all steps.`,
+    },
+    {
+      id: 'ts-jr-47',
+      level: 'junior',
+      topic: 'Types',
+      question: 'What practical use does `never` have in everyday TypeScript?',
+      answer: `\`never\` appears in three practical situations:
+
+**1 — Exhaustiveness checking (most important for QA/automation engineers):**
+\`\`\`ts
+type Status = "active" | "inactive" | "banned";
+
+function handleStatus(s: Status) {
+  switch (s) {
+    case "active":   return enable();
+    case "inactive": return disable();
+    case "banned":   return block();
+    default:
+      const _: never = s;   // ❌ compile error if a new Status is added without handling it
+  }
+}
+\`\`\`
+
+**2 — Functions that always throw:**
+\`\`\`ts
+function fail(msg: string): never {
+  throw new Error(msg);
+}
+\`\`\`
+
+**3 — Filtering types:**
+\`\`\`ts
+type NonString<T> = T extends string ? never : T;
+type OnlyNumbers = NonString<string | number | boolean>;  // number | boolean
+\`\`\`
+
+In practice, the exhaustiveness check pattern is the most valuable — it forces you to handle new cases when a union grows.`,
+      analogy: `"This should never happen" — and if it does, \`never\` is the alarm that ensures the code doesn't compile rather than silently doing the wrong thing at runtime.`,
+    },
+    {
+      id: 'ts-jr-48',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How do you type an async function that fetches and returns a list of users?',
+      answer: `Define an interface for the user shape, and annotate the function to return \`Promise<User[]>\`:
+
+\`\`\`ts
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  active: boolean;
+}
+
+async function getActiveUsers(): Promise<User[]> {
+  const res = await fetch("/api/users?active=true");
+  if (!res.ok) {
+    throw new Error(\`HTTP error: \${res.status}\`);
+  }
+  const data = await res.json() as User[];
+  return data;
+}
+
+// Caller:
+const users = await getActiveUsers();
+// TypeScript knows: users is User[]
+users.forEach(u => console.log(u.name));
+\`\`\`
+
+Note the explicit error check for non-OK responses — \`fetch\` does not throw on 4xx/5xx. For production code, consider Zod to validate the response at runtime rather than using \`as\`.`,
+      analogy: `A courier service that guarantees the package is labelled "list of Users" — and you trust the label. For critical shipments, you also inspect the contents (runtime validation with Zod).`,
+    },
+    {
+      id: 'ts-jr-49',
+      level: 'junior',
+      topic: 'Types',
+      question: 'What is the difference between `type` and `interface` and when do you pick each in practice?',
+      answer: `Both define the shape of objects, and for most everyday object types they are interchangeable. The practical differences:
+
+**Use \`interface\` when:**
+- Defining the shape of an object or class.
+- You need declaration merging (extending an external library's types).
+- You need the \`extends\` keyword for readable inheritance.
+
+**Use \`type\` when:**
+- Creating union types: \`type Status = "active" | "inactive"\`.
+- Creating intersection types.
+- Aliasing primitives or tuples.
+- Describing function signatures.
+
+\`\`\`ts
+// interface — for object shapes
+interface User { id: number; name: string }
+
+// type — for unions, primitives, functions
+type Status = "active" | "inactive";
+type Callback = (err: Error | null) => void;
+\`\`\`
+
+Team convention usually wins — pick one style for plain objects and stick to it.`,
+      analogy: `Two hammers that drive the same nail. Pick the one the rest of your toolbox uses for consistency. But if you need a very specific shape (union, primitive alias), only the \`type\` hammer can do it.`,
+    },
+    {
+      id: 'ts-jr-50',
+      level: 'junior',
+      topic: 'Practical',
+      question: 'How does TypeScript help you when working with a Playwright or API test automation framework?',
+      answer: `TypeScript makes test code more reliable and easier to maintain in several practical ways:
+
+**Autocomplete for page objects and test helpers:**
+\`\`\`ts
+class LoginPage {
+  constructor(private page: Page) {}
+
+  async login(email: string, password: string): Promise<void> {
+    await this.page.fill("#email", email);
+    await this.page.fill("#password", password);
+    await this.page.click("button[type=submit]");
+  }
+}
+\`\`\`
+Typing the method parameters means you get a compile error if you pass a number where a string is expected.
+
+**Typed API responses in tests:**
+\`\`\`ts
+const user: User = await createTestUser({ role: "admin" });
+// TypeScript ensures you use only valid user properties in assertions
+expect(user.role).toBe("admin");
+\`\`\`
+
+**Utility types for test data factories:**
+\`\`\`ts
+function createTestUser(overrides: Partial<User> = {}): User {
+  return { id: 1, name: "Test", email: "test@x.com", ...overrides };
+}
+\`\`\`
+
+The key benefit: refactoring is safe — rename a field in the type and TypeScript finds every test that needs updating.`,
+      analogy: `A type-checked assembly line — if a part changes shape, every station that uses it gets a warning immediately, not after the faulty product reaches the end of the line.`,
+    },
     // ── Mid (2–5 yrs) ─────────────────────────────────────────
     {
       id: 'ts-mid-1',
@@ -10412,6 +11130,791 @@ Subtle, but it changes whether callers *can skip* the field.`,
       analogy: `Optional = the field can be skipped. \`| undefined\` = you must tick the box, but may tick "none." Default = if you skip it, we fill in the standard answer for you.`,
     },
 
+    {
+      id: 'ts-mid-27',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'Explain how you have used TypeScript in a test automation framework — what specific benefits did it give you?',
+      answer: `TypeScript in test automation provides concrete, practical benefits beyond just "type safety":
+
+**Page Object Model with typed selectors and methods:**
+\`\`\`ts
+class CheckoutPage {
+  constructor(private page: Page) {}
+  async placeOrder(card: CreditCard): Promise<OrderConfirmation> {
+    await this.fillCardDetails(card);
+    await this.page.click("[data-testid=submit-order]");
+    return this.getConfirmation();
+  }
+}
+\`\`\`
+TypeScript ensures \`placeOrder\` always receives a valid \`CreditCard\` shape — no silent typos in field names.
+
+**Type-safe test data factories:**
+\`\`\`ts
+function makeUser(overrides: Partial<User> = {}): User {
+  return { id: 1, name: "Test User", role: "viewer", ...overrides };
+}
+\`\`\`
+\`Partial<User>\` means you can override only what the test needs — the rest has sensible defaults.
+
+**Refactoring safety:** rename \`role\` to \`userRole\` in the interface and TypeScript immediately flags every test that needs updating — across 200 files, instantly.
+
+**Practical outcome:** onboarding new engineers is faster because the types explain the codebase structure without additional documentation.`,
+      analogy: `A typed framework is like a GPS for new drivers — it tells you the legal routes, warns you if you're about to turn the wrong way, and makes sure you arrive at a valid destination. Without it, you're navigating by memory.`,
+    },
+    {
+      id: 'ts-mid-28',
+      level: 'mid',
+      topic: 'Generics',
+      question: 'How do you use generics to build a type-safe API client?',
+      answer: `Generics let a single \`get\` or \`post\` method return the correct type for each endpoint without duplicating code:
+
+\`\`\`ts
+async function get<T>(url: string): Promise<T> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(\`HTTP \${res.status}\`);
+  return res.json() as T;
+}
+
+// Callers get full type inference:
+const users = await get<User[]>("/api/users");
+const order = await get<Order>("/api/orders/42");
+// users: User[], order: Order — fully typed
+\`\`\`
+
+**More advanced — typed endpoint map:**
+\`\`\`ts
+type Endpoints = {
+  "/users": User[];
+  "/orders": Order[];
+};
+
+async function fetch<K extends keyof Endpoints>(path: K): Promise<Endpoints[K]> {
+  // ...
+}
+const users = await fetch("/users");   // TypeScript infers: User[]
+\`\`\`
+
+The second pattern is even better — the return type is driven by the endpoint key, making wrong calls a compile error.`,
+      analogy: `A type-aware library system — you ask for books by genre (endpoint), and the library automatically returns the right type of material. The \`<T>\` is the contract that says "what you ask for is what you get back."`,
+    },
+    {
+      id: 'ts-mid-29',
+      level: 'mid',
+      topic: 'Types',
+      question: 'How do you use discriminated unions to model loading, error, and success states in a UI component?',
+      answer: `Model each state as a separate union member with a literal \`status\` tag. This makes illegal combinations impossible:
+
+\`\`\`ts
+type AsyncState<T> =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "success"; data: T }
+  | { status: "error"; error: string };
+
+// In the component:
+function render(state: AsyncState<User[]>) {
+  switch (state.status) {
+    case "idle":    return <p>Ready</p>;
+    case "loading": return <Spinner />;
+    case "success": return <UserList users={state.data} />;
+    case "error":   return <ErrorMessage msg={state.error} />;
+  }
+}
+\`\`\`
+
+This is vastly better than \`{ loading: boolean, data?: T, error?: string }\` which allows impossible states like \`loading: true\` AND \`error: "..."` simultaneously.
+
+TypeScript also exhaustiveness-checks the switch — add a new status and the compile error forces you to handle it.`,
+      analogy: `A traffic light modelled properly — it can only be RED, AMBER, or GREEN, never two at once. A loose boolean object would let you turn all three on simultaneously, which is not a valid traffic light state.`,
+    },
+    {
+      id: 'ts-mid-30',
+      level: 'mid',
+      topic: 'Utility Types',
+      question: 'What is ReturnType<T> and when do you use it?',
+      answer: `\`ReturnType<T>\` extracts the return type of a function type — useful when you want to derive a type from an existing function without repeating yourself:
+
+\`\`\`ts
+function createUser(name: string, role: Role) {
+  return { id: Math.random(), name, role, createdAt: new Date() };
+}
+
+type User = ReturnType<typeof createUser>;
+// { id: number; name: string; role: Role; createdAt: Date }
+\`\`\`
+
+**When to use it:**
+- The return type is complex and you don't want to define it separately.
+- You're consuming a third-party function and need the return type as its own type.
+- In test utilities: \`type TestUser = ReturnType<typeof createTestUser>\`.
+
+Combined with \`typeof\`, it lets you derive types from existing code rather than duplicating definitions — so the type automatically stays in sync with the function.`,
+      analogy: `Instead of writing the recipe card twice (once for the function, once for its output type), you trace the output type directly off the function itself. If the recipe changes, the traced type updates automatically.`,
+    },
+    {
+      id: 'ts-mid-31',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you use TypeScript with Zod for runtime validation — walk me through a practical example.',
+      answer: `TypeScript types vanish at runtime, so API data typed as \`User\` might not actually be one. Zod validates at runtime AND infers the TypeScript type:
+
+\`\`\`ts
+import { z } from "zod";
+
+// Define the schema once — Zod infers the TypeScript type automatically:
+const UserSchema = z.object({
+  id: z.number(),
+  name: z.string().min(1),
+  email: z.string().email(),
+  role: z.enum(["admin", "user", "viewer"]),
+});
+
+type User = z.infer<typeof UserSchema>;   // TypeScript type derived from schema
+
+async function getUser(id: number): Promise<User> {
+  const raw = await fetch(\`/users/\${id}\`).then(r => r.json());
+  return UserSchema.parse(raw);   // throws a ZodError with details if invalid
+}
+\`\`\`
+
+**The key benefit:** you write the schema once, get both runtime validation and TypeScript types from it. If the API sends an unexpected field shape, Zod throws a descriptive error immediately — not a silent undefined somewhere later.`,
+      analogy: `A border checkpoint with a real X-ray scanner. TypeScript is the label on the package ("User"); Zod is the scanner that checks the contents actually match. The label alone can be forged — the scanner cannot lie.`,
+    },
+    {
+      id: 'ts-mid-32',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you manage turning on strict mode in a large existing TypeScript codebase?',
+      answer: `You can't flip \`strict: true\` overnight on a 100k-line codebase — it produces too many errors. Incremental approach:
+
+**Enable flags one at a time:**
+\`\`\`json
+{
+  "compilerOptions": {
+    "noImplicitAny": true,      // week 1 — force explicit types
+    "strictNullChecks": true,   // week 2 — handle nulls
+    "strictFunctionTypes": true // week 3 — tighten callbacks
+    // ...keep adding
+  }
+}
+\`\`\`
+
+**For existing errors you can't fix immediately:**
+- Use \`// @ts-expect-error\` (not \`// @ts-ignore\`) — forces you to document each suppression and the comment errors when the underlying issue is fixed.
+
+**Track progress:**
+- Run \`npx tsc --noEmit 2>&1 | wc -l\` weekly to see the error count dropping.
+- Assign ownership per module — each team fixes their own area.
+
+**Set a ceiling:** agree with the team that the error count can only go down, never up. New code must be strict from day one.`,
+      analogy: `Bringing an old building up to fire code — you don't rebuild it all at once. You fix each floor systematically, document what still needs work, and ensure new extensions are built to the new code from the start.`,
+    },
+    {
+      id: 'ts-mid-33',
+      level: 'mid',
+      topic: 'Types',
+      question: 'What OOP concepts does TypeScript support and how have you used them in a test automation framework?',
+      answer: `TypeScript supports full class-based OOP: encapsulation, inheritance, polymorphism, and abstraction.
+
+**In a Playwright Page Object framework:**
+
+\`\`\`ts
+// Abstraction — abstract base class
+abstract class BasePage {
+  constructor(protected page: Page) {}
+  abstract getTitle(): Promise<string>;
+
+  async waitForLoad(): Promise<void> {
+    await this.page.waitForLoadState("networkidle");
+  }
+}
+
+// Inheritance
+class LoginPage extends BasePage {
+  async getTitle() { return this.page.title(); }
+
+  async login(email: string, password: string) {
+    await this.page.fill("#email", email);
+    await this.page.fill("#password", password);
+    await this.page.click("[type=submit]");
+  }
+}
+
+// Encapsulation — private selectors
+class CartPage extends BasePage {
+  private readonly addToCartBtn = "[data-testid=add-to-cart]";
+
+  async addItem(productId: string) {
+    await this.page.click(this.addToCartBtn);
+  }
+}
+\`\`\`
+
+OOP here means: page logic is encapsulated per page, shared setup lives in the base class, and selectors are private — tests can't accidentally bypass the page object's interface.`,
+      analogy: `A well-organised test kitchen — each station (page object) handles its own tools and recipes (encapsulation), the head chef's standard preparation applies to all stations (inheritance from BasePage), and any chef can step in to run the station (polymorphism through the shared interface).`,
+    },
+    {
+      id: 'ts-mid-34',
+      level: 'mid',
+      topic: 'Utility Types',
+      question: 'What are Extract<T, U> and Exclude<T, U> and when do you use them?',
+      answer: `Both filter the members of a union type:
+
+**\`Exclude<T, U>\`** — removes members of T that extend U:
+\`\`\`ts
+type Status = "active" | "inactive" | "banned";
+type ActiveStatuses = Exclude<Status, "banned">;
+// "active" | "inactive"
+\`\`\`
+
+**\`Extract<T, U>\`** — keeps only members of T that extend U:
+\`\`\`ts
+type OnlyStrings = Extract<string | number | boolean, string>;
+// string
+\`\`\`
+
+**Practical use cases:**
+\`\`\`ts
+type EventNames = "click" | "keydown" | "mouseenter" | "blur";
+type MouseEvents = Extract<EventNames, \`mouse\${string}\`>;
+// "mouseenter" — only the mouse events
+
+type NonNullFields<T> = { [K in keyof T]: Exclude<T[K], null | undefined> };
+\`\`\`
+
+Combine these to build precise types from existing ones without repetition.`,
+      analogy: `\`Exclude\` is a bouncer removing certain guests from the list. \`Extract\` is a recruiter pulling only the candidates that match a profile. Both operate on a group — one removes, one selects.`,
+    },
+    {
+      id: 'ts-mid-35',
+      level: 'mid',
+      topic: 'Utility Types',
+      question: 'What is NonNullable<T> and when is it useful?',
+      answer: `\`NonNullable<T>\` removes \`null\` and \`undefined\` from a type, giving you the guaranteed non-nullable version:
+
+\`\`\`ts
+type MaybeUser = User | null | undefined;
+type DefiniteUser = NonNullable<MaybeUser>;   // User
+
+// Practical: after a null check, you already narrowed — but in generic code:
+function process<T>(value: T): NonNullable<T> {
+  if (value == null) throw new Error("value is required");
+  return value as NonNullable<T>;
+}
+\`\`\`
+
+**Common in utility types and mapped types:**
+\`\`\`ts
+type RequiredValues<T> = {
+  [K in keyof T]: NonNullable<T[K]>;
+};
+// Makes every property non-nullable in the output type
+\`\`\`
+
+Use it in generic functions that assert a value is defined, and in mapped types where you want to strip nullability across all fields.`,
+      analogy: `A filter that removes "unknown" and "missing" entries from a list, giving you only the confirmed values. \`NonNullable\` is that filter at the type level.`,
+    },
+    {
+      id: 'ts-mid-36',
+      level: 'mid',
+      topic: 'Generics',
+      question: 'How do you build a type-safe generic repository pattern in TypeScript?',
+      answer: `A generic repository encapsulates data access and is parameterised by the entity type:
+
+\`\`\`ts
+interface Repository<T, ID> {
+  findById(id: ID): Promise<T | null>;
+  findAll(): Promise<T[]>;
+  save(entity: Omit<T, "id">): Promise<T>;
+  update(id: ID, updates: Partial<T>): Promise<T>;
+  delete(id: ID): Promise<void>;
+}
+
+// Concrete implementation for Users:
+class UserRepository implements Repository<User, number> {
+  async findById(id: number): Promise<User | null> {
+    return db.users.findOne({ where: { id } });
+  }
+  async findAll(): Promise<User[]> {
+    return db.users.findAll();
+  }
+  // ... etc
+}
+\`\`\`
+
+**In tests, the interface enables easy mocking:**
+\`\`\`ts
+const mockUserRepo: Repository<User, number> = {
+  findById: jest.fn().mockResolvedValue({ id: 1, name: "Test" }),
+  findAll: jest.fn().mockResolvedValue([]),
+  save: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+};
+\`\`\`
+
+The generic interface ensures every repository has the same contract — and swapping the real implementation for a mock is type-safe.`,
+      analogy: `A standard warehouse shelf system where every shelf (entity type) follows the same protocol — label, store, retrieve, update, remove. The same forklift (generic repository) works for every shelf type.`,
+    },
+    {
+      id: 'ts-mid-37',
+      level: 'mid',
+      topic: 'Async',
+      question: 'What is Awaited<T> and when do you actually need it?',
+      answer: `\`Awaited<T>\` unwraps a nested Promise type — it extracts the resolved value from a \`Promise<T>\`, even through multiple levels of nesting:
+
+\`\`\`ts
+type A = Awaited<Promise<string>>;              // string
+type B = Awaited<Promise<Promise<number>>>;     // number (unwraps twice)
+\`\`\`
+
+**When you need it:**
+\`\`\`ts
+async function getUser(): Promise<User> { /* ... */ }
+
+// You want the return type without writing it manually:
+type User = Awaited<ReturnType<typeof getUser>>;   // User
+\`\`\`
+
+**In generic utilities:**
+\`\`\`ts
+async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  // Awaited<T> is T when T is a Promise<X>
+}
+\`\`\`
+
+Before TypeScript 4.5 introduced \`Awaited\`, developers used \`ReturnType\` combined with \`infer\` to achieve this manually. Now it is built-in.`,
+      analogy: `Unwrapping a parcel inside a parcel inside a parcel — \`Awaited\` keeps opening boxes until it gets to the actual contents, however many layers deep they are.`,
+    },
+    {
+      id: 'ts-mid-38',
+      level: 'mid',
+      topic: 'Utility Types',
+      question: 'What is the Parameters<T> utility type and when would you use it?',
+      answer: `\`Parameters<T>\` extracts the parameter types of a function as a **tuple**:
+
+\`\`\`ts
+function createOrder(userId: number, items: CartItem[], coupon?: string) {
+  // ...
+}
+
+type OrderParams = Parameters<typeof createOrder>;
+// [userId: number, items: CartItem[], coupon?: string | undefined]
+
+// Practical: pass through parameters to a wrapper:
+function loggedCreateOrder(...args: Parameters<typeof createOrder>) {
+  console.log("Creating order for user", args[0]);
+  return createOrder(...args);
+}
+\`\`\`
+
+**Combined with \`Partial\` for test factories:**
+\`\`\`ts
+function createTestOrder(
+  overrides: Partial<Parameters<typeof createOrder>[1]>   // Partial<CartItem[]>... etc.
+) {}
+\`\`\`
+
+Use it when you're wrapping, proxying, or testing a function and want the wrapper to stay in sync with the original signature automatically.`,
+      analogy: `Taking a mould of a function's input slots. If the function changes its parameters, your mould updates automatically — no need to manually re-describe the parameters in every wrapper.`,
+    },
+    {
+      id: 'ts-mid-39',
+      level: 'mid',
+      topic: 'Types',
+      question: 'How do you model a state machine in TypeScript with type safety?',
+      answer: `Use a **discriminated union** for states and define valid transitions explicitly:
+
+\`\`\`ts
+type OrderState =
+  | { state: "pending" }
+  | { state: "processing"; startedAt: Date }
+  | { state: "shipped"; trackingId: string; shippedAt: Date }
+  | { state: "delivered"; deliveredAt: Date }
+  | { state: "cancelled"; reason: string };
+
+// Transition function — only valid inputs for the current state:
+function ship(order: Extract<OrderState, { state: "processing" }>, trackingId: string): Extract<OrderState, { state: "shipped" }> {
+  return { state: "shipped", trackingId, shippedAt: new Date() };
+}
+
+// Can't ship a cancelled order — TypeScript won't allow it:
+// ship(cancelledOrder, "TRK123");  ❌ wrong state type
+\`\`\`
+
+This approach makes invalid transitions a **compile-time error**, not a runtime bug. Each state carries only the data relevant to it — \`trackingId\` only exists when the order is shipped.`,
+      analogy: `A traffic light controller with typed states — "GREEN needs no extra data; AMBER has a countdown duration; RED has a wait time." You can't accidentally run red-light logic on a green state because the type won't allow it.`,
+    },
+    {
+      id: 'ts-mid-40',
+      level: 'mid',
+      topic: 'Types',
+      question: 'How do you use template literal types in a practical project?',
+      answer: `Template literal types build string types from other types — useful for typed event names, CSS properties, API routes, and more:
+
+**Typed event bus:**
+\`\`\`ts
+type EventMap = { userCreated: User; orderPlaced: Order };
+type EventName = keyof EventMap;          // "userCreated" | "orderPlaced"
+type HandlerName = \`on\${Capitalize<EventName>}\`;
+// "onUserCreated" | "onOrderPlaced"
+\`\`\`
+
+**Type-safe API routes:**
+\`\`\`ts
+type UserId = number;
+type UserRoute = \`/users/\${UserId}\`;   // accepts "/users/123" but not "/users/abc"
+\`\`\`
+
+**CSS property helpers:**
+\`\`\`ts
+type Side = "top" | "right" | "bottom" | "left";
+type Padding = \`padding-\${Side}\`;   // "padding-top" | "padding-right" | ...
+\`\`\`
+
+These are most useful in framework-level code and shared utilities — they catch string-shape mistakes at compile time that would otherwise only surface at runtime.`,
+      analogy: `A label maker that enforces format — you can only print "order/123" not "order/abc", because the template says the second part must be a number. The machine rejects non-conforming labels before you stick them on anything.`,
+    },
+    {
+      id: 'ts-mid-41',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'You have TypeScript types on the frontend and the backend diverging from each other. How do you fix it?',
+      answer: `Diverging types mean silent bugs where the client sends a shape the server doesn't expect (or vice versa). Fix it by establishing a **single source of truth**:
+
+**Option 1 — Shared types package (monorepo):**
+\`\`\`
+packages/
+  shared-types/   ← single source: User, Order, ApiResponse, etc.
+  frontend/       ← imports from shared-types
+  backend/        ← imports from shared-types
+\`\`\`
+Both sides import from one place — any mismatch is a compile error.
+
+**Option 2 — Generate types from the API spec:**
+- OpenAPI spec → generate TS types with \`openapi-typescript\` or \`swagger-typescript-api\`.
+- GraphQL schema → generate TS types with \`graphql-code-generator\`.
+- Prisma DB schema → Prisma generates exact model types.
+
+**Option 3 — tRPC (if you control both sides):**
+- End-to-end type inference — the frontend calls backend procedures with full type safety, no codegen needed.
+
+**Quick fix while migrating:** at minimum, have one team own the type definitions and the other team imports from them — one direction, no copies.`,
+      analogy: `Two teams building the same tunnel from opposite ends using different blueprints. The fix is one authoritative blueprint that both teams work from — not one team copying the other's drawings by hand.`,
+    },
+    {
+      id: 'ts-mid-42',
+      level: 'mid',
+      topic: 'Testing',
+      question: 'How do you test TypeScript code — what tools and patterns do you use?',
+      answer: `TypeScript tests use the same testing tools as JavaScript, with types adding an extra layer of safety:
+
+**Test runner + assertion library:**
+- **Vitest** (recommended for modern TS projects — native ESM, fast, \`expectTypeOf\` built-in).
+- **Jest** with \`ts-jest\` or \`@swc-jest\` for transformation.
+
+**Patterns:**
+\`\`\`ts
+// Type-safe test data factories with Partial overrides:
+function makeUser(overrides: Partial<User> = {}): User {
+  return { id: 1, name: "Test", email: "test@x.com", role: "user", ...overrides };
+}
+
+// Type-safe mocks:
+const mockRepo = { findById: jest.fn<Promise<User | null>, [number]>() };
+\`\`\`
+
+**Testing types themselves:**
+\`\`\`ts
+import { expectTypeOf } from "vitest";
+expectTypeOf(getUser(1)).resolves.toEqualTypeOf<User>();
+\`\`\`
+
+**The key benefit:** TypeScript catches mock mismatches — if you update the \`User\` type to add a required field, the \`makeUser\` factory immediately fails to compile until you add a default for it.`,
+      analogy: `A type-checked rehearsal — the actors (tests) must follow the exact script (types), and the director (TypeScript) stops the rehearsal the moment someone delivers a line that doesn't match the script, not on opening night.`,
+    },
+    {
+      id: 'ts-mid-43',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you handle a third-party library with wrong or missing TypeScript type definitions?',
+      answer: `This is common in real projects. Approaches in order of preference:
+
+**1 — Install community types:**
+\`\`\`bash
+npm install -D @types/library-name
+\`\`\`
+
+**2 — Patch wrong types with module augmentation:**
+\`\`\`ts
+// types/library-name.d.ts
+declare module "library-name" {
+  interface Options {
+    missingProp: string;   // add the missing property
+  }
+}
+\`\`\`
+
+**3 — Override with a complete declaration file:**
+\`\`\`ts
+// If the published types are completely wrong:
+declare module "legacy-lib" {
+  export function doThing(input: string): number;
+  export const version: string;
+}
+\`\`\`
+
+**4 — Declare the whole module as \`any\` (last resort):**
+\`\`\`ts
+declare module "badly-typed-lib";   // opts out of type-checking for this module
+\`\`\`
+
+**Practical workflow:** find the actual runtime shape by logging the output, then write the declaration to match it — don't guess. Consider contributing the fix back upstream or to DefinitelyTyped.`,
+      analogy: `A foreign manual with a few pages missing. You translate what exists (use published types), fill in the missing pages yourself (augmentation), and if the whole manual is wrong, write your own accurate version (full declaration file).`,
+    },
+    {
+      id: 'ts-mid-44',
+      level: 'mid',
+      topic: 'Types',
+      question: 'What are the benefits of combining `readonly` and `as const` for configuration objects?',
+      answer: `Together they create deeply immutable, precisely-typed config objects that catch mistakes at compile time:
+
+\`\`\`ts
+// Without as const — types are widened:
+const config = {
+  env: "production",      // type: string (too broad)
+  maxRetries: 3,          // type: number (too broad)
+};
+
+// With as const — literal types preserved:
+const config = {
+  env: "production",      // type: "production" (exact)
+  maxRetries: 3,          // type: 3 (exact)
+  allowed: ["admin", "user"],   // type: readonly ["admin", "user"]
+} as const;
+
+// Derive a union from the values:
+type Env = typeof config["env"];    // "production" (not string)
+type Role = typeof config["allowed"][number];   // "admin" | "user"
+\`\`\`
+
+**Practical benefit:** a function typed to accept \`"production" | "staging"\` will reject a loose \`string\` variable — but accept your \`as const\` config value. No runtime errors from misconfigured environments.`,
+      analogy: `Engraving your settings in stone rather than writing them in pencil. The stone version (as const + readonly) cannot be accidentally changed, and its exact value is known at compile time — so every consumer can rely on it precisely.`,
+    },
+    {
+      id: 'ts-mid-45',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'Walk me through how you would approach migrating a JavaScript test framework to TypeScript.',
+      answer: `Migrate incrementally to avoid a big-bang rewrite that blocks the team for weeks:
+
+**Week 1 — Setup without breaking anything:**
+\`\`\`bash
+npm install -D typescript ts-jest @types/jest
+npx tsc --init   # allowJs: true, strict: false initially
+\`\`\`
+Configure Jest to use \`ts-jest\` — existing \`.js\` tests keep running.
+
+**Week 2 — Start with the foundation:**
+Rename the most-shared utilities first: \`helpers.js\` → \`helpers.ts\`. Fix errors one file at a time. These types flow upstream and give the most coverage.
+
+**Week 3+ — Rename page objects and test files:**
+Page objects benefit most from types — selectors and method signatures become checked. Rename \`LoginPage.js\` → \`LoginPage.ts\`, add types.
+
+**Enable strict flags progressively:**
+- \`noImplicitAny\` first — biggest single improvement.
+- \`strictNullChecks\` next — surfaces null-related bugs.
+
+**Track progress:**
+\`\`\`bash
+npx tsc --noEmit 2>&1 | wc -l   # track error count dropping
+\`\`\`
+
+**Key discipline:** new tests must be \`.ts\` from day one — never add new \`.js\` test files during migration.`,
+      analogy: `Converting an old paper-based filing system to a digital one. You don't scan every single document on day one. You start with the most-referenced files, establish the new format, and migrate section by section while the office keeps running.`,
+    },
+    {
+      id: 'ts-mid-46',
+      level: 'mid',
+      topic: 'Types',
+      question: 'How do you use `as const` to derive a union type from an array of values?',
+      answer: `\`as const\` freezes the array to its exact literal values, enabling you to derive a union using indexed access:
+
+\`\`\`ts
+// Without as const — too broad:
+const roles = ["admin", "user", "viewer"];
+type Role = typeof roles[number];   // string (not useful)
+
+// With as const — precise:
+const roles = ["admin", "user", "viewer"] as const;
+type Role = typeof roles[number];   // "admin" | "user" | "viewer"
+\`\`\`
+
+**Practical example — API status codes as typed union:**
+\`\`\`ts
+const HTTP_ERRORS = [400, 401, 403, 404, 500] as const;
+type HttpError = typeof HTTP_ERRORS[number];   // 400 | 401 | 403 | 404 | 500
+
+function handleError(code: HttpError) { /* ... */ }
+handleError(404);   // ✅
+handleError(999);   // ❌ not in the list
+\`\`\`
+
+This pattern is the most ergonomic way to maintain a single list of valid values that is both a runtime array (for iteration) and a compile-time type (for enforcement).`,
+      analogy: `A ballot paper that lists the only valid candidates. \`as const\` prints the ballot — the union type derived from it is the list of valid votes. You can count the ballots (iterate the array) and check each vote is valid (type check) using the same source.`,
+    },
+    {
+      id: 'ts-mid-47',
+      level: 'mid',
+      topic: 'Narrowing',
+      question: 'How do you build a robust type guard for an unknown API response object?',
+      answer: `A thorough type guard checks not just that properties exist but that they have the correct types:
+
+\`\`\`ts
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: "admin" | "user";
+}
+
+function isUser(x: unknown): x is User {
+  return (
+    typeof x === "object" &&
+    x !== null &&
+    typeof (x as any).id === "number" &&
+    typeof (x as any).name === "string" &&
+    typeof (x as any).email === "string" &&
+    ((x as any).role === "admin" || (x as any).role === "user")
+  );
+}
+
+// Usage in an API response handler:
+const data: unknown = await res.json();
+if (isUser(data)) {
+  console.log(data.name);   // TypeScript knows it's User here
+} else {
+  throw new Error("Invalid user response from API");
+}
+\`\`\`
+
+For complex nested structures, prefer a **schema library (Zod)** over handwritten guards — the code is less error-prone and generates the TypeScript type automatically.`,
+      analogy: `A customs officer doing a thorough check — not just "is there a passport?" but "is the name a string? is the ID number a number? is the nationality one of the valid countries?" Each check narrows the certainty about what's in the package.`,
+    },
+    {
+      id: 'ts-mid-48',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you type environment variables in a TypeScript Node.js project?',
+      answer: `\`process.env\` values are all \`string | undefined\` by default — no safety at all. Fix it with a validated config module:
+
+\`\`\`ts
+// config.ts
+import { z } from "zod";
+
+const EnvSchema = z.object({
+  DATABASE_URL: z.string().url(),
+  PORT: z.string().transform(Number).default("3000"),
+  NODE_ENV: z.enum(["development", "staging", "production"]),
+  JWT_SECRET: z.string().min(32),
+});
+
+export const config = EnvSchema.parse(process.env);
+// config.PORT is now: number (not string | undefined)
+// config.NODE_ENV is: "development" | "staging" | "production"
+\`\`\`
+
+The application **fails fast at startup** if any required env var is missing or wrong — not silently hours later when a missing DB_URL causes a cryptic connection error.
+
+Without Zod, at minimum declare a typed config module:
+\`\`\`ts
+export const config = {
+  port: Number(process.env.PORT ?? "3000"),
+  dbUrl: process.env.DATABASE_URL!,
+} as const;
+\`\`\``,
+      analogy: `A pre-flight checklist that checks all required instruments are present and in range before takeoff — not discovering mid-flight that the altimeter is missing because no one checked.`,
+    },
+    {
+      id: 'ts-mid-49',
+      level: 'mid',
+      topic: 'Generics',
+      question: 'How do you write a generic function that narrows its return type based on an argument?',
+      answer: `Use function overloads or a conditional return type driven by a generic literal:
+
+\`\`\`ts
+// Overload approach — different return types for different inputs:
+function parse(input: string): string[];
+function parse(input: number): number;
+function parse(input: string | number): string[] | number {
+  return typeof input === "string" ? input.split(",") : input * 2;
+}
+
+const parts = parse("a,b,c");   // TypeScript knows: string[]
+const doubled = parse(5);       // TypeScript knows: number
+\`\`\`
+
+**Generic approach with conditional types:**
+\`\`\`ts
+type ParseResult<T> = T extends string ? string[] : number;
+
+function parse<T extends string | number>(input: T): ParseResult<T> {
+  return (typeof input === "string"
+    ? input.split(",")
+    : input * 2) as ParseResult<T>;
+}
+\`\`\`
+
+**When to use which:**
+- Overloads: cleaner for 2–3 distinct cases, easier to read.
+- Conditional types: more scalable when the rule can be expressed as a type formula.`,
+      analogy: `A multi-mode printer: insert a document and it scans it (returns an image); insert blank paper and it prints (returns text). The same input slot, but the output type depends on what you put in.`,
+    },
+    {
+      id: 'ts-mid-50',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you use TypeScript to keep test helper functions and fixtures type-safe across a large test suite?',
+      answer: `The key is typed factory functions and shared interfaces that the entire suite imports:
+
+\`\`\`ts
+// test/factories/user.factory.ts
+export function makeUser(overrides: Partial<User> = {}): User {
+  return {
+    id: Math.floor(Math.random() * 10000),
+    name: "Test User",
+    email: "test@example.com",
+    role: "viewer",
+    createdAt: new Date(),
+    ...overrides,
+  };
+}
+
+// test/factories/order.factory.ts
+export function makeOrder(userId: number, overrides: Partial<Order> = {}): Order {
+  return {
+    id: Math.floor(Math.random() * 10000),
+    userId,
+    status: "pending",
+    items: [],
+    total: 0,
+    ...overrides,
+  };
+}
+\`\`\`
+
+**The benefit:** add a required field to \`User\` and every factory call that doesn't supply it fails compilation. No "undefined is not a function" in tests — the types catch the gap at write time.
+
+**Fixture files** for complex setups:
+\`\`\`ts
+export const adminUser = makeUser({ role: "admin", id: 999 });
+export const premiumOrder = makeOrder(adminUser.id, { status: "shipped", total: 1500 });
+\`\`\`
+Typed fixtures are validated at compile time — no stale test data with wrong shapes.`,
+      analogy: `A typed props kit for a stage production — every prop is labelled with exactly what it is and which actor uses it. New actors (test writers) can grab the right prop without guessing, and if the script changes, the prop kit immediately flags what needs updating.`,
+    },
     // ── Senior (5+ yrs) ───────────────────────────────────────
     {
       id: 'ts-sr-1',
@@ -10799,6 +12302,860 @@ TypeScript handles self-referential types (with some depth limits on heavy *type
 
 Reach for \`satisfies\` when you want validation *without* widening; \`as\` only when you truly know better than the compiler.`,
       analogy: `Annotation = filing into a labelled folder (loses the specifics). \`as\` = slapping a label on without checking. \`satisfies\` = a QA stamp that verifies it meets spec while keeping every detail intact.`,
+    },
+    {
+      id: 'ts-sr-27',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'How do you design a type-safe event bus in TypeScript?',
+      answer: `A type-safe event bus links event names to their payload types, preventing mismatched event/payload combinations at compile time:
+
+\`\`\`ts
+type EventMap = {
+  userCreated: { id: number; name: string };
+  orderPlaced: { orderId: string; total: number };
+  sessionExpired: void;
+};
+
+class TypedEventBus {
+  private handlers = new Map<string, Function[]>();
+
+  on<K extends keyof EventMap>(
+    event: K,
+    handler: EventMap[K] extends void ? () => void : (payload: EventMap[K]) => void
+  ): void {
+    if (!this.handlers.has(event)) this.handlers.set(event, []);
+    this.handlers.get(event)!.push(handler);
+  }
+
+  emit<K extends keyof EventMap>(
+    ...args: EventMap[K] extends void ? [K] : [K, EventMap[K]]
+  ): void {
+    const [event, payload] = args;
+    this.handlers.get(event)?.forEach(h => h(payload));
+  }
+}
+
+const bus = new TypedEventBus();
+bus.on("userCreated", ({ id, name }) => console.log(id, name));   // typed payload
+bus.emit("userCreated", { id: 1, name: "Asha" });                 // ✅
+bus.emit("userCreated", { id: "wrong" });                         // ❌ compile error
+\`\`\`
+
+This pattern prevents the most common event bus bug: subscribing with a handler that expects a different shape than what the emitter sends.`,
+      analogy: `A post room with typed pigeon holes — each slot is labelled and its dimensions match only the right letter size. Put the wrong letter in the wrong slot and the post room won't accept it, catching the mismatch before delivery.`,
+    },
+    {
+      id: 'ts-sr-28',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'How do you use TypeScript to build end-to-end type safety — from database to API to frontend — without duplication?',
+      answer: `End-to-end type safety means one change in the database schema propagates through the API contract to the frontend type — and any mismatches are compile errors, not runtime failures.
+
+**Stack 1 — Prisma + tRPC:**
+\`\`\`ts
+// Prisma auto-generates exact DB model types:
+type User = Prisma.User;   // reflects DB schema
+
+// tRPC: backend procedure types flow to the frontend with no codegen:
+const appRouter = t.router({
+  getUser: t.procedure.input(z.number()).query(({ input }) =>
+    db.user.findUnique({ where: { id: input } })
+  ),
+});
+
+// Frontend:
+const user = trpc.getUser.useQuery(1);
+// user.data is typed as User | null — automatically
+\`\`\`
+
+**Stack 2 — OpenAPI + codegen:**
+- Backend emits an OpenAPI spec.
+- CI runs \`openapi-typescript\` to generate \`api.d.ts\`.
+- Both frontend and backend import from the same generated types.
+
+**Stack 3 — GraphQL codegen:**
+- Schema defines the contract.
+- \`graphql-code-generator\` produces types from schema + operations.
+
+The principle: one authoritative source drives all types. No hand-maintained copies. Any schema change triggers a codegen step that surfaces all breakages immediately.`,
+      analogy: `A single master drawing for a machine where every workshop (DB, API, frontend) prints their copy from it. Change the master and every outdated copy shows a mismatch — no silent divergence between teams working from their own copies.`,
+    },
+    {
+      id: 'ts-sr-29',
+      level: 'senior',
+      topic: 'Tooling',
+      question: 'What causes TypeScript performance degradation in large codebases and how do you diagnose and fix it?',
+      answer: `TypeScript type-checking gets slow for specific, diagnosable reasons. Systematic approach:
+
+**Diagnose first:**
+\`\`\`bash
+npx tsc --noEmit --extendedDiagnostics   # shows time per file
+npx tsc --noEmit --generateTrace trace   # produces a trace for chrome://tracing
+\`\`\`
+
+**Common root causes and fixes:**
+
+**1 — Deep recursive or conditional types:**
+A \`DeepPartial<T>\` with infinite recursion can take seconds per check. Simplify or cap depth with a counter.
+
+**2 — Checking all of node_modules:**
+\`\`\`json
+{ "skipLibCheck": true }   // don't re-check .d.ts in node_modules
+\`\`\`
+
+**3 — Monolithic project — everything in one compilation unit:**
+Split into **project references** (\`composite: true\`) — each sub-project builds independently and caches its output.
+
+**4 — Heavy type inference in large generics:**
+Explicitly annotate return types on complex functions — reduces the inference work per call site.
+
+**5 — \`import type\` for type-only imports:**
+\`\`\`ts
+import type { User } from "./user";   // erased at compile time, not checked as a value
+\`\`\`
+
+**Ongoing hygiene:** watch build times in CI. A spike that correlates with a commit is a type-complexity regression.`,
+      analogy: `Diagnosing a slow factory line — you don't guess. You time each station, find the bottleneck (extended diagnostics), isolate the problem unit (project references), and optimise the slowest step (simplify complex types).`,
+    },
+    {
+      id: 'ts-sr-30',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'How do you handle circular type dependencies in a large TypeScript codebase?',
+      answer: `Circular dependencies in types cause confusing errors and slow builds. Root cause and fixes:
+
+**Identifying them:**
+\`\`\`bash
+npx madge --circular src/   # finds circular module dependencies
+\`\`\`
+
+**Why they happen:** two modules import from each other, often because they both reference the same shared type.
+
+**Fix 1 — Extract shared types to a separate module:**
+\`\`\`
+models/User.ts      ← user.ts and order.ts both import from here
+services/user.ts
+services/order.ts
+\`\`\`
+
+**Fix 2 — Use \`import type\` for type-only references:**
+\`\`\`ts
+import type { Order } from "./order";   // only used in types — doesn't create a value dependency
+\`\`\`
+Type-only imports are erased at build time, so they can't create runtime circular dependencies even if the type graph cycles.
+
+**Fix 3 — Interface segregation:**
+Instead of importing a whole service for one interface it implements, define the interface separately and import only that.
+
+**Architecture principle:** types should flow in one direction — domain types → service types → controller types. Reverse dependencies indicate a layering violation.`,
+      analogy: `Two departments each waiting for the other's sign-off to start work — a circular block. The fix is finding what piece of information they actually share and putting it in a shared office both can read independently, breaking the loop.`,
+    },
+    {
+      id: 'ts-sr-31',
+      level: 'senior',
+      topic: 'Advanced Types',
+      question: 'When do you write a custom utility type and what makes a good one?',
+      answer: `Write a custom utility type when the built-in ones can't express the transformation you need, and the need recurs across the codebase.
+
+**A good custom utility type:**
+- Has a clear, single purpose — does one transformation, well.
+- Uses a clear name that reads like documentation.
+- Composes from primitives (\`keyof\`, \`infer\`, \`extends\`) rather than fighting the type system.
+- Has tests (\`expectTypeOf\`) to verify it behaves as intended.
+
+**Examples of genuinely useful custom utilities:**
+
+\`\`\`ts
+// Make only specific keys optional:
+type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+
+// Deeply readonly:
+type DeepReadonly<T> = { readonly [K in keyof T]: DeepReadonly<T[K]> };
+
+// Non-nullable version of all values:
+type StrictValues<T> = { [K in keyof T]: NonNullable<T[K]> };
+
+// Extract all keys with a specific value type:
+type KeysOfType<T, V> = { [K in keyof T]: T[K] extends V ? K : never }[keyof T];
+// KeysOfType<User, string> → "name" | "email" (all string-valued keys)
+\`\`\`
+
+**Signs you shouldn't write one:** if it's only used once, or if it's so complex that the next person will have to read it three times — simplify or use comments.`,
+      analogy: `A bespoke tool made for a specific job that appears repeatedly in the workshop. A professional craftsman makes it once, tests it on a known piece, and then uses it confidently many times. They don't make a new tool for every single task.`,
+    },
+    {
+      id: 'ts-sr-32',
+      level: 'senior',
+      topic: 'Advanced Types',
+      question: 'How do you implement a type-safe builder pattern in TypeScript?',
+      answer: `A builder accumulates configuration step by step. TypeScript can track which fields have been set using generic state tracking:
+
+\`\`\`ts
+class QueryBuilder<T extends Partial<{ table: string; where: string; limit: number }> = {}> {
+  private config: T;
+
+  constructor(config: T = {} as T) {
+    this.config = config;
+  }
+
+  from<K extends string>(table: K): QueryBuilder<T & { table: K }> {
+    return new QueryBuilder({ ...this.config, table });
+  }
+
+  where(condition: string): QueryBuilder<T & { where: string }> {
+    return new QueryBuilder({ ...this.config, where: condition });
+  }
+
+  limit(n: number): QueryBuilder<T & { limit: number }> {
+    return new QueryBuilder({ ...this.config, limit: n });
+  }
+
+  // Only callable when table is set:
+  build(this: QueryBuilder<T & { table: string }>): string {
+    return \`SELECT * FROM \${this.config.table}\`;
+  }
+}
+
+const q = new QueryBuilder().from("users").where("active=true").limit(10).build();
+// build() is only available after from() — TS enforces it
+new QueryBuilder().build();   // ❌ compile error: table is not set
+\`\`\`
+
+This pattern makes calling \`.build()\` before \`.from()\` a compile-time error, not a runtime one.`,
+      analogy: `A contract that can only be signed after all required sections are filled in. TypeScript tracks which sections have been completed and refuses to let you sign until the required ones are done.`,
+    },
+    {
+      id: 'ts-sr-33',
+      level: 'senior',
+      topic: 'Safety',
+      question: 'What are the most subtle TypeScript bugs you have encountered in real projects and how did you fix them?',
+      answer: `Real-world subtle TS bugs worth knowing:
+
+**1 — Mutating a readonly array at runtime:**
+\`\`\`ts
+const arr = [1, 2, 3] as const;
+(arr as number[]).push(4);   // TS allows the cast; runtime mutates it
+\`\`\`
+Fix: use \`Object.freeze\` for runtime enforcement.
+
+**2 — \`as\` hiding a broken API contract:**
+\`\`\`ts
+const user = await res.json() as User;   // types it as User, but API sends wrong shape
+user.name.toUpperCase();                 // TypeError: Cannot read property of null
+\`\`\`
+Fix: use Zod \`parse\` instead of \`as\`.
+
+**3 — Overloads not matching the implementation:**
+Overload signatures can be more permissive than the implementation, causing calls that satisfy an overload but crash in the implementation. Fix: keep implementations narrow.
+
+**4 — Async callback in Array.forEach losing error handling:**
+\`\`\`ts
+items.forEach(async (item) => { await save(item); });   // errors are swallowed silently
+\`\`\`
+Fix: use \`for...of\` with \`await\`, or \`Promise.all\`.
+
+**5 — Discriminated union narrowing failing due to type widening:**
+\`\`\`ts
+const kind = getKind();   // inferred as string, not "circle" | "square"
+if (kind === "circle") {}  // never true if kind is string
+\`\`\`
+Fix: type the return of \`getKind\` as the literal union.`,
+      analogy: `Hidden structural faults in a building — they pass the visual inspection because the surface looks fine, but a proper stress test (real data at runtime) exposes the weakness. Each of these bugs passes compile-time inspection but fails when reality diverges from the types.`,
+    },
+    {
+      id: 'ts-sr-34',
+      level: 'senior',
+      topic: 'Advanced Types',
+      question: 'How do you use variance annotations (in/out) in TypeScript 4.7+ and why do they matter?',
+      answer: `Variance annotations let you explicitly declare how a generic type parameter flows in a type, making assignability rules explicit and improving type-check performance:
+
+\`\`\`ts
+// out T — covariant: T only appears in output positions (return types)
+type Producer<out T> = {
+  get(): T;
+};
+
+// in T — contravariant: T only appears in input positions (parameters)
+type Consumer<in T> = {
+  consume(value: T): void;
+};
+\`\`\`
+
+**Why it matters:**
+
+**Covariant (out):** \`Producer<Dog>\` is assignable to \`Producer<Animal>\` — a producer of dogs is a valid producer of animals (more specific is fine as output).
+
+**Contravariant (in):** \`Consumer<Animal>\` is assignable to \`Consumer<Dog>\` — a consumer of animals can consume a dog (more general is safe as input).
+
+**Performance:** TypeScript normally infers variance by analysing the full structure. Explicit annotations skip this analysis, improving check times in large generics.
+
+**Practical use:** most useful in library code with complex generic types. For application code, TypeScript infers variance correctly without annotations.`,
+      analogy: `Covariant (out) is a slot that produces output — a Labrador-retriever machine is a valid "dog machine." Contravariant (in) is a slot that consumes input — a machine that accepts all animals can definitely accept a dog.`,
+    },
+    {
+      id: 'ts-sr-35',
+      level: 'senior',
+      topic: 'Design',
+      question: 'How do you use TypeScript to enforce business rules at the type level?',
+      answer: `Push business invariants into the type system so violations are caught at compile time, not in tests or production:
+
+**1 — Branded types for domain values:**
+\`\`\`ts
+type UserId = number & { readonly _brand: "UserId" };
+type OrderId = number & { readonly _brand: "OrderId" };
+
+function cancelOrder(orderId: OrderId, userId: UserId): void {}
+// cancelOrder(userId, orderId);  ❌ compile error — args swapped
+\`\`\`
+
+**2 — Discriminated unions for valid states only:**
+\`\`\`ts
+type Payment =
+  | { status: "pending" }
+  | { status: "completed"; transactionId: string; completedAt: Date }
+  | { status: "failed"; reason: string };
+// Cannot have a "completed" payment without a transactionId
+\`\`\`
+
+**3 — Template literal types for format constraints:**
+\`\`\`ts
+type ISODate = \`\${number}-\${number}-\${number}\`;   // enforces pattern
+type Email = \`\${string}@\${string}.\${string}\`;
+\`\`\`
+
+**4 — Opaque types for validated values:**
+\`\`\`ts
+type ValidatedEmail = string & { readonly __validated: true };
+function validateEmail(s: string): ValidatedEmail {
+  if (!s.includes("@")) throw new Error("Invalid email");
+  return s as ValidatedEmail;
+}
+// Only functions accepting ValidatedEmail need validated input
+\`\`\``,
+      analogy: `A building where structural rules are enforced by the architecture itself — you literally cannot build a room without a floor (the type system prevents it at design time), rather than relying on the inspector to catch it after construction.`,
+    },
+    {
+      id: 'ts-sr-36',
+      level: 'senior',
+      topic: 'Leadership',
+      question: 'What do you look for in a TypeScript code review from a senior perspective?',
+      answer: `Beyond obvious style, I look for these specific TS-relevant patterns:
+
+**Type safety shortcuts that hide problems:**
+- \`as\` casts on API/JSON data without runtime validation — silent runtime bombs.
+- \`!` (non-null assertion) on values that could genuinely be null.
+- \`any\` without a comment explaining why it can't be avoided.
+
+**Over-engineering types:**
+- Conditional types 3 levels deep to express something a union handles in 3 lines.
+- Custom utility types that re-implement \`Pick\` or \`Omit\` with slightly different names.
+
+**Missing exhaustiveness checks:**
+- Switch on a discriminated union without a \`never\` default — adding a new variant will silently fall through.
+
+**Structural anti-patterns:**
+- Mutable shared state typed as \`any\` in a module boundary.
+- \`interface\` used for a union (should be \`type\`).
+- Non-null fields typed as optional just to avoid dealing with the null case.
+
+**Positive patterns I specifically call out:**
+- Good use of \`satisfies\` for config validation.
+- Runtime validation with Zod at API boundaries.
+- \`as const\` to derive union types from data.
+- Correct discriminated unions for state modeling.`,
+      analogy: `Code review for types is like a structural inspection — you are not just checking the surfaces (naming, formatting) but also the load-bearing walls (type safety boundaries, runtime contract enforcement). A beautiful-looking house can still have a foundation problem.`,
+    },
+    {
+      id: 'ts-sr-37',
+      level: 'senior',
+      topic: 'Advanced Types',
+      question: 'How do you type a plugin or extension system in TypeScript?',
+      answer: `Plugin systems need a registry of named plugins where each plugin has a defined shape — and the consumer gets full type safety when using registered plugins:
+
+\`\`\`ts
+// Plugin interface
+interface Plugin<TOptions = unknown, TResult = unknown> {
+  name: string;
+  execute(options: TOptions): TResult;
+}
+
+// Registry using a mapped type over a literal union of plugin names:
+type PluginRegistry = {
+  "csv-export": Plugin<{ delimiter: string }, Blob>;
+  "pdf-export": Plugin<{ pageSize: "A4" | "Letter" }, Blob>;
+  "email-sender": Plugin<{ to: string; subject: string }, boolean>;
+};
+
+class PluginManager {
+  private plugins = new Map<string, Plugin>();
+
+  register<K extends keyof PluginRegistry>(name: K, plugin: PluginRegistry[K]): void {
+    this.plugins.set(name, plugin as Plugin);
+  }
+
+  run<K extends keyof PluginRegistry>(
+    name: K,
+    options: PluginRegistry[K] extends Plugin<infer O, any> ? O : never
+  ): PluginRegistry[K] extends Plugin<any, infer R> ? R : never {
+    return this.plugins.get(name)!.execute(options) as any;
+  }
+}
+
+const manager = new PluginManager();
+const result = manager.run("csv-export", { delimiter: "," });   // result: Blob
+manager.run("csv-export", { to: "wrong" });                     // ❌ wrong options type
+\`\`\``,
+      analogy: `A typed slot on a professional camera body — the mount accepts only the right lenses, and the camera body knows each lens's specifications (focal length, aperture range) at design time, not at shoot time.`,
+    },
+    {
+      id: 'ts-sr-38',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'How do you architect type-safe configuration management for a large Node.js application?',
+      answer: `Configuration touches every layer — typed config management prevents the silent "undefined is not a function" bugs that come from missing env vars:
+
+**Layer 1 — Validated environment (fail fast at startup):**
+\`\`\`ts
+const EnvSchema = z.object({
+  DATABASE_URL: z.string().url(),
+  PORT: z.coerce.number().default(3000),
+  NODE_ENV: z.enum(["development", "staging", "production"]),
+  REDIS_URL: z.string().optional(),
+});
+export const env = EnvSchema.parse(process.env);
+\`\`\`
+
+**Layer 2 — Feature flags as a typed discriminated union:**
+\`\`\`ts
+type FeatureFlags = {
+  newCheckout: boolean;
+  betaDashboard: boolean;
+};
+const flags = FlagSchema.parse(loadFromRemote()) satisfies FeatureFlags;
+\`\`\`
+
+**Layer 3 — Environment-specific config with type safety:**
+\`\`\`ts
+type Config = {
+  db: { host: string; port: number; name: string };
+  cache: { ttl: number };
+};
+const config: Record<z.infer<typeof EnvSchema>["NODE_ENV"], Config> = {
+  development: { db: { host: "localhost", port: 5432, name: "dev_db" }, cache: { ttl: 60 } },
+  staging:     { /* ... */ },
+  production:  { /* ... */ },
+};
+export const appConfig = config[env.NODE_ENV];
+\`\`\`
+
+Each layer is independently validated and typed. A missing production config key is a compile-time error.`,
+      analogy: `A mission control checklist with three stations: environmental checks (are all required instruments present), feature status board (which systems are active), and mission profile (parameters specific to this mission type). Each station must be green before launch.`,
+    },
+    {
+      id: 'ts-sr-39',
+      level: 'senior',
+      topic: 'Testing',
+      question: 'How do you test your custom TypeScript utility types and generic functions?',
+      answer: `Types need tests too — especially library code where the type IS the public API.
+
+**Tool: Vitest with expectTypeOf:**
+\`\`\`ts
+import { expectTypeOf, describe, it } from "vitest";
+import { type PartialBy, type DeepReadonly } from "./utility-types";
+
+describe("PartialBy", () => {
+  it("makes specified keys optional", () => {
+    type Result = PartialBy<{ id: number; name: string; email: string }, "email">;
+    expectTypeOf<Result>().toMatchTypeOf<{ id: number; name: string; email?: string }>();
+  });
+});
+\`\`\`
+
+**Tool: tsd — dedicated type-testing library:**
+\`\`\`ts
+import { expectType, expectError } from "tsd";
+import { findUser } from "../src/user";
+
+expectType<Promise<User | null>>(findUser(1));
+expectError(findUser("not-a-number"));   // must fail to compile
+\`\`\`
+
+**The \`@ts-expect-error\` pattern:**
+\`\`\`ts
+// @ts-expect-error — verify this actually rejects wrong types
+const x: ValidatedEmail = "not an email";
+// If this line compiles fine, @ts-expect-error itself errors — proving the type IS enforced
+\`\`\`
+
+Treat type tests like unit tests — they belong in a \`__tests__/types\` folder, run in CI, and cover both the happy path and the rejection cases.`,
+      analogy: `Testing the mould itself, not just the parts it produces. A factory that makes bolts checks both that good bolts come out AND that the mould rejects oversized or undersized inputs before they enter the production line.`,
+    },
+    {
+      id: 'ts-sr-40',
+      level: 'senior',
+      topic: 'Leadership',
+      question: 'How do you onboard a team of engineers who know JavaScript but not TypeScript?',
+      answer: `TypeScript onboarding fails when it is treated as "JavaScript with extra syntax." The goal is to change their mental model, not just their syntax.
+
+**Week 1 — Make it feel safe, not overwhelming:**
+- Start with a codebase that has \`strict: false\` and \`allowJs: true\` — they can write JS and slowly add types.
+- Show 3 things TypeScript does *for* them: autocomplete, refactor safety, catching null errors before they get to production.
+- Pair on converting one real function together.
+
+**Systematic teaching sequence:**
+1. Basic type annotations (parameters, return types).
+2. Interfaces and type aliases.
+3. Optional properties, union types, \`| null\`.
+4. Generics — explain with \`Array<T>\` which they already use.
+5. Utility types (\`Partial\`, \`Pick\`, \`Omit\`).
+6. Advanced (conditional types, infer) — only when they ask.
+
+**Avoid the common traps:**
+- Don't start with decorators or complex conditional types.
+- Don't demand strict mode from day one — escalate gradually.
+- Address "TypeScript is too complex" by showing what it prevents: a real production bug that types would have caught.
+
+**Build the habit:** every PR review, note one specific TypeScript improvement — not to shame, but to teach. After 3 months, patterns become instinct.`,
+      analogy: `Teaching someone to drive with automatic first, then introducing manual later. You build confidence with the familiar before introducing the new complexity. The goal is not to overwhelm but to progressively expand capability.`,
+    },
+    {
+      id: 'ts-sr-41',
+      level: 'senior',
+      topic: 'Advanced Types',
+      question: 'How do you use `infer` to write a utility type that extracts promise values from a nested type?',
+      answer: `\`infer\` captures part of a type during conditional type matching. Here is a deep \`Awaited\`-like implementation for learning:
+
+\`\`\`ts
+// Recursive unwrap: unwraps any depth of Promise nesting
+type UnwrapPromise<T> = T extends Promise<infer U> ? UnwrapPromise<U> : T;
+
+type A = UnwrapPromise<Promise<string>>;                   // string
+type B = UnwrapPromise<Promise<Promise<number>>>;          // number
+type C = UnwrapPromise<string>;                            // string (not a Promise, returned as-is)
+
+// More useful: extract the element type from any iterable:
+type ElementOf<T> = T extends (infer U)[] ? U : T extends ReadonlyArray<infer U> ? U : never;
+type D = ElementOf<User[]>;           // User
+type E = ElementOf<readonly Order[]>; // Order
+
+// Extract the resolved value from an async function's return:
+type AsyncReturn<T extends (...args: any[]) => any> =
+  Awaited<ReturnType<T>>;
+
+async function fetchUsers(): Promise<User[]> { return []; }
+type UsersResult = AsyncReturn<typeof fetchUsers>;   // User[]
+\`\`\`
+
+The key insight: \`infer U\` inside a conditional type tells TypeScript "whatever fits here, capture it as U." It is the mechanism behind \`ReturnType\`, \`Parameters\`, \`Awaited\`, and almost every advanced utility type.`,
+      analogy: `A fill-in-the-blank X-ray — "if this package contains a box with something inside, capture that something as 'contents.'" TypeScript fills in the blank by matching the pattern against the real type.`,
+    },
+    {
+      id: 'ts-sr-42',
+      level: 'senior',
+      topic: 'Advanced Types',
+      question: 'How do you model a complex permission system in TypeScript where roles have different capabilities?',
+      answer: `Use a typed permission map to make invalid capability checks a compile-time error:
+
+\`\`\`ts
+type Resource = "users" | "orders" | "reports";
+type Action = "read" | "write" | "delete";
+
+type PermissionKey = \`\${Resource}:\${Action}\`;
+// "users:read" | "users:write" | "users:delete" | "orders:read" | ...
+
+type RolePermissions = Record<string, Set<PermissionKey>>;
+
+const rolePermissions = {
+  admin:   new Set<PermissionKey>(["users:read", "users:write", "users:delete", "orders:read", "orders:write"]),
+  manager: new Set<PermissionKey>(["users:read", "orders:read", "orders:write"]),
+  viewer:  new Set<PermissionKey>(["users:read", "orders:read"]),
+} satisfies RolePermissions;
+
+function can(role: keyof typeof rolePermissions, permission: PermissionKey): boolean {
+  return rolePermissions[role].has(permission);
+}
+
+can("admin", "users:delete");      // ✅
+can("viewer", "users:delete");     // ✅ returns false at runtime
+can("admin", "invoices:read");     // ❌ compile error — not a valid PermissionKey
+\`\`\`
+
+Template literal types make the permission string a checked type, not a free-form string — typos in permission strings are caught at compile time.`,
+      analogy: `A building's access control system where the keycard's permissions are encoded in a typed registry. The system refuses to issue a keycard for a door that doesn't exist in the blueprint — not just fails to open it.`,
+    },
+    {
+      id: 'ts-sr-43',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'How do you use TypeScript for database query type safety — Prisma, Drizzle, or Kysely?',
+      answer: `Each ORM/query builder achieves type safety differently, but the principle is the same: the query builder knows your schema at compile time.
+
+**Prisma — codegen from schema:**
+\`\`\`ts
+// Prisma generates types from schema.prisma:
+const user = await prisma.user.findUnique({ where: { id: 1 } });
+// user: { id: number; name: string; email: string } | null
+// Selecting a wrong field → compile error
+const wrong = await prisma.user.findUnique({ select: { nonExistent: true } }); // ❌
+\`\`\`
+
+**Kysely — fully typed query builder with no codegen:**
+\`\`\`ts
+interface DB { users: { id: number; name: string; email: string } }
+const db = new Kysely<DB>({ dialect });
+const users = await db.selectFrom("users").select(["name", "email"]).execute();
+// users: { name: string; email: string }[]
+db.selectFrom("fake_table");   // ❌ compile error — table doesn't exist
+\`\`\`
+
+**What to test at the TS level vs runtime:**
+- Column names and types: checked by the ORM at compile time.
+- Query logic (WHERE clauses, JOIN conditions): must be tested with real data.
+- Schema migrations: TypeScript types must be regenerated after each migration — make this part of CI.`,
+      analogy: `A type-aware warehouse inventory system — you can only request a shelf that exists in the warehouse manifest, and the system knows exactly what type of goods each shelf holds. Asking for shelf "G99" that's not in the manifest fails before you even walk to the warehouse.`,
+    },
+    {
+      id: 'ts-sr-44',
+      level: 'senior',
+      topic: 'Design',
+      question: 'What is your philosophy on how much type complexity is too much in TypeScript?',
+      answer: `Type complexity has a cost — it slows the compiler, confuses future maintainers, and can make tests harder to write. My principles:
+
+**The readability test:** if the next competent TypeScript developer needs more than 30 seconds to understand what a type does, it is too complex. Simplify, split, or add a comment.
+
+**Complexity is justified when:**
+- It eliminates a whole class of runtime bugs (discriminated unions, branded types).
+- It is in shared library code used by dozens of files — the cost is paid once, the benefit distributed widely.
+- It replaces explicit duplication (a utility type that DRYs up 10 interface definitions).
+
+**Complexity is not justified when:**
+- It impresses other TypeScript engineers but doesn't prevent real bugs.
+- It is optimising for a hypothetical future requirement.
+- The runtime code it describes is simpler than the types.
+
+**Practical rule:** prefer boring, explicit types in application code. Reserve clever type machinery for the framework/library layer where it provides maximum leverage. A \`type Status = "active" | "inactive"\` beats an elaborate generic machinery that produces the same result.
+
+**The signal you've crossed the line:** you can't write a test for it without looking up how the type works. Types should make tests easier, not harder.`,
+      analogy: `A well-designed tool has handles that fit the hand. A tool so cleverly engineered that only the inventor can use it efficiently is a failure of design, not a triumph. Types should feel like handles, not puzzles.`,
+    },
+    {
+      id: 'ts-sr-45',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'How do you use TypeScript interfaces to define and maintain API contracts shared across frontend and backend teams?',
+      answer: `Shared contracts prevent the most expensive kind of bug: the integration failure discovered only in staging. Architecture:
+
+**Shared contract package:**
+\`\`\`ts
+// @company/api-contracts/src/users.ts
+export interface CreateUserRequest {
+  name: string;
+  email: string;
+  role: "admin" | "user";
+}
+
+export interface CreateUserResponse {
+  id: number;
+  name: string;
+  email: string;
+  role: "admin" | "user";
+  createdAt: string;   // ISO date string
+}
+
+export interface ApiError {
+  code: string;
+  message: string;
+  field?: string;
+}
+\`\`\`
+
+**Backend consumes the contract:**
+\`\`\`ts
+import type { CreateUserRequest, CreateUserResponse } from "@company/api-contracts";
+app.post("/users", (req: Request<{}, {}, CreateUserRequest>, res: Response<CreateUserResponse>) => {});
+\`\`\`
+
+**Frontend consumes the same contract:**
+\`\`\`ts
+import type { CreateUserRequest, CreateUserResponse } from "@company/api-contracts";
+const user: CreateUserResponse = await apiClient.post<CreateUserResponse>("/users", body);
+\`\`\`
+
+**Governance process:**
+- Contract changes require a PR that updates the shared package.
+- Both frontend and backend CI must pass against the new contract before it merges.
+- Breaking changes require a version bump and migration window.`,
+      analogy: `An electrical socket standard — the appliance maker and the socket maker both follow the same published spec. Neither team needs to call the other to check if their product will work together; the standard is the contract.`,
+    },
+    {
+      id: 'ts-sr-46',
+      level: 'senior',
+      topic: 'Advanced Types',
+      question: 'How do you implement a deep partial type that works correctly with nested objects and arrays?',
+      answer: `The built-in \`Partial<T>\` is shallow — it makes top-level properties optional but not nested ones. A deep version recurses:
+
+\`\`\`ts
+type DeepPartial<T> =
+  T extends (infer U)[] ? DeepPartial<U>[] :         // handle arrays
+  T extends object ? { [K in keyof T]?: DeepPartial<T[K]> } :   // recurse into objects
+  T;                                                  // primitives — leave alone
+
+// Test:
+interface Config {
+  server: { host: string; port: number };
+  db: { url: string; pool: { min: number; max: number } };
+}
+
+type PartialConfig = DeepPartial<Config>;
+// server?: { host?: string; port?: number }
+// db?: { url?: string; pool?: { min?: number; max?: number } }
+
+function updateConfig(overrides: DeepPartial<Config>) { /* ... */ }
+updateConfig({ server: { port: 8080 } });   // ✅ deeply partial — only specify what changes
+\`\`\`
+
+**Watch out for:** recursive types can cause deep inference to be slow. Add a depth counter for types that could be infinite. Also, \`DeepPartial\` with arrays can be ambiguous — a partially-overridden array is unusual; consider whether the use case really needs array element optionality.`,
+      analogy: `A floor plan where every room, and every piece of furniture in every room, and every drawer in every piece of furniture is optional. Useful for "here are the changes" — you only describe the things you are actually changing, however deep in the hierarchy they are.`,
+    },
+    {
+      id: 'ts-sr-47',
+      level: 'senior',
+      topic: 'Advanced Types',
+      question: 'How do you use TypeScript to enforce that certain async operations are not accidentally awaited twice or missed?',
+      answer: `This is a subtle correctness problem. TypeScript can help with a few patterns:
+
+**1 — Disposable/one-shot types using branded types:**
+\`\`\`ts
+type OneShot<T> = Promise<T> & { readonly __used?: never };
+
+function createOneShot<T>(fn: () => Promise<T>): OneShot<T> {
+  let used = false;
+  return new Proxy(fn(), {
+    get(target, prop) {
+      if (prop === "then" && used) throw new Error("Already awaited");
+      if (prop === "then") used = true;
+      return Reflect.get(target, prop);
+    },
+  }) as OneShot<T>;
+}
+\`\`\`
+
+**2 — Using linear types pattern (structural):**
+Wrap results in a type that becomes \`never\` after consumption — TypeScript won't allow a \`never\` to be used:
+\`\`\`ts
+class Consumed<T> {
+  private _consumed = false;
+  constructor(private value: T) {}
+  consume(): T {
+    if (this._consumed) throw new Error("Already consumed");
+    this._consumed = true;
+    return this.value;
+  }
+}
+\`\`\`
+
+**3 — Lint rules (eslint-plugin-no-floating-promises):**
+Catch unhandled Promises that are created but never awaited — compile-time (ESLint) enforcement is often more practical than type gymnastics for this category of bug.`,
+      analogy: `A numbered ticket system where each ticket can only be redeemed once. The system tracks whether the ticket has been used, and TypeScript is the cashier who checks — either rejecting a second redemption (runtime brand) or flagging the attempt at issue time (lint rule).`,
+    },
+    {
+      id: 'ts-sr-48',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'How do you use TypeScript for compile-time feature flags so that code for disabled features can be eliminated by the bundler?',
+      answer: `Combine constant conditions with a literal type and a tree-shaking-aware build to eliminate dead code at compile + bundle time:
+
+\`\`\`ts
+// feature-flags.ts
+const FLAGS = {
+  newCheckout: false,
+  betaDashboard: true,
+} as const satisfies Record<string, boolean>;
+
+type Flag = keyof typeof FLAGS;
+
+export function isEnabled(flag: Flag): boolean {
+  return FLAGS[flag];
+}
+
+// In usage — esbuild/Webpack will eliminate the dead branch:
+if (isEnabled("newCheckout")) {
+  loadNewCheckout();   // tree-shaken away when false is known at build time
+}
+\`\`\`
+
+**More aggressive — const enum for bundler elimination:**
+\`\`\`ts
+const enum Feature {
+  NewCheckout = 0,
+  BetaDashboard = 1,
+}
+
+if (Feature.NewCheckout) {
+  // TypeScript replaces with if (0) { ... } → bundler removes it entirely
+}
+\`\`\`
+
+**Practical limitation:** this only works if the flag is a compile-time constant. For runtime-toggled flags (e.g., fetched from a remote config), you need a different approach (dynamic imports, lazy loading).`,
+      analogy: `A theatre script with optional scenes — before printing the programme, the director marks certain scenes as "not in this run." The printer omits those pages entirely, so the audience never even knows the scenes exist.`,
+    },
+    {
+      id: 'ts-sr-49',
+      level: 'senior',
+      topic: 'Design',
+      question: 'How do you handle backward-compatible TypeScript API changes when your library is consumed by external teams?',
+      answer: `External consumers pin your library version — a breaking type change that compiles on your end can break builds in consuming projects on upgrade.
+
+**What constitutes a breaking TS type change:**
+- Removing a property from an exported interface.
+- Making an optional property required.
+- Narrowing a return type in a breaking way (\`string | null\` → \`never\`).
+- Widening a parameter type more than expected.
+- Renaming an exported type.
+
+**Tools to detect breaking changes:**
+- **\`@arethetypeswrong/cli\`** — checks for type-level breaking changes between package versions.
+- **\`ts-morph\`** diff scripts in CI.
+- **\`tsd\`** type tests in the library itself that act as compatibility snapshots.
+
+**Deprecation patterns:**
+\`\`\`ts
+interface Config {
+  /** @deprecated Use newField instead */
+  oldField?: string;
+  newField: string;
+}
+\`\`\`
+JSDoc \`@deprecated\` shows in IDE hover — soft deprecation without breaking anything.
+
+**Semver for types:** treat type changes as API changes. Breaking type changes require a major version bump, even if the runtime behaviour is unchanged.`,
+      analogy: `A published API contract — the library is a service, and every external consumer is a client. Changes to the contract must be versioned, communicated, and backwards-compatible within a major version, just like a REST API.`,
+    },
+    {
+      id: 'ts-sr-50',
+      level: 'senior',
+      topic: 'Leadership',
+      question: 'How do you build a culture of TypeScript quality — strict types, runtime validation, and type testing — across multiple engineering teams?',
+      answer: `Culture is built through standards, visibility, and making the right path the easy path.
+
+**Standards (written, not just verbal):**
+- A one-page TypeScript quality checklist: no \`any\` without comment, runtime validation at API boundaries, \`as const\` for config, exhaustiveness checks on discriminated unions.
+- PR template that includes a "TypeScript review" section.
+- A documented escalation path for "I can't type this without any" — a specific channel or person to consult.
+
+**Enablement (make the right thing easy):**
+- A shared utility types package teams can import — don't make each team reinvent \`DeepPartial\` or \`PartialBy\`.
+- IDE config files (\`.vscode/settings.json\`) committed to repos with recommended TypeScript extensions.
+- A \`ts-strict-checker\` CI step that tracks the \`any\` count per module and alerts on regressions.
+
+**Visibility (create accountability without blame):**
+- A weekly dashboard showing type coverage (% of any-free modules) per team.
+- Celebrate teams that remove a long-standing \`any\` or add runtime validation to a critical endpoint.
+- Post-mortems on production bugs that TypeScript + Zod would have caught — make the cost of skipping validation visible.
+
+**The principle:** people adopt TypeScript rigor when they feel it working for them, not when it is mandated. Show the bug it would have prevented, then the standard follows naturally.`,
+      analogy: `Building a safety culture in a construction company — you don't just post rules. You train people, supply the right equipment, track incidents transparently, celebrate teams with good safety records, and share near-miss stories so everyone learns from them.`,
     },
 
   ],
