@@ -13,6 +13,7 @@ export interface QuestState {
   isGuest: boolean;
   masteryBadges: Record<string, boolean>;
   masteryScores: Record<string, MasteryScore>;
+  hasSeenTour: boolean;
 
   // Runtime UI flag — queues the rank-up modal so it doesn't fire mid-celebration
   // (e.g. Boss Fight victory waits for the XP float to finish before popping the modal).
@@ -30,6 +31,7 @@ export interface QuestState {
   toggleTheme: () => void;
   enterGuestMode: () => void;
   recordMasteryResult: (zoneId: string, score: number, passed: boolean) => void;
+  setHasSeenTour: (seen: boolean) => void;
   pauseRankUp: () => void;
   resumeRankUp: () => void;
 
@@ -67,6 +69,7 @@ export const useQuestStore = create<QuestState>()(
       isGuest: false,
       masteryBadges: {},
       masteryScores: {},
+      hasSeenTour: false,
       rankUpPaused: false,
 
       setPlayerName: (name) => set({ playerName: name.trim() }),
@@ -106,6 +109,7 @@ export const useQuestStore = create<QuestState>()(
 
       enterGuestMode: () => set({ isGuest: true, playerName: 'Guest' }),
 
+      setHasSeenTour: (seen) => set({ hasSeenTour: seen }),
       pauseRankUp:  () => set({ rankUpPaused: true }),
       resumeRankUp: () => set({ rankUpPaused: false }),
 
@@ -194,6 +198,7 @@ export const useQuestStore = create<QuestState>()(
         isGuest:        state.isGuest,
         masteryBadges:  state.masteryBadges,
         masteryScores:  state.masteryScores,
+        hasSeenTour:    state.hasSeenTour,
         // playerName intentionally excluded — always comes from Firebase auth or enterGuestMode
       }),
       // After rehydrating from localStorage, restore the guest display name.

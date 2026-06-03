@@ -225,6 +225,7 @@ export default function ZoneView() {
         <div className="flex-1 flex justify-end items-center gap-2 sm:gap-3">
           {/* War Room button */}
           <button
+            data-tour="war-room-btn"
             onClick={() => navigate(`/zone/${id}/interview`)}
             aria-label="War Room — Interview Prep"
             title="War Room — Interview Prep"
@@ -249,6 +250,7 @@ export default function ZoneView() {
             const badge = MASTERY_BADGES[id || ''];
             return (
               <button
+                data-tour="mastery-trial-btn"
                 onClick={() => navigate(`/zone/${id}/mastery`)}
                 aria-label="Open Mastery Trial"
                 title={earned && badge ? `${badge.name} earned — Mastery Trial` : 'Mastery Trial'}

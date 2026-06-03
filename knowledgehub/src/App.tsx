@@ -7,6 +7,7 @@ import { UserAvatarMenu } from './components/UserAvatarMenu';
 import { MASTERY_BADGES } from './data/questionBank';
 import { RankLadderModal } from './components/RankLadderModal';
 import { RankUpWatcher } from './components/RankUpWatcher';
+import { GuidedTour } from './components/GuidedTour';
 import Footer from './components/Footer';
 import { useQuestStore } from './store/useQuestStore';
 import { useAuthStore } from './store/useAuthStore';
@@ -65,7 +66,7 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
 
   return (
     <div className="w-full overflow-x-auto sm:overflow-x-visible -mx-3 sm:mx-0 px-3 sm:px-0">
-      <div className="relative" style={{ minHeight: 480, minWidth: 700 }}>
+      <div data-tour="zone-map" className="relative" style={{ minHeight: 480, minWidth: 700 }}>
 
       {/* ── Clipped art layer (bg + particles) ── */}
       <div className={`absolute inset-0 rounded-2xl overflow-hidden ${isDark ? 'border border-violet-900/30 bg-[#05030f] shadow-none' : 'border border-slate-300 bg-[#1e293b] shadow-sm'}`}>
@@ -156,6 +157,7 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
         return (
           // Outer div handles ONLY positioning — never touched by Framer Motion
           <div key={node.id}
+            data-tour={node.id === 'manual' ? 'zone-node' : undefined}
             className="absolute z-20"
             style={{ left: `${node.x}%`, top: `${node.y}%`, transform: 'translate(-50%,-50%)' }}
           >
@@ -372,6 +374,7 @@ function HubMap() {
 
           {/* Rank chip — desktop sidebar version (prominent identity card, click → ladder modal) */}
           <button
+            data-tour="rank-card"
             onClick={() => setLadderOpen(true)}
             aria-label={`Rank ${current.level} ${current.title} — open rank ladder`}
             className={`group relative flex items-center gap-3 px-4 py-3.5 rounded-xl border transition-all duration-200 text-left ${
@@ -467,7 +470,7 @@ function HubMap() {
           )}
 
           {/* Daily Bounty */}
-          <div className={`rounded-2xl border p-4 transition-all ${
+          <div data-tour="daily-bounty" className={`rounded-2xl border p-4 transition-all ${
             bountyAlreadyClaimed
               ? (isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200')
               : (isDark ? 'bg-amber-500/5 border-amber-500/25' : 'bg-white border-slate-200')
@@ -504,6 +507,7 @@ function HubMap() {
 
           {/* Badges summary + link */}
           <button
+            data-tour="badges-link"
             onClick={() => navigate('/badges')}
             onMouseEnter={() => setBadgesHovered(true)}
             onMouseLeave={() => setBadgesHovered(false)}
@@ -576,7 +580,7 @@ function HubMap() {
 
           {/* ── Grid View ── */}
           {viewMode === 'grid' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          <div data-tour="zone-grid" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {ZONES.map((zone, i) => {
               const totalModules = (ZONE_TIERS[zone.id] ?? []).reduce((sum, t) => sum + t.moduleIds.length, 0);
               const completedCount = completedLevels.filter(k => k.startsWith(`${zone.id}::`)).length;
@@ -589,6 +593,7 @@ function HubMap() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.07 }}
                   key={zone.id}
+                  data-tour={zone.id === 'manual' ? 'zone-card' : undefined}
                   onClick={() => navigate(`/zone/${zone.id}`)}
                   className={`group relative overflow-hidden rounded-2xl cursor-pointer transition-all ${
                     isDark
@@ -749,6 +754,7 @@ function HubMap() {
         xp={xp}
         completedModuleCount={completedLevels.length}
       />
+
     </div>
   );
 }
@@ -852,6 +858,7 @@ export default function App() {
       <SyncToCloud />
       <BadgeToast badgesMap={badgesMap} />
       <RankUpWatcher />
+      <GuidedTour isDark={theme === 'dark'} />
       <div className="min-h-screen flex flex-col">
         <div className="flex-1">
           <Suspense fallback={<AuthSpinner />}>
