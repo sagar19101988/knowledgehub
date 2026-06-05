@@ -19637,7 +19637,7 @@ type Env = typeof ENVS[number]; // ✓
 \`\`\`
 
 **The review mindset:**
-Ask for every \`as\`: "What proof does the author have that this cast is safe?" Ask for every \`!`: "What guarantees this is non-null?" Ask for every \`any\`: "What's the minimum type that would work here?"
+Ask for every \`as\`: "What proof does the author have that this cast is safe?" Ask for every \`!\`: "What guarantees this is non-null?" Ask for every \`any\`: "What's the minimum type that would work here?"
 
 **Rule of thumb:** the goal of a TypeScript code review is not to be the style police — it's to verify that the types honestly describe the runtime behaviour. A codebase with 50 \`as\` casts is not a typed codebase; it's a JavaScript codebase with extra syntax.`,
       analogy: `A structural engineering inspection, not a paint inspection. The surface (formatting, naming) matters but it's the load-bearing elements (type safety boundaries, runtime contract enforcement, null handling) that determine whether the building stays up. A beautiful facade over a cracked foundation is worse than an ugly but solid structure.`,
