@@ -21227,6 +21227,897 @@ It shows pass/fail, durations, error messages, screenshots, and embedded traces.
 It retries until all pass or it times out — preventing clicks that would fail or land on the wrong thing.`,
       analogy: `A careful driver who checks the road is clear, the light is green, and nothing's in the way before pulling out — instead of flooring it blindly the moment a timer goes off.`,
     },
+    {
+      id: 'pw-jr-27',
+      level: 'junior',
+      topic: 'Core Concepts',
+      question: 'What is `page.evaluate()` and when do you use it?',
+      answer: `\`page.evaluate()\` lets you run a JavaScript function **inside the browser** and return the result back to your test. The function executes in the page's context — it can access the DOM, \`window\`, and any global variables the app exposes.
+
+**Why it exists:**
+Sometimes the information you need is only accessible via JavaScript — a computed style, a value stored in \`localStorage\`, or an app-level variable that no locator can reach. \`page.evaluate()\` is the escape hatch for those cases.
+
+**Walked-through example:**
+\`\`\`ts
+// Read a value from localStorage
+const token = await page.evaluate(() => localStorage.getItem('authToken'));
+// token is now a string in your test — returned from the browser
+
+// Read a CSS-computed value
+const color = await page.evaluate(() => {
+  const el = document.querySelector('.header');
+  return window.getComputedStyle(el!).color; // returns "rgb(255, 0, 0)"
+});
+
+// Pass data INTO the browser using the second argument
+await page.evaluate((label) => {
+  document.title = label; // sets the page title from outside
+}, 'Test Page');
+\`\`\`
+
+**Real-world QA use case:**
+After a login, verify the auth token was written to \`localStorage\` correctly — something \`toHaveText()\` can't check. Or read a flag set by the app that controls feature access, to confirm the right feature is enabled for a given user role.
+
+**Rule of thumb:** use \`page.evaluate()\` only for data that no Playwright locator or assertion can reach — it couples your test to the app's internal implementation.`,
+      analogy: `Sliding a note under the door to someone inside the house — you can pass them a question and they slide the answer back, but you can't see the room directly. Use it when there's no door to knock on.`,
+    },
+    {
+      id: 'pw-jr-28',
+      level: 'junior',
+      topic: 'Test Basics',
+      question: 'What are `test.only`, `test.skip`, and `test.fixme` used for?',
+      answer: `These three modifiers let you control which tests run without deleting code.
+
+**Why they exist:**
+During development you often need to focus on one test, skip a broken one temporarily, or mark a test as a known failure that needs fixing — without touching the rest of the suite.
+
+**Walked-through example:**
+\`\`\`ts
+// test.only — run ONLY this test in the file (everything else is skipped)
+test.only('admin can delete a user', async ({ page }) => { /* ... */ });
+
+// test.skip — skip this test entirely (with an optional reason)
+test.skip('checkout with PayPal', async ({ page }) => {
+  // PayPal sandbox is down — skipped until restored
+});
+
+// test.fixme — marks the test as broken/needs attention; skipped but flagged in report
+test.fixme('cart total with discount code', async ({ page }) => {
+  // Known bug JIRA-123 — remove fixme when fixed
+});
+\`\`\`
+
+**Real-world QA use case:**
+Use \`test.only\` while writing or debugging a single test so the runner doesn't waste time on unrelated tests. Use \`test.fixme\` when a test is broken because of a known product bug — it stays in the codebase as a reminder without failing CI.
+
+**Rule of thumb:** never commit \`test.only\` — it silently skips everything else and will cause missed coverage in CI.`,
+      analogy: `\`test.only\` is putting your finger on one line of a checklist and reading only that one. \`test.skip\` is crossing a line out temporarily. \`test.fixme\` is writing "broken — investigate" next to a line so nobody forgets it.`,
+    },
+    {
+      id: 'pw-jr-29',
+      level: 'junior',
+      topic: 'Tools',
+      question: 'What is Playwright Codegen and how do you use it?',
+      answer: `Codegen is Playwright's built-in **test recorder** — it opens a real browser, records every action you take, and generates the equivalent Playwright TypeScript (or other language) code in real time.
+
+**Why it exists:**
+Writing locators by hand is slow when you're exploring an unfamiliar UI. Codegen gives you a starting point in seconds by recording your manual actions.
+
+**Walked-through example:**
+\`\`\`bash
+# Open Codegen — it launches a browser + a code inspector panel side-by-side
+npx playwright codegen https://example.com
+
+# Target a specific browser
+npx playwright codegen --browser=firefox https://example.com
+
+# Save the output directly to a file
+npx playwright codegen --output=tests/login.spec.ts https://example.com
+\`\`\`
+
+As you click, fill, and navigate in the browser, the inspector panel writes code like:
+\`\`\`ts
+await page.getByRole('button', { name: 'Sign in' }).click();
+await page.getByLabel('Email').fill('asha@example.com');
+\`\`\`
+
+**Real-world QA use case:**
+Use Codegen to quickly capture the locators for a complex form or multi-step wizard you've never tested before. Then clean up the generated test — remove hard waits, add meaningful assertions, and move locators into a page object.
+
+**Rule of thumb:** Codegen is a starting point, not a finished test — always review and refactor the output before committing it.`,
+      analogy: `A transcriptionist who types everything you say — fast for getting words on the page, but you still need an editor to make it a proper document.`,
+    },
+    {
+      id: 'pw-jr-30',
+      level: 'junior',
+      topic: 'Core Concepts',
+      question: 'What does `waitForLoadState()` do, and what states can you wait for?',
+      answer: `\`page.waitForLoadState()\` pauses the test until the page reaches a specific **network/DOM loading milestone**. It's used after navigation or an action that triggers a page load when you need the page to settle before acting on it.
+
+**Why it exists:**
+\`page.goto()\` waits for the \`load\` event by default, but some apps finish loading meaningful content earlier (domcontentloaded) or later (networkidle). You need the right state to avoid acting on a half-loaded page.
+
+**Walked-through example:**
+\`\`\`ts
+// Three states to choose from:
+await page.waitForLoadState('load');             // default — all resources (img, css, js) loaded
+await page.waitForLoadState('domcontentloaded'); // HTML parsed, DOM ready (no waiting for images)
+await page.waitForLoadState('networkidle');      // no network activity for 500ms — use with caution
+
+// Common pattern: after clicking a link that opens a new page
+const [popup] = await Promise.all([
+  page.waitForEvent('popup'),
+  page.getByText('View report').click(),
+]);
+await popup.waitForLoadState('domcontentloaded'); // wait for popup to be ready
+await expect(popup.getByRole('heading')).toBeVisible();
+\`\`\`
+
+**Real-world QA use case:**
+After a redirect-heavy SSO login, wait for \`domcontentloaded\` before asserting the dashboard heading — the app may redirect twice before the final page renders its content.
+
+**Rule of thumb:** prefer \`domcontentloaded\` over \`networkidle\` — \`networkidle\` is fragile on pages with polling or analytics beacons that keep firing network requests.`,
+      analogy: `Waiting for a bus to fully come to a stop before boarding — \`domcontentloaded\` is the doors opening, \`load\` is the driver saying "all clear," and \`networkidle\` is waiting until nobody else is getting on.`,
+    },
+    {
+      id: 'pw-jr-31',
+      level: 'junior',
+      topic: 'Actions',
+      question: 'How do you hover over an element, right-click, or double-click?',
+      answer: `Playwright has dedicated methods for these three pointer actions — each triggers the appropriate browser events, including the CSS \`:hover\` state.
+
+**Why it matters:**
+Many UIs reveal tooltips, context menus, or dropdown sub-menus only on hover. Right-click opens a context menu. Double-click triggers inline editing. None of these are reachable with a plain \`click()\`.
+
+**Walked-through example:**
+\`\`\`ts
+// Hover — reveals a tooltip or dropdown
+await page.getByRole('button', { name: 'Profile' }).hover();
+await expect(page.getByRole('tooltip')).toBeVisible();
+
+// Double-click — triggers inline edit on a cell
+await page.getByTestId('cell-name').dblclick();
+await page.getByTestId('cell-name').getByRole('textbox').fill('Updated');
+
+// Right-click — opens a context menu
+await page.getByTestId('file-row').click({ button: 'right' });
+await page.getByRole('menuitem', { name: 'Rename' }).click();
+\`\`\`
+
+**Real-world QA use case:**
+Testing a data table where renaming a record requires right-clicking the row to get the context menu — a common pattern in admin dashboards and file managers.
+
+**Rule of thumb:** use \`hover()\` to reveal hidden elements, \`dblclick()\` for inline edit patterns, and \`click({ button: 'right' })\` for context menus.`,
+      analogy: `Three ways to interact with a door: a gentle knock (hover — see what appears), a firm double-knock (double-click — open the hidden panel), and a knock on the side entrance (right-click — special options menu).`,
+    },
+    {
+      id: 'pw-jr-32',
+      level: 'junior',
+      topic: 'Assertions',
+      question: 'How do you assert that an element does NOT exist on the page?',
+      answer: `Use the \`.not\` modifier on a web-first assertion. The two most useful variants are \`not.toBeVisible()\` and \`not.toBeAttached()\`, which cover slightly different scenarios.
+
+**Why the distinction matters:**
+An element can be in the DOM but hidden (display: none). \`not.toBeVisible()\` passes for hidden elements; \`not.toBeAttached()\` only passes when the element is fully gone from the DOM.
+
+**Walked-through example:**
+\`\`\`ts
+// After dismissing a modal, it should no longer be visible
+await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
+await expect(page.getByRole('dialog')).not.toBeVisible(); // passes if hidden OR removed
+
+// After deleting a list item, it should be gone from the DOM entirely
+await page.getByTestId('delete-btn').click();
+await expect(page.getByTestId('item-row-42')).not.toBeAttached(); // passes only when removed from DOM
+
+// Checking a success banner does NOT appear after an invalid action
+await page.getByRole('button', { name: 'Submit' }).click();
+await expect(page.getByTestId('success-banner')).not.toBeVisible();
+\`\`\`
+
+**Real-world QA use case:**
+After a user deletes a record, assert the row is gone from the table (\`not.toBeAttached()\`). After dismissing an error toast, assert it's no longer visible (\`not.toBeVisible()\`).
+
+**Rule of thumb:** use \`not.toBeVisible()\` when the element might stay in the DOM but hidden; use \`not.toBeAttached()\` when you need to confirm it was removed entirely.`,
+      analogy: `\`not.toBeVisible()\` is confirming the sign on the door is turned to "Closed" — it's still there, just not open. \`not.toBeAttached()\` is confirming the sign has been taken down completely.`,
+    },
+    {
+      id: 'pw-jr-33',
+      level: 'junior',
+      topic: 'Core Concepts',
+      question: 'How do you get the text content of an element in code?',
+      answer: `To read an element's text as a string inside your test logic (not just assert it), use \`textContent()\` or \`innerText()\` on a locator.
+
+**Why it exists:**
+Sometimes you need to capture a value at runtime — a generated order ID, a price, a confirmation code — and use it later in the test, not just assert it equals a known string.
+
+**Walked-through example:**
+\`\`\`ts
+// textContent() — returns all text including hidden text (CSS display:none content)
+const raw = await page.getByTestId('order-id').textContent();
+// raw might be "  #ORD-00423  " (with whitespace)
+
+// innerText() — returns only visible text, strips hidden, trims whitespace better
+const orderId = await page.getByTestId('order-id').innerText();
+// orderId = "#ORD-00423"
+
+// Use it dynamically later in the test
+const confirmationCode = await page.getByTestId('confirmation-code').innerText();
+await page.getByLabel('Enter code').fill(confirmationCode.trim());
+\`\`\`
+
+**Real-world QA use case:**
+After creating a record via the UI, read the auto-generated ID from the page, then make a direct API call to verify the record exists in the backend — linking the frontend and backend assertions in one test.
+
+**Rule of thumb:** prefer \`innerText()\` for human-visible text and \`textContent()\` when you need to include hidden text nodes; both return \`null\` if the element doesn't exist.`,
+      analogy: `Reading the receipt number off the slip handed to you — you capture it in your hand so you can refer back to it later, rather than just nodding that a number appeared.`,
+    },
+    {
+      id: 'pw-jr-34',
+      level: 'junior',
+      topic: 'Configuration',
+      question: 'How do you configure timeouts in Playwright?',
+      answer: `Playwright has three independent timeout settings — global action timeout, test timeout, and assertion timeout — and you can set each at the config, suite, or individual test level.
+
+**Why it matters:**
+The defaults work for most tests, but slow networks, heavy pages, or CI machines need higher timeouts. Over-generous timeouts also make flaky tests slow to fail — so tuning them matters in both directions.
+
+**Walked-through example:**
+\`\`\`ts
+// playwright.config.ts — global defaults for the whole suite
+export default defineConfig({
+  timeout: 30_000,          // per-test timeout (default 30s)
+  expect: {
+    timeout: 5_000,         // web-first assertion timeout (default 5s)
+  },
+  use: {
+    actionTimeout: 10_000,  // per-action timeout: click, fill, etc (default 0 = uses test timeout)
+  },
+});
+
+// Override for a single test
+test('slow third-party checkout', async ({ page }) => {
+  test.setTimeout(60_000);  // this test alone gets 60s
+  // ...
+});
+
+// Override for a single assertion
+await expect(page.getByTestId('result')).toBeVisible({ timeout: 15_000 });
+\`\`\`
+
+**Real-world QA use case:**
+An E2E payment flow that calls a third-party sandbox API sometimes takes 20+ seconds. Setting a per-test timeout of 60s for just that test avoids false failures without slowing down the entire suite.
+
+**Rule of thumb:** set conservative defaults globally and override upward only for tests that genuinely need it — never raise the global timeout to mask slow tests.`,
+      analogy: `A kitchen timer: the default says "most dishes are done in 30 minutes," but you set the oven to 90 minutes for the specific dish that needs it — you don't change the default for the whole kitchen.`,
+    },
+    {
+      id: 'pw-jr-35',
+      level: 'junior',
+      topic: 'Actions',
+      question: 'How do you handle keyboard shortcuts in Playwright?',
+      answer: `Use \`page.keyboard.press()\` for single key combos and \`locator.press()\` when the focus must be on a specific element. Key names follow the standard DOM \`KeyboardEvent.key\` naming.
+
+**Why it matters:**
+Many apps have keyboard shortcuts for power users — Ctrl+S to save, Escape to close a modal, Tab to move focus. Testing these paths confirms the app is accessible and keyboard-navigable.
+
+**Walked-through example:**
+\`\`\`ts
+// Global shortcut (no element focus needed)
+await page.keyboard.press('Control+S');   // save shortcut
+await page.keyboard.press('Escape');       // close modal
+
+// Key on a focused element
+await page.getByRole('textbox').press('Enter');          // submit on Enter
+await page.getByRole('textbox').press('Control+A');      // select all
+await page.getByRole('textbox').press('ArrowDown');      // navigate dropdown
+
+// Type a sequence of keys (not characters)
+await page.keyboard.press('Tab');         // move focus to next field
+await page.keyboard.press('Shift+Tab');   // move focus back
+
+// Hold modifier while clicking
+await page.getByRole('checkbox').first().click();
+await page.getByRole('checkbox').last().click({ modifiers: ['Shift'] }); // range select
+\`\`\`
+
+**Real-world QA use case:**
+Testing a rich text editor where Ctrl+B makes text bold — after typing, press Ctrl+A to select all, Ctrl+B to bold, then assert the selection has \`font-weight: bold\` via \`toHaveCSS()\`.
+
+**Rule of thumb:** use \`locator.press()\` when focus context matters, \`page.keyboard.press()\` for global shortcuts with no required focus target.`,
+      analogy: `A pianist pressing a key combination on the keyboard — some chords work anywhere (global shortcuts), others only when your hand is already on a specific octave (element-focused).`,
+    },
+    {
+      id: 'pw-jr-36',
+      level: 'junior',
+      topic: 'Configuration',
+      question: 'How do you emulate a mobile device in Playwright?',
+      answer: `Playwright ships a catalogue of device profiles (viewport, user-agent, touch settings) you can apply either globally in config or per-test using \`test.use()\`.
+
+**Why it matters:**
+Many apps have different UI states, layouts, or feature flags based on the device type. Emulation lets you test mobile-specific flows (hamburger menus, swipe gestures, touch targets) without a real device.
+
+**Walked-through example:**
+\`\`\`ts
+import { devices, defineConfig } from '@playwright/test';
+
+// Option 1 — in playwright.config.ts as a separate project
+export default defineConfig({
+  projects: [
+    { name: 'Desktop Chrome', use: devices['Desktop Chrome'] },
+    { name: 'iPhone 15',      use: devices['iPhone 15'] },
+    { name: 'Pixel 7',        use: devices['Pixel 7'] },
+  ],
+});
+
+// Option 2 — override for a single test or describe block
+import { test } from '@playwright/test';
+test.use({ ...devices['iPhone 15'] });
+
+test('mobile nav menu opens on hamburger tap', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Menu' }).click();  // hamburger
+  await expect(page.getByRole('navigation')).toBeVisible();
+});
+\`\`\`
+
+**Real-world QA use case:**
+An e-commerce app hides the sidebar on mobile and shows a bottom navigation bar instead. A device-emulation test confirms the correct layout renders and the mobile checkout flow works without scrolling off-screen.
+
+**Rule of thumb:** emulation changes viewport, user-agent, and touch events — but it is not a real device, so supplement with BrowserStack or Sauce Labs for final sign-off on critical mobile paths.`,
+      analogy: `A theater actor using a prop to simulate a phone call — convincing enough for most rehearsals, but you still do the real call for the opening night. Emulation covers 90% of cases; real device testing catches the rest.`,
+    },
+    {
+      id: 'pw-jr-37',
+      level: 'junior',
+      topic: 'Assertions',
+      question: 'How do you assert a list of elements against an expected array of text?',
+      answer: `Pass an array to \`toHaveText()\` — Playwright checks each item in order and auto-retries until all match or the timeout expires.
+
+**Why it exists:**
+Asserting every item in a list one by one is verbose and brittle. The array form of \`toHaveText()\` checks the whole list in a single assertion and gives a clear diff when anything is off.
+
+**Walked-through example:**
+\`\`\`ts
+// Exact text match per item (order matters)
+await expect(page.getByRole('listitem')).toHaveText([
+  'Apples',
+  'Bananas',
+  'Oranges',
+]);
+
+// Partial match — each string is treated as a substring
+await expect(page.getByRole('listitem')).toContainText([
+  'Apples',  // passes if item text *contains* "Apples"
+  'Banana',
+]);
+
+// After sorting, assert the new order
+await page.getByRole('button', { name: 'Sort A→Z' }).click();
+await expect(page.getByTestId('product-name')).toHaveText([
+  'Chair',
+  'Desk',
+  'Lamp',
+]);
+\`\`\`
+
+**Real-world QA use case:**
+After applying a filter in a product listing, assert the visible product names match exactly the expected filtered set — one assertion catches a missing item or wrong order at once.
+
+**Rule of thumb:** \`toHaveText([...])\` checks exact count and content in order; \`toContainText([...])\` is looser — each string just needs to appear somewhere in the corresponding item.`,
+      analogy: `Checking a numbered shopping list against what's in the bag — one glance at all items in order tells you if anything's missing or in the wrong position, rather than checking each one separately.`,
+    },
+    {
+      id: 'pw-jr-38',
+      level: 'junior',
+      topic: 'Test Basics',
+      question: 'How do you use environment variables in Playwright tests?',
+      answer: `Read them via \`process.env\` — the same way you would in any Node.js program. The standard workflow is to load a \`.env\` file using \`dotenv\` in the config, then access the variables in tests and page objects.
+
+**Why it matters:**
+Hardcoding credentials, URLs, or environment-specific values in tests is a security risk and makes tests impossible to run across environments. Environment variables keep secrets out of the codebase and let the same tests run against dev, staging, or prod.
+
+**Walked-through example:**
+\`\`\`ts
+// playwright.config.ts — load .env automatically
+import { defineConfig } from '@playwright/test';
+import dotenv from 'dotenv';
+dotenv.config();
+
+export default defineConfig({
+  use: {
+    baseURL: process.env.BASE_URL ?? 'http://localhost:3000',
+  },
+});
+
+// In a test or page object
+const adminEmail    = process.env.ADMIN_EMAIL!;
+const adminPassword = process.env.ADMIN_PASSWORD!;
+
+test('admin login', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByLabel('Email').fill(adminEmail);
+  await page.getByLabel('Password').fill(adminPassword);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+});
+\`\`\`
+
+\`.env\` (never committed):
+\`\`\`
+BASE_URL=https://staging.example.com
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=s3cr3t
+\`\`\`
+
+**Real-world QA use case:**
+CI injects \`BASE_URL\`, \`ADMIN_EMAIL\`, and \`ADMIN_PASSWORD\` as CI secrets. Locally, engineers create their own \`.env\` from a \`.env.example\` template. Same test code, different credentials per environment.
+
+**Rule of thumb:** never hardcode credentials or environment URLs — use \`process.env\` and add \`.env\` to \`.gitignore\`.`,
+      analogy: `A rental car with a universal key slot — the car is the same (the test), but each driver brings their own key (env vars). Nobody hardcodes one person's key into the ignition.`,
+    },
+    {
+      id: 'pw-jr-39',
+      level: 'junior',
+      topic: 'Tools',
+      question: 'How do you attach extra information to a test report in Playwright?',
+      answer: `Use \`test.info().attach()\` to embed screenshots, files, or plain text into the HTML report alongside the test result — so reviewers can see the evidence without digging through CI artifacts.
+
+**Why it matters:**
+When a test fails, a raw assertion error often isn't enough context. Attaching the actual API response, the downloaded file, or a screenshot of the state at the critical moment makes triage far faster.
+
+**Walked-through example:**
+\`\`\`ts
+test('export CSV contains correct headers', async ({ page, request }) => {
+  // Download the file
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Export CSV' }).click(),
+  ]);
+  const path = await download.path();
+
+  // Attach the file to the report
+  await test.info().attach('exported-file.csv', {
+    path: path!,
+    contentType: 'text/csv',
+  });
+
+  // Attach a plain-text note
+  await test.info().attach('download-info', {
+    body: \`Filename: \${download.suggestedFilename()}\`,
+    contentType: 'text/plain',
+  });
+});
+
+// Auto-screenshot on failure (in playwright.config.ts)
+// use: { screenshot: 'only-on-failure' }  ← attaches automatically
+\`\`\`
+
+**Real-world QA use case:**
+In an API+UI hybrid test, attach the raw API response body as a JSON attachment. When the test fails on the UI assertion, the reviewer can see exactly what data the backend returned — without needing to re-run the test in debug mode.
+
+**Rule of thumb:** attach evidence to tests that verify external data (downloads, API responses, emails) — it turns a failing test into a self-contained bug report.`,
+      analogy: `Stapling the receipt and the photo to a warranty claim — the claim form says "defective," but the attached evidence tells the whole story so the reviewer doesn't have to ask.`,
+    },
+    {
+      id: 'pw-jr-40',
+      level: 'junior',
+      topic: 'Network',
+      question: 'How do you block or abort specific network requests in Playwright?',
+      answer: `Use \`page.route()\` with \`route.abort()\` to cancel matching requests — simulating blocked ads, failed CDN resources, or a specific API being unreachable.
+
+**Why it matters:**
+Not every network block test needs a mock response. Sometimes you just want to confirm the app degrades gracefully when a request fails — analytics scripts, third-party widgets, or non-critical API calls that shouldn't break the page.
+
+**Walked-through example:**
+\`\`\`ts
+// Block all image requests (simulate slow/no image loading)
+await page.route('**/*.{png,jpg,jpeg,gif,webp}', route => route.abort());
+
+// Block a specific analytics endpoint
+await page.route('**/api/analytics/**', route => route.abort());
+
+// Abort a request and verify the app shows an error state
+await page.route('**/api/products', route => route.abort());
+await page.goto('/shop');
+await expect(page.getByTestId('error-banner')).toBeVisible();
+await expect(page.getByTestId('error-banner')).toContainText('Failed to load products');
+
+// Unroute when done (so it doesn't affect other tests)
+await page.unroute('**/api/products');
+\`\`\`
+
+**Real-world QA use case:**
+Testing that a checkout page still renders correctly even when a third-party recommendation widget's API call is blocked — the payment button should remain visible and functional.
+
+**Rule of thumb:** use \`route.abort()\` to test failure/degradation paths; use \`route.fulfill()\` when you want to control what the app receives instead.`,
+      analogy: `Cutting a wire in a test circuit to confirm the backup path activates — you're not replacing the wire with something else, just verifying the system handles the break gracefully.`,
+    },
+    {
+      id: 'pw-jr-41',
+      level: 'junior',
+      topic: 'Actions',
+      question: 'How do you handle drag and drop in Playwright?',
+      answer: `Use \`locator.dragTo(targetLocator)\` for straightforward element-to-element drag. For complex custom drag interactions (canvas, sortable lists with specific coordinates), use the lower-level \`page.mouse\` API.
+
+**Why it matters:**
+Drag and drop is common in kanban boards, file uploads, sortable lists, and dashboards. Automated testing of these interactions catches regressions in drag logic that click-based tests can't cover.
+
+**Walked-through example:**
+\`\`\`ts
+// Simple element-to-element drag
+await page.getByTestId('card-task-1').dragTo(page.getByTestId('column-done'));
+await expect(page.getByTestId('column-done')).toContainText('Task 1');
+
+// Precise coordinates with mouse API (for canvas or custom sortable)
+const source = page.getByTestId('item-2');
+const target = page.getByTestId('item-4');
+
+const sourceBbox = await source.boundingBox();
+const targetBbox = await target.boundingBox();
+
+await page.mouse.move(sourceBbox!.x + sourceBbox!.width / 2, sourceBbox!.y + sourceBbox!.height / 2);
+await page.mouse.down();
+await page.mouse.move(targetBbox!.x + targetBbox!.width / 2, targetBbox!.y + targetBbox!.height / 2, { steps: 10 });
+await page.mouse.up();
+\`\`\`
+
+**Real-world QA use case:**
+A project management tool uses a kanban board where dragging a card from "In Progress" to "Done" triggers an API call and updates the card's status. The test drags the card and asserts both the UI update and the API call via \`waitForResponse()\`.
+
+**Rule of thumb:** start with \`dragTo()\` — it handles the mouse sequence cleanly. Fall back to \`page.mouse\` only when the app needs precise coordinates or intermediate hover steps.`,
+      analogy: `Moving a sticky note from one column to another on a whiteboard — \`dragTo\` is the smooth one-move version; the mouse API is moving it millimeter by millimeter when the sticky is sticky and needs coaxing.`,
+    },
+    {
+      id: 'pw-jr-42',
+      level: 'junior',
+      topic: 'Core Concepts',
+      question: 'What is `expect.poll()` and when is it better than web-first assertions?',
+      answer: `\`expect.poll()\` repeatedly calls a **custom async function** you provide and retries until the return value satisfies the assertion — or times out. It fills the gap when you need to wait for something Playwright's built-in assertions can't directly observe.
+
+**Why it exists:**
+Web-first assertions like \`toBeVisible()\` only watch the DOM. Sometimes your condition lives outside the DOM — a database value, a file on disk, an API response, or a JavaScript variable that doesn't reflect in the UI yet.
+
+**Walked-through example:**
+\`\`\`ts
+// Wait until an API endpoint returns data with a specific status
+await expect.poll(async () => {
+  const res = await page.request.get('/api/jobs/42');
+  const body = await res.json();
+  return body.status;           // returns a string like 'pending' or 'complete'
+}, { timeout: 30_000, intervals: [1000, 2000, 5000] })
+  .toBe('complete');
+
+// Wait until a count reaches a threshold
+await expect.poll(async () => {
+  return await page.getByRole('listitem').count();
+}, { timeout: 10_000 })
+  .toBeGreaterThan(0);
+\`\`\`
+
+**Real-world QA use case:**
+After triggering a background job (like an export), poll the API every second for up to 30 seconds until the job status changes to \`'complete'\` — then assert the download link appears in the UI. A plain \`toBeVisible()\` can't wait for the backend job to finish.
+
+**Rule of thumb:** use web-first assertions (\`toBeVisible\`, etc.) for DOM state; use \`expect.poll()\` when the condition you're waiting for requires a function call, not a DOM observation.`,
+      analogy: `A delivery tracker that refreshes every few seconds to check if the parcel status changed to "Delivered" — you're polling an external system, not watching a door, so you need to actively check, not passively wait.`,
+    },
+    {
+      id: 'pw-jr-43',
+      level: 'junior',
+      topic: 'Assertions',
+      question: 'How do you check that an input has a specific value after filling it?',
+      answer: `Use \`toHaveValue()\` — the web-first assertion for checking what's currently in an \`<input>\`, \`<textarea>\`, or \`<select>\`.
+
+**Why it matters:**
+\`fill()\` sets the value, but an app might transform it — auto-format a phone number, uppercase a code, strip special characters. Asserting with \`toHaveValue()\` confirms the rendered value, not just what you typed.
+
+**Walked-through example:**
+\`\`\`ts
+// Basic: fill and assert the value
+const emailField = page.getByLabel('Email');
+await emailField.fill('asha@example.com');
+await expect(emailField).toHaveValue('asha@example.com');
+
+// Check a select dropdown's selected value
+await page.getByLabel('Country').selectOption('IN');
+await expect(page.getByLabel('Country')).toHaveValue('IN');
+
+// Catch auto-formatting: phone field formats (123) 456-7890
+await page.getByLabel('Phone').fill('1234567890');
+await expect(page.getByLabel('Phone')).toHaveValue('(123) 456-7890'); // formatted value
+
+// Assert a cleared field
+await page.getByLabel('Search').clear();
+await expect(page.getByLabel('Search')).toHaveValue('');
+\`\`\`
+
+**Real-world QA use case:**
+A date field auto-formats user input from \`20240601\` to \`2024-06-01\`. After filling, assert the formatted value appears correctly before submitting — prevents a bug where the backend receives raw unformatted input.
+
+**Rule of thumb:** \`toHaveValue()\` checks the form control's actual value attribute; use \`toHaveText()\` for visible text content in non-form elements.`,
+      analogy: `Checking what the scales actually read after you place a package on them — not just confirming you put a package there. The app might adjust the input, so you verify the final registered value.`,
+    },
+    {
+      id: 'pw-jr-44',
+      level: 'junior',
+      topic: 'Actions',
+      question: 'How do you get and set cookies in Playwright?',
+      answer: `Use the browser **context** API — cookies belong to the context, not the page. You can read all cookies, set them before a test starts, or clear them between tests.
+
+**Why it matters:**
+Some app states (cookie consent banners, A/B test buckets, feature flags, auth tokens) are controlled by cookies. Being able to set or clear cookies lets you test both the presence and absence of these states.
+
+**Walked-through example:**
+\`\`\`ts
+// Read all cookies for the current context
+const cookies = await context.cookies();
+const sessionCookie = cookies.find(c => c.name === 'session_id');
+console.log(sessionCookie?.value);
+
+// Set a cookie before loading the page (e.g., skip cookie consent banner)
+await context.addCookies([{
+  name: 'cookie_consent',
+  value: 'accepted',
+  domain: 'example.com',
+  path: '/',
+}]);
+await page.goto('/');
+// The banner should not appear — consent is already set
+
+// Clear all cookies (simulate a logged-out user)
+await context.clearCookies();
+await page.goto('/dashboard');
+await expect(page).toHaveURL(/.*login/);  // redirected to login
+
+// Assert a specific cookie was set after login
+await loginPage.login('user@example.com', 'password');
+const afterLogin = await context.cookies();
+expect(afterLogin.some(c => c.name === 'auth_token')).toBe(true);
+\`\`\`
+
+**Real-world QA use case:**
+Set the GDPR consent cookie before every test so the consent modal never interrupts a test. Without this, the modal blocks the first click and causes random failures depending on whether the previous test closed it.
+
+**Rule of thumb:** set cookies via \`context.addCookies()\` before \`page.goto()\` — cookies set after the page loads may not apply until the next navigation.`,
+      analogy: `A loyalty card you hand to the cashier before they ring anything up — if you wait until after the purchase to show it, it's too late. Set the cookie before the page loads, not after.`,
+    },
+    {
+      id: 'pw-jr-45',
+      level: 'junior',
+      topic: 'Core Concepts',
+      question: 'What is `page.waitForFunction()` and when do you use it?',
+      answer: `\`page.waitForFunction()\` executes a JavaScript predicate **inside the browser** repeatedly until it returns a truthy value — or times out. It's for waiting on any JavaScript condition that the DOM API alone can't express.
+
+**Why it exists:**
+Web-first assertions cover DOM visibility and text. But some conditions live in JavaScript state: a global variable being set, a third-party library being initialised, a canvas being drawn, or an animation completing. \`waitForFunction()\` is the bridge for those cases.
+
+**Walked-through example:**
+\`\`\`ts
+// Wait until a global variable is set by the app
+await page.waitForFunction(() => (window as any).mapLoaded === true);
+
+// Wait until a specific number of items are in a JS array the app maintains
+await page.waitForFunction(() => (window as any).cart.length >= 2);
+
+// Wait with a value passed in from outside (avoids serialisation issues)
+await page.waitForFunction(
+  (expectedCount) => document.querySelectorAll('.row').length === expectedCount,
+  5   // passed as argument
+);
+
+// After asserting, read the value
+await page.waitForFunction(() => window.performance.getEntriesByType('paint').length > 0);
+const fcp = await page.evaluate(() =>
+  window.performance.getEntriesByType('paint').find(e => e.name === 'first-contentful-paint')?.startTime
+);
+\`\`\`
+
+**Real-world QA use case:**
+A mapping widget sets \`window.mapLoaded = true\` after tiles render. Until that flag is set, clicking map controls throws errors. \`waitForFunction()\` waits on the flag so the test doesn't race against the async tile load.
+
+**Rule of thumb:** use \`waitForFunction()\` when you need to wait for JavaScript state, not DOM state — if it's visible/text-based, a web-first assertion is cleaner and more reliable.`,
+      analogy: `Waiting for a cake to pass the toothpick test rather than just watching the timer — you keep checking the actual condition (comes out clean) rather than assuming time alone means it's done.`,
+    },
+    {
+      id: 'pw-jr-46',
+      level: 'junior',
+      topic: 'Test Basics',
+      question: 'What are test annotations and how do you use `test.info()`?',
+      answer: `\`test.info()\` gives you metadata about the currently running test — its title, retry count, project, and status — and lets you attach files, screenshots, or custom annotations to the HTML report.
+
+**Why it matters:**
+Annotations and attachments turn a raw pass/fail into rich, contextual output. They're especially useful for CI failures where you can't interact with the runner.
+
+**Walked-through example:**
+\`\`\`ts
+test('create order and verify confirmation email', async ({ page }) => {
+  // Add a custom annotation visible in the HTML report
+  test.info().annotations.push({
+    type: 'issue',
+    description: 'https://jira.example.com/SHOP-42',
+  });
+
+  // Read test metadata at runtime
+  console.log('Running test:', test.info().title);
+  console.log('Retry attempt:', test.info().retry);  // 0 on first run, 1 on first retry
+
+  await page.goto('/checkout');
+  // ... test steps ...
+
+  // Attach the confirmation page as a screenshot
+  await page.screenshot({ path: 'confirmation.png' });
+  await test.info().attach('confirmation-screenshot', {
+    path: 'confirmation.png',
+    contentType: 'image/png',
+  });
+});
+\`\`\`
+
+**Real-world QA use case:**
+On retry, read \`test.info().retry\` to skip a slow setup step and go straight to the assertion — or change which test data to use on each retry to avoid data collision from the first failed attempt.
+
+**Rule of thumb:** use \`test.info().annotations\` to link tests to tickets and \`test.info().attach()\` to embed evidence — both appear directly in the HTML report alongside the result.`,
+      analogy: `A courtroom exhibit tag — "Exhibit A: screenshot of the confirmation screen." The annotation links it to the relevant case (Jira ticket), and the attachment is the physical evidence, both filed alongside the verdict (pass/fail).`,
+    },
+    {
+      id: 'pw-jr-47',
+      level: 'junior',
+      topic: 'Test Basics',
+      question: 'What is `test.slow()` and when do you use it?',
+      answer: `\`test.slow()\` triples the timeout for the current test without you having to calculate and set a specific number. It's a quick way to mark a test as genuinely slower than average without over-engineering the timeout config.
+
+**Why it exists:**
+Some tests are inherently slow — file processing, email delivery, video transcoding, long payment flows. Tripling the default timeout handles these without touching the global config or hard-coding a magic number.
+
+**Walked-through example:**
+\`\`\`ts
+test('bulk import 500 records and verify', async ({ page }) => {
+  test.slow(); // triples the default test timeout (e.g., 30s → 90s)
+
+  await page.goto('/import');
+  await page.getByLabel('Upload CSV').setInputFiles('fixtures/500-records.csv');
+  await page.getByRole('button', { name: 'Start Import' }).click();
+
+  // Processing might take 60+ seconds
+  await expect(page.getByTestId('import-status')).toHaveText('Import complete', {
+    timeout: 80_000,
+  });
+});
+
+// Conditional: only slow on first run, not retries (retry should be faster with cached state)
+test('slow report generation', async ({ page }) => {
+  if (test.info().retry === 0) test.slow();
+  // ...
+});
+\`\`\`
+
+**Real-world QA use case:**
+A reporting feature generates a PDF by querying a data warehouse — it's expected to take 45 seconds. \`test.slow()\` extends the timeout to 90 seconds without changing the 30-second default for every other test in the suite.
+
+**Rule of thumb:** use \`test.slow()\` over \`test.setTimeout()\` when you want "longer than normal but don't need a precise value" — it's self-documenting and avoids magic numbers.`,
+      analogy: `Giving a slow chef three times the usual ticket time instead of calculating their exact average — you know they're consistently slower, you don't need to time every dish to set the right expectation.`,
+    },
+    {
+      id: 'pw-jr-48',
+      level: 'junior',
+      topic: 'Network',
+      question: 'How do you simulate an offline state or slow network in Playwright?',
+      answer: `Use \`page.context().setOffline()\` to cut the network entirely, or use the Chrome DevTools Protocol (CDP) to throttle bandwidth and latency — useful for testing loading states, error banners, and graceful degradation.
+
+**Why it matters:**
+Users on slow or unreliable connections are real — and your app should handle a lost network gracefully. Testing offline/slow-network scenarios before prod catches missing loading spinners, unhandled fetch errors, and infinite pending states.
+
+**Walked-through example:**
+\`\`\`ts
+// Simulate full offline mode
+test('app shows offline banner when network is lost', async ({ page, context }) => {
+  await page.goto('/dashboard');
+  await expect(page.getByTestId('dashboard-content')).toBeVisible();
+
+  // Cut the network
+  await context.setOffline(true);
+
+  // Trigger a data refresh
+  await page.getByRole('button', { name: 'Refresh' }).click();
+  await expect(page.getByTestId('offline-banner')).toBeVisible();
+  await expect(page.getByTestId('offline-banner')).toContainText('You are offline');
+
+  // Restore
+  await context.setOffline(false);
+});
+
+// Throttle via CDP (Chromium only)
+const cdp = await page.context().newCDPSession(page);
+await cdp.send('Network.emulateNetworkConditions', {
+  offline: false,
+  downloadThroughput: 50_000,   // 50 KB/s
+  uploadThroughput: 20_000,
+  latency: 300,                  // 300ms RTT
+});
+await page.goto('/dashboard');
+await expect(page.getByTestId('loading-spinner')).toBeVisible(); // appears on slow load
+\`\`\`
+
+**Real-world QA use case:**
+A field-service app used on mobile devices must work offline. The test cuts the network, attempts a form submission, verifies it queues locally, then restores the network and confirms the queued submission syncs successfully.
+
+**Rule of thumb:** \`context.setOffline(true)\` is cross-browser and simple for offline tests; CDP throttling is Chromium-only but precise for performance and loading-state tests.`,
+      analogy: `Pulling the ethernet cable out mid-session to see if the app notices and tells the user gracefully — rather than leaving them staring at a blank screen wondering if something broke.`,
+    },
+    {
+      id: 'pw-jr-49',
+      level: 'junior',
+      topic: 'Actions',
+      question: 'How do you handle a date picker in Playwright?',
+      answer: `The fastest approach is to **type the date directly** into the input field if the app allows it. For calendar-based pickers that block typing, navigate the calendar by clicking.
+
+**Why it matters:**
+Date pickers are one of the most common sources of test fragility — clicking through a calendar that starts on a different month every run creates timing-dependent failures. Directly filling the input is more stable and much faster.
+
+**Walked-through example:**
+\`\`\`ts
+// Option 1: fill the input directly (works for most HTML date inputs)
+await page.getByLabel('Start date').fill('2024-06-15');  // ISO format for <input type="date">
+
+// Option 2: type a formatted date (for custom inputs that accept MM/DD/YYYY)
+await page.getByLabel('Start date').click();
+await page.getByLabel('Start date').pressSequentially('06/15/2024');
+
+// Option 3: use the keyboard to navigate a calendar picker
+await page.getByLabel('Start date').click();
+// Type the date directly in the calendar's input field if it has one
+await page.getByRole('textbox', { name: 'Month' }).fill('June');
+await page.getByRole('spinbutton', { name: 'Day' }).fill('15');
+await page.getByRole('spinbutton', { name: 'Year' }).fill('2024');
+
+// Option 4: inject via page.evaluate() as last resort
+await page.evaluate(() => {
+  const input = document.querySelector('#start-date') as HTMLInputElement;
+  input.value = '2024-06-15';
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+});
+\`\`\`
+
+**Real-world QA use case:**
+An HR leave application form uses a custom calendar widget. Using \`fill()\` directly sets the date in one action — instead of navigating to the correct month (which changes every month the tests run) and clicking the right day.
+
+**Rule of thumb:** always try \`fill()\` or \`pressSequentially()\` on the date input first — only navigate the visual calendar if the input literally cannot be typed into.`,
+      analogy: `Writing the date directly on the form rather than flipping through a physical calendar to find the day to stamp — same result, fraction of the effort.`,
+    },
+    {
+      id: 'pw-jr-50',
+      level: 'junior',
+      topic: 'Actions',
+      question: 'How do you scroll to an element or scroll the page in Playwright?',
+      answer: `Playwright usually scrolls automatically when you act on an element (click, fill). For cases where you explicitly need to scroll — to trigger lazy loading, to bring a fixed-bottom element into view, or to scroll a specific container — use \`locator.scrollIntoViewIfNeeded()\` or \`page.mouse.wheel()\`.
+
+**Why it matters:**
+Some elements are only rendered after the user scrolls to them (virtual lists, lazy-loaded images). Some UIs require visible scroll position to trigger animation or data load. Explicit scrolling makes these testable.
+
+**Walked-through example:**
+\`\`\`ts
+// Scroll an element into view (auto-scrolls the page to it)
+await page.getByTestId('footer-cta').scrollIntoViewIfNeeded();
+await expect(page.getByTestId('footer-cta')).toBeVisible();
+
+// Scroll the page down by a pixel amount (triggers lazy load)
+await page.mouse.wheel(0, 800);   // (deltaX, deltaY) — scrolls down 800px
+await expect(page.getByTestId('lazy-image')).toBeVisible();
+
+// Scroll inside a specific scrollable container
+const container = page.getByTestId('results-list');
+await container.evaluate(el => el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' }));
+
+// Scroll to bottom of page to trigger infinite scroll
+await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+await expect(page.getByTestId('load-more-spinner')).toBeVisible();
+\`\`\`
+
+**Real-world QA use case:**
+A product listing page uses infinite scroll — items load as the user scrolls down. The test scrolls to the bottom twice, waits for the next batch of items to appear, and asserts the item count increased.
+
+**Rule of thumb:** let Playwright's auto-scroll handle normal interactions; use \`scrollIntoViewIfNeeded()\` when you need an element visible before acting on it, and \`mouse.wheel()\` or \`evaluate()\` to trigger scroll-based loading.`,
+      analogy: `Physically moving to the end of a long corridor to see what's there — Playwright normally walks you to the door you need, but sometimes you have to walk to the end yourself to see what's around the corner.`,
+    },
     // ── Mid (2–5 yrs) ─────────────────────────────────────────
     {
       id: 'pw-mid-1',
@@ -21623,6 +22514,1158 @@ Also: \`test.only\` (focus), \`test.skip\` / \`test.fixme\` (skip).`,
       analogy: `Coloured sticky tabs on documents — pull just the "urgent" tabbed ones when you don't have time to read everything.`,
     },
 
+    {
+      id: 'pw-mid-27',
+      level: 'mid',
+      topic: 'Network',
+      question: 'How do you record and replay API responses using HAR files?',
+      answer: `Playwright can record a test run's network traffic into a HAR (HTTP Archive) file and replay it in later runs — so your tests run against stable, pre-recorded responses instead of a live backend.
+
+**Why it matters:**
+Live backends introduce flakiness — rate limits, intermittent latency, data that changes between runs. HAR replay removes all of that while testing the frontend's handling of real payloads recorded from production or staging.
+
+**Walked-through example:**
+\`\`\`ts
+// Step 1 — record: run once against the real backend, save HAR
+const context = await browser.newContext({
+  recordHar: { path: 'fixtures/api-responses.har', urlFilter: '**/api/**' },
+});
+const page = await context.newPage();
+await page.goto('/dashboard');
+// ... navigate to trigger all the API calls you want to capture
+await context.close();  // HAR written to disk on close
+
+// Step 2 — replay: subsequent runs use the HAR instead of a real backend
+test('dashboard renders correct data', async ({ page }) => {
+  await page.routeFromHAR('fixtures/api-responses.har', {
+    url: '**/api/**',
+    update: false,  // strict replay — fail if an unmapped request is made
+  });
+  await page.goto('/dashboard');
+  await expect(page.getByTestId('user-name')).toHaveText('Asha Patel');
+});
+\`\`\`
+
+**Real-world QA use case:**
+A reporting dashboard calls five different API endpoints. Record the real responses once from staging, commit the HAR file, and replay it in every CI run — the tests verify the frontend rendering without any backend dependency.
+
+**Rule of thumb:** commit HAR files for stable API contracts; re-record when the API changes — treat them like fixtures, not screenshots.`,
+      analogy: `Recording a radio programme to tape and playing it back exactly — instead of hoping the live broadcast airs the same content every time you test, you replay the pre-recorded version you know is correct.`,
+    },
+    {
+      id: 'pw-mid-28',
+      level: 'mid',
+      topic: 'Network',
+      question: 'How do you modify a request before it reaches the server?',
+      answer: `Use \`page.route()\` with \`route.continue()\` — which lets you intercept a request, change headers, body, or URL, and forward the modified version to the server.
+
+**Why it matters:**
+Sometimes you want to test how the app handles edge cases in a request — an extra header, a missing field, an altered auth token — without changing the app code or mocking the entire response.
+
+**Walked-through example:**
+\`\`\`ts
+// Add a custom header to every API request (e.g., a test flag the backend checks)
+await page.route('**/api/**', async route => {
+  const headers = {
+    ...route.request().headers(),
+    'x-test-mode': 'true',           // extra header
+    'Authorization': 'Bearer test-token',  // override auth
+  };
+  await route.continue({ headers });
+});
+
+// Modify the request body before it's sent
+await page.route('**/api/orders', async route => {
+  const originalBody = route.request().postDataJSON();
+  await route.continue({
+    postData: JSON.stringify({
+      ...originalBody,
+      couponCode: 'TEST10',  // inject a coupon the UI didn't send
+    }),
+  });
+});
+
+await page.goto('/checkout');
+// The app sends the order; your route injects the coupon before it hits the server
+\`\`\`
+
+**Real-world QA use case:**
+A feature is behind a server-side feature flag activated by a request header. Inject the header via \`route.continue()\` to test the feature without changing the app's feature flag configuration — perfect for testing a feature still in development.
+
+**Rule of thumb:** use \`route.continue()\` to modify and forward; use \`route.fulfill()\` to respond with fake data; use \`route.abort()\` to block — these three cover every network interception scenario.`,
+      analogy: `A postal clerk who opens a parcel, adds a gift voucher, reseals it, and sends it on — the recipient (server) gets the modified parcel, never knowing the original didn't include the voucher.`,
+    },
+    {
+      id: 'pw-mid-29',
+      level: 'mid',
+      topic: 'API',
+      question: 'What is `APIRequestContext` and how do you use it outside a browser?',
+      answer: `\`APIRequestContext\` is Playwright's HTTP client for making API requests with **no browser involved** — suitable for pure REST/GraphQL API tests or for setup/teardown that needs to talk to a backend without loading a page.
+
+**Why it matters:**
+Not every test needs a browser. API tests are 10–50× faster than UI tests for the same assertion. Using Playwright for both keeps your toolchain unified — one runner, one reporter, one CI config.
+
+**Walked-through example:**
+\`\`\`ts
+import { test, expect, request } from '@playwright/test';
+
+// Standalone API test (no page needed)
+test('POST /api/users creates a user', async () => {
+  const apiContext = await request.newContext({
+    baseURL: 'https://api.example.com',
+    extraHTTPHeaders: {
+      'Authorization': \`Bearer \${process.env.API_TOKEN}\`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  const res = await apiContext.post('/users', {
+    data: { name: 'Asha', email: 'asha@example.com' },
+  });
+
+  expect(res.status()).toBe(201);
+  const body = await res.json();
+  expect(body.id).toBeDefined();
+  expect(body.name).toBe('Asha');
+
+  // Cleanup — delete the user after the test
+  await apiContext.delete(\`/users/\${body.id}\`);
+  await apiContext.dispose();
+});
+\`\`\`
+
+**Real-world QA use case:**
+A microservices app has a user service, order service, and notification service. Write a dedicated API test suite using \`APIRequestContext\` that tests each service's contract independently — no browser, full speed, same Playwright runner as the E2E suite.
+
+**Rule of thumb:** use \`request\` fixture for API calls within a UI test; use \`request.newContext()\` for standalone API test suites that need their own base URL and auth headers.`,
+      analogy: `A courier who delivers and picks up parcels directly at the warehouse loading dock — bypassing the front-of-house entirely. Faster, purpose-built for the job, no browsing required.`,
+    },
+    {
+      id: 'pw-mid-30',
+      level: 'mid',
+      topic: 'Fixtures',
+      question: 'How do you set up fixtures for multiple user roles (admin, user, guest)?',
+      answer: `Create a separate auth state file per role during a setup project, then define fixtures that load the right state — so each test gets exactly the session it needs in one line.
+
+**Why it matters:**
+Without role fixtures, every test that needs a specific role either calls the login UI (slow and flaky) or sets \`storageState\` manually (verbose and error-prone). Role fixtures make test intent clear and keep setup out of the test body.
+
+**Walked-through example:**
+\`\`\`ts
+// fixtures/roles.ts
+import { test as base } from '@playwright/test';
+
+type RoleFixtures = {
+  adminPage: Page;
+  userPage: Page;
+};
+
+export const test = base.extend<RoleFixtures>({
+  adminPage: async ({ browser }, use) => {
+    const ctx = await browser.newContext({ storageState: 'auth/admin.json' });
+    const page = await ctx.newPage();
+    await use(page);
+    await ctx.close();
+  },
+  userPage: async ({ browser }, use) => {
+    const ctx = await browser.newContext({ storageState: 'auth/user.json' });
+    const page = await ctx.newPage();
+    await use(page);
+    await ctx.close();
+  },
+});
+
+// In a test — clean, declarative
+import { test } from '../fixtures/roles';
+import { expect } from '@playwright/test';
+
+test('admin sees delete button, user does not', async ({ adminPage, userPage }) => {
+  await adminPage.goto('/users');
+  await expect(adminPage.getByRole('button', { name: 'Delete' })).toBeVisible();
+
+  await userPage.goto('/users');
+  await expect(userPage.getByRole('button', { name: 'Delete' })).not.toBeVisible();
+});
+\`\`\`
+
+**Real-world QA use case:**
+An approval workflow test needs an employee who submits a request and a manager who approves it — both running in the same test, each in their own authenticated context via role fixtures.
+
+**Rule of thumb:** never log in via the UI inside a test — authenticate once per role in setup, save \`storageState\`, and load it via fixtures.`,
+      analogy: `A keycard system where each role has a pre-programmed card — you hand the admin their card and the regular user theirs at the start of the test; no one has to re-authenticate at every door.`,
+    },
+    {
+      id: 'pw-mid-31',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you handle OAuth or SSO login flows in Playwright tests?',
+      answer: `The key is to authenticate via the **API or a direct token exchange** instead of driving the SSO UI — which is slow, brittle, and often rate-limited by the identity provider.
+
+**Why it matters:**
+SSO login pages (Google, Azure AD, Okta) are outside your app's control. They change their HTML without notice, have strict bot-detection, and add 10–20 seconds to every test. Bypassing the SSO UI in tests is the industry standard.
+
+**Walked-through example:**
+\`\`\`ts
+// Option 1: exchange credentials for a token directly via the IdP API
+// (works for IdPs that support Resource Owner Password Credentials grant)
+async function getToken(email: string, password: string): Promise<string> {
+  const res = await fetch('https://auth.example.com/oauth/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      grant_type: 'password',
+      username: email,
+      password: password,
+      client_id: process.env.OAUTH_CLIENT_ID,
+    }),
+  });
+  const { access_token } = await res.json();
+  return access_token;
+}
+
+// Option 2: inject the token into localStorage so the app thinks it's logged in
+test('logged-in user sees dashboard', async ({ page }) => {
+  const token = await getToken(process.env.SSO_USER!, process.env.SSO_PASS!);
+
+  await page.goto('/');
+  await page.evaluate((t) => localStorage.setItem('access_token', t), token);
+  await page.goto('/dashboard');  // reload after injecting token
+  await expect(page.getByTestId('welcome-message')).toBeVisible();
+});
+
+// Option 3: set up storageState once in globalSetup and reuse in all tests
+// (best for large suites — login once, skip it in every test)
+\`\`\`
+
+**Real-world QA use case:**
+An enterprise app uses Azure AD SSO. The ROPC grant lets the test service account exchange credentials for a token directly — bypassing the Azure login UI entirely. The token is injected once in global setup and stored in \`auth/azure-user.json\`.
+
+**Rule of thumb:** never automate a third-party SSO login page — always obtain the token via API and inject it, or use a dedicated test-mode bypass your devs build into the app.`,
+      analogy: `A backstage security badge that lets crew skip the public entrance queue — guests (real users) use the main door; the testing crew has a direct entry that skips all the front-of-house ceremony.`,
+    },
+    {
+      id: 'pw-mid-32',
+      level: 'mid',
+      topic: 'Test Design',
+      question: 'What does `test.describe.configure()` do and when do you use it?',
+      answer: `\`test.describe.configure()\` changes the execution mode or timeout for all tests within a \`describe\` block — the two main options are \`mode: 'parallel'\` (run tests in the block concurrently) and \`mode: 'serial'\` (run them strictly one after another).
+
+**Why it matters:**
+Playwright's default is to run files in parallel but tests within a file serially. Sometimes a group of tests in one file is safe to parallelize (independent tests) or must be serial (a workflow where order matters). \`configure()\` lets you set this precisely without changing global config.
+
+**Walked-through example:**
+\`\`\`ts
+// Make tests in this describe block run in parallel (safe when they're fully independent)
+test.describe.configure({ mode: 'parallel' });
+
+test.describe('user profile page', () => {
+  test('shows correct name', async ({ page }) => { /* ... */ });
+  test('shows correct email', async ({ page }) => { /* ... */ });
+  test('shows profile picture', async ({ page }) => { /* ... */ });
+  // All three run at the same time — faster CI
+});
+
+// Serial mode: tests share state and must run in order
+test.describe.configure({ mode: 'serial' });
+
+test.describe('checkout workflow', () => {
+  test('add item to cart', async ({ page }) => { /* ... */ });
+  test('enter shipping address', async ({ page }) => { /* ... */ });
+  test('complete payment', async ({ page }) => { /* ... */ });
+  // Must run in order — each step depends on the previous
+});
+\`\`\`
+
+**Real-world QA use case:**
+A checkout flow is intentionally serial — you can't test the payment step without the cart step completing first. Use \`mode: 'serial'\` so Playwright stops the whole block on the first failure instead of running later steps that are guaranteed to fail anyway.
+
+**Rule of thumb:** default to independent tests (no shared state) so \`mode: 'parallel'\` is always safe; use \`mode: 'serial'\` only for explicit workflow chains, and treat it as a code smell if you're using it for unrelated tests.`,
+      analogy: `Parallel chefs each cooking their own dish independently vs an assembly line where one chef's work feeds the next — most tests are independent chefs, but a checkout flow is an assembly line.`,
+    },
+    {
+      id: 'pw-mid-33',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you emulate geolocation in Playwright?',
+      answer: `Set geolocation on the browser context via \`context.setGeolocation()\` or in the config, and grant the \`geolocation\` permission so the browser API returns the spoofed coordinates instead of asking the user.
+
+**Why it matters:**
+Location-based features — store finders, delivery zones, language/currency localisation, and regulatory access restrictions — need to be tested from specific coordinates. Real GPS isn't practical in CI; geolocation emulation covers it deterministically.
+
+**Walked-through example:**
+\`\`\`ts
+// In playwright.config.ts — apply to all tests in a project
+export default defineConfig({
+  projects: [{
+    name: 'london-user',
+    use: {
+      geolocation: { latitude: 51.5074, longitude: -0.1278 },
+      permissions: ['geolocation'],
+    },
+  }],
+});
+
+// Per-test override
+test('shows London stores', async ({ page, context }) => {
+  await context.grantPermissions(['geolocation']);
+  await context.setGeolocation({ latitude: 51.5074, longitude: -0.1278 });
+
+  await page.goto('/stores');
+  await page.getByRole('button', { name: 'Find near me' }).click();
+  await expect(page.getByTestId('nearest-store')).toContainText('London');
+});
+
+// Test the access-denied flow — deny the permission
+test('shows fallback when location denied', async ({ context, page }) => {
+  await context.grantPermissions([]);   // no geolocation permission
+  await page.goto('/stores');
+  await page.getByRole('button', { name: 'Find near me' }).click();
+  await expect(page.getByTestId('location-error')).toContainText('Location access denied');
+});
+\`\`\`
+
+**Real-world QA use case:**
+An on-demand delivery app restricts service to certain postcodes. Tests emulate coordinates inside and outside the service area, asserting the correct UI state — "Available in your area" vs "Not available here" — without physically being in those locations.
+
+**Rule of thumb:** always pair \`setGeolocation()\` with \`grantPermissions(['geolocation'])\` — emulated coordinates are ignored if the browser hasn't been granted permission.`,
+      analogy: `A film production using a green screen to put the actors in Paris — the crew doesn't fly to Paris; they set the backdrop and the shot looks exactly like it needs to.`,
+    },
+    {
+      id: 'pw-mid-34',
+      level: 'mid',
+      topic: 'Network',
+      question: 'How do you intercept and mock GraphQL requests?',
+      answer: `GraphQL sends all queries via POST to a single endpoint (usually \`/graphql\`). Intercept that route, inspect the request body to identify the operation, and return a custom mock response.
+
+**Why it matters:**
+Unlike REST, you can't distinguish GraphQL operations by URL alone — you need to read the \`operationName\` or \`query\` field in the POST body. Once you identify the operation, you return a mock shaped to the exact data your component expects.
+
+**Walked-through example:**
+\`\`\`ts
+// Mock a specific GraphQL operation
+await page.route('**/graphql', async route => {
+  const body = route.request().postDataJSON();
+
+  if (body.operationName === 'GetUserProfile') {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: {
+          user: {
+            id: '42',
+            name: 'Asha Patel',
+            role: 'ADMIN',
+          },
+        },
+      }),
+    });
+    return;
+  }
+
+  // Pass all other operations through to the real backend
+  await route.continue();
+});
+
+await page.goto('/profile');
+await expect(page.getByTestId('user-name')).toHaveText('Asha Patel');
+await expect(page.getByTestId('user-role')).toHaveText('ADMIN');
+\`\`\`
+
+**Real-world QA use case:**
+A dashboard page fires 6 GraphQL queries on load. Mock only the \`GetDashboardMetrics\` operation to return a specific set of numbers, let the rest through to the real backend — so the test verifies the dashboard renders the mocked metrics correctly without a full backend dependency.
+
+**Rule of thumb:** always check \`operationName\` before mocking — fall back to \`route.continue()\` for operations you're not targeting, so unmocked queries still work.`,
+      analogy: `A switchboard operator who routes calls based on who the caller asks for — "I need Sales" gets a specific response, but "I need Support" is connected through to the real department as normal.`,
+    },
+    {
+      id: 'pw-mid-35',
+      level: 'mid',
+      topic: 'Test Design',
+      question: 'How do you reliably clean up test data after each test?',
+      answer: `Put teardown in \`test.afterEach()\` or in a fixture's cleanup phase, and use the **API** for fast deletion — not the UI. Wrap teardown in try/catch so a failed cleanup doesn't mask the actual test failure.
+
+**Why it matters:**
+Tests that leave data behind pollute subsequent runs — especially in parallel suites where multiple tests hit the same database. Reliable teardown is what makes tests truly independent.
+
+**Walked-through example:**
+\`\`\`ts
+test.describe('order management', () => {
+  let createdOrderId: string;
+
+  test.afterEach(async ({ request }) => {
+    // Always clean up, even if the test failed
+    if (createdOrderId) {
+      try {
+        await request.delete(\`/api/orders/\${createdOrderId}\`);
+      } catch {
+        console.warn(\`Teardown: could not delete order \${createdOrderId}\`);
+      }
+      createdOrderId = '';
+    }
+  });
+
+  test('create order and verify in list', async ({ page, request }) => {
+    // Setup via API
+    const res = await request.post('/api/orders', { data: { item: 'Laptop' } });
+    const order = await res.json();
+    createdOrderId = order.id;   // captured for teardown
+
+    // Assert in UI
+    await page.goto('/orders');
+    await expect(page.getByText(order.id)).toBeVisible();
+  });
+});
+\`\`\`
+
+**Real-world QA use case:**
+An E2E test creates a user via the API, runs through the onboarding flow, and deletes the user in \`afterEach\`. Without the teardown, running the test 10 times in CI creates 10 orphaned users that accumulate and eventually conflict with other tests that assume a clean slate.
+
+**Rule of thumb:** capture the resource ID during setup, delete it via API in \`afterEach\` — never rely on the UI to delete test data.`,
+      analogy: `A hotel housekeeper who cleans the room after every guest, not just occasionally — each incoming guest (next test run) gets a fresh, uncontaminated room regardless of what the previous guest did.`,
+    },
+    {
+      id: 'pw-mid-36',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you use `test.info()` inside a helper or page object?',
+      answer: `Import \`test\` from \`@playwright/test\` in your helper and call \`test.info()\` — it returns the current test's metadata regardless of where in the call stack you are, as long as you're inside an active test.
+
+**Why it matters:**
+Page objects and helpers often need to log, attach screenshots, or adapt behaviour based on the current test (its name, retry count, or project). Passing \`test.info()\` through every method signature is verbose; calling it directly is cleaner.
+
+**Walked-through example:**
+\`\`\`ts
+// helpers/screenshot.ts
+import { test, Page } from '@playwright/test';
+
+export async function screenshotOnStep(page: Page, stepName: string): Promise<void> {
+  const info = test.info();   // always refers to the currently running test
+  const screenshot = await page.screenshot();
+  await info.attach(\`\${stepName}-screenshot\`, {
+    body: screenshot,
+    contentType: 'image/png',
+  });
+}
+
+// In a page object
+export class CheckoutPage {
+  constructor(private page: Page) {}
+
+  async completePayment(): Promise<void> {
+    await this.page.getByRole('button', { name: 'Pay now' }).click();
+    // Attach screenshot at this step, regardless of which test called this method
+    await screenshotOnStep(this.page, 'post-payment');
+  }
+}
+\`\`\`
+
+**Real-world QA use case:**
+A shared \`LoginPage.login()\` method captures a screenshot after the login step on every call — any test that uses this page object automatically gets the login screenshot in its report without any extra code in the test body.
+
+**Rule of thumb:** \`test.info()\` is a contextual accessor — it always knows which test is running, so helpers can attach evidence without needing the test to pass anything in.`,
+      analogy: `A shared printer on a network that always stamps the current user's name on every printout — the user doesn't have to sign each page manually, the printer knows whose job it is.`,
+    },
+    {
+      id: 'pw-mid-37',
+      level: 'mid',
+      topic: 'Architecture',
+      question: 'How do you organise fixtures into separate files for a large project?',
+      answer: `Create a custom \`test\` export that extends the base with all your fixtures, then import that custom \`test\` everywhere instead of the default one. Split fixtures across logical files and merge them with \`mergeTests()\`.
+
+**Why it matters:**
+A single \`fixtures.ts\` file grows unwieldy as a project scales. Splitting by concern (auth, data, page objects, API clients) keeps each file focused and lets teams own their own fixture files.
+
+**Walked-through example:**
+\`\`\`ts
+// fixtures/auth.ts
+import { test as base } from '@playwright/test';
+export const test = base.extend({
+  adminPage: async ({ browser }, use) => {
+    const ctx = await browser.newContext({ storageState: 'auth/admin.json' });
+    const page = await ctx.newPage();
+    await use(page);
+    await ctx.close();
+  },
+});
+
+// fixtures/data.ts
+import { test as base } from '@playwright/test';
+export const test = base.extend({
+  testUser: async ({ request }, use) => {
+    const res = await request.post('/api/users', { data: { name: 'Test User' } });
+    const user = await res.json();
+    await use(user);
+    await request.delete(\`/api/users/\${user.id}\`);   // cleanup
+  },
+});
+
+// fixtures/index.ts — merge all fixtures into one export
+import { mergeTests } from '@playwright/test';
+import { test as authTest } from './auth';
+import { test as dataTest } from './data';
+export const test = mergeTests(authTest, dataTest);
+export { expect } from '@playwright/test';
+
+// In any test file
+import { test, expect } from '../fixtures';
+test('admin sees new user', async ({ adminPage, testUser }) => {
+  await adminPage.goto('/users');
+  await expect(adminPage.getByText(testUser.name)).toBeVisible();
+});
+\`\`\`
+
+**Real-world QA use case:**
+A 200-test suite has auth fixtures, database fixtures, API client fixtures, and page object fixtures. Merging them gives every test access to all fixtures via one clean import, while each fixture file stays under 100 lines.
+
+**Rule of thumb:** one import (\`from '../fixtures'\`) in every test file — never import directly from \`@playwright/test\` in tests, so you always get the extended \`test\` with all your fixtures.`,
+      analogy: `A modular kitchen toolbox — one drawer for knives (auth), one for measuring tools (data), one for utensils (page objects). You open one toolbox at the start, not hunt through three separate boxes mid-recipe.`,
+    },
+    {
+      id: 'pw-mid-38',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you handle lazy-loading and infinite scroll in Playwright tests?',
+      answer: `For lazy-loaded elements, scroll to bring them into the viewport and wait for them to appear. For infinite scroll, repeatedly scroll to the bottom and wait for new content, using an item count assertion to detect when more has loaded.
+
+**Why it matters:**
+Lazy loading and infinite scroll mean the content you want to assert isn't in the DOM until the user scrolls. Without explicit scroll + wait, tests either fail ("element not found") or only test the initial viewport.
+
+**Walked-through example:**
+\`\`\`ts
+// Lazy-loaded image: scroll to it, wait for it to load
+const lazyImage = page.getByTestId('product-image-42');
+await lazyImage.scrollIntoViewIfNeeded();
+await expect(lazyImage).toBeVisible();
+await expect(lazyImage).toHaveAttribute('src', /products\\/42/);
+
+// Infinite scroll: load more until a target item appears
+async function scrollUntilItemVisible(page: Page, itemText: string): Promise<void> {
+  let found = false;
+  let lastCount = 0;
+
+  while (!found) {
+    const items = page.getByRole('listitem');
+    const count = await items.count();
+
+    if (await page.getByText(itemText).isVisible()) {
+      found = true;
+      break;
+    }
+
+    if (count === lastCount) {
+      throw new Error(\`Item "\${itemText}" not found after loading all items\`);
+    }
+    lastCount = count;
+
+    // Scroll to bottom to trigger next batch
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForResponse(r => r.url().includes('/api/items'));
+  }
+}
+
+await scrollUntilItemVisible(page, 'Product #75');
+\`\`\`
+
+**Real-world QA use case:**
+A notification inbox uses virtual scroll — only 20 notifications load initially. To verify a notification from an older batch, the test scrolls until the notification list loads it, then asserts its content and mark-as-read behaviour.
+
+**Rule of thumb:** always wait for a real signal (a network response, a count change) after scrolling — never use a fixed sleep to "wait for content to load."`,
+      analogy: `Reading a very long book by turning pages — you don't read the whole book upfront; you turn to the next page and confirm the paragraph you're looking for is there before reading it.`,
+    },
+    {
+      id: 'pw-mid-39',
+      level: 'mid',
+      topic: 'Assertions',
+      question: 'How do you assert ARIA attributes and accessibility roles?',
+      answer: `Use \`toHaveAttribute()\` for specific ARIA attribute values, \`toHaveRole()\` for the computed accessible role, and the role-based locators (\`getByRole\`) as a built-in accessibility check — if the locator finds the element, the role is correct.
+
+**Why it matters:**
+Accessibility bugs — missing \`aria-label\`, incorrect \`role\`, broken \`aria-expanded\` state — aren't visible in screenshots but break screen readers. Asserting ARIA attributes in tests catches these before users with disabilities encounter them.
+
+**Walked-through example:**
+\`\`\`ts
+// Assert a button has the correct aria-label (for icon-only buttons)
+await expect(page.getByTestId('close-btn')).toHaveAttribute('aria-label', 'Close dialog');
+
+// Assert an accordion is expanded after clicking
+await page.getByRole('button', { name: 'FAQ Section' }).click();
+await expect(page.getByRole('button', { name: 'FAQ Section' })).toHaveAttribute('aria-expanded', 'true');
+
+// Assert a live region announces status updates
+await expect(page.getByRole('status')).toHaveText('File uploaded successfully');
+
+// Assert a disabled button has the correct state
+await expect(page.getByRole('button', { name: 'Submit' })).toBeDisabled();
+await expect(page.getByRole('button', { name: 'Submit' })).toHaveAttribute('aria-disabled', 'true');
+
+// Check role is correct (Playwright computes the accessible role)
+await expect(page.getByTestId('nav-menu')).toHaveRole('navigation');
+\`\`\`
+
+**Real-world QA use case:**
+A custom dropdown component must set \`aria-expanded="true"\` when open and \`aria-haspopup="listbox"\` at all times. The test clicks the trigger, asserts both ARIA attributes, and confirms a screen reader would announce the state correctly.
+
+**Rule of thumb:** ARIA assertions complement visual assertions — a button can look correct on screen but have the wrong role for a screen reader; test both.`,
+      analogy: `Inspecting both the label on a medicine bottle (visual) and the Braille on the cap (ARIA) — a sighted person sees the label, but a blind user reads the Braille. You test both surfaces.`,
+    },
+    {
+      id: 'pw-mid-40',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you handle clipboard interactions (copy and paste) in Playwright?',
+      answer: `Grant the clipboard permission, use \`page.evaluate()\` to read from or write to the clipboard via the browser's Clipboard API, and combine with keyboard shortcuts to test copy-paste flows.
+
+**Why it matters:**
+Copy-to-clipboard buttons, share links, and paste-from-clipboard features are common and fragile. Without testing them, clipboard bugs reach production silently — the button appears to work but copies the wrong text.
+
+**Walked-through example:**
+\`\`\`ts
+// Grant clipboard permissions first (required in Chromium)
+await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+
+// Test a "Copy link" button
+test('copy link button copies the correct URL', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.goto('/profile/asha');
+
+  await page.getByRole('button', { name: 'Copy link' }).click();
+  await expect(page.getByTestId('copy-success')).toBeVisible();   // toast appears
+
+  // Read what was actually copied
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied).toBe('https://example.com/profile/asha');
+});
+
+// Test paste-into-field
+test('paste an invite code into the field', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+
+  // Write to clipboard programmatically
+  await page.evaluate(() => navigator.clipboard.writeText('INVITE-XYZ42'));
+
+  await page.goto('/join');
+  await page.getByLabel('Invite code').click();
+  await page.keyboard.press('Control+V');   // paste
+  await expect(page.getByLabel('Invite code')).toHaveValue('INVITE-XYZ42');
+});
+\`\`\`
+
+**Real-world QA use case:**
+A sharing feature generates a unique invite link and copies it to clipboard when the user clicks "Share." The test verifies the copied URL contains the correct user ID and the right UTM parameters — bugs here mean users share the wrong link.
+
+**Rule of thumb:** always grant \`clipboard-read\` and \`clipboard-write\` permissions before clipboard tests; in Firefox/WebKit the API surface differs — test on Chromium first.`,
+      analogy: `Checking that the photocopier actually copied the right document — pressing the button and hearing it whirr isn't enough; you need to read the output sheet to confirm it says what it should.`,
+    },
+    {
+      id: 'pw-mid-41',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you handle multi-tab workflows in Playwright?',
+      answer: `Each tab is a \`Page\` object in a shared \`BrowserContext\`. You can open new tabs programmatically, switch between them, and share cookies/storage across them — because they're in the same context.
+
+**Why it matters:**
+Some flows span tabs: a link opens in a new tab, an admin dashboard opened alongside a customer-facing page, or an OAuth flow that redirects through a new tab. Without handling the new \`Page\`, the test loses track of it.
+
+**Walked-through example:**
+\`\`\`ts
+// Capture a new tab opened by a link
+test('help link opens in new tab', async ({ page, context }) => {
+  await page.goto('/settings');
+
+  // Listen for the new tab BEFORE clicking the link
+  const [newTab] = await Promise.all([
+    context.waitForEvent('page'),             // waits for any new page in the context
+    page.getByRole('link', { name: 'Help' }).click(),
+  ]);
+
+  await newTab.waitForLoadState();
+  await expect(newTab).toHaveURL(/help\.example\.com/);
+  await expect(newTab.getByRole('heading', { level: 1 })).toBeVisible();
+});
+
+// Work with multiple tabs simultaneously
+test('admin action reflects on customer page', async ({ browser }) => {
+  const context = await browser.newContext({ storageState: 'auth/admin.json' });
+  const adminTab = await context.newPage();
+  const customerTab = await context.newPage();   // same context — shares auth
+
+  await adminTab.goto('/admin/promotions');
+  await adminTab.getByRole('button', { name: 'Enable flash sale' }).click();
+
+  await customerTab.goto('/shop');
+  await expect(customerTab.getByTestId('flash-sale-banner')).toBeVisible();
+
+  await context.close();
+});
+\`\`\`
+
+**Real-world QA use case:**
+A document editor opens a shared link in a new tab. The test captures the new tab, asserts the document title matches, and then verifies editing in the new tab reflects back in the original — a real collaboration workflow.
+
+**Rule of thumb:** listen for \`context.waitForEvent('page')\` before triggering the action that opens the tab — just like \`waitForEvent('popup')\` for popups.`,
+      analogy: `A juggler keeping track of multiple balls in the air — each tab is a ball, and you track all of them simultaneously, making sure each one is in the right place at the right time.`,
+    },
+    {
+      id: 'pw-mid-42',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you capture and assert on browser console errors during a test?',
+      answer: `Attach a \`page.on('console')\` listener before the action that might produce console errors, collect messages by type, and assert at the end of the test that no errors were logged.
+
+**Why it matters:**
+JavaScript errors in the console are silent to users but indicate real bugs — unhandled promise rejections, missing required props, failed resource loads. Without capturing them, tests pass even when the app is emitting errors on every page load.
+
+**Walked-through example:**
+\`\`\`ts
+test('dashboard loads without console errors', async ({ page }) => {
+  const consoleErrors: string[] = [];
+
+  // Listen before navigating — messages before this line are missed
+  page.on('console', msg => {
+    if (msg.type() === 'error') {
+      consoleErrors.push(msg.text());
+    }
+  });
+
+  // Also catch unhandled page errors (uncaught exceptions)
+  const pageErrors: Error[] = [];
+  page.on('pageerror', err => pageErrors.push(err));
+
+  await page.goto('/dashboard');
+  await expect(page.getByTestId('dashboard-content')).toBeVisible();
+
+  // Assert no console errors occurred
+  expect(consoleErrors, \`Unexpected console errors: \${consoleErrors.join(', ')}\`)
+    .toHaveLength(0);
+  expect(pageErrors, \`Unhandled page errors: \${pageErrors.map(e => e.message).join(', ')}\`)
+    .toHaveLength(0);
+});
+\`\`\`
+
+**Real-world QA use case:**
+After a React upgrade, the team runs a smoke suite with console-error assertions on every key page. Two pages emit deprecation warnings that weren't caught in code review — the test suite catches them before they reach production.
+
+**Rule of thumb:** register \`page.on('console')\` and \`page.on('pageerror')\` at the start of any test that loads a full page — otherwise errors that don't affect the visible UI slip through undetected.`,
+      analogy: `A building inspector who checks not just whether the lights turn on (visible UI works) but also whether any fire alarms are silently going off in the utility room — the building looks fine to residents, but the alarm is a real problem.`,
+    },
+    {
+      id: 'pw-mid-43',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you test a third-party payment iframe (like Stripe or PayPal)?',
+      answer: `Use \`page.frameLocator()\` to enter the payment iframe and interact with the fields inside it. For Stripe specifically, use the test card numbers from their docs and target the individual card field iframes.
+
+**Why it matters:**
+Payment iframes are the most important flow in an e-commerce app and the hardest to test. They live in a cross-origin iframe, which means standard locators won't reach inside — \`frameLocator()\` is the key.
+
+**Walked-through example:**
+\`\`\`ts
+test('checkout with Stripe test card succeeds', async ({ page }) => {
+  await page.goto('/checkout');
+
+  // Stripe renders multiple nested iframes — one per field
+  const stripeFrame = page.frameLocator('iframe[name="__privateStripeFrame"]');
+
+  // Enter card number (Stripe test card — always succeeds)
+  await stripeFrame
+    .locator('[placeholder="Card number"]')
+    .fill('4242 4242 4242 4242');
+
+  await stripeFrame
+    .locator('[placeholder="MM / YY"]')
+    .fill('12 / 26');
+
+  await stripeFrame
+    .locator('[placeholder="CVC"]')
+    .fill('123');
+
+  await page.getByRole('button', { name: 'Pay $49.99' }).click();
+
+  // Assert success state in the parent page
+  await expect(page.getByTestId('order-confirmation')).toBeVisible();
+  await expect(page.getByTestId('order-id')).toContainText('ORD-');
+});
+\`\`\`
+
+**Real-world QA use case:**
+Every release of an e-commerce platform runs a smoke test that completes a full checkout with a Stripe test card. It validates the full payment flow — not just the UI, but the Stripe webhook and confirmation email trigger — before the deploy goes live.
+
+**Rule of thumb:** use \`frameLocator()\` to step inside the iframe, then use normal Playwright locators within it. Stripe's sandbox test cards (4242...) and PayPal's sandbox accounts exist specifically for this purpose.`,
+      analogy: `A security checkpoint inside an embassy — the embassy is within the city (the main page), but it has its own entry rules. You have to specifically enter the embassy grounds (\`frameLocator\`) before you can interact with what's inside.`,
+    },
+    {
+      id: 'pw-mid-44',
+      level: 'mid',
+      topic: 'Architecture',
+      question: 'How do you build reusable Page Object components for widgets that appear on many pages?',
+      answer: `Build a **component class** for the shared widget — just like a page object, but scoped to a locator within the page rather than the whole page. Pass a \`Locator\` as the constructor argument so the component works wherever on the page it appears.
+
+**Why it matters:**
+Navigation menus, data tables, modals, and date pickers appear on many pages. Duplicating their locators across multiple page objects means one UI change breaks 10 files. A component class centralises them in one place.
+
+**Walked-through example:**
+\`\`\`ts
+// components/DataTable.ts
+import { Locator, Page } from '@playwright/test';
+
+export class DataTable {
+  private root: Locator;
+
+  constructor(page: Page, testId: string) {
+    this.root = page.getByTestId(testId);  // scoped to this specific table instance
+  }
+
+  async getRowByText(text: string): Promise<Locator> {
+    return this.root.getByRole('row').filter({ hasText: text });
+  }
+
+  async clickActionOnRow(rowText: string, action: string): Promise<void> {
+    const row = await this.getRowByText(rowText);
+    await row.getByRole('button', { name: action }).click();
+  }
+
+  async getRowCount(): Promise<number> {
+    return this.root.getByRole('row').count();
+  }
+}
+
+// In a page object — compose, don't inherit
+export class UsersPage {
+  readonly table = new DataTable(this.page, 'users-table');
+  constructor(private page: Page) {}
+}
+
+// In a test
+const users = new UsersPage(page);
+await users.table.clickActionOnRow('Asha Patel', 'Edit');
+\`\`\`
+
+**Real-world QA use case:**
+A SaaS app has 8 list pages (users, orders, products, invoices...) all using the same table component. One \`DataTable\` class handles all of them — when the table's row action button is renamed from "Edit" to "Modify", one file changes instead of eight.
+
+**Rule of thumb:** if a widget appears on more than two pages, extract it into a component class — compose page objects from components rather than copy-pasting locators.`,
+      analogy: `A reusable stamp design rather than redrawing the company logo on every letter — stamp it once per envelope (use the component), update the stamp when the logo changes (update one class), and all letters are instantly correct.`,
+    },
+    {
+      id: 'pw-mid-45',
+      level: 'mid',
+      topic: 'Test Design',
+      question: 'How do you implement a custom retry wrapper for flaky operations?',
+      answer: `Write a helper that wraps an async operation in a loop, catches errors, and retries up to a maximum attempt count with a delay between tries — separate from Playwright's built-in test-level retry which reruns the entire test.
+
+**Why it matters:**
+Playwright's \`retries\` config reruns the full test on failure. Sometimes only one step is flaky (an eventual-consistency API call, a third-party webhook). A custom retry wraps just that step — faster and more targeted than retrying everything.
+
+**Walked-through example:**
+\`\`\`ts
+// helpers/retry.ts
+export async function retryUntil<T>(
+  fn: () => Promise<T>,
+  options: { attempts?: number; delay?: number; description?: string } = {}
+): Promise<T> {
+  const { attempts = 3, delay = 1000, description = 'operation' } = options;
+
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i === attempts) throw err;
+      console.log(\`\${description}: attempt \${i} failed, retrying in \${delay}ms...\`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error('Unreachable');
+}
+
+// In a test — retry just the API status check
+test('async job completes', async ({ request, page }) => {
+  await page.getByRole('button', { name: 'Start export' }).click();
+
+  const jobId = await page.getByTestId('job-id').innerText();
+
+  // Retry the API check up to 5 times, 2s apart
+  const status = await retryUntil(
+    async () => {
+      const res = await request.get(\`/api/jobs/\${jobId}\`);
+      const { status } = await res.json();
+      if (status !== 'complete') throw new Error(\`Job not ready: \${status}\`);
+      return status;
+    },
+    { attempts: 5, delay: 2000, description: 'job status' }
+  );
+
+  expect(status).toBe('complete');
+});
+\`\`\`
+
+**Real-world QA use case:**
+A report generation flow triggers a background job. The job finishes between 3–15 seconds depending on data volume. The retry helper polls the API until the job completes — without blocking the whole test with a fixed sleep.
+
+**Rule of thumb:** use \`expect.poll()\` first — it's built-in and cleaner. Use a custom retry wrapper only when you need side-effect logic (logging, conditional checks, exponential back-off) between attempts.`,
+      analogy: `Knocking on a door multiple times with a pause between each knock — if the first doesn't get an answer, you wait and try again, up to three times before giving up and logging a missed appointment.`,
+    },
+    {
+      id: 'pw-mid-46',
+      level: 'mid',
+      topic: 'CI/CD',
+      question: 'How do you use Playwright in a TypeScript monorepo with project references?',
+      answer: `Configure a dedicated \`tsconfig.json\` for the Playwright project, use TypeScript project references to depend on shared packages, and set \`rootDir\` and \`paths\` so the test runner resolves your internal packages correctly.
+
+**Why it matters:**
+In a monorepo, test code often imports from shared packages (\`@company/types\`, \`@company/api-client\`). Without proper TypeScript configuration, the test runner either can't find these imports or uses the wrong version.
+
+**Walked-through example:**
+\`\`\`ts
+// packages/e2e/tsconfig.json
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    "paths": {
+      "@company/api-client": ["../api-client/src/index.ts"],
+      "@company/types": ["../types/src/index.ts"]
+    }
+  },
+  "references": [
+    { "path": "../api-client" },
+    { "path": "../types" }
+  ]
+}
+
+// playwright.config.ts — use ts-node with the right tsconfig
+import { defineConfig } from '@playwright/test';
+export default defineConfig({
+  // Playwright uses ts-node; point it at your tsconfig
+});
+\`\`\`
+
+\`\`\`ts
+// In a test — import from shared packages normally
+import { createUserPayload } from '@company/api-client';
+import type { User } from '@company/types';
+
+test('create user', async ({ request }) => {
+  const payload = createUserPayload({ name: 'Asha', role: 'admin' });
+  const res = await request.post('/api/users', { data: payload });
+  const user: User = await res.json();
+  expect(user.role).toBe('admin');
+});
+\`\`\`
+
+**Real-world QA use case:**
+A fintech monorepo has shared \`@company/validators\` and \`@company/types\` packages. The E2E tests import the same Zod schemas used in production to validate API responses — the test literally uses the same runtime schema the app uses, so a contract break shows up as a type error and a test failure simultaneously.
+
+**Rule of thumb:** share types and validators between the app and the test code — if the schema changes and the test breaks, you've caught a contract break before it reaches production.`,
+      analogy: `A factory test lab that uses the same parts inventory as the production line — not a separate set of mock parts. When production parts change spec, the test lab catches the incompatibility immediately.`,
+    },
+    {
+      id: 'pw-mid-47',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you test file downloads and verify the file contents?',
+      answer: `Use \`page.waitForEvent('download')\` to capture the download event, save the file, then read and assert its contents using Node.js \`fs\` module.
+
+**Why it matters:**
+Asserting "a download was triggered" is not enough — the real question is whether the downloaded file contains the correct data. A CSV export with wrong headers or wrong numbers passes the "file downloaded" check but ships a bug to users.
+
+**Walked-through example:**
+\`\`\`ts
+import fs from 'fs';
+import { parse } from 'csv-parse/sync';  // npm install csv-parse
+
+test('export CSV contains correct user data', async ({ page }) => {
+  await page.goto('/users');
+
+  // Trigger and capture the download simultaneously
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Export CSV' }).click(),
+  ]);
+
+  // Save to a temp path
+  const filePath = \`/tmp/\${download.suggestedFilename()}\`;
+  await download.saveAs(filePath);
+
+  // Verify no download error
+  expect(await download.failure()).toBeNull();
+
+  // Read and parse the CSV
+  const content = fs.readFileSync(filePath, 'utf-8');
+  const rows = parse(content, { columns: true, skip_empty_lines: true });
+
+  // Assert headers and data
+  expect(Object.keys(rows[0])).toEqual(['id', 'name', 'email', 'role']);
+  expect(rows.length).toBeGreaterThan(0);
+  expect(rows[0].name).toBe('Asha Patel');
+
+  // Cleanup
+  fs.unlinkSync(filePath);
+});
+\`\`\`
+
+**Real-world QA use case:**
+A finance app's invoice export was shipping CSV files with the amount column off by a factor of 100 (a cents/dollars unit bug). A content-level download test would have caught this — a visual check only confirmed "file downloaded."
+
+**Rule of thumb:** always verify file *contents*, not just that a download occurred — use \`download.failure()\` to check for download errors and parse the file to assert the data.`,
+      analogy: `Checking the actual invoice, not just the envelope — a sealed envelope confirms something was delivered, but only opening it and reading the numbers tells you if the amount is correct.`,
+    },
+    {
+      id: 'pw-mid-48',
+      level: 'mid',
+      topic: 'Practical',
+      question: 'How do you test WebSockets in Playwright?',
+      answer: `Use \`page.on('websocket')\` to listen for WebSocket connections, then hook into \`ws.on('framereceived')\` and \`ws.on('framesent')\` to observe and assert on the messages exchanged.
+
+**Why it matters:**
+Real-time features — live notifications, chat, dashboards that update without refresh — depend on WebSocket messages. Without testing them, a broken WS message format or missing subscription silently breaks the live update and never shows up in a standard UI test.
+
+**Walked-through example:**
+\`\`\`ts
+test('dashboard updates live when a WS notification arrives', async ({ page }) => {
+  const wsMessages: string[] = [];
+
+  // Listen for the WebSocket connection
+  page.on('websocket', ws => {
+    ws.on('framereceived', frame => {
+      wsMessages.push(String(frame.payload));
+    });
+  });
+
+  await page.goto('/dashboard');
+
+  // Wait for the WS connection to establish, then simulate a server-pushed message
+  await page.waitForFunction(() => !!(window as any).__ws);
+  await page.evaluate(() => {
+    const ws = (window as any).__ws as WebSocket;
+    ws.dispatchEvent(new MessageEvent('message', {
+      data: JSON.stringify({ type: 'order_update', orderId: 'ORD-99', status: 'shipped' }),
+    }));
+  });
+
+  // Assert the UI reflects the pushed message
+  await expect(page.getByTestId('order-ORD-99-status')).toHaveText('Shipped');
+
+  // Assert the WS message was received
+  expect(wsMessages.some(m => m.includes('order_update'))).toBe(true);
+});
+\`\`\`
+
+**Real-world QA use case:**
+A logistics dashboard shows live parcel status updates via WebSocket. The test simulates a server-pushed status change and verifies the status badge updates from "In Transit" to "Delivered" without a page reload.
+
+**Rule of thumb:** use \`page.on('websocket')\` to observe frames passively; use \`page.evaluate()\` to inject synthetic WS messages into the client and trigger UI reactions you can assert on.`,
+      analogy: `A radio operator monitoring a channel and also testing what happens when a specific transmission arrives — you listen for the broadcast and inject a test message to confirm the receiver responds correctly.`,
+    },
+    {
+      id: 'pw-mid-49',
+      level: 'mid',
+      topic: 'Network',
+      question: 'How do you test Server-Sent Events (SSE) in Playwright?',
+      answer: `SSE is just a regular HTTP response with \`Content-Type: text/event-stream\`. You can intercept it with \`page.route()\` and mock the stream, or observe it via \`page.on('response')\` to assert on real SSE traffic.
+
+**Why it matters:**
+SSE powers live progress bars, notification feeds, and streaming API responses. Testing these flows confirms the frontend handles the event stream correctly — rendering each event, recovering from disconnects, and closing the stream cleanly.
+
+**Walked-through example:**
+\`\`\`ts
+test('progress bar advances as SSE events arrive', async ({ page }) => {
+  // Mock the SSE endpoint
+  await page.route('**/api/export/progress', async route => {
+    const encoder = new TextEncoder();
+    // Build a readable stream of SSE events
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode('data: {"progress": 25}\\n\\n'));
+        controller.enqueue(encoder.encode('data: {"progress": 50}\\n\\n'));
+        controller.enqueue(encoder.encode('data: {"progress": 100}\\n\\n'));
+        controller.enqueue(encoder.encode('data: {"done": true}\\n\\n'));
+        controller.close();
+      },
+    });
+
+    await route.fulfill({
+      status: 200,
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+      },
+      body: stream,
+    });
+  });
+
+  await page.goto('/export');
+  await page.getByRole('button', { name: 'Start export' }).click();
+
+  // Assert the progress bar reaches 100%
+  await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');
+  await expect(page.getByTestId('export-status')).toHaveText('Export complete');
+});
+\`\`\`
+
+**Real-world QA use case:**
+A data export feature streams progress events so the user sees a live progress bar. The test mocks the SSE stream with controlled events, asserting the UI advances through 25% → 50% → 100% and then shows the download button.
+
+**Rule of thumb:** SSE mocking is straightforward via \`page.route()\` because SSE is just HTTP — the only special part is the \`Content-Type: text/event-stream\` header and the \`data: ...\\n\\n\` format.`,
+      analogy: `A radio station broadcasting live updates — you intercept the broadcast frequency and replace it with your own controlled signal to test that the receiver (the UI) correctly plays each update as it arrives.`,
+    },
+    {
+      id: 'pw-mid-50',
+      level: 'mid',
+      topic: 'Test Design',
+      question: 'How do you handle a component that renders inside an `<iframe>` across multiple tests?',
+      answer: `Build a **component page object** scoped to the \`frameLocator\`, then reuse it in every test that needs to interact with that iframe — so the iframe's internal structure is defined in one place.
+
+**Why it matters:**
+If every test directly calls \`page.frameLocator('#checkout-iframe').getByLabel(...)\`, a single selector change breaks every test. A page object class hides the \`frameLocator\` complexity and exposes only intent-level methods.
+
+**Walked-through example:**
+\`\`\`ts
+// components/StripeCardForm.ts
+import { Page, FrameLocator } from '@playwright/test';
+
+export class StripeCardForm {
+  private frame: FrameLocator;
+
+  constructor(page: Page) {
+    // The iframe selector may change — it's defined in exactly one place
+    this.frame = page.frameLocator('iframe[title="Secure card payment input frame"]');
+  }
+
+  async fill(cardNumber: string, expiry: string, cvc: string): Promise<void> {
+    await this.frame.locator('[placeholder="Card number"]').fill(cardNumber);
+    await this.frame.locator('[placeholder="MM / YY"]').fill(expiry);
+    await this.frame.locator('[placeholder="CVC"]').fill(cvc);
+  }
+
+  async fillTestCard(): Promise<void> {
+    await this.fill('4242 4242 4242 4242', '12 / 26', '123');
+  }
+}
+
+// In a page object
+export class CheckoutPage {
+  readonly cardForm = new StripeCardForm(this.page);
+  constructor(private page: Page) {}
+
+  async completePurchase(): Promise<void> {
+    await this.cardForm.fillTestCard();
+    await this.page.getByRole('button', { name: 'Pay now' }).click();
+  }
+}
+
+// In a test — clean, no iframe details
+await checkoutPage.completePurchase();
+await expect(page.getByTestId('order-confirmation')).toBeVisible();
+\`\`\`
+
+**Real-world QA use case:**
+Ten checkout-related tests all need to fill the Stripe card form. When Stripe updates the iframe title, one file changes — \`StripeCardForm.ts\` — and all ten tests work again immediately.
+
+**Rule of thumb:** wrap every iframe in a component class — never call \`frameLocator()\` directly in a test body.`,
+      analogy: `A translation service for a foreign-language document — instead of every reader learning the language, one translator converts it to your language and everyone reads the clean version.`,
+    },
     // ── Senior (5+ yrs) ───────────────────────────────────────
     {
       id: 'pw-sr-1',
@@ -21935,6 +23978,1270 @@ Gating *everything* on every PR slows the team and invites flaky-blocked merges.
 - For tokens, log in via the **API** in setup rather than the slow UI flow.
 - For **2FA**: use test accounts with 2FA disabled, a test-mode bypass, or a deterministic **TOTP secret** you can generate codes from in code — never a real phone in CI.`,
       analogy: `A backstage pass you renew before it lapses, plus a special crew door (a test bypass) — so you're not stuck waiting for a one-time code texted to someone's personal phone.`,
+    },
+    {
+      id: 'pw-sr-27',
+      level: 'senior',
+      topic: 'Performance',
+      question: 'How do you measure and assert on page performance (Core Web Vitals, load timing) in Playwright?',
+      answer: `Use the browser's Performance API via \`page.evaluate()\` to read navigation and paint timing metrics after page load, and assert they fall within acceptable thresholds.
+
+**Why it matters:**
+Performance regressions ship invisibly — a new third-party script, an oversized image, or a slow API call makes pages feel sluggish without triggering any functional test failure. Automated performance assertions catch these before users notice.
+
+**Walked-through example:**
+\`\`\`ts
+test('home page meets performance budget', async ({ page }) => {
+  await page.goto('/');
+
+  // Read Core Web Vitals via the Performance API
+  const metrics = await page.evaluate(() => {
+    const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+    const paint = performance.getEntriesByType('paint');
+    const fcp = paint.find(e => e.name === 'first-contentful-paint')?.startTime ?? 0;
+    const lcp = performance.getEntriesByType('largest-contentful-paint').at(-1) as any;
+
+    return {
+      ttfb: nav.responseStart - nav.requestStart,        // Time to First Byte
+      domContentLoaded: nav.domContentLoadedEventEnd,
+      fcp,
+      lcp: lcp?.startTime ?? 0,
+    };
+  });
+
+  // Assert performance budgets
+  expect(metrics.ttfb, 'TTFB too high').toBeLessThan(600);           // < 600ms
+  expect(metrics.fcp, 'FCP too high').toBeLessThan(1800);            // < 1.8s (Good)
+  expect(metrics.lcp, 'LCP too high').toBeLessThan(2500);            // < 2.5s (Good)
+  expect(metrics.domContentLoaded, 'DCL too high').toBeLessThan(3000);
+});
+
+// Measure specific API response time
+const [res] = await Promise.all([
+  page.waitForResponse(r => r.url().includes('/api/products')),
+  page.goto('/shop'),
+]);
+const timing = res.timing();
+expect(timing.responseEnd - timing.requestStart, 'Products API too slow').toBeLessThan(1000);
+\`\`\`
+
+**Real-world QA use case:**
+After integrating a new analytics vendor, a performance test reveals TTFB jumped from 180ms to 850ms — the vendor's script was blocking the render. The test catches the regression before it ships.
+
+**Rule of thumb:** set performance budgets based on real user data (p75 from production monitoring), not arbitrary numbers — and run performance tests in a headless, isolated CI environment for consistent baselines.`,
+      analogy: `A fuel efficiency test on a car before it leaves the factory — you measure the actual miles per gallon under controlled conditions and compare to the design spec, catching regressions before customers complain about the fuel bill.`,
+    },
+    {
+      id: 'pw-sr-28',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'How do you handle test flakiness caused by third-party integrations?',
+      answer: `Isolate third-party dependencies with mocks for most tests, run a smaller set of contract-verified "real" tests in a scheduled pipeline, and use circuit-breaker patterns to prevent a flaky third-party from blocking PRs.
+
+**Why it matters:**
+Third-party services (payment gateways, analytics, SSO, email) have their own outages, rate limits, and latency spikes. Tests that depend on them become unpredictably flaky — not because your code is broken, but because Stripe's sandbox is slow.
+
+**Walked-through example:**
+\`\`\`ts
+// Tier 1: PR tests — always mock third parties
+test.describe('checkout (mocked Stripe)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/stripe.com/**', route => route.fulfill({
+      status: 200,
+      body: JSON.stringify({ id: 'pi_test_123', status: 'succeeded' }),
+    }));
+  });
+
+  test('payment success shows confirmation', async ({ page }) => {
+    // Fast, deterministic — no real Stripe call
+  });
+});
+
+// Tier 2: Scheduled nightly tests — hit real Stripe sandbox
+// playwright.config.ts
+projects: [
+  { name: 'pr-suite',     testIgnore: '**/real-stripe/**' },
+  { name: 'nightly-full', testMatch:  ['**/*.spec.ts', '**/real-stripe/**'] },
+]
+\`\`\`
+
+**Isolating the flakiness with retries on the boundary:**
+\`\`\`ts
+// Only retry the Stripe API call, not the entire test
+const paymentResult = await retryUntil(
+  () => stripeClient.createPaymentIntent(amount),
+  { attempts: 3, delay: 2000, description: 'Stripe payment intent' }
+);
+\`\`\`
+
+**Real-world QA use case:**
+A suite runs 200 tests in CI; 15 are real-Stripe tests. Moving the 15 to a nightly scheduled pipeline drops CI flakiness from 8% to 0.3% — the 185 mocked tests are deterministic, and the 15 real-network tests run when a transient Stripe hiccup won't block a developer's PR.
+
+**Rule of thumb:** mock third parties on the PR pipeline, test them for real on a schedule — never let a third party's reliability determine whether your team can merge.`,
+      analogy: `A chef who uses a kitchen thermometer for daily cooking (reliable, instant) but sends monthly samples to a lab for full nutritional testing — the lab gives richer data but you can't wait two days for results every time you cook.`,
+    },
+    {
+      id: 'pw-sr-29',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'How do you test a multi-tenant SaaS application — data isolation, tenant context, and role-based access?',
+      answer: `Create isolated test tenants in a dedicated test environment, authenticate as each tenant separately using \`storageState\` per tenant, and assert that cross-tenant data access is blocked — not just missing from the UI.
+
+**Why it matters:**
+Multi-tenant isolation bugs are catastrophic — Tenant A seeing Tenant B's data is a security incident, not a UI glitch. E2E tests that verify isolation at the API level (not just the UI) are the last automated line of defence before pen testing.
+
+**Walked-through example:**
+\`\`\`ts
+// setup/tenants.ts — create two isolated test tenants once
+const tenantA = await request.post('/api/tenants', { data: { name: 'Acme Corp' } });
+const tenantB = await request.post('/api/tenants', { data: { name: 'Globex Inc' } });
+
+// Log in as each tenant admin and save storage state
+// ... save to auth/tenant-a-admin.json, auth/tenant-b-admin.json
+
+// Isolation test: Tenant B should NOT see Tenant A's data
+test('tenant isolation — cross-tenant data access blocked', async ({ browser }) => {
+  const tenantACtx = await browser.newContext({ storageState: 'auth/tenant-a-admin.json' });
+  const tenantBCtx = await browser.newContext({ storageState: 'auth/tenant-b-admin.json' });
+
+  const pageA = await tenantACtx.newPage();
+  const pageB = await tenantBCtx.newPage();
+
+  // Create a record as Tenant A
+  const res = await pageA.request.post('/api/records', { data: { title: 'Confidential A' } });
+  const { id } = await res.json();
+
+  // Tenant B should get 403, not the record
+  const isolated = await pageB.request.get(\`/api/records/\${id}\`);
+  expect(isolated.status()).toBe(403);
+
+  // UI should not show it either
+  await pageB.goto('/records');
+  await expect(pageB.getByText('Confidential A')).not.toBeVisible();
+
+  await tenantACtx.close();
+  await tenantBCtx.close();
+});
+\`\`\`
+
+**Real-world QA use case:**
+A SaaS HR tool discovered a tenant isolation bug only in production when a customer reported seeing another company's employee data. An API-level isolation test (not just a UI check) running in CI would have caught the missing \`tenant_id\` filter in the SQL query.
+
+**Rule of thumb:** always test isolation at the **API level** — a hidden UI element means nothing if the API still returns the data to an unauthorised tenant.`,
+      analogy: `Testing that the walls of adjacent hotel rooms are truly soundproof — not just that the doors are closed. A closed door (hidden UI) doesn't prove the walls (API) actually block access.`,
+    },
+    {
+      id: 'pw-sr-30',
+      level: 'senior',
+      topic: 'Reporting',
+      question: 'How do you build a custom Playwright reporter that posts results to Slack or Jira?',
+      answer: `Implement the \`Reporter\` interface from \`@playwright/test/reporter\`, hook into \`onEnd()\` to collect results, and call the Slack/Jira API to post a summary or create tickets for failures.
+
+**Why it matters:**
+The default HTML report requires someone to open it. Teams that don't monitor CI closely miss failures between sprints. A Slack post after every nightly run creates a feedback loop that's impossible to ignore.
+
+**Walked-through example:**
+\`\`\`ts
+// reporters/SlackReporter.ts
+import type { Reporter, FullResult, TestCase, TestResult } from '@playwright/test/reporter';
+
+class SlackReporter implements Reporter {
+  private failures: string[] = [];
+
+  onTestEnd(test: TestCase, result: TestResult) {
+    if (result.status === 'failed') {
+      this.failures.push(\`❌ \${test.title}: \${result.error?.message?.slice(0, 200)}\`);
+    }
+  }
+
+  async onEnd(result: FullResult) {
+    const emoji = result.status === 'passed' ? '✅' : '🚨';
+    const message = {
+      text: \`\${emoji} Playwright nightly: \${result.status.toUpperCase()}\`,
+      blocks: [
+        { type: 'section', text: { type: 'mrkdwn',
+          text: \`*Status:* \${result.status} | *Duration:* \${(result.duration / 1000).toFixed(1)}s\` } },
+        ...(this.failures.length > 0 ? [{
+          type: 'section',
+          text: { type: 'mrkdwn', text: this.failures.slice(0, 5).join('\\n') },
+        }] : []),
+      ],
+    };
+
+    await fetch(process.env.SLACK_WEBHOOK_URL!, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(message),
+    });
+  }
+}
+
+module.exports = SlackReporter;
+\`\`\`
+
+\`\`\`ts
+// playwright.config.ts
+reporter: [
+  ['html'],                           // keep the HTML report
+  ['./reporters/SlackReporter.ts'],   // also post to Slack
+],
+\`\`\`
+
+**Real-world QA use case:**
+A nightly regression suite posts a Slack message to \`#qa-alerts\` every morning at 7am. When it goes red, the team sees it before standup — without anyone manually checking CI dashboards.
+
+**Rule of thumb:** the \`onEnd()\` hook is where you post summaries; \`onTestEnd()\` is where you collect per-test data — keep the reporter lightweight and async so it doesn't slow the suite.`,
+      analogy: `A night-shift supervisor who leaves a written briefing on the manager's desk each morning — the manager doesn't have to watch the CCTV footage to know if anything went wrong overnight.`,
+    },
+    {
+      id: 'pw-sr-31',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'What is your strategy for testing internationalisation (i18n) and localisation (l10n)?',
+      answer: `Create a Playwright project per locale, set the browser's \`locale\` and \`timezoneId\`, and assert locale-specific text, date formats, currency symbols, and right-to-left layouts.
+
+**Why it matters:**
+i18n bugs are invisible if you only test in English — a missing translation key shows the key string in production, a wrong date format causes confusion or submission errors, and an RTL layout that mirrors incorrectly breaks usability for Arabic and Hebrew users.
+
+**Walked-through example:**
+\`\`\`ts
+// playwright.config.ts — run key tests for each locale
+projects: [
+  { name: 'en-US', use: { locale: 'en-US', timezoneId: 'America/New_York' } },
+  { name: 'de-DE', use: { locale: 'de-DE', timezoneId: 'Europe/Berlin' } },
+  { name: 'ar-SA', use: { locale: 'ar-SA', timezoneId: 'Asia/Riyadh' } },
+]
+
+// Locale-aware assertions
+test('date format matches locale', async ({ page }) => {
+  await page.goto('/invoices/INV-001');
+  const dateText = await page.getByTestId('invoice-date').innerText();
+
+  // In en-US: "June 5, 2024" — in de-DE: "5. Juni 2024"
+  const locale = test.info().project.name;
+  if (locale === 'en-US') expect(dateText).toMatch(/June 5, 2024/);
+  if (locale === 'de-DE') expect(dateText).toMatch(/5\\. Juni 2024/);
+});
+
+// Check no untranslated keys appear
+test('no raw i18n keys visible on page', async ({ page }) => {
+  await page.goto('/dashboard');
+  const bodyText = await page.locator('body').innerText();
+  // i18n keys usually look like "dashboard.title" or "HEADER_TEXT"
+  expect(bodyText).not.toMatch(/[a-z_]+\\.[a-z_]+/i);  // crude but catches many regressions
+});
+
+// RTL layout test
+test('Arabic layout is right-to-left', async ({ page }) => {
+  await page.goto('/');
+  const dir = await page.locator('html').getAttribute('dir');
+  expect(dir).toBe('rtl');
+});
+\`\`\`
+
+**Real-world QA use case:**
+A SaaS product launched in Germany and found the invoice PDF used US date format (06/05/2024 vs 05.06.2024) — the date format test would have caught this in CI before the German launch.
+
+**Rule of thumb:** run the full suite in your primary locale; run critical-path tests only across all locales — full multi-locale runs are expensive and reserved for release cycles.`,
+      analogy: `A restaurant that taste-tests the same dish adapted for each regional cuisine — the core recipe is tested thoroughly, but each version gets its own tasting pass to confirm the local adjustments are correct.`,
+    },
+    {
+      id: 'pw-sr-32',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'How do you implement a risk-based test prioritisation strategy?',
+      answer: `Map every test to a risk score based on business impact, change frequency, and historical failure rate. Run the highest-risk tests on every PR; schedule the lower-risk ones less frequently.
+
+**Why it matters:**
+Running 500 tests on every PR takes 30 minutes and blocks developers. Running only 50 high-risk tests takes 5 minutes. Risk-based prioritisation gives fast feedback on the changes that matter most while deferring expensive tests to scheduled runs.
+
+**Walked-through example:**
+\`\`\`ts
+// Tag tests with risk tier at authoring time
+test('checkout with credit card @critical @payment', async ({ page }) => { /* ... */ });
+test('add item to cart @high', async ({ page }) => { /* ... */ });
+test('view order history @medium', async ({ page }) => { /* ... */ });
+test('update email preferences @low', async ({ page }) => { /* ... */ });
+
+// playwright.config.ts — tiered projects
+projects: [
+  {
+    name: 'pr-critical',   // runs on every PR — fast gate
+    grep: /@critical/,
+    use: { /* ... */ },
+  },
+  {
+    name: 'pr-high',       // runs on every PR for main services
+    grep: /@high/,
+  },
+  {
+    name: 'nightly-full',  // full suite nightly
+    grep: /@critical|@high|@medium|@low/,
+  },
+]
+\`\`\`
+
+**Risk scoring framework:**
+- **Critical:** payment, auth, data loss, security boundaries — run on every push
+- **High:** core user journeys — run on every PR
+- **Medium:** secondary flows — run nightly
+- **Low:** edge cases, admin tools, rare paths — run pre-release
+
+**Real-world QA use case:**
+An e-commerce team cut PR CI time from 45 minutes to 8 minutes by running only \`@critical\` and \`@high\` tests on PRs. The nightly suite ran everything. Defect escape rate stayed the same — the missing coverage was all low-risk.
+
+**Rule of thumb:** classify by business impact first (revenue, data, security), then by change frequency — tests for code that changes daily deserve higher priority than tests for stable, rarely-touched paths.`,
+      analogy: `Airport security with fast lanes: frequent business travellers (critical tests) get PreCheck and sail through on every flight. Occasional travellers (low tests) get the full screening — but not every traveller gets the full screening on every flight, or the airport grinds to a halt.`,
+    },
+    {
+      id: 'pw-sr-33',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'How do you onboard new engineers to a large Playwright codebase?',
+      answer: `Make the framework self-documenting, create a structured learning path, pair on real tests early, and automate the feedback loop so mistakes are caught immediately by tooling rather than code review.
+
+**Why it matters:**
+A poorly onboarded engineer writes brittle tests (hard sleeps, fragile selectors, shared state) that take months to fix. A well-onboarded one is productive in days and writes tests that strengthen the suite.
+
+**Walked-through example:**
+\`\`\`ts
+// 1. Self-documenting architecture — README per folder
+// tests/
+//   README.md — how to write tests, fixture list, tag conventions
+// fixtures/
+//   README.md — available fixtures and when to use each
+// pages/
+//   README.md — page object pattern and component composition
+
+// 2. ESLint rules that enforce team conventions automatically
+// .eslintrc — custom rules:
+// - no-page-waitForTimeout (ban hard sleeps)
+// - require-test-tags (@critical/@high/@medium/@low on every test)
+// - no-direct-playwright-import (must import from fixtures/index, not @playwright/test)
+
+// 3. An example test that covers all patterns
+// tests/examples/golden-test.spec.ts
+// — shows: fixtures, page objects, API setup, soft assertions, cleanup, attachment
+
+// 4. Onboarding task: "port 3 manual test cases to Playwright"
+// — hands-on, real codebase, immediate PR review feedback
+\`\`\`
+
+**Onboarding checklist:**
+- Day 1: run the suite locally, read the framework README
+- Day 2: pair with a senior on an existing test — trace what happens step by step
+- Day 3–5: write a real test from scratch (with pair review) for a known user story
+- Week 2: own a test file; fix a flaky test from the flakiness dashboard
+
+**Real-world QA use case:**
+A QA team of 2 grew to 6 in 3 months. With no onboarding path, the new engineers copied patterns from the oldest (worst) tests. After adding the eslint rules and golden test, the new engineers' first PRs had 80% fewer review comments on test quality.
+
+**Rule of thumb:** automate the most common mistakes (ESLint, pre-commit hooks) so code review covers intent, not syntax — new engineers shouldn't be able to commit a hard sleep even if they don't know it's wrong yet.`,
+      analogy: `A new pilot doesn't learn by reading the manual alone — they fly the simulator (run existing tests), ride-along with a senior (pair programming), then take the controls on short hops (small tests) before flying solo on longer routes.`,
+    },
+    {
+      id: 'pw-sr-34',
+      level: 'senior',
+      topic: 'Test Data',
+      question: 'How do you manage database state for integration tests alongside Playwright E2E tests?',
+      answer: `Use a dedicated test database, seed it with known baseline data in global setup, and have each test create its own records via the API — cleaning up in \`afterEach\`. For heavier isolation, use database transactions or schema-per-test.
+
+**Why it matters:**
+E2E tests that share a database leave behind orphaned records, create ordering dependencies, and produce false failures when one test's leftover data collides with another test's assumptions. Proper DB state management is what makes a parallel E2E suite reliable.
+
+**Walked-through example:**
+\`\`\`ts
+// global-setup.ts — seed baseline reference data once
+import { chromium, FullConfig } from '@playwright/test';
+import { db } from './helpers/db';
+
+async function globalSetup(config: FullConfig) {
+  // Wipe and reseed the test database
+  await db.query('TRUNCATE users, orders, products RESTART IDENTITY CASCADE');
+  await db.query(\`
+    INSERT INTO products (name, price) VALUES
+    ('Widget A', 9.99), ('Widget B', 19.99), ('Widget C', 4.99)
+  \`);
+
+  // Authenticate and save storage state
+  const browser = await chromium.launch();
+  // ... login as admin, save storageState
+  await browser.close();
+}
+
+// Per-test: create own data, clean up after
+test('user can place an order', async ({ request, page }) => {
+  // Create test-specific user via API
+  const res = await request.post('/api/users', {
+    data: { email: \`test-\${Date.now()}@example.com\`, name: 'Test User' }
+  });
+  const user = await res.json();
+
+  // Run the test
+  // ... UI interactions ...
+
+  // Cleanup — use afterEach in practice
+  await request.delete(\`/api/users/\${user.id}\`);
+});
+\`\`\`
+
+**Real-world QA use case:**
+A 150-test E2E suite was running serially because of shared database state — tests failed when run in a different order. After introducing per-test API setup/teardown and a global truncate in setup, the suite ran in parallel and CI time dropped from 40 minutes to 9 minutes.
+
+**Rule of thumb:** treat the test database as a shared resource — baseline static data in global setup, dynamic test data created and deleted per test, with unique identifiers to prevent collisions in parallel runs.`,
+      analogy: `A clean lab bench for each experiment — the shared reference materials (reagents) are stocked at the start of the day, but each scientist uses their own labelled samples and discards them after their experiment, never contaminating the bench for the next person.`,
+    },
+    {
+      id: 'pw-sr-35',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'How do you test rate limiting and throttling behaviour?',
+      answer: `Test from two directions: mock the rate-limit response (429) to verify the frontend handles it gracefully, and run a small set of real rapid-fire requests in a controlled environment to verify the backend actually enforces the limit.
+
+**Why it matters:**
+Rate limiting bugs come in two flavours: the frontend doesn't handle a 429 gracefully (shows a blank screen instead of a user-friendly message), or the backend doesn't enforce the limit at all (users can hammer the API). Both need testing.
+
+**Walked-through example:**
+\`\`\`ts
+// Test 1: Frontend handles 429 gracefully (always mock this)
+test('search shows "too many requests" message on 429', async ({ page }) => {
+  let requestCount = 0;
+
+  await page.route('**/api/search**', async route => {
+    requestCount++;
+    if (requestCount > 3) {
+      await route.fulfill({
+        status: 429,
+        headers: { 'Retry-After': '60' },
+        body: JSON.stringify({ error: 'Rate limit exceeded' }),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+
+  await page.goto('/search');
+  for (let i = 0; i < 5; i++) {
+    await page.getByRole('searchbox').fill(\`query \${i}\`);
+    await page.getByRole('button', { name: 'Search' }).click();
+  }
+
+  await expect(page.getByTestId('rate-limit-message'))
+    .toContainText('Too many requests. Please wait 60 seconds.');
+});
+
+// Test 2: Backend enforces rate limit (dedicated, rate-limited test environment)
+test.describe('rate limit enforcement @rate-limit-test', () => {
+  test('5 rapid requests trigger rate limit', async ({ request }) => {
+    const responses = await Promise.all(
+      Array.from({ length: 6 }, () =>
+        request.get('/api/search?q=test')
+      )
+    );
+    const statuses = responses.map(r => r.status());
+    expect(statuses).toContain(429);  // at least one should be rate-limited
+  });
+});
+\`\`\`
+
+**Real-world QA use case:**
+A login endpoint had no rate limiting — a bot could attempt unlimited passwords. The real-enforcement test caught the missing middleware. The frontend test confirmed the error message was useful once the middleware was added.
+
+**Rule of thumb:** mock 429 for frontend tests (stable, fast, deterministic); use real rapid-fire requests only in a dedicated environment where you control the rate limit thresholds and don't affect other test runs.`,
+      analogy: `Testing a nightclub's capacity policy: mock-test the bouncer's response when someone says "there are 200 people inside" (does the bouncer turn people away politely?); separately count the actual occupancy to confirm the bouncer is actually counting.`,
+    },
+    {
+      id: 'pw-sr-36',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'How do you test Progressive Web App (PWA) features — offline mode, service workers, install prompt?',
+      answer: `Use Playwright's service worker intercept API to verify registration, \`context.setOffline()\` for offline mode, and \`page.on('console')\` to detect install prompt events fired by the browser engine.
+
+**Why it matters:**
+PWA features are often tested manually or skipped entirely — the result is broken offline modes discovered by end users, install prompts that never fire, and service workers that cache stale assets after a deploy.
+
+**Walked-through example:**
+\`\`\`ts
+// Test 1: Service worker registers correctly
+test('service worker registers on app load', async ({ page, context }) => {
+  await page.goto('/');
+
+  // Wait for the service worker to register
+  const sw = await context.waitForEvent('serviceworker');
+  expect(sw.url()).toContain('service-worker.js');
+  expect(sw.state()).toBe('activated');
+});
+
+// Test 2: App loads cached content when offline
+test('app shows cached content when offline', async ({ page, context }) => {
+  // First visit — let the service worker cache resources
+  await page.goto('/');
+  await expect(page.getByTestId('product-list')).toBeVisible();
+
+  // Wait for caching to complete
+  await page.evaluate(() =>
+    navigator.serviceWorker.ready.then(reg => reg.sync?.register('sync-data'))
+  );
+
+  // Go offline — content should still load from cache
+  await context.setOffline(true);
+  await page.reload();
+
+  await expect(page.getByTestId('product-list')).toBeVisible();  // from cache
+  await expect(page.getByTestId('offline-indicator')).toBeVisible();  // user is informed
+});
+
+// Test 3: Install prompt fires on eligible visit
+test('PWA install prompt is available', async ({ page }) => {
+  const installPromptFired = page.evaluate(() =>
+    new Promise(resolve => {
+      window.addEventListener('beforeinstallprompt', () => resolve(true));
+      setTimeout(() => resolve(false), 5000);  // timeout if not fired
+    })
+  );
+  await page.goto('/');
+  expect(await installPromptFired).toBe(true);
+});
+\`\`\`
+
+**Real-world QA use case:**
+A field-operations app used in areas with poor connectivity deployed an update that accidentally excluded a page from the service worker cache manifest. The offline test caught this — the page showed a network error instead of cached content.
+
+**Rule of thumb:** PWA tests run in Chromium only (Firefox/WebKit have limited service worker support in Playwright); mark them with \`--project=chromium\` to avoid false failures on other browsers.`,
+      analogy: `Testing a backup generator — you cut the mains power (offline mode) and verify critical systems keep running from the backup (service worker cache), rather than assuming the generator will work because it was installed correctly.`,
+    },
+    {
+      id: 'pw-sr-37',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'How do you measure and improve test reliability KPIs over time?',
+      answer: `Track flakiness rate, mean time to detect (MTTD), and suite pass rate as weekly metrics. Store results per test in a database or observability platform, build a flakiness leaderboard, and treat chronic offenders as engineering debt with explicit tickets.
+
+**Why it matters:**
+Without metrics, flakiness is felt but not managed — engineers lose trust in the suite, start ignoring failures, and stop treating red CI as a signal. Metrics make flakiness visible, comparable, and improvable.
+
+**Walked-through example:**
+\`\`\`ts
+// reporters/MetricsReporter.ts — post per-test results to your metrics store
+import type { Reporter, TestCase, TestResult } from '@playwright/test/reporter';
+
+class MetricsReporter implements Reporter {
+  async onTestEnd(test: TestCase, result: TestResult) {
+    const payload = {
+      testId: test.id,
+      title: test.title,
+      file: test.location.file,
+      status: result.status,        // 'passed' | 'failed' | 'flaky' | 'skipped'
+      duration: result.duration,
+      retry: result.retry,
+      timestamp: new Date().toISOString(),
+      project: test.parent.project()?.name,
+    };
+
+    await fetch(process.env.METRICS_ENDPOINT!, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+}
+\`\`\`
+
+**KPIs to track:**
+- **Flakiness rate:** % of test runs that passed only on retry (target: < 1%)
+- **Suite pass rate:** % of CI runs that passed first time (target: > 95%)
+- **Mean time to detect:** hours from code merge to first test failure caught (target: < 4h)
+- **Flaky test count:** tests with flakiness rate > 5% — these get tickets
+
+**Weekly review process:**
+1. Pull the top 10 flakiest tests from the database
+2. Create or update JIRA tickets for any above 5% flakiness rate
+3. Each sprint: fix at least 2 chronic flaky tests
+4. Celebrate quarter-on-quarter reductions
+
+**Real-world QA use case:**
+A team reduced their flakiness rate from 12% to 1.8% over one quarter by tracking per-test flakiness in Datadog and running a weekly 30-minute "flaky test buster" session — visible metrics made it a team priority, not an individual annoyance.
+
+**Rule of thumb:** a test that passes only on retry is a flaky test, not a passing test — track retry-passes separately from first-attempt passes in your metrics.`,
+      analogy: `A fleet manager who tracks each vehicle's breakdown frequency, not just whether the fleet is running today — patterns over time identify which vehicles need maintenance before they break down at the worst moment.`,
+    },
+    {
+      id: 'pw-sr-38',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'How do you share Playwright page objects and utilities across multiple repos or apps in a monorepo?',
+      answer: `Publish page objects and fixtures as an internal npm package in your monorepo, imported by each app's test suite. Type-safe shared utilities ensure a UI change in the shared component is caught as a compile error in every app that uses it.
+
+**Why it matters:**
+Large organisations have multiple apps that share the same design system, auth flow, or API client. Without shared test code, each team duplicates the same page objects — and when the shared header component changes, five teams each independently fix their copies.
+
+**Walked-through example:**
+\`\`\`ts
+// packages/test-utils/src/pages/NavBar.ts
+import { Page, Locator } from '@playwright/test';
+
+export class NavBar {
+  private root: Locator;
+  constructor(private page: Page) {
+    this.root = page.getByRole('navigation', { name: 'Main' });
+  }
+
+  async goTo(section: 'Dashboard' | 'Settings' | 'Profile'): Promise<void> {
+    await this.root.getByRole('link', { name: section }).click();
+  }
+
+  async signOut(): Promise<void> {
+    await this.root.getByRole('button', { name: 'Sign out' }).click();
+  }
+}
+
+// packages/test-utils/package.json
+{
+  "name": "@company/test-utils",
+  "main": "src/index.ts",
+  "peerDependencies": { "@playwright/test": "*" }
+}
+
+// In app-a/tests/dashboard.spec.ts
+import { NavBar } from '@company/test-utils';
+const nav = new NavBar(page);
+await nav.goTo('Dashboard');
+
+// In app-b/tests/settings.spec.ts — same import, same implementation
+import { NavBar } from '@company/test-utils';
+\`\`\`
+
+**Real-world QA use case:**
+A platform team owns the shared navigation component used by 4 product teams. The NavBar page object lives in \`@company/test-utils\`. When the "Sign out" button is renamed to "Log out," one file changes — all 4 product teams' test suites stay passing without any changes on their side.
+
+**Rule of thumb:** share what is stable and owned by one team; don't share what is app-specific or changes per team — shared test code is a dependency and must be versioned and maintained like production code.`,
+      analogy: `A shared tools workshop in a large factory — instead of every department buying their own lathe, they share one well-maintained one. When the lathe is upgraded, all departments benefit at once without each doing their own upgrade.`,
+    },
+    {
+      id: 'pw-sr-39',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'How do you test email flows (confirmation emails, OTP, password reset links) in E2E tests?',
+      answer: `Use a real test email inbox via a testing-specific email service (Mailosaur, MailHog, Mailtrap), poll for the email via their API, extract the link or code, and continue the test with it — never hard-code or skip email steps.
+
+**Why it matters:**
+Skipping email verification in tests creates a gap: the test never confirms the email is actually sent, the link is correct, or the OTP works. These are high-value flows — a broken password reset email is a critical production incident.
+
+**Walked-through example:**
+\`\`\`ts
+import Mailosaur from 'mailosaur';
+
+const mailosaur = new Mailosaur(process.env.MAILOSAUR_API_KEY!);
+const serverId = process.env.MAILOSAUR_SERVER_ID!;
+
+test('user receives and uses password reset email', async ({ page, request }) => {
+  // Use a Mailosaur inbox address — emails to this address are captured
+  const email = \`reset-test@\${serverId}.mailosaur.net\`;
+
+  await page.goto('/forgot-password');
+  await page.getByLabel('Email').fill(email);
+  await page.getByRole('button', { name: 'Send reset link' }).click();
+
+  await expect(page.getByTestId('confirmation-message'))
+    .toContainText('Check your email');
+
+  // Poll Mailosaur for the email (it waits up to 30s)
+  const message = await mailosaur.messages.get(serverId, { sentTo: email });
+  expect(message.subject).toContain('Reset your password');
+
+  // Extract the reset link from the email body
+  const resetLink = message.html?.links?.find(l => l.href?.includes('/reset-password'));
+  expect(resetLink?.href).toBeDefined();
+
+  // Use the link to complete the reset
+  await page.goto(resetLink!.href!);
+  await page.getByLabel('New password').fill('NewSecurePass123!');
+  await page.getByRole('button', { name: 'Set new password' }).click();
+  await expect(page.getByTestId('success-message')).toContainText('Password updated');
+});
+\`\`\`
+
+**Real-world QA use case:**
+A fintech app's welcome email contained a verification link with a 24-hour expiry. The E2E test caught a bug where the expiry was accidentally set to 24 minutes — the manual tester had always clicked the link immediately and never noticed.
+
+**Rule of thumb:** use Mailosaur or MailHog for controlled email testing — never test with real personal email accounts in CI, and never skip the email step by calling an API backdoor that bypasses the email entirely.`,
+      analogy: `A package courier system where you don't just confirm the item was labelled for dispatch — you also verify the recipient received it, the tracking link works, and the contents match the invoice.`,
+    },
+    {
+      id: 'pw-sr-40',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'How do you evaluate and adopt a new testing tool or framework for your team?',
+      answer: `Run a structured proof of concept on a real, representative test scenario; evaluate against defined criteria; present a clear trade-off analysis; and adopt incrementally rather than big-bang replacing the existing suite.
+
+**Why it matters:**
+Tool choices have long tails — migrating a 500-test suite is a multi-month project. Choosing based on hype or demos leads to regret. A structured evaluation avoids committing to a tool before understanding its real limitations.
+
+**Evaluation framework:**
+\`\`\`
+1. Define success criteria upfront (before touching the tool):
+   - Can it test our specific tech stack? (React + TypeScript + WebSockets)
+   - How does it handle our auth flow (SSO via Azure AD)?
+   - What's the migration cost for existing tests?
+   - Does it have the CI/CD integrations we need (GitHub Actions, Slack)?
+   - What's the team's learning curve?
+   - What's the vendor's support/stability (open source? company-backed?)
+
+2. Build a representative PoC:
+   - Implement 10 tests that cover our hardest problems:
+     - Multi-tab workflow
+     - SSO auth bypass
+     - API + UI hybrid test
+     - WebSocket assertion
+     - Parallel execution with isolated data
+   - Measure: speed, flakiness rate, setup effort, debugging experience
+
+3. Quantify the migration cost:
+   - Existing test count: 150 tests across 3 suites
+   - Estimate: 1 engineer for 4 weeks to migrate with good tooling
+   - Compare to ROI: will the new tool save 4 engineer-weeks within 6 months?
+
+4. Decision document:
+   - Share PoC results, trade-off analysis, and migration plan with the team
+   - Run a 2-week trial on one real test suite before committing
+   - Set a review checkpoint at 3 months post-adoption
+\`\`\`
+
+**Real-world QA use case:**
+A team evaluating Cypress vs Playwright ran both against their SSO-protected app. Playwright's \`storageState\` handled their Azure AD bypass cleanly; Cypress required a complex plugin with ongoing maintenance. The PoC result was decisive and justified the migration investment.
+
+**Rule of thumb:** evaluate on your hardest problems first, not the happy path — any tool can test a simple login form; the differentiators appear when you hit edge cases your existing suite already handles.`,
+      analogy: `Buying a company vehicle: you don't choose based on the brochure photos — you test-drive it with the actual cargo you need to transport, on the roads you actually drive, and compare running costs before signing the lease.`,
+    },
+    {
+      id: 'pw-sr-41',
+      level: 'senior',
+      topic: 'Architecture',
+      question: 'How do you design a fixture dependency graph to manage complex test setup cleanly?',
+      answer: `Define fixtures as composable, scoped units with explicit dependencies declared through Playwright's fixture extension mechanism — so the framework wires up the dependency graph automatically, and teardown is guaranteed in reverse order.
+
+**Why it matters:**
+Complex test setups (authenticated user who owns a project who has team members who have active sessions) become a maintenance nightmare when setup code is scattered across \`beforeEach\` hooks. A fixture graph makes dependencies explicit, scoped, and automatically torn down.
+
+**Walked-through example:**
+\`\`\`ts
+// fixtures/index.ts — layered dependency graph
+import { test as base, Page, request as baseRequest } from '@playwright/test';
+
+type Fixtures = {
+  apiContext: APIRequestContext;  // base: authenticated API client
+  testProject: { id: string; name: string };  // depends on apiContext
+  projectPage: Page;             // depends on testProject + authenticated page
+};
+
+export const test = base.extend<Fixtures>({
+  // Layer 1: authenticated API context
+  apiContext: async ({ playwright }, use) => {
+    const ctx = await playwright.request.newContext({
+      baseURL: process.env.API_URL,
+      extraHTTPHeaders: { Authorization: \`Bearer \${process.env.API_TOKEN}\` },
+    });
+    await use(ctx);
+    await ctx.dispose();   // auto-cleanup
+  },
+
+  // Layer 2: test project (depends on apiContext)
+  testProject: async ({ apiContext }, use) => {
+    const res = await apiContext.post('/projects', {
+      data: { name: \`test-project-\${Date.now()}\` },
+    });
+    const project = await res.json();
+    await use(project);
+    await apiContext.delete(\`/projects/\${project.id}\`);  // auto-cleanup
+  },
+
+  // Layer 3: page opened to the project (depends on testProject + browser auth)
+  projectPage: async ({ page, testProject }, use) => {
+    await page.goto(\`/projects/\${testProject.id}\`);
+    await use(page);
+    // page teardown is handled by the base 'page' fixture
+  },
+});
+
+// In a test — just declare what you need; framework handles the rest
+test('project settings are visible', async ({ projectPage, testProject }) => {
+  await expect(projectPage.getByRole('heading')).toContainText(testProject.name);
+});
+\`\`\`
+
+**Real-world QA use case:**
+A collaboration tool's tests need: authenticated user → owned workspace → shared project → invited collaborator. Each layer is a fixture that depends on the previous. Test setup is 0 lines in the test body; teardown is automatic and happens in correct order.
+
+**Rule of thumb:** the fixture graph should mirror the domain model — if your app has users who own workspaces who have projects, your fixtures should layer in the same order.`,
+      analogy: `A recipe dependency tree: to make lasagna you need pasta (depends on flour + water), sauce (depends on tomatoes + herbs), and cheese. The cookbook knows the order — you just say "make lasagna" and it handles the dependency chain.`,
+    },
+    {
+      id: 'pw-sr-42',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'How do you integrate visual regression testing into CI without blocking every PR?',
+      answer: `Run visual tests on a schedule (nightly) or only on PRs that touch UI files, use a separate approval pipeline for baseline updates, and tolerate a small pixel difference threshold to avoid noise from anti-aliasing.
+
+**Why it matters:**
+Visual tests block PRs frequently because of rendering differences between machines, OS font rendering, and legitimate UI changes that need approved baselines. Running them on every PR without a controlled update flow creates a "visual CI is always broken" culture where the team ignores the failures.
+
+**Walked-through example:**
+\`\`\`ts
+// playwright.config.ts — visual tests as a separate project
+projects: [
+  {
+    name: 'e2e-functional',
+    testIgnore: '**/*.visual.spec.ts',   // never in PR suite
+  },
+  {
+    name: 'visual-regression',
+    testMatch: '**/*.visual.spec.ts',
+    use: {
+      // Run in Docker for consistent rendering across CI environments
+      // baseURL, viewport fixed for consistency
+    },
+  },
+]
+
+// A visual test
+test('dashboard layout @visual', async ({ page }) => {
+  await page.goto('/dashboard');
+  await page.waitForLoadState('networkidle');
+
+  // Mask dynamic content — dates, user names, avatars
+  await expect(page).toHaveScreenshot('dashboard.png', {
+    maxDiffPixelRatio: 0.02,   // 2% pixel difference allowed
+    mask: [
+      page.getByTestId('current-date'),
+      page.getByTestId('user-avatar'),
+    ],
+  });
+});
+\`\`\`
+
+**Baseline update workflow:**
+1. UI change is intentional → developer runs \`npx playwright test --update-snapshots\` in Docker
+2. Updated baseline images are committed alongside the PR
+3. Visual CI checks the updated baseline and passes
+4. On nightly run, the new baseline is used for comparison
+
+**Real-world QA use case:**
+A design team ships a new button style. Without a controlled update workflow, every visual test fails and the team must "update all baselines" blindly. With the workflow, the PR includes both the UI change and the approved new baseline — reviewers see the diff before merging.
+
+**Rule of thumb:** visual baselines are code — commit them, review them, and update them deliberately, just like you would a type definition or a test fixture.`,
+      analogy: `A passport photo approval process — the old photo (baseline) is valid until deliberately renewed. When you change your appearance (UI update), you submit new photos for approval, not just swap them out without anyone checking.`,
+    },
+    {
+      id: 'pw-sr-43',
+      level: 'senior',
+      topic: 'Practical',
+      question: 'How do you test cross-origin scenarios — where a test spans multiple domains?',
+      answer: `Use Playwright's multi-context or multi-page support, configure the browser to allow cross-origin access where needed, and use separate contexts with their own \`storageState\` for each domain.
+
+**Why it matters:**
+Modern apps span domains — a main app on \`app.example.com\`, an auth provider on \`auth.example.com\`, an embedded widget from \`widgets.vendor.com\`. Tests that only verify one domain miss broken integrations at the cross-domain boundaries.
+
+**Walked-through example:**
+\`\`\`ts
+test('embedded third-party widget loads and communicates with parent page', async ({ page, context }) => {
+  // Navigate to the main app — which embeds a third-party widget
+  await page.goto('https://app.example.com/dashboard');
+
+  // The widget is in an iframe from a different origin
+  const widgetFrame = page.frameLocator('iframe[src*="widgets.vendor.com"]');
+  await expect(widgetFrame.getByRole('button', { name: 'Launch' })).toBeVisible();
+  await widgetFrame.getByRole('button', { name: 'Launch' }).click();
+
+  // Widget communicates back to the parent via postMessage
+  const message = await page.evaluate(() =>
+    new Promise<string>(resolve => {
+      window.addEventListener('message', e => {
+        if (e.data?.type === 'widget-launched') resolve(e.data.payload);
+      });
+    })
+  );
+  expect(message).toBe('launch-confirmed');
+
+  // Assert the parent page reflects the widget event
+  await expect(page.getByTestId('widget-status')).toHaveText('Active');
+});
+
+// Cross-origin auth flow: app → IdP → back to app
+test('SSO login redirects correctly across domains', async ({ page }) => {
+  await page.goto('https://app.example.com');
+  await page.getByRole('button', { name: 'Sign in with SSO' }).click();
+
+  // Playwright follows the redirect to the IdP domain automatically
+  await expect(page).toHaveURL(/auth\.example\.com\/login/);
+  await page.getByLabel('Email').fill(process.env.SSO_USER!);
+  await page.getByLabel('Password').fill(process.env.SSO_PASS!);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+
+  // Redirected back to app domain with valid session
+  await expect(page).toHaveURL(/app\.example\.com\/dashboard/);
+});
+\`\`\`
+
+**Real-world QA use case:**
+A live chat widget embedded from a vendor broke after the parent app changed its Content Security Policy. The cross-origin test caught the widget failing to load (blocked by CSP) before users reported missing support chat.
+
+**Rule of thumb:** Playwright follows cross-origin redirects automatically; for cross-origin \`postMessage\` flows, use \`page.evaluate()\` to add a message listener before triggering the action that sends the message.`,
+      analogy: `An international parcel that crosses multiple borders — you track it at each customs checkpoint (domain boundary), not just when it leaves the origin warehouse and when it arrives at the destination.`,
+    },
+    {
+      id: 'pw-sr-44',
+      level: 'senior',
+      topic: 'CI/CD',
+      question: 'How do you test blue/green deployments and canary releases with Playwright?',
+      answer: `Use environment variables to point tests at the blue or green environment, run smoke tests against both before and after traffic shift, and build a rollback trigger if the post-release smoke test fails.
+
+**Why it matters:**
+Blue/green and canary deployments shift traffic gradually to reduce risk — but "no errors in Datadog" isn't the same as "the app works." Smoke tests run against the new environment before traffic shifts give a functional confidence signal that metrics alone can't provide.
+
+**Walked-through example:**
+\`\`\`ts
+// playwright.config.ts — parameterised by deploy target
+export default defineConfig({
+  use: {
+    baseURL: process.env.DEPLOY_TARGET_URL ?? 'https://blue.example.com',
+  },
+});
+
+// CI/CD pipeline (GitHub Actions):
+// Step 1: deploy to green environment
+// Step 2: run smoke tests against green
+// Step 3: if smoke passes → shift traffic to green
+// Step 4: run smoke tests against green after traffic shift
+// Step 5: if any smoke fails → shift traffic back to blue + alert
+
+# .github/workflows/deploy.yml
+- name: Run smoke tests against green
+  run: npx playwright test --project=smoke --grep=@critical
+  env:
+    DEPLOY_TARGET_URL: https://green.example.com
+
+- name: Shift traffic to green
+  if: success()   # only if smoke passed
+  run: ./scripts/shift-traffic.sh green
+
+- name: Post-release smoke test
+  run: npx playwright test --project=smoke --grep=@critical
+  env:
+    DEPLOY_TARGET_URL: https://green.example.com
+
+- name: Rollback on failure
+  if: failure()
+  run: ./scripts/shift-traffic.sh blue
+\`\`\`
+
+**Real-world QA use case:**
+A payment service deployed a green environment that passed all unit and integration tests but had a misconfigured environment variable that caused all payment confirmations to route to a test webhook instead of production. The smoke test caught this — the payment API returned 200 but the confirmation email never arrived, which the smoke test asserted.
+
+**Rule of thumb:** smoke tests for blue/green must be fast (under 3 minutes), stable (no retries), and cover the top 5 business-critical user actions — they're your functional gate before traffic shifts, not a comprehensive regression suite.`,
+      analogy: `A test flight before handing a new aircraft over to passengers — you don't just check the instruments, you actually fly it through the key manoeuvres to confirm it behaves as expected before anyone books a seat.`,
+    },
+    {
+      id: 'pw-sr-45',
+      level: 'senior',
+      topic: 'Security',
+      question: 'How do you incorporate security testing into a Playwright test suite?',
+      answer: `Add targeted security assertions to existing E2E tests — checking auth boundaries, IDOR vulnerabilities, security headers, and input handling — rather than replacing a dedicated security scanner.
+
+**Why it matters:**
+Playwright won't replace a pen tester, but it can catch the most common auth and access-control bugs at the unit of the user flow — faster and earlier than a quarterly security audit.
+
+**Walked-through example:**
+\`\`\`ts
+// 1. IDOR — resource A should not be accessible by user B
+test('user cannot access another user\'s order', async ({ browser }) => {
+  const userACtx = await browser.newContext({ storageState: 'auth/user-a.json' });
+  const userBCtx = await browser.newContext({ storageState: 'auth/user-b.json' });
+
+  // User A creates an order
+  const res = await (await userACtx.newPage()).request.post('/api/orders', {
+    data: { item: 'Confidential Item' },
+  });
+  const { id } = await res.json();
+
+  // User B should NOT be able to access it
+  const attempt = await (await userBCtx.newPage()).request.get(\`/api/orders/\${id}\`);
+  expect(attempt.status()).toBe(403);   // not 200, not 404 — explicit 403
+
+  await userACtx.close();
+  await userBCtx.close();
+});
+
+// 2. Security headers
+test('security headers are set correctly', async ({ request }) => {
+  const res = await request.get('/');
+  expect(res.headers()['x-frame-options']).toBe('DENY');
+  expect(res.headers()['x-content-type-options']).toBe('nosniff');
+  expect(res.headers()['strict-transport-security']).toContain('max-age=');
+  expect(res.headers()['content-security-policy']).toBeDefined();
+});
+
+// 3. Auth boundary — unauthenticated access to protected routes
+test('unauthenticated request to /api/admin returns 401', async ({ request }) => {
+  const res = await request.get('/api/admin/users');  // no auth header
+  expect(res.status()).toBe(401);
+});
+
+// 4. Reflected XSS — malicious input should be escaped
+test('search input is sanitised — no XSS', async ({ page }) => {
+  await page.goto('/search?q=<script>alert(1)</script>');
+  // If XSS executed, a dialog would appear — assert it doesn't
+  await expect(page.getByRole('dialog')).not.toBeVisible();
+  // The input should be escaped in the rendered output
+  await expect(page.getByTestId('search-query')).toHaveText('<script>alert(1)</script>');
+});
+\`\`\`
+
+**Real-world QA use case:**
+An IDOR test caught that a URL like \`/invoices/1234\` returned any invoice to any authenticated user — the \`user_id\` filter was missing from the query. This was found in development, not in a quarterly pen test.
+
+**Rule of thumb:** focus Playwright security tests on access-control boundaries and auth behaviour — not vulnerability scanning (use a dedicated tool like OWASP ZAP for that). The goal is catching auth logic bugs that functional tests miss.`,
+      analogy: `A property management company that physically tries every tenant's key in every other tenant's lock — not as a replacement for the security system, but as a quick check that the locksmith actually put the right cylinder in each door.`,
+    },
+    {
+      id: 'pw-sr-46',
+      level: 'senior',
+      topic: 'Test Data',
+      question: 'How do you manage parallel test data isolation at scale — unique IDs, namespacing, and cleanup?',
+      answer: `Use a namespacing strategy that embeds the test's unique identifier into every piece of data it creates, track created resources in a fixture for cleanup, and implement a global cleanup sweep for orphaned data from aborted runs.
+
+**Why it matters:**
+At scale (50+ parallel workers, 500+ tests, multiple CI runs simultaneously), test data collisions are the #1 source of flakiness. Two tests that create a "Test User" with the same email will conflict. Namespacing makes every resource uniquely identifiable and cleanable.
+
+**Walked-through example:**
+\`\`\`ts
+// fixtures/testData.ts — namespaced data factory
+import { test as base } from '@playwright/test';
+
+function uniqueId(): string {
+  // Embeds worker ID + timestamp — unique across parallel workers
+  return \`test-\${process.env.TEST_WORKER_INDEX ?? 0}-\${Date.now()}\`;
+}
+
+export const test = base.extend({
+  testUser: async ({ request }, use) => {
+    const id = uniqueId();
+    const email = \`\${id}@test.example.com\`;  // guaranteed unique
+
+    const res = await request.post('/api/users', {
+      data: { name: \`Test User \${id}\`, email },
+    });
+    const user = await res.json();
+
+    await use(user);
+
+    // Cleanup — always, even if test failed
+    try {
+      await request.delete(\`/api/users/\${user.id}\`);
+    } catch {
+      console.warn(\`Cleanup failed for user \${user.id} — will be swept by nightly cleanup\`);
+    }
+  },
+});
+
+// Global cleanup: nightly job deletes test users older than 24h
+// DELETE FROM users WHERE email LIKE '%-test-%@test.example.com' AND created_at < NOW() - INTERVAL '24 hours'
+\`\`\`
+
+**Naming conventions:**
+- Users: \`test-{workerId}-{timestamp}@test.example.com\`
+- Orders: \`TEST-{workerId}-{timestamp}\` in the reference field
+- Projects: \`[TEST] \${testName}\` in the name field
+- All test records: tagged with \`{ isTestData: true, createdBy: 'playwright' }\`
+
+**Real-world QA use case:**
+A suite with 40 parallel workers was creating ~200 test users per run. Without namespacing, duplicate email errors were causing 15% test failure. After namespacing with worker ID + timestamp and a nightly cleanup query, failure rate dropped to 0.2%.
+
+**Rule of thumb:** every piece of test data must carry a fingerprint that identifies it as test data AND which run created it — so both targeted cleanup (per test) and sweep cleanup (nightly) work reliably.`,
+      analogy: `A busy city parking lot where every test car gets a unique numbered permit — the lot manager can identify which cars belong to today's test session, return them to their owners (cleanup), and tow any that were abandoned yesterday (nightly sweep).`,
+    },
+    {
+      id: 'pw-sr-47',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'How do you decide when to write a new E2E test vs pushing coverage down to an API test or unit test?',
+      answer: `Apply the testing trophy: write the cheapest test that gives you confidence. An E2E test is justified only when it tests the full browser-to-backend integration of a user-facing flow that API tests can't cover alone.
+
+**Why it matters:**
+Overloading E2E with coverage that API or unit tests could handle cheaply creates a slow, brittle, expensive suite. Underusing E2E leaves integration gaps. The decision framework prevents both failure modes.
+
+**Decision framework:**
+
+\`\`\`
+Does the bug require a real browser to manifest?
+→ No  → Use API test or unit test
+→ Yes → Consider E2E
+
+Does it test a full user journey (multiple steps, state changes, UI feedback)?
+→ No  → Use an API integration test
+→ Yes → Write E2E
+
+Is it already covered by a unit test + an API test?
+→ Yes → An E2E is likely redundant — skip it
+→ No  → E2E may be the right call
+
+Would a mocked API test give false confidence (because the bug is in the integration)?
+→ Yes → E2E is justified
+→ No  → API test is enough
+\`\`\`
+
+**Examples:**
+- "User can log in and see the dashboard" → **E2E** (auth state, redirect, UI render all in one flow)
+- "POST /api/orders returns 201 with the right body" → **API test** (no browser needed)
+- "Cart total calculates correctly with a 10% discount" → **Unit test** (pure logic)
+- "File upload via UI triggers the correct multipart form" → **E2E** (browser file handling + UI feedback)
+- "Invoice PDF contains the right line items" → **API test** (generate + parse, no browser)
+
+**Real-world QA use case:**
+A team had 200 E2E tests — analysis showed 60 were pure API contract tests hidden behind a UI. Moving them to \`APIRequestContext\` tests cut CI time by 18 minutes and made them 40× faster to run in isolation.
+
+**Rule of thumb:** if you can write it as an API test without losing confidence, do so — E2E tests should be the minority, reserved for the browser-specific, multi-step flows that only make sense end-to-end.`,
+      analogy: `Deciding which tool to use for a job: a scalpel (unit test) for precise cuts, a multi-tool (API test) for most assembly work, and the whole factory line (E2E) only when you need to verify everything runs together — you don't use the factory line to tighten a single screw.`,
+    },
+    {
+      id: 'pw-sr-48',
+      level: 'senior',
+      topic: 'Practical',
+      question: 'How do you test file uploads that involve processing (virus scanning, image resizing, format conversion)?',
+      answer: `Separate the upload trigger (UI interaction) from the processing result (eventual consistency assertion). Use \`expect.poll()\` or \`waitForResponse()\` to wait for the backend processing to complete, then assert the final state.
+
+**Why it matters:**
+File processing is asynchronous. A test that uploads a file and immediately asserts the processed result will fail intermittently because the backend hasn't finished processing yet. Proper async handling is what separates a stable test from a flaky one.
+
+**Walked-through example:**
+\`\`\`ts
+test('uploaded image is resized and displayed as thumbnail', async ({ page, request }) => {
+  await page.goto('/gallery');
+
+  // Upload via the UI
+  const [upload] = await Promise.all([
+    page.waitForResponse(r => r.url().includes('/api/uploads') && r.status() === 202),
+    page.getByLabel('Upload image').setInputFiles('fixtures/large-photo.jpg'),
+  ]);
+
+  const { uploadId } = await upload.json();  // 202 Accepted — processing not done yet
+
+  // Poll until processing completes (may take 5–30s for image resize)
+  await expect.poll(async () => {
+    const status = await request.get(\`/api/uploads/\${uploadId}/status\`);
+    const { state } = await status.json();
+    return state;
+  }, { timeout: 30_000, intervals: [1000, 2000, 5000] }).toBe('complete');
+
+  // Now assert the processed result in the UI
+  await page.reload();  // or wait for WebSocket update
+  const thumbnail = page.getByTestId(\`thumbnail-\${uploadId}\`);
+  await expect(thumbnail).toBeVisible();
+  await expect(thumbnail).toHaveAttribute('width', '200');  // resized to 200px
+
+  // Verify virus scan passed (shown via UI badge)
+  await expect(page.getByTestId(\`scan-status-\${uploadId}\`)).toHaveText('Clean');
+});
+\`\`\`
+
+**Real-world QA use case:**
+A document management system ran virus scans on uploads and quarantined infected files. Tests that didn't wait for the scan result would pass (file uploaded) even when the quarantine logic was broken. Adding the status poll caught a regression where the quarantine badge wasn't shown for flagged files.
+
+**Rule of thumb:** treat any server-side processing as eventually consistent — always poll for completion status rather than assuming the processing is done when the 2xx upload response arrives.`,
+      analogy: `Sending a letter and waiting for a delivery confirmation — the postal receipt (202 Accepted) says it was received, but you don't tick "delivered" until you get the confirmation slip back (processing complete).`,
+    },
+    {
+      id: 'pw-sr-49',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'How do you maintain a Playwright test suite through rapid, frequent UI changes?',
+      answer: `Design tests against behaviour and intent (what the user accomplishes), not implementation (which CSS class changes). Centralise locators in page objects, adopt data-testid as a contract with developers, and treat locator maintenance as a first-class engineering task.
+
+**Why it matters:**
+A suite that breaks on every UI change loses team confidence and gets abandoned. A suite that only breaks when user-facing behaviour changes stays trustworthy and valuable even as the UI evolves rapidly.
+
+**Strategies in order of importance:**
+
+\`\`\`ts
+// 1. Use semantic locators — resilient to DOM restructuring
+await page.getByRole('button', { name: 'Submit order' }).click();  // ✅ survives class renames
+await page.locator('.btn-primary.checkout-submit').click();         // ❌ breaks on any class change
+
+// 2. data-testid as a dev/test contract — developers own the testid, not just the class
+await page.getByTestId('checkout-submit-btn').click();
+// Teams agree: data-testid attributes are stable, intentional, and communicated before removal
+
+// 3. Page objects absorb locator changes — tests don't need to change
+export class CheckoutPage {
+  submitOrder = () => this.page.getByRole('button', { name: 'Submit order' });
+  // When the button text changes to "Place order", fix it here — all tests still pass
+}
+
+// 4. Component-level tests for the design system (run separately, fast)
+// When a button component is redesigned, the component test catches it
+// without touching the 50 E2E tests that use buttons
+
+// 5. Monitor the locator failure rate per page in your CI metrics
+// If /checkout tests break 3x a week, the CheckoutPage class needs more resilient locators
+\`\`\`
+
+**Governance process:**
+- Developers add \`data-testid\` when building new UI (agreed team standard)
+- PRs that remove or rename a \`data-testid\` must include a test update
+- QA reviews PRs that touch shared page objects
+- Monthly: review which page objects have the highest "broken locator" rate
+
+**Real-world QA use case:**
+A frontend team rebuilt the navigation component in a design system upgrade. Because nav locators were centralised in a \`NavBar\` component class, updating one file fixed all 37 tests that used the nav — instead of hunting down 37 individual test files.
+
+**Rule of thumb:** locators in page objects, data-testids as a contract, semantic roles as the default — and treat locator maintenance as planned work, not unplanned fire-fighting.`,
+      analogy: `Giving directions by landmark ("turn at the town hall") not by distance ("turn after 400m") — landmarks survive road resurfacing; exact distances don't. When the town hall is repainted, you update the directions in one place.`,
+    },
+    {
+      id: 'pw-sr-50',
+      level: 'senior',
+      topic: 'Strategy',
+      question: 'How do you build and maintain a Playwright testing strategy for a product team that ships daily?',
+      answer: `Design the test suite as a layered pipeline — fast feedback on every commit, deeper coverage on a schedule — and treat test quality as a first-class engineering concern with explicit ownership, metrics, and regular investment.
+
+**Why it matters:**
+A team shipping daily needs test results in minutes, not hours. A strategy that doesn't match deployment cadence becomes a bottleneck or gets bypassed entirely. The goal is a suite that developers trust and actually use as a quality signal.
+
+**The layered pipeline:**
+\`\`\`
+Commit push → smoke tests (2–3 min, @critical only) → gate merge or alert
+↓
+PR merge to main → expanded E2E (8–12 min, @critical + @high) → gate deploy
+↓
+Post-deploy (3 min, smoke against production) → rollback trigger if failed
+↓
+Nightly (30–45 min, full suite + visual + a11y + cross-browser) → health report
+↓
+Pre-release (60 min, full suite + security + performance + multi-locale) → go/no-go gate
+\`\`\`
+
+**Ownership model:**
+\`\`\`
+- QA engineers: own the test framework, fixtures, shared page objects, CI pipeline
+- Feature teams: own the tests for their features (QA helps on first pass)
+- On-call rotation: one person owns the flaky test dashboard per sprint
+\`\`\`
+
+**Health metrics (reviewed weekly):**
+- Suite pass rate (target: > 95% first-attempt pass)
+- Flakiness rate (target: < 1% retry rate)
+- PR gate duration (target: < 10 minutes)
+- MTTD for regressions (target: < 4 hours from merge)
+
+**Anti-patterns to avoid:**
+- Growing the E2E suite without pruning redundant tests
+- Letting the nightly suite stay red for days
+- Skipping test maintenance in favour of feature work every sprint
+- No one owning the suite — "everyone is responsible" = nobody is
+
+**Real-world QA use case:**
+A 10-person product team shipping 5–10 deploys per day implemented this strategy: 50 smoke tests run in 2 minutes on every push, 150 expanded tests in 9 minutes on every merge. The nightly suite of 400 tests ran in 18 minutes with sharding. Regression detection time dropped from 2 days to 20 minutes.
+
+**Rule of thumb:** a testing strategy that doesn't account for deployment frequency will either slow the team down or get circumvented — design the pipeline to fit how the team actually ships, not how you wish they shipped.`,
+      analogy: `Air traffic control with layered checks: the pilot does a pre-flight (smoke), the tower clears for takeoff (PR gate), a controller monitors the flight (post-deploy smoke), and the safety board does a full monthly audit (nightly + pre-release). Each layer catches different problems at the right cost and speed.`,
     },
 
   ],
