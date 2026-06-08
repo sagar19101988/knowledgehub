@@ -765,7 +765,7 @@ function HubMap() {
 function LoginRoute() {
   const { user, authLoading } = useAuthStore();
   if (authLoading) return <AuthSpinner />;
-  if (user) return <Navigate to="/" replace />;
+  if (user) return <Navigate to="/home" replace />;
   return <AuthPage />;
 }
 
@@ -864,12 +864,13 @@ export default function App() {
           <Suspense fallback={<AuthSpinner />}>
             <Routes>
               <Route path="/login" element={<LoginRoute />} />
-              <Route path="/" element={<ProtectedRoute><HubMap /></ProtectedRoute>} />
+              <Route path="/" element={<Navigate to="/home" replace />} />
+              <Route path="/home" element={<ProtectedRoute><HubMap /></ProtectedRoute>} />
               <Route path="/zone/:id" element={<ProtectedRoute><ZoneView /></ProtectedRoute>} />
               <Route path="/zone/:id/mastery" element={<ProtectedRoute><MasteryTrialPage /></ProtectedRoute>} />
               <Route path="/zone/:id/interview" element={<ProtectedRoute><InterviewArenaPage /></ProtectedRoute>} />
               <Route path="/badges" element={<ProtectedRoute><BadgesPage /></ProtectedRoute>} />
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<Navigate to="/home" replace />} />
             </Routes>
           </Suspense>
         </div>

@@ -531,7 +531,7 @@ export function AuthPage() {
                       </motion.button>
                       <motion.button
                         whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
-                        onClick={() => { setShowGuestWarning(false); enterGuestMode(); navigate('/', { replace: true }); }}
+                        onClick={() => { setShowGuestWarning(false); enterGuestMode(); navigate('/home', { replace: true }); }}
                         className={`w-full py-3 rounded-xl font-bold text-sm transition-all border ${
                           isDark
                             ? 'border-slate-700 text-slate-400 hover:text-slate-300'
@@ -599,12 +599,12 @@ function ZoneIcon({ id, size = 18 }: { id: string; size?: number }) {
 type TabId = 'hub' | 'learn' | 'war' | 'trial' | 'badges' | 'cert';
 type TourTab = { id: TabId; num: string; name: string; color: string; soft: string; url: string };
 const TABS: ReadonlyArray<TourTab> = [
-  { id: 'hub',    num: '01', name: 'Realm Map',     color: '#3b82f6', soft: 'rgba(59,130,246,0.10)',  url: 'knowledgehub-indol.vercel.app/' },
-  { id: 'learn',  num: '02', name: 'Lessons',       color: '#10b981', soft: 'rgba(16,185,129,0.10)',  url: 'knowledgehub-indol.vercel.app/zone/sql' },
-  { id: 'war',    num: '03', name: 'War Room',      color: '#f43f5e', soft: 'rgba(244,63,94,0.10)',   url: 'knowledgehub-indol.vercel.app/zone/sql/interview' },
-  { id: 'trial',  num: '04', name: 'Mastery Trial', color: '#f97316', soft: 'rgba(249,115,22,0.10)',  url: 'knowledgehub-indol.vercel.app/zone/api/mastery' },
-  { id: 'badges', num: '05', name: 'Badges',        color: '#a855f7', soft: 'rgba(168,85,247,0.10)',  url: 'knowledgehub-indol.vercel.app/badges' },
-  { id: 'cert',   num: '06', name: 'Certificate',   color: '#0ea5e9', soft: 'rgba(14,165,233,0.10)',  url: 'knowledgehub-indol.vercel.app/badges' },
+  { id: 'hub',    num: '01', name: 'Realm Map',     color: '#3b82f6', soft: 'rgba(59,130,246,0.10)',  url: 'qaquest.vercel.app/' },
+  { id: 'learn',  num: '02', name: 'Lessons',       color: '#10b981', soft: 'rgba(16,185,129,0.10)',  url: 'qaquest.vercel.app/zone/sql' },
+  { id: 'war',    num: '03', name: 'War Room',      color: '#f43f5e', soft: 'rgba(244,63,94,0.10)',   url: 'qaquest.vercel.app/zone/sql/interview' },
+  { id: 'trial',  num: '04', name: 'Mastery Trial', color: '#f97316', soft: 'rgba(249,115,22,0.10)',  url: 'qaquest.vercel.app/zone/api/mastery' },
+  { id: 'badges', num: '05', name: 'Badges',        color: '#a855f7', soft: 'rgba(168,85,247,0.10)',  url: 'qaquest.vercel.app/badges' },
+  { id: 'cert',   num: '06', name: 'Certificate',   color: '#0ea5e9', soft: 'rgba(14,165,233,0.10)',  url: 'qaquest.vercel.app/badges' },
 ];
 
 const SCENE_MS = 5500;

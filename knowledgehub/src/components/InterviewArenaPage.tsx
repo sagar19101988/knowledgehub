@@ -362,7 +362,7 @@ export default function InterviewArenaPage() {
         {/* Left: Home + Back + breadcrumb */}
         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/home')}
             aria-label="Home"
             onMouseEnter={() => setHomeHovered(true)}
             onMouseLeave={() => setHomeHovered(false)}

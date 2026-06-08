@@ -827,7 +827,7 @@ function ReportCard({
           </button>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/home')}
               aria-label="Home"
               onMouseEnter={() => setReportHomeHovered(true)}
               onMouseLeave={() => setReportHomeHovered(false)}
@@ -1424,7 +1424,7 @@ export default function MasteryTrialPage() {
           </button>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/home')}
               aria-label="Home"
               onMouseEnter={() => setIntroHomeHovered(true)}
               onMouseLeave={() => setIntroHomeHovered(false)}
@@ -1682,7 +1682,7 @@ export default function MasteryTrialPage() {
               <div className="flex gap-3">
                 <button onClick={() => setShowGoHomeFromExamModal(false)} className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition">Stay</button>
                 <button
-                  onClick={() => { leaveIntentRef.current = true; navigate('/'); }}
+                  onClick={() => { leaveIntentRef.current = true; navigate('/home'); }}
                   className="flex-1 py-2.5 rounded-xl bg-rose-500 text-white text-sm font-bold hover:bg-rose-600 transition"
                 >Go Home</button>
               </div>

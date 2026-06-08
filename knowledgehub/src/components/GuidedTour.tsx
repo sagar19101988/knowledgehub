@@ -319,7 +319,7 @@ export function GuidedTour({ isDark }: GuidedTourProps) {
   useEffect(() => {
     if (!visible) return;
     if (stepRoute && stepRoute !== location.pathname) {
-      navigate(stepRoute);
+      navigate(stepRoute, { replace: true });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, visible]);
@@ -375,7 +375,7 @@ export function GuidedTour({ isDark }: GuidedTourProps) {
     setStep(0);
     if (!isGuest) setHasSeenTour(true);
     // If the tour navigated us off the home page, bring the user back.
-    if (location.pathname !== '/') navigate('/');
+    if (location.pathname !== '/home') navigate('/home', { replace: true });
   };
 
   const goNext = () => {

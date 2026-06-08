@@ -57,7 +57,7 @@ export default function BadgesPage() {
       {/* Nav — matches Mastery Trial intro pattern */}
       <nav className="z-40 h-16 sticky top-0 bg-[#eff4fb]/85 dark:bg-[#0a0715]/80 backdrop-blur border-b border-violet-200/60 dark:border-violet-900/30 px-3 sm:px-6 flex items-center justify-between">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/home')}
           aria-label="Back to Home"
           onMouseEnter={() => setBackHovered(true)}
           onMouseLeave={() => setBackHovered(false)}

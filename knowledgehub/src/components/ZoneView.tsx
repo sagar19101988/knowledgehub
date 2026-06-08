@@ -150,7 +150,7 @@ export default function ZoneView() {
         {/* ── LEFT: Back + Hamburger (mobile) + Breadcrumb ── */}
         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/home')}
             aria-label="Go back"
             onMouseEnter={() => setBackHovered(true)}
             onMouseLeave={() => setBackHovered(false)}
