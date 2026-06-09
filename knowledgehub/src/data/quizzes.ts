@@ -8932,6 +8932,171 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ]
     },
     {
+      level: 'pw-test-debugging',
+      questions: [
+        {
+          question: 'Your Playwright test fails with: "Error: Timeout 30000ms exceeded waiting for locator(\'button[data-testid=submit]\')". What is the most likely root cause?',
+          options: [
+            { id: 'a', text: 'The test timeout in playwright.config.ts is set too low', isCorrect: false },
+            { id: 'b', text: 'The button does not exist on the page, the locator is wrong, or the page did not load correctly', isCorrect: true },
+            { id: 'c', text: 'The test is running in headless mode', isCorrect: false },
+            { id: 'd', text: 'The button requires a right-click, not a standard click', isCorrect: false },
+          ],
+          explanation: 'A timeout waiting for a locator almost always means the element never appeared. The three common causes are: wrong locator (typo, changed DOM), wrong page (navigation failed or went to wrong URL), or the page never finished loading. Increasing the timeout treats the symptom — fix the root cause instead.',
+        },
+        {
+          question: 'You want to pause your test at a specific line and manually inspect the page in the browser. Which approach is correct?',
+          options: [
+            { id: 'a', text: 'Add debugger; to the test file and run with Node inspector', isCorrect: false },
+            { id: 'b', text: 'Add await page.pause() at the line and run with npx playwright test --debug', isCorrect: true },
+            { id: 'c', text: 'Add await page.waitForTimeout(999999) to keep the browser open', isCorrect: false },
+            { id: 'd', text: 'Run the test with --headed flag only — it pauses automatically', isCorrect: false },
+          ],
+          explanation: 'await page.pause() opens the Playwright Inspector at that exact point in the test. Combined with --debug flag, it gives you a headed browser you can interact with, a locator picker, and step controls. waitForTimeout is an anti-pattern. The --headed flag alone does not pause execution.',
+        },
+        {
+          question: 'A test passes locally but fails in CI. You want to understand exactly what the page looked like when it failed. Which playwright.config.ts setting captures this automatically?',
+          options: [
+            { id: 'a', text: 'video: \'on\' — always records full video', isCorrect: false },
+            { id: 'b', text: 'screenshot: \'only-on-failure\' — captures a screenshot when a test fails', isCorrect: true },
+            { id: 'c', text: 'trace: \'on-first-retry\' — captures a trace on retry', isCorrect: false },
+            { id: 'd', text: 'headless: false — runs in headed mode so you can see the browser', isCorrect: false },
+          ],
+          explanation: 'screenshot: \'only-on-failure\' is the most direct answer — it saves a screenshot of the exact page state at the moment of failure, visible in the HTML report. Trace gives more detail but requires downloading a zip. Video is heavier. headless: false does nothing in CI since there\'s no display.',
+        },
+        {
+          question: 'The Playwright trace viewer shows you the DOM snapshot, network calls, and console logs at every step. How do you open a trace file after a test run?',
+          options: [
+            { id: 'a', text: 'npx playwright debug trace.zip', isCorrect: false },
+            { id: 'b', text: 'npx playwright show-trace test-results/test-name/trace.zip', isCorrect: true },
+            { id: 'c', text: 'Open the trace.zip file directly in a browser', isCorrect: false },
+            { id: 'd', text: 'npx playwright report --trace', isCorrect: false },
+          ],
+          explanation: 'npx playwright show-trace <path-to-trace.zip> opens the trace viewer in a browser. You can also access traces through the HTML report by clicking on a failed test and then clicking the Traces link. The trace.zip is a binary format — it cannot be opened directly in a browser.',
+        },
+        {
+          question: 'A test intermittently fails with "element is obscured by another element". What does this Playwright error mean and what is the correct fix?',
+          options: [
+            { id: 'a', text: 'The element is off-screen; scroll to it before clicking', isCorrect: false },
+            { id: 'b', text: 'Another element (modal, overlay, tooltip) is covering the target; wait for the overlay to disappear before acting', isCorrect: true },
+            { id: 'c', text: 'Add { force: true } to the click() call to bypass the check', isCorrect: false },
+            { id: 'd', text: 'Use a CSS selector instead of getByRole to target the element directly', isCorrect: false },
+          ],
+          explanation: 'Playwright\'s actionability check "receives events" fails when another element is on top of the target. The correct fix is to wait for the overlay to disappear (e.g., await expect(loadingSpinner).not.toBeVisible()) before clicking. Using { force: true } skips the check entirely — it can click on invisible elements and miss real UX bugs. This error often indicates a legitimate bug: a loading overlay that doesn\'t dismiss properly.',
+        },
+      ]
+    },
+    {
+      level: 'pw-data-driven-testing',
+      questions: [
+        {
+          question: 'You need to run the same login test with 5 different username/password combinations. What is the idiomatic Playwright approach?',
+          options: [
+            { id: 'a', text: 'Write 5 separate test() functions with different hardcoded values', isCorrect: false },
+            { id: 'b', text: 'Use a for...of loop over an array of test data, defining a test() call inside the loop', isCorrect: true },
+            { id: 'c', text: 'Use test.only() with a switch statement inside the test', isCorrect: false },
+            { id: 'd', text: 'Create 5 separate spec files, one per data combination', isCorrect: false },
+          ],
+          explanation: 'Looping over test data with for...of and defining test() inside the loop is the idiomatic Playwright pattern for data-driven tests. Each iteration creates a separate named test. Writing separate tests duplicates code and creates a maintenance burden. test.only() runs a single test and ignores others — wrong tool entirely.',
+        },
+        {
+          question: 'When naming data-driven tests inside a for...of loop, what is the best practice for the test name?',
+          options: [
+            { id: 'a', text: 'Use a generic name like "login test" for all iterations', isCorrect: false },
+            { id: 'b', text: 'Include the data values in the test name so failures identify the exact input that failed', isCorrect: true },
+            { id: 'c', text: 'Use a numeric index like "test-1", "test-2", "test-3"', isCorrect: false },
+            { id: 'd', text: 'The name does not matter since the data is logged to the console', isCorrect: false },
+          ],
+          explanation: 'Including data values in the test name (e.g., `login: ${email} → ${role}`) means the HTML report immediately shows which input caused a failure. A generic name forces you to dig into the test output to find which data set failed. This is especially important when 1 out of 50 data combinations fails.',
+        },
+        {
+          question: 'You are storing test data in a separate JSON file and importing it into your spec. What is the main advantage of this approach over hardcoding data in the test file?',
+          options: [
+            { id: 'a', text: 'JSON imports are faster to parse than JavaScript arrays', isCorrect: false },
+            { id: 'b', text: 'Non-technical team members can update test data without modifying test logic', isCorrect: true },
+            { id: 'c', text: 'Playwright requires external files for data-driven tests to run in CI', isCorrect: false },
+            { id: 'd', text: 'JSON files are automatically excluded from version control', isCorrect: false },
+          ],
+          explanation: 'Separating test data from test logic means a QA analyst can add new test cases (new rows in the JSON) without touching the test code. This is especially valuable for large test matrices, regression packs, or test data maintained by non-engineers. It also makes the test logic reusable with any data source.',
+        },
+        {
+          question: 'When should you use data-driven testing versus writing separate individual test functions?',
+          options: [
+            { id: 'a', text: 'Always use data-driven — it is always more maintainable', isCorrect: false },
+            { id: 'b', text: 'Use data-driven when the test steps are identical and only the input values differ; use separate tests when the steps themselves are different', isCorrect: true },
+            { id: 'c', text: 'Use separate tests always — data-driven tests are harder to debug', isCorrect: false },
+            { id: 'd', text: 'Use data-driven only when you have more than 10 data combinations', isCorrect: false },
+          ],
+          explanation: 'Data-driven testing shines when the test logic is identical and only the inputs change — login validation, form field checks, search queries, permission matrices. When the test steps themselves differ (e.g., checkout flow vs. profile update flow), separate tests are cleaner and easier to read. The rule of thumb: if you\'d write the same lines of code twice with different variable values, make it data-driven.',
+        },
+        {
+          question: 'You want to run the same test suite against three different user roles (admin, editor, viewer) using Playwright fixtures. What is the correct pattern?',
+          options: [
+            { id: 'a', text: 'Create three separate spec files, one per role', isCorrect: false },
+            { id: 'b', text: 'Use process.env to hardcode the role in the test runner command', isCorrect: false },
+            { id: 'c', text: 'Create a custom fixture that accepts the role as a parameter and loop over roles with test.describe', isCorrect: true },
+            { id: 'd', text: 'Use test.skip() to conditionally skip tests for each role', isCorrect: false },
+          ],
+          explanation: 'A custom fixture that provides user credentials per role, combined with a for...of loop creating test.describe blocks per role, is the clean pattern. It keeps test logic in one place while running it against all roles. Three separate spec files duplicate code. process.env works but is inflexible. test.skip() skips tests rather than parameterizing them.',
+        },
+      ]
+    },
+    {
+      level: 'pw-cicd-github-actions',
+      questions: [
+        {
+          question: 'A CI workflow runs npx playwright test but fails immediately with "browserType.launch: Executable doesn\'t exist". What step is missing?',
+          options: [
+            { id: 'a', text: 'The workflow needs runs-on: windows-latest instead of ubuntu-latest', isCorrect: false },
+            { id: 'b', text: 'npx playwright install --with-deps is missing — CI machines do not have browsers pre-installed', isCorrect: true },
+            { id: 'c', text: 'The test files need to be compiled with tsc before running', isCorrect: false },
+            { id: 'd', text: 'The workflow needs to set headless: true in playwright.config.ts', isCorrect: false },
+          ],
+          explanation: 'CI machines (Ubuntu, Windows runners) do not have Chromium, Firefox, or WebKit pre-installed, nor do they have the OS-level libraries those browsers depend on. npx playwright install --with-deps downloads the browser binaries AND their system dependencies. --with-deps is essential on Linux CI runners; without it browsers may fail to launch even if binaries are present.',
+        },
+        {
+          question: 'Your GitHub Actions workflow uploads the Playwright HTML report as an artifact using actions/upload-artifact. The if: always() condition is set. Why is this condition important?',
+          options: [
+            { id: 'a', text: 'It ensures the report uploads even when tests fail — which is when you need it most', isCorrect: true },
+            { id: 'b', text: 'It prevents the workflow from failing when the upload step errors', isCorrect: false },
+            { id: 'c', text: 'It uploads the report to all branches, not just main', isCorrect: false },
+            { id: 'd', text: 'It is required for artifacts larger than 50 MB', isCorrect: false },
+          ],
+          explanation: 'By default, workflow steps are skipped when a previous step fails. Without if: always(), the upload step would be skipped whenever tests fail — exactly when you need the report to diagnose failures. if: always() forces the step to run regardless of previous step outcomes, ensuring you always have a downloadable report to inspect.',
+        },
+        {
+          question: 'You need to pass a secret API key to your Playwright tests in GitHub Actions. What is the correct and secure way to do this?',
+          options: [
+            { id: 'a', text: 'Hardcode the key directly in the workflow YAML file', isCorrect: false },
+            { id: 'b', text: 'Store it in a .env file committed to the repository', isCorrect: false },
+            { id: 'c', text: 'Store it as a GitHub repository secret and reference it with ${{ secrets.KEY_NAME }} in the workflow env block', isCorrect: true },
+            { id: 'd', text: 'Pass it as a command-line argument: npx playwright test --key=abc123', isCorrect: false },
+          ],
+          explanation: 'GitHub repository secrets are encrypted, never exposed in logs, and only injected at runtime. The workflow references them with ${{ secrets.KEY_NAME }} in the env block, making them available as process.env.KEY_NAME in tests. Hardcoding in YAML exposes the key to anyone who can read the repo. A committed .env file is a security vulnerability. Command-line args appear in process logs.',
+        },
+        {
+          question: 'Your Playwright tests need the development server to be running before they execute. What is the recommended way to handle this in playwright.config.ts?',
+          options: [
+            { id: 'a', text: 'Add a separate CI step before the test step that runs npm run dev &', isCorrect: false },
+            { id: 'b', text: 'Use the webServer option in playwright.config.ts — Playwright starts the server and waits until it responds before running tests', isCorrect: true },
+            { id: 'c', text: 'Add await page.waitForTimeout(10000) at the start of every test to give the server time to start', isCorrect: false },
+            { id: 'd', text: 'Use a beforeAll hook in a global setup file to start the server', isCorrect: false },
+          ],
+          explanation: 'The webServer config option is the safest approach: Playwright starts the specified command, polls the given URL until it responds (with a configurable timeout), and only then starts running tests. This guarantees the server is ready before any test runs. A background & process in CI can cause race conditions. waitForTimeout is a fixed sleep anti-pattern. A beforeAll hook works but lacks the URL-polling guarantee.',
+        },
+        {
+          question: 'You want smoke tests to run on every push (fast feedback) and the full test suite to run only on pull requests to main. How do you configure this in GitHub Actions?',
+          options: [
+            { id: 'a', text: 'Create two separate repositories — one for smoke tests, one for the full suite', isCorrect: false },
+            { id: 'b', text: 'Use the --grep @smoke flag for the push job and npx playwright test (no filter) for the PR job, controlled with if: conditions', isCorrect: true },
+            { id: 'c', text: 'Use test.only() on smoke tests so only they run in CI', isCorrect: false },
+            { id: 'd', text: 'Set retries: 0 for smoke tests and retries: 2 for the full suite', isCorrect: false },
+          ],
+          explanation: 'Tagging tests with @smoke and using --grep @smoke in the push job runs only the fast subset. The PR job runs npx playwright test without filtering to execute everything. if: github.event_name == \'pull_request\' controls which job runs when. test.only() is a development tool that should never be committed — it skips all other tests. retries control failure recovery, not which tests run.',
+        },
+      ]
+    },
+    {
       level: 'pw-auth-at-scale',
       questions: [
         {

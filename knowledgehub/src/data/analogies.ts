@@ -29609,6 +29609,591 @@ The HTML report now contains a downloadable JSON of every violation per failed t
       },
 
       {
+        id: 'pw-test-debugging',
+        title: 'Debugging Failing Tests — Inspector, Traces & Reports',
+        analogy: "A failing Playwright test is like a crime scene photograph taken the moment something went wrong. The HTML report is the crime scene overview — what happened, which test failed, how long it took. The trace viewer is the CCTV footage — you can rewind second by second, see every click, every network call, every DOM snapshot. The Playwright Inspector is the detective standing on the scene in real time — pausing, looking around, poking things. Manual QA engineers already know how to investigate bugs. Debugging tests is the same skill, just with different tools.",
+        lessonMarkdown: `
+## Debugging Failing Tests — Inspector, Traces & Reports
+
+A test failing is not a problem. A test failing and you not knowing *why* — that is the problem. Every Playwright engineer needs a debugging toolkit. This module gives you the complete workflow: from reading error messages to rewinding the full test execution frame by frame.
+
+---
+
+### 1. Reading Error Messages — What Playwright is Actually Telling You
+
+*💡 Analogy: When a car's engine warning light comes on, a mechanic doesn't guess — they plug in the diagnostic tool and read the exact fault code. Playwright error messages are those fault codes. Learn to read them and you'll fix bugs in minutes instead of hours.*
+
+Most beginners panic when they see a Playwright error. Don't. Every error message has a **pattern** and each pattern points to a specific root cause.
+
+**The most common errors and what they mean:**
+
+| Error message | What it means | How to fix |
+|---|---|---|
+| \`Timeout 30000ms exceeded waiting for locator\` | The element never appeared in 30 seconds | Wrong locator, wrong page, page never loaded |
+| \`Element is not visible\` | Element exists in DOM but is hidden | Check CSS display/visibility, check for overlapping elements |
+| \`Element is obscured by another element\` | A modal, overlay, or tooltip is on top | Wait for overlay to dismiss, or test the overlay first |
+| \`strict mode violation: locator resolved to N elements\` | Your locator matched more than one element | Make the locator more specific |
+| \`Navigation failed: net::ERR_CONNECTION_REFUSED\` | The app is not running | Start the dev server, check baseURL config |
+| \`Expected value to equal received\` | An assertion failed | Compare expected vs received in the error output |
+
+**Reading the full error output — the stack trace:**
+
+\`\`\`
+Error: Timeout 30000ms exceeded.
+  waiting for locator('button[data-testid="submit"]') to be visible
+
+  at LoginPage.clickSubmit (tests/pages/LoginPage.ts:24:5)
+  at tests/login.spec.ts:18:5
+\`\`\`
+
+This tells you **exactly** which file and line threw the error. Start there — not at the top of your test.
+
+> **QA Tip:** The line number in the stack trace is your starting point. Go to that exact line first before reading anything else.
+
+---
+
+### 2. The Playwright Inspector — Pausing Your Test in Real Time
+
+*💡 Analogy: A surgeon can stop mid-operation and examine exactly what they are looking at. The Playwright Inspector lets you pause a running test at any point and manually interact with the browser — inspect elements, try locators, check the page state.*
+
+The Inspector launches when you run with the \`--debug\` flag:
+
+\`\`\`bash
+npx playwright test login.spec.ts --debug
+\`\`\`
+
+**What you get:**
+
+- A headed browser opens (you can see it)
+- The test pauses at the first action
+- A separate Inspector window shows:
+  - The current test step
+  - A locator picker (hover over elements to generate locators)
+  - Step-by-step execution controls (play, step, pause)
+
+**Using \`page.pause()\` — pause at a specific line:**
+
+\`\`\`typescript
+test('debug login', async ({ page }) => {
+  await page.goto('/login');
+  await page.pause(); // ← test pauses HERE, Inspector opens
+  await page.getByLabel('Email').fill('user@test.com');
+});
+\`\`\`
+
+This is the most useful debugging technique for manual QA engineers. You can pause right before the failing action and manually explore the page state.
+
+**The Locator Picker — your best friend:**
+
+In the Inspector, click the **Pick Locator** button (crosshair icon), then hover over any element on the page. The Inspector generates the best Playwright locator for that element automatically.
+
+> **When to use the Inspector:** When you don't understand why a locator isn't working. Pause before the action, use the picker to generate the correct locator, copy it into your test.
+
+---
+
+### 3. The Trace Viewer — Rewinding Test Execution
+
+*💡 Analogy: Flight recorders (black boxes) record everything that happens in a plane. After a crash, investigators watch the recording frame by frame to understand exactly what went wrong. Playwright traces are your test's black box — every action, every network call, every DOM snapshot, recorded and replayable.*
+
+**Enabling traces:**
+
+In \`playwright.config.ts\`:
+\`\`\`typescript
+use: {
+  trace: 'on-first-retry', // record trace only when a test is retried (recommended for CI)
+  // trace: 'on',          // always record (useful during local debugging)
+  // trace: 'retain-on-failure', // keep trace only for failed tests
+}
+\`\`\`
+
+**Opening a trace:**
+
+\`\`\`bash
+npx playwright show-trace test-results/login-chromium/trace.zip
+\`\`\`
+
+Or from the HTML report — click on a failed test, then click **Traces**.
+
+**What the trace viewer shows you:**
+
+| Panel | What it contains |
+|---|---|
+| **Timeline** | Every test action on a horizontal timeline — hover to jump to that moment |
+| **DOM snapshot** | The exact HTML state of the page at each action |
+| **Network** | All HTTP requests/responses (status codes, bodies, timing) |
+| **Console** | Browser console logs at each moment |
+| **Source** | The line of test code that triggered each action |
+
+**Typical debugging flow with traces:**
+
+1. Run the failing test with tracing enabled
+2. Open the HTML report → click the failed test → click Traces
+3. Find the failing action in the timeline
+4. Look at the DOM snapshot — was the element actually there?
+5. Check network — did the API call succeed?
+6. Check console — any JS errors?
+
+> **QA Tip:** Traces are the single most powerful debugging tool in Playwright. If you don't know why a test fails in CI but passes locally, enable traces on CI and compare the trace to a local passing run.
+
+---
+
+### 4. The HTML Report — Your Test Suite's Dashboard
+
+*💡 Analogy: A hospital's daily report lists every patient, their status, what procedures were done, and what still needs attention. The Playwright HTML report is your test suite's patient list — every test, its status, its duration, and a drill-down into exactly what happened.*
+
+**Running and opening the report:**
+
+\`\`\`bash
+npx playwright test                  # runs tests, generates report
+npx playwright show-report           # opens the HTML report in browser
+\`\`\`
+
+**What the report shows:**
+
+- All tests with pass/fail/skip status
+- Duration of each test
+- Retry attempts (if a test was retried)
+- Error messages with stack traces
+- Screenshots on failure (if configured)
+- Trace files (if tracing is enabled)
+- Video recordings (if video is enabled)
+
+**Configuring screenshots and video for better debugging:**
+
+\`\`\`typescript
+// playwright.config.ts
+use: {
+  screenshot: 'only-on-failure',  // capture screenshot when test fails
+  video: 'retain-on-failure',     // record video only for failed tests
+  trace: 'on-first-retry',        // trace on retry
+}
+\`\`\`
+
+> **QA Tip:** For a manual QA engineer's first weeks with automation — enable all three (screenshot, video, trace) on failure. It's slightly slower but gives you complete visibility into every failure.
+
+---
+
+### 5. Common Debugging Patterns for Manual QA Engineers
+
+**Pattern 1 — "The test passes locally but fails in CI"**
+Most common cause: timing. CI machines are slower. Fix: check if you're using hard waits (\`waitForTimeout\`), replace them with event-driven waits.
+
+**Pattern 2 — "The locator worked yesterday, now it fails"**
+Most common cause: a developer changed the DOM. Fix: open the Inspector, use the locator picker to regenerate the locator.
+
+**Pattern 3 — "The test fails on the first run but passes on retry"**
+Most common cause: race condition. Fix: enable trace on first retry, compare the trace to a passing run to find the timing gap.
+
+**Pattern 4 — "I don't know what the page looks like when the test fails"**
+Fix: enable \`screenshot: 'only-on-failure'\` in config. The HTML report will show you a screenshot of the exact page state at failure.
+
+**Pattern 5 — "The test hangs and times out"**
+Most common cause: waiting for a locator that never appears, or a \`page.waitForResponse()\` that was set up after the action. Fix: add \`page.pause()\` before the hanging line and inspect manually.
+        `,
+      },
+
+      {
+        id: 'pw-data-driven-testing',
+        title: 'Data-Driven Testing & Parameterization',
+        analogy: "A manual QA engineer has a test case for 'Login' and they run it with five different usernames — valid user, invalid user, empty field, SQL injection attempt, extremely long string. That's data-driven testing. They don't write five separate test cases — they write one test case and run it five times with different inputs. In Playwright, you do the same thing: write one test function, feed it an array of inputs, and Playwright runs it once per row. It's like a spreadsheet test matrix, automated.",
+        lessonMarkdown: `
+## Data-Driven Testing & Parameterization
+
+Manual QA engineers live and breathe test matrices — the same feature tested with different inputs, different users, different environments. Automation should do the same. Writing one test per data combination wastes time and creates a maintenance nightmare. Data-driven testing lets you write the logic once and run it against as many data sets as you need.
+
+---
+
+### 1. Why Data-Driven Testing Exists
+
+*💡 Analogy: A factory quality inspector doesn't test one car and call it done. They test car #1, car #2, car #3 — same checklist, different vehicle. If any car fails a check, that specific car is flagged. Data-driven tests are the same checklist, different inputs — and the report tells you exactly which input caused the failure.*
+
+**The manual QA equivalent:**
+
+A manual tester might have a test case:
+
+\`\`\`
+Test: Login validation
+Data set 1: valid@email.com / correctpassword → should succeed
+Data set 2: invalid@email    / correctpassword → should show email error
+Data set 3: valid@email.com  / wrongpassword   → should show password error
+Data set 4: (empty)          / (empty)         → should show required errors
+\`\`\`
+
+Without data-driven testing, you'd write 4 separate Playwright tests. With data-driven testing, you write 1 test and pass in the 4 rows.
+
+---
+
+### 2. The Simplest Approach — \`for...of\` Loop
+
+*💡 Analogy: Instead of cooking the same dish five times from scratch, you prep all the ingredients at once and cook each plate in sequence. The recipe is identical — only the portion changes.*
+
+Playwright tests are just JavaScript functions — you can loop over test data directly:
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+const loginTestCases = [
+  { email: 'valid@test.com',   password: 'correct123',  expectSuccess: true  },
+  { email: 'invalid-email',    password: 'correct123',  expectSuccess: false },
+  { email: 'valid@test.com',   password: 'wrongpass',   expectSuccess: false },
+  { email: '',                 password: '',            expectSuccess: false },
+];
+
+for (const { email, password, expectSuccess } of loginTestCases) {
+  test(\`login: \${email || '(empty)'} → \${expectSuccess ? 'success' : 'failure'}\`, async ({ page }) => {
+    await page.goto('/login');
+    await page.getByLabel('Email').fill(email);
+    await page.getByLabel('Password').fill(password);
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    if (expectSuccess) {
+      await expect(page).toHaveURL('/dashboard');
+    } else {
+      await expect(page.getByRole('alert')).toBeVisible();
+    }
+  });
+}
+\`\`\`
+
+Each row becomes a separate named test in the report:
+\`\`\`
+✓ login: valid@test.com → success
+✗ login: invalid-email → failure
+✓ login: valid@test.com → failure
+✓ login: (empty) → failure
+\`\`\`
+
+> **QA Tip:** Name your tests using the data values (like \`\${email}\`). When a test fails, the report immediately shows you which data set caused it — no guessing.
+
+---
+
+### 3. Using \`test.describe\` with Multiple Data Sets
+
+For more complex scenarios where you need \`beforeEach\` or shared setup per data set, wrap in \`test.describe\`:
+
+\`\`\`typescript
+const browsers = ['chromium', 'firefox', 'webkit'];
+
+// Run the same form test across different user roles
+const userRoles = [
+  { role: 'admin',   canDelete: true  },
+  { role: 'editor',  canDelete: false },
+  { role: 'viewer',  canDelete: false },
+];
+
+for (const { role, canDelete } of userRoles) {
+  test.describe(\`\${role} permissions\`, () => {
+    test.beforeEach(async ({ page }) => {
+      // Log in as this role before each test
+      await page.goto('/login');
+      await page.getByLabel('Username').fill(\`\${role}@test.com\`);
+      await page.getByLabel('Password').fill('password123');
+      await page.getByRole('button', { name: 'Login' }).click();
+    });
+
+    test('sees delete button correctly', async ({ page }) => {
+      await page.goto('/items');
+      const deleteButton = page.getByRole('button', { name: 'Delete' });
+      if (canDelete) {
+        await expect(deleteButton).toBeVisible();
+      } else {
+        await expect(deleteButton).not.toBeVisible();
+      }
+    });
+  });
+}
+\`\`\`
+
+---
+
+### 4. Loading Test Data from JSON Files
+
+*💡 Analogy: Instead of hardcoding test values in the test file itself — like printing the ingredient list inside the recipe book — you keep the data in a separate file. The recipe stays the same; you just swap the ingredient list.*
+
+For larger data sets, keep data in separate JSON files:
+
+\`\`\`json
+// tests/data/login-data.json
+[
+  { "email": "admin@test.com",   "password": "admin123",  "role": "admin"  },
+  { "email": "editor@test.com",  "password": "edit456",   "role": "editor" },
+  { "email": "viewer@test.com",  "password": "view789",   "role": "viewer" }
+]
+\`\`\`
+
+\`\`\`typescript
+import loginData from './data/login-data.json';
+
+for (const user of loginData) {
+  test(\`\${user.role} can log in\`, async ({ page }) => {
+    await page.goto('/login');
+    await page.getByLabel('Email').fill(user.email);
+    await page.getByLabel('Password').fill(user.password);
+    await page.getByRole('button', { name: 'Login' }).click();
+    await expect(page).toHaveURL('/dashboard');
+  });
+}
+\`\`\`
+
+**Why separate JSON files?**
+- Non-technical QA team members can update test data without touching code
+- Data files can be version-controlled separately
+- Easy to add/remove test cases without changing test logic
+
+---
+
+### 5. Parameterized Fixtures — Sharing Data Across Multiple Tests
+
+For data that multiple tests in a file share, use a custom fixture:
+
+\`\`\`typescript
+import { test as base, expect } from '@playwright/test';
+
+type TestData = { userEmail: string; userPassword: string };
+
+// Extend base test with a typed fixture
+const test = base.extend<{ testUser: TestData }>({
+  testUser: async ({}, use) => {
+    // Could load from env vars, JSON, or an API
+    await use({
+      userEmail: process.env.TEST_USER_EMAIL || 'test@example.com',
+      userPassword: process.env.TEST_USER_PASSWORD || 'testpass123',
+    });
+  },
+});
+
+test('dashboard loads after login', async ({ page, testUser }) => {
+  await page.goto('/login');
+  await page.getByLabel('Email').fill(testUser.userEmail);
+  await page.getByLabel('Password').fill(testUser.userPassword);
+  await page.getByRole('button', { name: 'Login' }).click();
+  await expect(page.getByText('Welcome')).toBeVisible();
+});
+\`\`\`
+
+---
+
+### 6. When to Use Data-Driven Testing vs Separate Tests
+
+| Situation | Use data-driven | Use separate tests |
+|---|---|---|
+| Same flow, different inputs (login, search, form validation) | ✅ | |
+| Completely different user journeys | | ✅ |
+| Permission/role testing | ✅ | |
+| Browser/device matrix | ✅ (use projects config) | |
+| Different feature areas | | ✅ |
+| Edge cases with unique setup logic | | ✅ |
+
+> **Rule of thumb:** If you'd write the exact same lines of code twice with different variable values — use data-driven. If the test steps themselves differ — write separate tests.
+        `,
+      },
+
+      {
+        id: 'pw-cicd-github-actions',
+        title: 'Running Playwright in CI/CD — GitHub Actions',
+        analogy: "A manual QA engineer tests the app on their own laptop. But a QA automation engineer's job isn't just to write tests — it's to make tests run automatically every time code changes, without anyone pressing a button. GitHub Actions is the robot that lives in the cloud. Every time a developer pushes code, the robot wakes up, sets up a fresh computer, installs everything, runs all your Playwright tests, and reports back: pass or fail. Your job was to teach the robot what to do. This module is that lesson.",
+        lessonMarkdown: `
+## Running Playwright in CI/CD — GitHub Actions
+
+Writing tests on your laptop is only half the job. Tests that only run when someone remembers to run them provide almost no value to the team. The power of automation comes from tests that run **automatically** — on every code change, on every pull request, on every deployment. This module teaches you how to set that up using GitHub Actions, the most widely used CI/CD platform in the industry.
+
+---
+
+### 1. What CI/CD Means for QA Engineers
+
+*💡 Analogy: Manual QA is like a security guard who checks IDs at the door only when the manager asks. CI/CD is like an automatic turnstile that checks every single person, every single time, without anyone asking. One is reactive; the other is always on.*
+
+**CI (Continuous Integration):** Every time a developer pushes code, automated tests run to verify nothing is broken.
+
+**CD (Continuous Deployment):** If tests pass, the code is automatically deployed to production (or a staging environment).
+
+**Your role as a QA automation engineer:** Make sure your Playwright tests are part of the CI pipeline so every code change is verified before it reaches users.
+
+---
+
+### 2. Your First GitHub Actions Workflow
+
+*💡 Analogy: A workflow file is a recipe card given to the robot. It says: "When someone pushes code, follow these steps in this order." The robot reads the recipe and executes it on a fresh computer every time.*
+
+Create this file in your project:
+
+\`\`\`
+.github/workflows/playwright.yml
+\`\`\`
+
+\`\`\`yaml
+name: Playwright Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        run: npx playwright test
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+\`\`\`
+
+**Breaking down each step:**
+
+| Step | What it does | Why it's needed |
+|---|---|---|
+| \`checkout\` | Downloads your code onto the CI machine | Without this, there's no code to run |
+| \`setup-node\` | Installs Node.js | Playwright needs Node.js |
+| \`npm ci\` | Installs exact package versions from lock file | Reproducible installs — same versions every time |
+| \`playwright install --with-deps\` | Downloads Chromium, Firefox, WebKit + OS dependencies | CI machines don't have browsers pre-installed |
+| \`playwright test\` | Runs all your tests | The actual work |
+| \`upload-artifact\` | Saves the HTML report | So you can download and inspect failures |
+
+> **Critical:** \`npx playwright install --with-deps\` is the step most beginners forget. CI machines (Ubuntu) don't have browser binaries or the OS libraries browsers need. This one command installs everything.
+
+---
+
+### 3. Downloading and Reading the HTML Report from CI
+
+After a workflow run:
+
+1. Go to your GitHub repository
+2. Click **Actions** tab
+3. Click the workflow run that failed
+4. Scroll to **Artifacts** at the bottom
+5. Download \`playwright-report.zip\`
+6. Unzip it and open \`index.html\` in your browser
+
+You'll see the full HTML report with all failures, screenshots, and trace files — exactly like running locally.
+
+> **QA Tip:** The \`if: always()\` on the upload step is essential. Without it, the report only uploads when tests pass. You need the report most when tests fail — so always upload it regardless of outcome.
+
+---
+
+### 4. Using Environment Variables in CI
+
+*💡 Analogy: Your test suite needs a username and password to log in. You don't hardcode your real credentials in the code (that would be like writing your bank PIN on your front door). Instead, you store them as secrets in GitHub and inject them at runtime — like a lockbox only the robot can open.*
+
+**Storing secrets in GitHub:**
+1. Go to your repo → **Settings** → **Secrets and variables** → **Actions**
+2. Click **New repository secret**
+3. Add: \`TEST_USER_EMAIL\` and \`TEST_USER_PASSWORD\`
+
+**Using secrets in your workflow:**
+
+\`\`\`yaml
+- name: Run Playwright tests
+  run: npx playwright test
+  env:
+    TEST_USER_EMAIL: \${{ secrets.TEST_USER_EMAIL }}
+    TEST_USER_PASSWORD: \${{ secrets.TEST_USER_PASSWORD }}
+    BASE_URL: https://staging.yourapp.com
+\`\`\`
+
+**Reading environment variables in your tests:**
+
+\`\`\`typescript
+// playwright.config.ts
+export default defineConfig({
+  use: {
+    baseURL: process.env.BASE_URL || 'http://localhost:5173',
+  },
+});
+
+// In tests
+const email = process.env.TEST_USER_EMAIL || 'fallback@test.com';
+\`\`\`
+
+---
+
+### 5. Running Only Specific Tests in CI
+
+You don't always need to run every test on every push. Use tags to control which tests run where:
+
+\`\`\`typescript
+// Tag tests with @smoke for fast CI checks
+test('homepage loads @smoke', async ({ page }) => { ... });
+test('login works @smoke', async ({ page }) => { ... });
+test('full checkout flow', async ({ page }) => { ... }); // no tag = full suite only
+\`\`\`
+
+\`\`\`yaml
+# Run only smoke tests on every push (fast)
+- name: Run smoke tests
+  run: npx playwright test --grep @smoke
+
+# Run full suite only on PRs to main
+- name: Run full suite
+  if: github.event_name == 'pull_request'
+  run: npx playwright test
+\`\`\`
+
+---
+
+### 6. Common CI Failures and How to Fix Them
+
+| Failure | Cause | Fix |
+|---|---|---|
+| \`browserType.launch: Executable doesn't exist\` | Browsers not installed | Add \`npx playwright install --with-deps\` step |
+| \`net::ERR_CONNECTION_REFUSED\` | App not running on CI | Add a step to start your dev server before tests |
+| Tests pass locally, fail in CI | Timing issues on slower CI machines | Increase \`timeout\` in config, remove hard waits |
+| \`ENOSPC: no space left on device\` | Video/trace files filling disk | Use \`retain-on-failure\` instead of \`on\` for traces |
+| Tests hang in CI | No \`--headed\` flag needed, but Xvfb missing | Add \`xvfb-run\` or use \`--browser=chromium\` (headless default) |
+
+**Starting your dev server before tests run:**
+
+\`\`\`yaml
+- name: Run Playwright tests
+  run: npx playwright test
+  env:
+    CI: true
+
+# OR use Playwright's built-in webServer in playwright.config.ts:
+\`\`\`
+
+\`\`\`typescript
+// playwright.config.ts
+export default defineConfig({
+  webServer: {
+    command: 'npm run dev',
+    url: 'http://localhost:5173',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
+  },
+});
+\`\`\`
+
+The \`webServer\` config tells Playwright to start your app before running tests and shut it down after. In CI, it always starts fresh. Locally, it reuses a running server if one exists.
+
+> **Rule of thumb:** If your tests need the app to be running, use \`webServer\` in \`playwright.config.ts\`. It's more reliable than a separate startup step because Playwright waits until the URL is actually responding before starting tests.
+        `,
+      },
+
+      {
         id: 'pw-auth-at-scale',
         title: 'Authentication at Scale',
         analogy: "Amateur QA engineers log into the app before every test — like a hotel guest who checks in, goes to their room, comes back to the lobby, checks in again, goes to their room, comes back, checks in again — for every single thing they need to do. Expert QA engineers check in once, get a key card, clone the key card, and hand a copy to every room. storageState is the key card cloner. You authenticate once, save the serialised browser session, and every test starts already logged in — instantly, with zero network round-trips.",
