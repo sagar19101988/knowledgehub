@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import {
   BookOpen, Eye, EyeOff, Loader2, Mail, Lock, User,
-  AlertCircle, Sun, Moon, Volume2, VolumeX, MailCheck,
+  AlertCircle, Sun, Moon, MailCheck,
   // Tour: zone icons (must match src/data/zones.tsx)
   ShieldAlert, Database, Cpu, Code, Play, ShieldCheck,
   // Tour: chrome / scene icons
@@ -54,39 +54,6 @@ export function AuthPage() {
     const ok = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val);
     setEmailError(ok ? '' : 'Please enter a valid email address (e.g. you@example.com)');
     return ok;
-  };
-
-  // ── Narrator audio ────────────────────────────────────────
-  const audioRef               = React.useRef<HTMLAudioElement | null>(null);
-  const [isMuted, setIsMuted]   = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-
-  React.useEffect(() => {
-    const audio = new Audio('/narrator.mpeg');
-    audio.volume = 0.92;
-    audioRef.current = audio;
-    audio.addEventListener('play',  () => setIsSpeaking(true));
-    audio.addEventListener('ended', () => setIsSpeaking(false));
-    audio.addEventListener('pause', () => setIsSpeaking(false));
-    audio.addEventListener('error', () => setIsSpeaking(false));
-    const timer = setTimeout(() => {
-      if (!audio.muted) audio.play().catch(() => {});
-    }, 900);
-    return () => { clearTimeout(timer); audio.pause(); audio.src = ''; };
-  }, []);
-
-  const handleVoiceToggle = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (isMuted) {
-      audio.muted = false;
-      setIsMuted(false);
-      if (audio.ended || audio.paused) { audio.currentTime = 0; audio.play().catch(() => {}); }
-    } else {
-      audio.muted = true;
-      setIsMuted(true);
-      setIsSpeaking(false);
-    }
   };
 
   // ── Auth handlers ─────────────────────────────────────────
@@ -170,33 +137,6 @@ export function AuthPage() {
             {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
           </button>
 
-          {/* Narrator button */}
-          <div className="absolute top-5 left-5">
-            <button onClick={handleVoiceToggle}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all duration-200 ${
-                isMuted
-                  ? (isDark
-                      ? 'bg-slate-900/60 border-slate-700/60 text-slate-400 hover:text-slate-600'
-                      : 'bg-white border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50')
-                  : (isDark
-                      ? 'bg-violet-500/10 border-violet-500/30 text-violet-400 hover:bg-violet-500/20'
-                      : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100')
-              }`}
-            >
-              {isMuted ? <VolumeX size={13} /> : <Volume2 size={13} />}
-              {!isMuted && isSpeaking && (
-                <div className="flex items-end gap-px h-3">
-                  {[0, 0.18, 0.09].map((delay, i) => (
-                    <motion.div key={i} className={`w-0.5 rounded-full ${isDark ? 'bg-violet-400' : 'bg-blue-500'}`}
-                      animate={{ height: ['3px', '11px', '3px'] }}
-                      transition={{ duration: 0.55, repeat: Infinity, delay, ease: 'easeInOut' }}
-                    />
-                  ))}
-                </div>
-              )}
-              <span className="hidden sm:inline">{isMuted ? 'Narrator off' : isSpeaking ? 'Narrating…' : 'Replay'}</span>
-            </button>
-          </div>
 
           <AnimatePresence mode="wait">
           {pendingVerification ? (
