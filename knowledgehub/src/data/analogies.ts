@@ -30194,6 +30194,639 @@ The \`webServer\` config tells Playwright to start your app before running tests
       },
 
       {
+        id: 'pw-typescript-patterns',
+        title: 'TypeScript + Playwright — Type-Safe Test Patterns',
+        analogy: "A Page Object without TypeScript is like a vending machine with no labels on the buttons. You can press buttons, but you're guessing what you'll get. Add TypeScript and suddenly every button is labelled, the machine tells you which buttons exist, and it refuses to let you press a button that doesn't exist. TypeScript doesn't change how Playwright works — it makes your test code self-documenting, catches mistakes before you run a single test, and gives you autocomplete so you spend less time reading documentation and more time writing tests.",
+        lessonMarkdown: `
+## TypeScript + Playwright — Type-Safe Test Patterns
+
+Playwright works perfectly with plain JavaScript. But every serious test suite eventually migrates to TypeScript — because TypeScript catches whole categories of bugs before the tests even run. This module bridges your TypeScript knowledge and your Playwright skills, showing you exactly where TypeScript adds the most value in real automation work.
+
+---
+
+### 1. Why TypeScript Matters in Test Code
+
+*💡 Analogy: Writing test code in JavaScript is like building a house and choosing not to use a spirit level. The house might be fine — or it might have subtle problems you only discover when the walls start cracking. TypeScript is the spirit level. It doesn't build the house for you — it tells you immediately when something is off.*
+
+Without TypeScript, these bugs only surface at runtime:
+
+\`\`\`typescript
+// ❌ JavaScript — no errors until the test runs and crashes
+const loginPage = new LoginPage(page);
+await loginPage.submitForm();     // submitForm doesn't exist — typo for 'submit'
+await loginPage.fillEmail(null);  // null is not valid — discovered only when running
+\`\`\`
+
+\`\`\`typescript
+// ✅ TypeScript — errors caught before running
+const loginPage = new LoginPage(page);
+await loginPage.submitForm();     // TS Error: Property 'submitForm' does not exist
+await loginPage.fillEmail(null);  // TS Error: Argument of type 'null' is not assignable to 'string'
+\`\`\`
+
+**TypeScript benefits in test code specifically:**
+- Autocomplete on Page Objects (see all available methods)
+- Catch typos in method names before running tests
+- Enforce that test data has the right shape
+- Document what parameters a function expects
+
+---
+
+### 2. Typing Page Objects
+
+*💡 Analogy: An untyped Page Object is a toolbox with no labels — you open it and stare at tools without knowing what they do. A typed Page Object is a labelled toolbox — you open it, see exactly what's available, and your IDE tells you how to use each tool.*
+
+**Basic typed Page Object:**
+
+\`\`\`typescript
+import { Page, Locator, expect } from '@playwright/test';
+
+export class LoginPage {
+  readonly page: Page;
+  readonly emailInput: Locator;
+  readonly passwordInput: Locator;
+  readonly submitButton: Locator;
+  readonly errorMessage: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.emailInput    = page.getByLabel('Email');
+    this.passwordInput = page.getByLabel('Password');
+    this.submitButton  = page.getByRole('button', { name: 'Login' });
+    this.errorMessage  = page.getByRole('alert');
+  }
+
+  async goto(): Promise<void> {
+    await this.page.goto('/login');
+  }
+
+  async login(email: string, password: string): Promise<void> {
+    await this.emailInput.fill(email);
+    await this.passwordInput.fill(password);
+    await this.submitButton.click();
+  }
+
+  async expectError(message: string): Promise<void> {
+    await expect(this.errorMessage).toContainText(message);
+  }
+}
+\`\`\`
+
+**In your test file:**
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+import { LoginPage } from './pages/LoginPage';
+
+test('login with valid credentials', async ({ page }) => {
+  const loginPage = new LoginPage(page);
+  await loginPage.goto();
+  await loginPage.login('user@test.com', 'password123');
+  await expect(page).toHaveURL('/dashboard');
+});
+\`\`\`
+
+---
+
+### 3. Typing Test Data with Interfaces
+
+*💡 Analogy: A test data object without an interface is a form with no field labels — you fill in boxes but you're not sure what goes where. An interface is the labelled form: Name here, Email here, Role here — and if you try to put a number where text goes, the form rejects it immediately.*
+
+\`\`\`typescript
+// Define the shape of your test data
+interface User {
+  email: string;
+  password: string;
+  role: 'admin' | 'editor' | 'viewer';  // union type — only these 3 values allowed
+  fullName?: string;                      // optional field
+}
+
+// TypeScript enforces the shape
+const testUsers: User[] = [
+  { email: 'admin@test.com',  password: 'admin123', role: 'admin'  },
+  { email: 'editor@test.com', password: 'edit456',  role: 'editor' },
+  { email: 'viewer@test.com', password: 'view789',  role: 'viewer' },
+];
+
+// TS Error: 'superuser' is not assignable to 'admin' | 'editor' | 'viewer'
+const badUser: User = { email: 'x@x.com', password: 'pass', role: 'superuser' };
+\`\`\`
+
+**Using interfaces for expected page states:**
+
+\`\`\`typescript
+interface DashboardState {
+  welcomeMessage: string;
+  visibleTabs: string[];
+  canAccessSettings: boolean;
+}
+
+async function assertDashboard(page: Page, expected: DashboardState): Promise<void> {
+  await expect(page.getByText(expected.welcomeMessage)).toBeVisible();
+  for (const tab of expected.visibleTabs) {
+    await expect(page.getByRole('tab', { name: tab })).toBeVisible();
+  }
+  const settingsLink = page.getByRole('link', { name: 'Settings' });
+  if (expected.canAccessSettings) {
+    await expect(settingsLink).toBeVisible();
+  } else {
+    await expect(settingsLink).not.toBeVisible();
+  }
+}
+\`\`\`
+
+---
+
+### 4. Typing Custom Fixtures
+
+*💡 Analogy: An untyped fixture is a shared tool cupboard where anyone can put anything and take anything. A typed fixture is a named locker system — each locker has a label, a known size, and only accepts what it's designed for.*
+
+\`\`\`typescript
+import { test as base, Page } from '@playwright/test';
+import { LoginPage } from './pages/LoginPage';
+import { DashboardPage } from './pages/DashboardPage';
+
+// Define the type of your custom fixtures
+type AppFixtures = {
+  loginPage: LoginPage;
+  dashboardPage: DashboardPage;
+  loggedInPage: Page;  // a page fixture that's already logged in
+};
+
+// Extend the base test with typed fixtures
+export const test = base.extend<AppFixtures>({
+  loginPage: async ({ page }, use) => {
+    await use(new LoginPage(page));
+  },
+
+  dashboardPage: async ({ page }, use) => {
+    await use(new DashboardPage(page));
+  },
+
+  loggedInPage: async ({ page }, use) => {
+    const loginPage = new LoginPage(page);
+    await loginPage.goto();
+    await loginPage.login(
+      process.env.TEST_EMAIL ?? 'test@example.com',
+      process.env.TEST_PASSWORD ?? 'testpass'
+    );
+    await use(page);
+  },
+});
+
+export { expect } from '@playwright/test';
+\`\`\`
+
+**Using typed fixtures in tests:**
+\`\`\`typescript
+// Import the extended test, not the base one
+import { test, expect } from './fixtures';
+
+test('dashboard loads after login', async ({ loggedInPage }) => {
+  // loggedInPage is already authenticated — TypeScript knows its type is Page
+  await expect(loggedInPage.getByText('Welcome')).toBeVisible();
+});
+
+test('login page has correct elements', async ({ loginPage }) => {
+  // TypeScript autocompletes all LoginPage methods
+  await loginPage.goto();
+  await expect(loginPage.emailInput).toBeVisible();
+});
+\`\`\`
+
+---
+
+### 5. Using Utility Types in Test Code
+
+TypeScript's built-in utility types are useful for test data manipulation:
+
+\`\`\`typescript
+interface User {
+  id: number;
+  email: string;
+  password: string;
+  role: 'admin' | 'editor';
+  createdAt: Date;
+}
+
+// Partial<User> — all fields optional (useful for update test data)
+const updateData: Partial<User> = { email: 'new@test.com' };
+
+// Omit<User, 'id' | 'createdAt'> — create user without auto-generated fields
+type CreateUserPayload = Omit<User, 'id' | 'createdAt'>;
+const newUser: CreateUserPayload = {
+  email: 'new@test.com',
+  password: 'pass123',
+  role: 'editor',
+};
+
+// Pick<User, 'email' | 'role'> — only the fields you need for a specific assertion
+type UserSummary = Pick<User, 'email' | 'role'>;
+\`\`\`
+
+> **Rule of thumb:** If you find yourself writing the same interface properties in multiple test files, extract them into a shared \`types/\` directory. One source of truth for test data shapes means one place to update when the API changes.
+        `,
+      },
+
+      {
+        id: 'pw-antipatterns',
+        title: 'Anti-Patterns & Best Practices — What Kills Test Suites',
+        analogy: "Every manual QA engineer who moves to automation carries invisible luggage from their manual testing days — habits that made sense when a human was watching, but silently destroy automated suites. Hard sleeps made sense when you were waiting for the page to load. Clicking by coordinates made sense when you could see exactly where the button was. In automation, these habits become landmines that detonate months later when the CI machine is slightly slower, or a developer moves a button three pixels to the left. This module is the customs officer who opens your luggage and removes what will cause problems.",
+        lessonMarkdown: `
+## Anti-Patterns & Best Practices — What Kills Test Suites
+
+Most automation suites don't fail because of complex technical problems. They fail because of a small set of avoidable patterns that seem harmless early on and compound into catastrophic flakiness later. This module catalogues the most common anti-patterns — what they look like, why they cause problems, and the correct alternative.
+
+---
+
+### 1. The Worst Anti-Pattern: Hard Sleeps
+
+*💡 Analogy: Setting an alarm for 3 hours every time you need to wait for a friend to arrive — even if they typically arrive in 10 minutes. Most of the time you've wasted time. Sometimes they arrive in 3 hours and 1 minute and you missed them anyway. Hard sleeps waste time and still fail intermittently.*
+
+\`\`\`typescript
+// ❌ NEVER do this
+await page.waitForTimeout(3000); // Wait 3 seconds and hope the element appears
+await page.click('#submit');
+
+// ✅ Wait for the specific condition you care about
+await page.getByRole('button', { name: 'Submit' }).click();
+// Playwright auto-waits for the button to be visible, enabled, and stable
+
+// ✅ Or wait for a specific response before proceeding
+const responsePromise = page.waitForResponse('/api/save');
+await page.getByRole('button', { name: 'Submit' }).click();
+await responsePromise;
+\`\`\`
+
+**Why hard sleeps are dangerous:**
+- On a fast machine, 3 seconds wastes time (element was ready in 200ms)
+- On a slow CI machine, 3 seconds isn't enough (element takes 4 seconds)
+- They hide the real problem instead of solving it
+
+---
+
+### 2. Fragile Locators — CSS Classes and XPath
+
+*💡 Analogy: Giving someone directions based on "the blue house on the left". Works today — but what if the house gets repainted? Locating elements by auto-generated CSS class names is the same mistake. The class changes on the next build and your test breaks.*
+
+\`\`\`typescript
+// ❌ Fragile — breaks when CSS classes are regenerated (common in React/Vue)
+await page.click('.btn-primary-abc123');
+await page.click('div > div:nth-child(3) > button');
+
+// ❌ Fragile XPath — breaks when DOM structure changes
+await page.click('//div[@class="container"]/button[1]');
+
+// ✅ Resilient — targets user-facing attributes that developers shouldn't change
+await page.getByRole('button', { name: 'Submit' });
+await page.getByLabel('Email address');
+await page.getByText('Confirm your order');
+await page.getByTestId('submit-button'); // data-testid is stable by convention
+\`\`\`
+
+**Locator resilience ranking (most to least resilient):**
+
+| Locator type | Resilience | When to use |
+|---|---|---|
+| \`getByRole\` | ⭐⭐⭐⭐⭐ | Always prefer — tests accessibility too |
+| \`getByLabel\` | ⭐⭐⭐⭐⭐ | Form inputs with labels |
+| \`getByText\` | ⭐⭐⭐⭐ | Static visible text |
+| \`getByTestId\` | ⭐⭐⭐⭐ | When above options aren't practical |
+| CSS class selector | ⭐⭐ | Only stable, semantic classes |
+| XPath | ⭐ | Last resort only |
+| nth-child selectors | ❌ | Never — breaks on DOM reorder |
+
+---
+
+### 3. Testing Implementation Details
+
+*💡 Analogy: A customer testing a restaurant doesn't care that the chef used a particular knife or heated the pan to exactly 180 degrees. They care that the food tastes good and arrives in reasonable time. Tests that check internal implementation details are like inspecting the chef's equipment — irrelevant to the real quality and likely to break when the chef upgrades their tools.*
+
+\`\`\`typescript
+// ❌ Testing implementation — checks internal class names
+await expect(page.locator('#login-btn')).toHaveClass('btn-disabled');
+
+// ❌ Testing implementation — checks internal state via JS evaluation
+const isDisabled = await page.evaluate(() =>
+  document.querySelector('#login-btn').getAttribute('aria-disabled')
+);
+expect(isDisabled).toBe('true');
+
+// ✅ Testing behaviour — what the USER experiences
+await expect(page.getByRole('button', { name: 'Login' })).toBeDisabled();
+await expect(page.getByRole('button', { name: 'Login' })).not.toBeEnabled();
+\`\`\`
+
+**Rule:** Test what the user sees and experiences. If a developer refactors the internals without changing the behaviour, your tests should still pass.
+
+---
+
+### 4. test.only() Left in Code
+
+\`\`\`typescript
+// ❌ NEVER commit this — it silently skips all other tests
+test.only('login works', async ({ page }) => { ... });
+
+// ✅ Run a single test locally using the CLI instead
+// npx playwright test --grep "login works"
+// npx playwright test login.spec.ts
+\`\`\`
+
+\`test.only()\` is a local development tool. If it's accidentally committed, your entire test suite silently runs only that one test in CI — and everything else is reported as "skipped" not "passing". This is one of the most dangerous anti-patterns because it looks like tests are passing when they're not running at all.
+
+---
+
+### 5. Not Cleaning Up Test Data
+
+*💡 Analogy: A manual tester who creates a test account, runs their tests, and leaves the account in the system. The next tester creates another account. After a month, there are hundreds of orphan test accounts polluting the production database.*
+
+\`\`\`typescript
+// ❌ Creates data but never cleans it up
+test('create user', async ({ page, request }) => {
+  await request.post('/api/users', { data: { email: 'test@test.com' } });
+  // test passes — but test user remains in the database forever
+});
+
+// ✅ Clean up after yourself using afterEach or the fixture lifecycle
+test('create user', async ({ page, request }) => {
+  let userId: number;
+
+  // Create
+  const response = await request.post('/api/users', {
+    data: { email: 'test@test.com' }
+  });
+  userId = (await response.json()).id;
+
+  // Test
+  await page.goto(\`/users/\${userId}\`);
+  await expect(page.getByText('test@test.com')).toBeVisible();
+
+  // Cleanup
+  await request.delete(\`/api/users/\${userId}\`);
+});
+\`\`\`
+
+---
+
+### 6. Assertions Without Waiting
+
+\`\`\`typescript
+// ❌ Grabs text synchronously — may read stale value before UI updates
+const text = await page.textContent('.status-message');
+expect(text).toBe('Saved successfully');
+
+// ✅ Use Playwright's built-in auto-retrying assertions
+await expect(page.locator('.status-message')).toHaveText('Saved successfully');
+// This retries up to the timeout until the text matches — survives async UI updates
+\`\`\`
+
+Playwright's \`expect(locator).toXxx()\` assertions **auto-retry** until the condition is met or the timeout expires. Direct \`page.textContent()\` followed by \`expect()\` is a point-in-time snapshot that can fail if the UI hasn't updated yet.
+
+---
+
+### 7. One Giant Test That Does Everything
+
+\`\`\`typescript
+// ❌ One test covers the entire user journey — if step 5 fails, you don't know why
+test('complete user journey', async ({ page }) => {
+  // Login (step 1)
+  // Create project (step 2)
+  // Add team members (step 3)
+  // Configure settings (step 4)
+  // Submit for review (step 5) ← fails here
+  // Approve (step 6)
+  // Publish (step 7)
+});
+
+// ✅ Each meaningful action has its own test
+test('user can log in', async ({ page }) => { ... });
+test('user can create a project', async ({ page }) => { ... });
+test('user can add team members', async ({ page }) => { ... });
+\`\`\`
+
+**Why:** When a large test fails at step 5, you don't know if steps 1-4 are broken too. Separate tests give you a precise failure report and run independently in parallel.
+
+---
+
+### Quick Reference — The Do's and Don'ts
+
+| ❌ Anti-pattern | ✅ Best practice |
+|---|---|
+| \`waitForTimeout(3000)\` | Event-driven waits — \`waitForResponse\`, \`expect(locator).toBeVisible()\` |
+| CSS class selectors | \`getByRole\`, \`getByLabel\`, \`getByTestId\` |
+| \`test.only()\` committed | Use CLI \`--grep\` flag for local filtering |
+| Asserting \`.textContent()\` directly | \`expect(locator).toHaveText()\` |
+| One test for everything | One test per meaningful behaviour |
+| No data cleanup | \`afterEach\` cleanup or fixture teardown |
+| XPath selectors | Semantic locators |
+| \`{ force: true }\` on every click | Investigate why the element is obscured |
+        `,
+      },
+
+      {
+        id: 'pw-hybrid-api-ui',
+        title: 'Hybrid API + UI Testing — Bridging Both Worlds',
+        analogy: "A manual QA engineer testing an e-commerce site might create an order via the UI, then check the database to confirm it was saved correctly. That's the hybrid approach — verify from multiple angles. In Playwright, you do the same thing: create test data via the API (fast, reliable), test the UI behaviour (what the user sees), then verify the outcome via the API (confirm the data is correct). You're not choosing between API testing and UI testing — you're using each for what it's best at.",
+        lessonMarkdown: `
+## Hybrid API + UI Testing — Bridging Both Worlds
+
+The most powerful QA automation strategies don't choose between API testing and UI testing — they use both together. Set up test data via the API (fast, no UI flakiness), test the user experience via the UI (what matters most to users), verify outcomes via the API (confirm the system state). This module teaches you to blend both in a single Playwright test.
+
+---
+
+### 1. Why Hybrid Testing Exists
+
+*💡 Analogy: A pilot doesn't just read the instruments — they also look out the window. And they don't just look out the window — they also read the instruments. Each gives information the other can't. Hybrid testing is the same: the UI tells you what the user sees, the API tells you what the system actually did.*
+
+**The three scenarios where hybrid testing shines:**
+
+| Scenario | UI alone | API alone | Hybrid |
+|---|---|---|---|
+| Create data, test UI display | Slow (UI form filling) | Can't test UI | ✅ API creates, UI verifies |
+| Submit a form, verify backend saved correctly | Can't verify backend | Can't test the form UX | ✅ UI submits, API verifies |
+| Set up complex state before testing | Fragile (many UI steps) | Works but no UI coverage | ✅ API sets up, UI exercises feature |
+
+---
+
+### 2. Pattern 1 — API Setup, UI Verification
+
+*💡 Analogy: A restaurant reviewer doesn't cook the food themselves before tasting it. They sit down, the kitchen prepares the meal, and the reviewer evaluates what arrives at the table. Use the API (the kitchen) to prepare the state. Use the UI test (the reviewer) to evaluate what the user experiences.*
+
+Create test data via API, then verify it displays correctly in the UI:
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+test('newly created product appears in the product list', async ({ page, request }) => {
+  // Step 1: Create test data via API — fast, no UI flakiness
+  const response = await request.post('/api/products', {
+    data: {
+      name: 'Test Headphones',
+      price: 2999,
+      category: 'electronics',
+    },
+    headers: {
+      Authorization: \`Bearer \${process.env.API_TOKEN}\`,
+    },
+  });
+  expect(response.ok()).toBeTruthy();
+  const { id } = await response.json();
+
+  // Step 2: Navigate to UI and verify the product appears
+  await page.goto('/products');
+  await expect(page.getByText('Test Headphones')).toBeVisible();
+  await expect(page.getByText('₹2,999')).toBeVisible();
+
+  // Step 3: Cleanup via API — don't leave test data behind
+  await request.delete(\`/api/products/\${id}\`, {
+    headers: { Authorization: \`Bearer \${process.env.API_TOKEN}\` },
+  });
+});
+\`\`\`
+
+**Why create via API instead of the UI form?**
+- 10x faster than filling a multi-step form
+- No flakiness from UI interactions during setup
+- Isolates the test: if the product form is broken, this test still verifies the product list
+
+---
+
+### 3. Pattern 2 — UI Action, API Verification
+
+*💡 Analogy: A quality inspector watches the worker press the button on the machine, then uses a measuring tool to verify the output meets spec. The inspector doesn't just trust the machine's display — they independently verify the result. UI submits the action; API independently confirms the outcome.*
+
+Submit a form via the UI, then verify the backend saved it correctly:
+
+\`\`\`typescript
+test('submitting a contact form saves the message in the database', async ({ page, request }) => {
+  // Step 1: Complete the UI action
+  await page.goto('/contact');
+  await page.getByLabel('Name').fill('Ravi Kumar');
+  await page.getByLabel('Email').fill('ravi@test.com');
+  await page.getByLabel('Message').fill('I need help with my order #12345');
+  await page.getByRole('button', { name: 'Send Message' }).click();
+
+  // Step 2: Verify the UI feedback
+  await expect(page.getByText('Message sent successfully')).toBeVisible();
+
+  // Step 3: Verify the backend saved it correctly via API
+  const response = await request.get('/api/messages?email=ravi@test.com', {
+    headers: { Authorization: \`Bearer \${process.env.API_TOKEN}\` },
+  });
+  const messages = await response.json();
+  expect(messages).toHaveLength(1);
+  expect(messages[0].subject).toContain('order #12345');
+  expect(messages[0].status).toBe('unread');
+});
+\`\`\`
+
+**Why verify via API after the UI action?**
+- The UI showing "success" doesn't mean the database was updated
+- Backend validation errors might be swallowed by the frontend
+- This confirms the full end-to-end flow, not just the UI layer
+
+---
+
+### 4. Pattern 3 — Complex State Setup via API
+
+*💡 Analogy: A flight simulator instructor sets up a specific emergency scenario (engine failure, bad weather, wrong altitude) before the pilot gets in the cockpit. Setting up that exact state via normal cockpit controls would take hours. The API is the instructor's control panel — direct access to set up exactly what you need.*
+
+For complex features that require a lot of prior state, set everything up via API:
+
+\`\`\`typescript
+test('admin can see all pending approvals', async ({ page, request }) => {
+  const authHeader = { Authorization: \`Bearer \${process.env.ADMIN_TOKEN}\` };
+
+  // Create multiple pending approvals via API — much faster than UI
+  const createdIds: number[] = [];
+  for (const item of [
+    { title: 'Blog Post: React Hooks', type: 'content' },
+    { title: 'User: john@test.com', type: 'account' },
+    { title: 'Product: New Laptop', type: 'product' },
+  ]) {
+    const res = await request.post('/api/approvals', {
+      data: item,
+      headers: authHeader,
+    });
+    createdIds.push((await res.json()).id);
+  }
+
+  // Now test the UI behaviour
+  await page.goto('/admin/approvals');
+  await expect(page.getByText('Blog Post: React Hooks')).toBeVisible();
+  await expect(page.getByText('User: john@test.com')).toBeVisible();
+  await expect(page.getByText('Product: New Laptop')).toBeVisible();
+  await expect(page.getByTestId('pending-count')).toHaveText('3');
+
+  // Cleanup
+  for (const id of createdIds) {
+    await request.delete(\`/api/approvals/\${id}\`, { headers: authHeader });
+  }
+});
+\`\`\`
+
+---
+
+### 5. Sharing the APIRequestContext Across Tests via Fixtures
+
+For tests that make many API calls, wrap the setup in a fixture so it's reusable:
+
+\`\`\`typescript
+import { test as base, expect, APIRequestContext } from '@playwright/test';
+
+type ApiFixtures = {
+  authenticatedRequest: APIRequestContext;
+};
+
+export const test = base.extend<ApiFixtures>({
+  authenticatedRequest: async ({ request }, use) => {
+    // All requests from this fixture are pre-authenticated
+    const context = await request.newContext({
+      baseURL: process.env.API_BASE_URL || 'http://localhost:3000',
+      extraHTTPHeaders: {
+        Authorization: \`Bearer \${process.env.API_TOKEN}\`,
+        'Content-Type': 'application/json',
+      },
+    });
+    await use(context);
+    await context.dispose();
+  },
+});
+
+// In your test:
+test('product list shows API data', async ({ page, authenticatedRequest }) => {
+  // Create via authenticated API
+  const res = await authenticatedRequest.post('/api/products', {
+    data: { name: 'Test Product', price: 999 },
+  });
+  const { id } = await res.json();
+
+  // Verify in UI
+  await page.goto('/products');
+  await expect(page.getByText('Test Product')).toBeVisible();
+
+  // Cleanup
+  await authenticatedRequest.delete(\`/api/products/\${id}\`);
+});
+\`\`\`
+
+---
+
+### 6. When to Use Each Approach
+
+| Need | Best approach |
+|---|---|
+| Set up complex prerequisite data | API setup |
+| Test user-facing behaviour and UX | UI test |
+| Verify data was saved correctly | API verification |
+| Test form validation messages | UI test |
+| Test search/filter/display of records | API creates records, UI tests display |
+| Test a complete workflow end-to-end | Hybrid — API for setup, UI for the core flow, API to verify outcome |
+
+> **Rule of thumb:** Use the UI to test what the user experiences. Use the API for everything else — setup, teardown, verification. This keeps tests fast, focused, and resilient.
+        `,
+      },
+
+      {
         id: 'pw-auth-at-scale',
         title: 'Authentication at Scale',
         analogy: "Amateur QA engineers log into the app before every test — like a hotel guest who checks in, goes to their room, comes back to the lobby, checks in again, goes to their room, comes back, checks in again — for every single thing they need to do. Expert QA engineers check in once, get a key card, clone the key card, and hand a copy to every room. storageState is the key card cloner. You authenticate once, save the serialised browser session, and every test starts already logged in — instantly, with zero network round-trips.",

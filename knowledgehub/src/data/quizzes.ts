@@ -9097,6 +9097,171 @@ export const ZONES_QUIZZES: Record<string, QuizLevel[]> = {
       ]
     },
     {
+      level: 'pw-typescript-patterns',
+      questions: [
+        {
+          question: 'You have a Page Object class for a checkout page. Which TypeScript pattern best ensures the `placeOrder()` method is only callable after `fillShippingAddress()` completes?',
+          options: [
+            { id: 'a', text: 'Add a comment saying "call fillShippingAddress first"', isCorrect: false },
+            { id: 'b', text: 'Return `this` from fillShippingAddress so the methods can be chained in sequence', isCorrect: false },
+            { id: 'c', text: 'Use a private boolean flag `isAddressFilled` and throw inside placeOrder if it is false', isCorrect: false },
+            { id: 'd', text: 'Return a new typed object from fillShippingAddress that exposes placeOrder, making the flow compile-time enforced', isCorrect: true },
+          ],
+          explanation: 'Returning a distinct typed object (the "builder" or "step" pattern) means placeOrder does not exist on the initial CheckoutPage type — calling it before fillShippingAddress is a compile error, not a runtime surprise. A comment is not enforced. A boolean flag is runtime-only and easy to forget. Chaining with `this` still exposes placeOrder at all times.',
+        },
+        {
+          question: 'Your test suite passes `testUser` data to 12 tests. You define `interface TestUser { name: string; email: string; role: \'admin\' | \'viewer\' }`. What is the main benefit over using `any` or a plain object?',
+          options: [
+            { id: 'a', text: 'Tests run faster because TypeScript optimises typed objects at runtime', isCorrect: false },
+            { id: 'b', text: 'TypeScript catches typos like `testUser.emil` and invalid roles like `\'superadmin\'` at compile time, not at runtime in CI', isCorrect: true },
+            { id: 'c', text: 'The interface forces Playwright to auto-fill forms using the data', isCorrect: false },
+            { id: 'd', text: 'Interfaces make the test data immutable so tests cannot accidentally mutate it', isCorrect: false },
+          ],
+          explanation: 'Typed interfaces catch field-name typos and invalid enum values at compile time — before the test ever runs. This moves bugs from "CI failure at 3 AM" to "IDE red squiggle while typing". TypeScript has no runtime overhead; interfaces are erased. Playwright does not read interfaces. Interfaces do not imply immutability — use `readonly` for that.',
+        },
+        {
+          question: 'You want every test in your suite to receive a `loggedInPage` fixture that is already authenticated. Using `test.extend<{ loggedInPage: Page }>`, where should the authentication logic live?',
+          options: [
+            { id: 'a', text: 'In a beforeAll hook inside each test file', isCorrect: false },
+            { id: 'b', text: 'Inside the fixture definition in a shared fixtures file, using `use(page)` after login completes', isCorrect: true },
+            { id: 'c', text: 'In a globalSetup file that stores credentials in an environment variable', isCorrect: false },
+            { id: 'd', text: 'In a utility function that each test calls at the top of its body', isCorrect: false },
+          ],
+          explanation: 'Custom fixtures centralise setup: the fixture logs in, calls `use(page)`, and teardown happens automatically after the test. This keeps test bodies clean — they just receive `loggedInPage` and start from a logged-in state. beforeAll hooks are file-scoped and error-prone across parallel workers. globalSetup stores state in files, not typed fixtures. Utility calls in each test body duplicate the login logic.',
+        },
+        {
+          question: 'You have a helper `async function getText(locator: Locator): Promise<string>`. A junior writes `const title = await getText(page.locator(\'.title\'))` then immediately does `expect(title.toUpperCase())`. What TypeScript utility type would prevent passing a possibly-null result to string methods?',
+          options: [
+            { id: 'a', text: 'Partial<string>', isCorrect: false },
+            { id: 'b', text: 'Readonly<string>', isCorrect: false },
+            { id: 'c', text: 'NonNullable<string | null>', isCorrect: true },
+            { id: 'd', text: 'Required<string>', isCorrect: false },
+          ],
+          explanation: 'NonNullable<T> removes null and undefined from a type — changing `string | null` to `string`. If getText can return null, callers must handle that before calling string methods. Partial makes all properties optional (for objects). Readonly prevents mutation. Required makes all properties required (for objects). Only NonNullable addresses nullability.',
+        },
+        {
+          question: 'Your Page Object has 20 methods. You want to guarantee that adding a new method does not silently break the interface contract. Which TypeScript feature enforces this at compile time?',
+          options: [
+            { id: 'a', text: 'Declare the class with `implements ICheckoutPage` where `ICheckoutPage` is an interface listing every required method', isCorrect: true },
+            { id: 'b', text: 'Add JSDoc comments listing every method name', isCorrect: false },
+            { id: 'c', text: 'Use `export default` on the class so TypeScript validates the export shape', isCorrect: false },
+            { id: 'd', text: 'Use `Object.freeze(new CheckoutPage())` to prevent new methods being added at runtime', isCorrect: false },
+          ],
+          explanation: '`implements ICheckoutPage` makes TypeScript verify that the class satisfies every method and property in the interface. If a required method is missing or has the wrong signature, it is a compile error. JSDoc is documentation, not enforcement. `export default` has no shape-checking effect. `Object.freeze` is a runtime operation that prevents property mutation, not a type contract.',
+        },
+      ]
+    },
+    {
+      level: 'pw-antipatterns',
+      questions: [
+        {
+          question: 'A test fails intermittently on a slow CI machine. A developer adds `await page.waitForTimeout(3000)` before the failing assertion. What is the correct fix?',
+          options: [
+            { id: 'a', text: 'Increase the timeout to 5000ms to be safer', isCorrect: false },
+            { id: 'b', text: 'Replace the hard sleep with `await expect(locator).toBeVisible()` which uses Playwright\'s built-in auto-waiting', isCorrect: true },
+            { id: 'c', text: 'Wrap the assertion in a try/catch and retry it manually', isCorrect: false },
+            { id: 'd', text: 'Add `{ timeout: 0 }` to disable the assertion timeout', isCorrect: false },
+          ],
+          explanation: 'Playwright\'s expect assertions and locator actions already auto-wait up to the configured timeout. Replacing `waitForTimeout` with `await expect(locator).toBeVisible()` waits for exactly the condition you need — no longer, no shorter. Increasing the hard sleep makes tests slower without fixing the race. Manual try/catch retry is fragile. `{ timeout: 0 }` disables the timeout entirely, making tests hang on real failures.',
+        },
+        {
+          question: 'A test uses `page.locator(\'div:nth-child(3) > span.cls-x9f2\')` to click a button. The test breaks after a UI refactor that did not change the button\'s functionality. What locator strategy would have survived the refactor?',
+          options: [
+            { id: 'a', text: '`page.locator(\'[data-testid="submit-order"]\')` — a test-specific attribute added by developers', isCorrect: true },
+            { id: 'b', text: '`page.locator(\'div:nth-child(3) > span.cls-x9f3\')` — update the class name after each refactor', isCorrect: false },
+            { id: 'c', text: '`page.locator(\'//div[3]/span\')` — XPath is more precise than CSS', isCorrect: false },
+            { id: 'd', text: '`page.locator(\'span\')`  — simpler selectors are more stable', isCorrect: false },
+          ],
+          explanation: '`data-testid` attributes are added specifically for testing and are intentionally kept stable through UI refactors. They are semantic ("this is the submit button") rather than structural ("third child span"). XPath positional selectors break as easily as CSS structural selectors. Updating the selector after every refactor is maintenance debt. Overly broad selectors like `\'span\'` match multiple elements and cause false positives.',
+        },
+        {
+          question: 'A developer commits a test file containing `test.only(\'payment flow\', ...)`. What is the production impact of this in CI?',
+          options: [
+            { id: 'a', text: 'The payment test runs with elevated permissions in CI', isCorrect: false },
+            { id: 'b', text: 'All other tests in the file are skipped, so CI passes even if the rest of the suite is broken', isCorrect: true },
+            { id: 'c', text: 'The test runs twice — once in isolation and once as part of the full suite', isCorrect: false },
+            { id: 'd', text: 'Nothing — `test.only()` is ignored when running `npx playwright test` without `--headed`', isCorrect: false },
+          ],
+          explanation: '`test.only()` skips all other tests in the same file (or project if using `--grep`). If committed, CI runs only that one test and reports success — giving false confidence while the rest of the suite silently breaks. This is a development-time tool only. Use a linter rule (`no-focused-tests`) or a pre-commit hook to prevent it being committed.',
+        },
+        {
+          question: 'A test creates a "Premium" user account, runs an upgrade flow, and asserts the user has premium status. The test passes, but the next test run fails with "user already exists". What antipattern caused this?',
+          options: [
+            { id: 'a', text: 'The test used `test.describe` instead of `test`', isCorrect: false },
+            { id: 'b', text: 'The test did not clean up its test data — no teardown deletes the user after the test', isCorrect: true },
+            { id: 'c', text: 'The test ran in parallel with another test', isCorrect: false },
+            { id: 'd', text: 'The assertion used `toEqual` instead of `toBe`', isCorrect: false },
+          ],
+          explanation: 'Tests must leave the system in the same state they found it. Creating data without cleaning it up causes test pollution: subsequent runs fail because the "unique" data already exists. Fix with a `test.afterEach` (or fixture teardown) that deletes the created user via API. Parallel execution can amplify the problem but is not the root cause — the missing cleanup is.',
+        },
+        {
+          question: 'Your test does: `await loginButton.click(); expect(await dashboardHeading.textContent()).toBe(\'Dashboard\')`. On a slow connection the test fails because the heading is not loaded yet. What is the correct pattern?',
+          options: [
+            { id: 'a', text: 'Add `await page.waitForTimeout(2000)` between click and assertion', isCorrect: false },
+            { id: 'b', text: 'Use `expect(dashboardHeading).toHaveText(\'Dashboard\')` — the Playwright expect matcher auto-waits, unlike raw textContent()', isCorrect: true },
+            { id: 'c', text: 'Wrap in a while loop that retries until textContent() is not null', isCorrect: false },
+            { id: 'd', text: 'Set `actionTimeout: 0` in playwright.config.ts to disable timeouts', isCorrect: false },
+          ],
+          explanation: '`expect(locator).toHaveText()` polls the DOM until the condition is met (up to the configured timeout) — it is auto-waiting. `locator.textContent()` is a one-shot snapshot that does not wait. The difference is critical on slow networks or heavy pages. Hard sleeps and manual retry loops are fragile. Disabling timeouts makes tests hang on real failures instead of reporting them.',
+        },
+      ]
+    },
+    {
+      level: 'pw-hybrid-api-ui',
+      questions: [
+        {
+          question: 'Your UI test for "add to cart" is slow because it logs in, navigates a catalogue, and creates a product via the UI first. Which hybrid pattern fixes this most effectively?',
+          options: [
+            { id: 'a', text: 'Use page.waitForResponse() to cache the slow API calls and replay them', isCorrect: false },
+            { id: 'b', text: 'Create the product via the REST API in a fixture, then open the product page directly in the UI test', isCorrect: true },
+            { id: 'c', text: 'Run the slow UI setup in a globalSetup file so it only runs once', isCorrect: false },
+            { id: 'd', text: 'Use page.route() to mock the product data so no real creation is needed', isCorrect: false },
+          ],
+          explanation: 'API setup + UI verify is the core hybrid pattern: use the API (fast, reliable) to reach the precondition, then use the UI only for what you are actually testing. Running slow UI setup in globalSetup is still slow — it just runs once. Mocking bypasses real backend behaviour. waitForResponse() is for observing responses, not speeding up setup.',
+        },
+        {
+          question: 'After a UI "Place Order" action you want to confirm the order was actually persisted in the database, not just shown in the UI. Which approach gives the highest confidence?',
+          options: [
+            { id: 'a', text: 'Assert the success toast message is visible in the UI', isCorrect: false },
+            { id: 'b', text: 'Assert the order appears in the "My Orders" page in the UI', isCorrect: false },
+            { id: 'c', text: 'Call the Orders REST API directly after the UI action and assert the response contains the new order', isCorrect: true },
+            { id: 'd', text: 'Check the browser\'s localStorage for an order ID', isCorrect: false },
+          ],
+          explanation: 'Calling the API after the UI action verifies end-to-end persistence — the order went through the UI, the backend processed it, and the API confirms it is stored. UI-only assertions (toast, orders page) could pass even if the backend silently failed. localStorage only confirms what the frontend stored, not what the backend received.',
+        },
+        {
+          question: 'You need to test a multi-role workflow: Admin creates a discount code, Customer applies it at checkout. What is the most efficient hybrid approach?',
+          options: [
+            { id: 'a', text: 'Record two separate Playwright scripts and merge them into one test', isCorrect: false },
+            { id: 'b', text: 'Create the discount code via the Admin REST API, then run only the Customer checkout flow in the UI', isCorrect: true },
+            { id: 'c', text: 'Use two browser contexts to log in as Admin and Customer simultaneously', isCorrect: false },
+            { id: 'd', text: 'Mock the Admin API response so no real admin setup is needed', isCorrect: false },
+          ],
+          explanation: 'The Admin role setup is infrastructure — it is not what this test is verifying. Use the API to create the discount code instantly, then spend the test\'s UI time on what matters: the Customer checkout flow. Two browser contexts can work for live multi-user scenarios but adds complexity here. Mocking the Admin API means the discount code creation path is never tested.',
+        },
+        {
+          question: 'You use `request.newContext()` inside a Playwright fixture to make API calls. What is the primary advantage over using a separate HTTP client library like axios?',
+          options: [
+            { id: 'a', text: 'Playwright\'s request context is faster than axios at runtime', isCorrect: false },
+            { id: 'b', text: 'The request context shares the same base URL, headers, and cookies as the browser context, so authentication is reused automatically', isCorrect: true },
+            { id: 'c', text: 'Playwright validates the JSON response schema automatically', isCorrect: false },
+            { id: 'd', text: 'Using request.newContext() avoids CORS errors that axios would encounter', isCorrect: false },
+          ],
+          explanation: 'Playwright\'s APIRequestContext can share the storage state (cookies, auth tokens) of the browser context, so if the browser is logged in, the API calls are also authenticated without repeating login logic. This is the key integration advantage. axios is an independent HTTP client with no knowledge of the browser session. Neither tool auto-validates JSON schemas. CORS is a browser security feature — server-side API calls are not subject to it.',
+        },
+        {
+          question: 'When should you use `page.route()` to intercept an API call in a hybrid test, rather than letting the real API call through?',
+          options: [
+            { id: 'a', text: 'Always — mocking all API calls makes tests faster and more reliable', isCorrect: false },
+            { id: 'b', text: 'When testing a UI component\'s response to a specific edge-case API state (e.g. a 503 error) that is hard to reproduce with a real backend', isCorrect: true },
+            { id: 'c', text: 'When the test needs to verify that data was saved to the database', isCorrect: false },
+            { id: 'd', text: 'When running tests in parallel to prevent API rate limits', isCorrect: false },
+          ],
+          explanation: '`page.route()` is best for testing UI behaviour in hard-to-reproduce states: error responses, slow responses, specific edge-case payloads. For the happy path and persistence verification, real API calls give higher confidence. Mocking everything means you are testing the UI against a fantasy backend. Parallel tests should use test accounts or isolated data, not mocking, to avoid rate limits.',
+        },
+      ]
+    },
+    {
       level: 'pw-auth-at-scale',
       questions: [
         {
