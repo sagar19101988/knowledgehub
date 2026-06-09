@@ -69,7 +69,7 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
       <div data-tour="zone-map" className="relative" style={{ minHeight: 480, minWidth: 700 }}>
 
       {/* ── Clipped art layer (bg + particles) ── */}
-      <div className={`absolute inset-0 rounded-2xl overflow-hidden ${isDark ? 'border border-violet-900/30 bg-[#05030f] shadow-none' : 'border border-slate-300 bg-[#1e293b] shadow-sm'}`}>
+      <div className={`absolute inset-0 rounded-2xl overflow-hidden ${isDark ? 'border border-violet-900/30 bg-[#05030f] shadow-none' : 'border border-slate-800 bg-white shadow-sm'}`}>
         {/* dot grid */}
         <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle, rgba(148,163,184,0.07) 1px, transparent 1px)', backgroundSize: '26px 26px' }} />
         {/* per-zone region halos */}
@@ -85,7 +85,7 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
         {/* centre ambient */}
         <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 50%, rgba(139,92,246,0.04) 0%, transparent 65%)' }} />
         {/* stars */}
-        {stars.map(s => (
+        {isDark && stars.map(s => (
           <motion.div key={s.id} className="absolute rounded-full bg-white pointer-events-none"
             style={{ left: `${s.x}%`, top: `${s.y}%`, width: s.r, height: s.r }}
             animate={{ opacity: [0, s.op, 0] }}
@@ -121,7 +121,7 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
             const oneActive  = fProg > 0;
             return (
               <g key={`${fId}-${tId}`}>
-                <path d={d} fill="none" stroke="rgba(148,163,184,0.07)" strokeWidth="0.4" strokeDasharray="1.2 2"/>
+                <path d={d} fill="none" stroke={isDark ? 'rgba(148,163,184,0.18)' : 'rgba(100,116,139,0.5)'} strokeWidth="0.4" strokeDasharray="1.2 2"/>
                 {oneActive && (
                   <path d={d} fill="none"
                     stroke={fZone.glowColor.replace('0.28', bothActive ? '0.75' : '0.38')}
@@ -138,7 +138,7 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
 
       {/* ── Map title + compass ── */}
       <div className="absolute top-4 left-5 pointer-events-none z-10">
-        <p className={`text-[10px] font-semibold uppercase tracking-widest select-none ${isDark ? 'text-slate-700 font-black' : 'text-slate-300'}`}>🗺️ The QA Realm</p>
+        <p className={`text-[10px] font-semibold uppercase tracking-widest select-none ${isDark ? 'text-slate-700 font-black' : 'text-slate-700 font-black'}`}>🗺️ The QA Realm</p>
       </div>
       <div className={`absolute bottom-3 right-4 pointer-events-none z-10 font-mono text-[10px] select-none ${isDark ? 'text-slate-700 opacity-40' : 'text-slate-400 opacity-70'}`}>N ↑</div>
 
@@ -195,7 +195,7 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
 
             {/* SVG progress ring */}
             <svg width="72" height="72" className="absolute inset-0 pointer-events-none" style={{ transform:'rotate(-90deg)' }}>
-              <circle cx="36" cy="36" r={R} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="2.5"/>
+              <circle cx="36" cy="36" r={R} fill="none" stroke={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.08)'} strokeWidth="2.5"/>
               {prog > 0 && (
                 <motion.circle cx="36" cy="36" r={R} fill="none"
                   stroke={isMastered ? '#fbbf24' : zone.glowColor.replace('0.28','0.9')}
@@ -214,8 +214,8 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
                 background: isMastered
                   ? 'rgba(251,191,36,0.15)'
                   : isStarted
-                    ? zone.glowColor.replace('0.28','0.12')
-                    : 'rgba(12,9,28,0.85)',
+                    ? (isDark ? zone.glowColor.replace('0.28','0.12') : 'rgba(255,255,255,1)')
+                    : (isDark ? 'rgba(12,9,28,0.85)' : 'rgba(255,255,255,1)'),
                 borderColor: isMastered
                   ? '#fbbf24'
                   : isStarted
@@ -228,17 +228,17 @@ function ZoneMap({ onZoneClick }: { onZoneClick: (id: string) => void }) {
                     : 'none',
               }}
             >
-              <div className={`[&>svg]:w-[26px] [&>svg]:h-[26px] transition-opacity ${isUnstarted ? 'opacity-50' : 'opacity-100'}`}>
+              <div className={`[&>svg]:w-[26px] [&>svg]:h-[26px] transition-opacity ${isUnstarted ? (isDark ? 'opacity-50' : 'opacity-90') : 'opacity-100'}`}>
                 {zone.icon}
               </div>
             </div>
 
             {/* Label */}
             <div className="absolute top-full mt-2.5 left-1/2 -translate-x-1/2 text-center whitespace-nowrap pointer-events-none">
-              <p className={`text-[11px] font-bold leading-tight ${isMastered ? 'text-amber-400' : isStarted ? zone.colorText : 'text-slate-500'}`}>
+              <p className={`text-[11px] font-bold leading-tight ${isMastered ? 'text-amber-400' : isStarted ? zone.colorText : isDark ? 'text-slate-500' : 'text-slate-700'}`}>
                 {zone.title}
               </p>
-              <p className={`text-[10px] mt-0.5 font-semibold ${isUnstarted ? 'text-slate-600' : 'text-slate-500'}`}>
+              <p className={`text-[10px] mt-0.5 font-semibold ${isUnstarted ? (isDark ? 'text-slate-600' : 'text-slate-500') : (isDark ? 'text-slate-500' : 'text-slate-600')}`}>
                 {isMastered ? '⭐ Mastered' : prog > 0 ? `${prog}%` : 'Click to explore'}
               </p>
               {masteryBadges[zone.id] && (
@@ -304,13 +304,13 @@ function HubMap() {
           <BookOpen size={22} className={`flex-shrink-0 ${isDark ? 'text-fuchsia-400' : 'text-blue-600'}`} />
           {isDark ? (
             <h1 className="text-base sm:text-xl font-black bg-gradient-to-r from-fuchsia-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent tracking-tight drop-shadow-[0_0_12px_rgba(192,38,211,0.3)] truncate">
-              <span className="sm:hidden">QA Quest</span>
-              <span className="hidden sm:inline">QA Quest: The Knowledge Hub</span>
+              <span className="sm:hidden">QAVeda</span>
+              <span className="hidden sm:inline">QAVeda — Master the craft.</span>
             </h1>
           ) : (
             <h1 className="text-base sm:text-xl font-bold text-slate-900 tracking-tight truncate">
-              <span className="sm:hidden">QA Quest</span>
-              <span className="hidden sm:inline">QA Quest: The Knowledge Hub</span>
+              <span className="sm:hidden">QAVeda</span>
+              <span className="hidden sm:inline">QAVeda — Master the craft.</span>
             </h1>
           )}
         </div>
@@ -809,6 +809,47 @@ function SyncToCloud() {
   return null;
 }
 
+function FeedbackTab() {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div className="fixed right-0 top-1/2 -translate-y-1/2 z-40 group">
+      {/* Pulse ring */}
+      {!hovered && (
+        <span className="absolute inset-0 rounded-l-xl bg-fuchsia-500 opacity-60 animate-ping" style={{ animationDuration: '2s' }} />
+      )}
+      <a
+        href="https://docs.google.com/forms/d/e/1FAIpQLSfX244KyI5wqHXCK77xBFAC0TwTmLgBemZZfUMioW4o2J2zTg/viewform"
+        target="_blank"
+        rel="noopener noreferrer"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        className="relative flex flex-col items-center gap-2 px-2.5 py-4 rounded-l-xl font-bold uppercase tracking-widest transition-all duration-200 shadow-xl bg-fuchsia-600 hover:bg-fuchsia-500 text-white"
+      >
+        {/* Icon */}
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+        {/* Vertical text */}
+        <span className="text-[10px]" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>Feedback</span>
+      </a>
+      {/* Tooltip on hover */}
+      {hovered && (
+        <div className="absolute right-full top-1/2 -translate-y-1/2 mr-3 px-3 py-2 rounded-lg whitespace-nowrap shadow-2xl border border-cyan-500/30"
+          style={{ background: 'linear-gradient(135deg, #020d14 0%, #041a24 50%, #020d14 100%)' }}
+        >
+          <p className="text-[9px] font-black uppercase tracking-[0.18em] text-cyan-400 mb-0.5">Got opinions?</p>
+          <p className="text-[11px] font-bold text-white">Rate us. Roast us. We can take it.</p>
+          {/* Arrow */}
+          <div className="absolute right-[-6px] top-1/2 -translate-y-1/2 w-3 h-3 rotate-45 border-r border-t border-cyan-500/30"
+            style={{ background: 'linear-gradient(135deg, transparent 50%, #041a24 50%)' }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AuthSpinner() {
   const theme = useQuestStore((s) => s.theme);
   return (
@@ -859,6 +900,7 @@ export default function App() {
       <BadgeToast badgesMap={badgesMap} />
       <RankUpWatcher />
       <GuidedTour isDark={theme === 'dark'} />
+      <FeedbackTab />
       <div className="min-h-screen flex flex-col">
         <div className="flex-1">
           <Suspense fallback={<AuthSpinner />}>

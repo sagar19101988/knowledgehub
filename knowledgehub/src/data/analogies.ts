@@ -14782,12 +14782,12 @@ TypeScript can **infer** the type from the assigned value, or you can be **expli
 
 \`\`\`typescript
 // Inferred — TypeScript reads the value and decides the type
-const siteName  = "QA Quest";   // TypeScript infers: string
+const siteName  = "QAVeda";   // TypeScript infers: string
 const retries   = 3;             // TypeScript infers: number
 const headless  = true;          // TypeScript infers: boolean
 
 // Explicit annotation — you declare the type yourself
-const siteName: string  = "QA Quest";
+const siteName: string  = "QAVeda";
 const retries: number   = 3;
 const headless: boolean = true;
 
@@ -15591,7 +15591,7 @@ function logResult(testName: string, passed: boolean): void {
 
 \`\`\`typescript
 // TypeScript INFERS the type from the assigned value — no annotation needed
-const siteName  = "QA Quest";   // inferred: string
+const siteName  = "QAVeda";   // inferred: string
 const maxRetries = 3;           // inferred: number
 const isActive   = true;        // inferred: boolean
 

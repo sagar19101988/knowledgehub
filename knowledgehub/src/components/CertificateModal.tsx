@@ -94,7 +94,7 @@ function CertCard({ name, zoneName, zoneId, date }: {
             lineHeight: 1,
             paddingLeft: '0.22em', // optical balance with letter-spacing
           }}>
-            QA Quest
+            QAVeda
           </div>
 
           {/* Tagline framed by accent rules */}
@@ -107,7 +107,7 @@ function CertCard({ name, zoneName, zoneId, date }: {
               color: t.accentDark,
               paddingLeft: '0.42em',
             }}>
-              The Knowledge Hub
+              Master the craft.
             </div>
             <div style={{ width: 60, height: 2, background: t.accent, borderRadius: 1 }} />
           </div>
@@ -201,7 +201,7 @@ function CertCard({ name, zoneName, zoneId, date }: {
             fontFamily: 'Arial, sans-serif',
             fontSize: 13, color: '#94a3b8', letterSpacing: '0.04em',
           }}>
-            by passing the Mastery Trial on QA Quest · The Knowledge Hub
+            by passing the Mastery Trial on QAVeda
           </div>
         </div>
 
@@ -231,7 +231,7 @@ function CertCard({ name, zoneName, zoneId, date }: {
 
             {/* Issued by */}
             <div style={{ textAlign: 'right', minWidth: 200 }}>
-              <div style={{ fontFamily: 'Georgia, serif', fontSize: 20, fontWeight: 600, color: '#1e293b' }}>QA Quest</div>
+              <div style={{ fontFamily: 'Georgia, serif', fontSize: 20, fontWeight: 600, color: '#1e293b' }}>QAVeda</div>
               <div style={{ fontFamily: 'Arial, sans-serif', fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#94a3b8', marginTop: 5 }}>Issued By</div>
             </div>
 

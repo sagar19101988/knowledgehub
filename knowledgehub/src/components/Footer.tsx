@@ -17,7 +17,7 @@ export default function Footer() {
     <>
       <footer className="mt-auto py-6 px-4 text-center text-xs text-slate-500 dark:text-slate-500 border-t border-slate-200/60 dark:border-white/5 bg-slate-50/40 dark:bg-transparent">
         <p className="mb-2">
-          © 2026 QA Quest · Built for testers who break things on purpose.
+          © 2026 QAVeda · Built for testers who break things on purpose.
         </p>
         <div className="flex items-center justify-center gap-3">
           <FooterLink onClick={() => setOpen('privacy')}>Privacy</FooterLink>
@@ -25,6 +25,15 @@ export default function Footer() {
           <FooterLink onClick={() => setOpen('terms')}>Terms</FooterLink>
           <span className="text-slate-300 dark:text-slate-700">·</span>
           <FooterLink onClick={() => setOpen('contact')}>Contact</FooterLink>
+          <span className="text-slate-300 dark:text-slate-700">·</span>
+          <a
+            href="https://docs.google.com/forms/d/e/1FAIpQLSfX244KyI5wqHXCK77xBFAC0TwTmLgBemZZfUMioW4o2J2zTg/viewform"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-slate-700 dark:hover:text-slate-300 transition-colors underline-offset-2 hover:underline"
+          >
+            Send Feedback
+          </a>
         </div>
       </footer>
 
@@ -88,7 +97,7 @@ function PrivacyContent() {
   return (
     <>
       <p>
-        QA Quest is a learning platform built for QA professionals. We respect your privacy and only collect what's needed to make the app work.
+        QAVeda is a learning platform built for QA professionals. We respect your privacy and only collect what's needed to make the app work.
       </p>
       <p>
         <strong className="text-slate-900 dark:text-white">What we store:</strong> your display name, email address, and your learning progress (XP, completed modules, badges). This is stored in Google Firebase under your account.
@@ -113,16 +122,16 @@ function TermsContent() {
   return (
     <>
       <p>
-        Welcome to QA Quest. By using this app, you agree to the following:
+        Welcome to QAVeda. By using this app, you agree to the following:
       </p>
       <p>
         <strong className="text-slate-900 dark:text-white">Use it to learn.</strong> The lessons, quizzes, and rank system are here to help you grow as a QA professional. Don't try to game the XP system, scrape the content, or use the platform for anything illegal.
       </p>
       <p>
-        <strong className="text-slate-900 dark:text-white">Content.</strong> All lesson content, quiz questions, branding, and copy on QA Quest are the property of QA Quest and may not be reproduced or redistributed without permission.
+        <strong className="text-slate-900 dark:text-white">Content.</strong> All lesson content, quiz questions, branding, and copy on QAVeda are the property of QAVeda and may not be reproduced or redistributed without permission.
       </p>
       <p>
-        <strong className="text-slate-900 dark:text-white">No warranty.</strong> QA Quest is provided as-is. While we work hard to keep things accurate and the app online, we can't guarantee zero downtime, zero bugs, or perfect content. Spotted something wrong? Tell us via Contact.
+        <strong className="text-slate-900 dark:text-white">No warranty.</strong> QAVeda is provided as-is. While we work hard to keep things accurate and the app online, we can't guarantee zero downtime, zero bugs, or perfect content. Spotted something wrong? Tell us via Contact.
       </p>
       <p>
         <strong className="text-slate-900 dark:text-white">Account.</strong> You're responsible for keeping your login credentials safe. Don't share your account.
@@ -142,8 +151,8 @@ function ContactContent() {
       </p>
       <p>
         <strong className="text-slate-900 dark:text-white">Email:</strong>{' '}
-        <a href="mailto:connect_qaquest@gmail.com" className="text-fuchsia-600 dark:text-fuchsia-400 hover:underline">
-          connect_qaquest@gmail.com
+        <a href="mailto:qavedalearning@gmail.com" className="text-fuchsia-600 dark:text-fuchsia-400 hover:underline">
+          qavedalearning@gmail.com
         </a>
       </p>
       <p className="text-xs text-slate-500 dark:text-slate-400 italic">

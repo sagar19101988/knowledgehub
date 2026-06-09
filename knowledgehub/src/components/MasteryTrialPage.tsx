@@ -958,7 +958,7 @@ function ReportCard({
 
             {/* Footer credit */}
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.65 }} className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/25">
-              QA Quest · {zoneMeta.title} Mastery Trial
+              QAVeda · {zoneMeta.title} Mastery Trial
             </motion.p>
 
           </div>
@@ -1704,7 +1704,7 @@ export default function MasteryTrialPage() {
             >
               <AlertTriangle size={28} className="text-amber-500 mb-3" />
               <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">Exit the realm?</h3>
-              <p className="text-sm text-slate-500 mb-5">You'll be signed out of QA Quest. Your in-progress trial answers will be lost — completed trials and zone progress are saved.</p>
+              <p className="text-sm text-slate-500 mb-5">You'll be signed out of QAVeda. Your in-progress trial answers will be lost — completed trials and zone progress are saved.</p>
               <div className="flex gap-3">
                 <button onClick={() => setShowLeaveModal(false)} className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition">Stay</button>
                 <button

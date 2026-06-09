@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import {
   BookOpen, Eye, EyeOff, Loader2, Mail, Lock, User,
   AlertCircle, Sun, Moon, Volume2, VolumeX, MailCheck,
   // Tour: zone icons (must match src/data/zones.tsx)
   ShieldAlert, Database, Cpu, Code, Play, ShieldCheck,
   // Tour: chrome / scene icons
-  Map as MapIcon, LayoutGrid, Check, Zap, Target, Trophy,
+  Map as MapIcon, LayoutGrid, Check, Zap, Target,
   Lightbulb, Download,
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
@@ -118,9 +118,33 @@ export function AuthPage() {
 
   const isDark = theme === 'dark';
 
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const rotateX = useSpring(useTransform(mouseY, [-300, 300], [3, -3]), { stiffness: 80, damping: 20 });
+  const rotateY = useSpring(useTransform(mouseX, [-600, 600], [-3, 3]), { stiffness: 80, damping: 20 });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    mouseX.set(e.clientX - rect.left - rect.width / 2);
+    mouseY.set(e.clientY - rect.top - rect.height / 2);
+  };
+
+  const handleMouseLeave = () => {
+    mouseX.set(0);
+    mouseY.set(0);
+  };
+
   return (
     <div className={theme === 'dark' ? 'dark' : ''}>
-      <div className="min-h-screen bg-[#eff4fb] dark:bg-[#07050f] font-sans flex overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.78, filter: 'blur(14px)' }}
+        animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+        transition={{ duration: 2.5, ease: [0.22, 1, 0.36, 1] }}
+        style={{ rotateX, rotateY, transformPerspective: 1200 }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        className="min-h-screen bg-[#eff4fb] dark:bg-[#07050f] font-sans flex overflow-hidden"
+      >
 
         {/* ══════════════════════════════════════════
             LEFT HERO PANEL — 6-feature tabbed tour
@@ -550,7 +574,7 @@ export function AuthPage() {
           </AnimatePresence>
         </div>
 
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -597,26 +621,29 @@ function ZoneIcon({ id, size = 18 }: { id: string; size?: number }) {
 }
 
 type TabId = 'hub' | 'learn' | 'war' | 'trial' | 'badges' | 'cert';
-type TourTab = { id: TabId; num: string; name: string; color: string; soft: string; url: string };
+type TourTab = { id: TabId; num: string; name: string; pitch: string; color: string; soft: string; url: string };
 const TABS: ReadonlyArray<TourTab> = [
-  { id: 'hub',    num: '01', name: 'Realm Map',     color: '#3b82f6', soft: 'rgba(59,130,246,0.10)',  url: 'qaquest.vercel.app/' },
-  { id: 'learn',  num: '02', name: 'Lessons',       color: '#10b981', soft: 'rgba(16,185,129,0.10)',  url: 'qaquest.vercel.app/zone/sql' },
-  { id: 'war',    num: '03', name: 'War Room',      color: '#f43f5e', soft: 'rgba(244,63,94,0.10)',   url: 'qaquest.vercel.app/zone/sql/interview' },
-  { id: 'trial',  num: '04', name: 'Mastery Trial', color: '#f97316', soft: 'rgba(249,115,22,0.10)',  url: 'qaquest.vercel.app/zone/api/mastery' },
-  { id: 'badges', num: '05', name: 'Badges',        color: '#a855f7', soft: 'rgba(168,85,247,0.10)',  url: 'qaquest.vercel.app/badges' },
-  { id: 'cert',   num: '06', name: 'Certificate',   color: '#0ea5e9', soft: 'rgba(14,165,233,0.10)',  url: 'qaquest.vercel.app/badges' },
+  { id: 'hub',    num: '01', name: 'Realm Map',     pitch: 'Navigate 6 zones. Each one a skill. All yours to conquer.',          color: '#3b82f6', soft: 'rgba(59,130,246,0.10)',  url: 'qaquest.vercel.app/' },
+  { id: 'learn',  num: '02', name: 'Lessons',       pitch: 'Bite-sized modules with real examples. Learn by doing.',             color: '#10b981', soft: 'rgba(16,185,129,0.10)',  url: 'qaquest.vercel.app/zone/sql' },
+  { id: 'war',    num: '03', name: 'War Room',      pitch: 'Deep answers. Real scenarios. All QA.',                             color: '#f43f5e', soft: 'rgba(244,63,94,0.10)',   url: 'qaquest.vercel.app/zone/sql/interview' },
+  { id: 'trial',  num: '04', name: 'Mastery Trial', pitch: 'Think you know it? Prove it. Pass the trial, earn the cert.',        color: '#f97316', soft: 'rgba(249,115,22,0.10)',  url: 'qaquest.vercel.app/zone/api/mastery' },
+  { id: 'badges', num: '05', name: 'Badges',        pitch: 'Every skill you unlock. Every milestone you hit. All in one place.', color: '#a855f7', soft: 'rgba(168,85,247,0.10)',  url: 'qaquest.vercel.app/badges' },
+  { id: 'cert',   num: '06', name: 'Certificate',   pitch: 'A real proof of mastery. Download it. Put it on LinkedIn.',          color: '#0ea5e9', soft: 'rgba(14,165,233,0.10)',  url: 'qaquest.vercel.app/badges' },
 ];
 
 const SCENE_MS = 5500;
 const HUB_VIEW_MS = 2700;
 
 function LeftPanelTour({ isDark }: { isDark: boolean }) {
-  const [sceneIdx, setSceneIdx]   = useState(0);
-  const [hubViewIdx, setHubViewIdx] = useState(0); // 0=map, 1=skill tree
+  const [sceneIdx, setSceneIdx]     = useState(0);
+  const [hubViewIdx, setHubViewIdx] = useState(0);
+  const pausedRef = useRef(false);
 
-  // Scene auto-rotate
+  // Scene auto-rotate — single interval, ref controls pause without recreating
   useEffect(() => {
-    const id = setInterval(() => setSceneIdx(i => (i + 1) % TABS.length), SCENE_MS);
+    const id = setInterval(() => {
+      if (!pausedRef.current) setSceneIdx(i => (i + 1) % TABS.length);
+    }, SCENE_MS);
     return () => clearInterval(id);
   }, []);
 
@@ -636,35 +663,42 @@ function LeftPanelTour({ isDark }: { isDark: boolean }) {
         <div className="absolute inset-0"
           style={{ backgroundImage: 'radial-gradient(circle, rgba(148,163,184,0.055) 1px, transparent 1px)', backgroundSize: '26px 26px' }} />
         <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: isDark ? [0.2, 0.38, 0.2] : [0.04, 0.08, 0.04] }}
+          animate={{ scale: [1, 1.3, 1], opacity: isDark ? [0.28, 0.5, 0.28] : [0.06, 0.13, 0.06], x: [0, 30, 0], y: [0, -20, 0] }}
           transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-          className={`absolute top-[-10%] left-[-5%] w-[600px] h-[600px] rounded-full blur-[130px] ${isDark ? 'bg-fuchsia-500/20' : 'bg-blue-500/30'}`}
+          className={`absolute top-[-10%] left-[-5%] w-[600px] h-[600px] rounded-full blur-[110px] ${isDark ? 'bg-fuchsia-500/30' : 'bg-blue-500/30'}`}
         />
         <motion.div
-          animate={{ scale: [1.1, 1, 1.1], opacity: isDark ? [0.15, 0.28, 0.15] : [0.03, 0.06, 0.03] }}
+          animate={{ scale: [1.1, 1, 1.1], opacity: isDark ? [0.2, 0.38, 0.2] : [0.04, 0.10, 0.04], x: [0, -25, 0], y: [0, 20, 0] }}
           transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-          className={`absolute bottom-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full blur-[120px] ${isDark ? 'bg-violet-500/20' : 'bg-indigo-500/30'}`}
+          className={`absolute bottom-[-10%] right-[-5%] w-[550px] h-[550px] rounded-full blur-[110px] ${isDark ? 'bg-violet-500/30' : 'bg-indigo-500/30'}`}
+        />
+        <motion.div
+          animate={{ scale: [1, 1.25, 1], opacity: isDark ? [0.12, 0.25, 0.12] : [0.03, 0.07, 0.03], x: [0, 15, 0], y: [0, -15, 0] }}
+          transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut', delay: 5 }}
+          className={`absolute top-[40%] left-[30%] w-[400px] h-[400px] rounded-full blur-[120px] ${isDark ? 'bg-cyan-500/20' : 'bg-sky-400/20'}`}
         />
       </div>
 
       {/* Brand */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="relative z-10">
         {isDark ? (
-          <h1 className="text-6xl font-black bg-gradient-to-r from-fuchsia-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent tracking-tight leading-none mb-4">QA Quest</h1>
+          <h1 className="text-6xl font-black bg-gradient-to-r from-fuchsia-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent tracking-tight leading-none mb-4">QAVeda</h1>
         ) : (
-          <h1 className="text-6xl font-bold text-slate-900 tracking-tight leading-none mb-4">QA Quest</h1>
+          <h1 className="text-6xl font-bold text-slate-900 tracking-tight leading-none mb-4">QAVeda</h1>
         )}
         <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-6 max-w-xl">
-          Master QA Engineering — gamified, from first test to interview day.
+          <Typewriter text="Master QA Engineering — gamified, from first test to interview day." />
         </p>
         <div className="flex items-center gap-9">
           {[
-            { v: '6',    l: 'ZONES' },
-            { v: '200+', l: 'MODULES' },
-            { v: '400+', l: 'INTERVIEW Q&A' },
+            { target: 6,   suffix: '',  l: 'ZONES' },
+            { target: 200, suffix: '+', l: 'MODULES' },
+            { target: 900, suffix: '+', l: 'INTERVIEW Q&A' },
           ].map(s => (
             <div key={s.l}>
-              <p className={`text-2xl ${isDark ? 'font-black bg-gradient-to-r from-fuchsia-400 to-violet-400 bg-clip-text text-transparent' : 'font-bold text-blue-600'}`}>{s.v}</p>
+              <p className={`text-2xl ${isDark ? 'font-black bg-gradient-to-r from-fuchsia-400 to-violet-400 bg-clip-text text-transparent' : 'font-bold text-blue-600'}`}>
+                <CountUp target={s.target} suffix={s.suffix} />
+              </p>
               <p className="text-slate-500 text-[10px] mt-1.5 tracking-[0.10em] font-semibold">{s.l}</p>
             </div>
           ))}
@@ -673,58 +707,44 @@ function LeftPanelTour({ isDark }: { isDark: boolean }) {
 
       {/* Tour */}
       <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="relative z-10 mt-4">
-        {/* Section header */}
+        {/* Minimal header */}
         <div className="flex items-center gap-2 mb-3">
-          <span className="relative flex h-2 w-2">
+          <span className="relative flex h-2 w-2 shrink-0">
             <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isDark ? 'bg-fuchsia-400' : 'bg-blue-500'}`} />
             <span className={`relative inline-flex rounded-full h-2 w-2 ${isDark ? 'bg-fuchsia-400' : 'bg-blue-500'}`} />
           </span>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.14em]">Take the tour</p>
-          <p className="ml-auto text-[10px] font-bold text-slate-500 tracking-wide font-mono">
-            <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>{activeTab.num}</span> / 06 · {activeTab.name.toUpperCase()}
-          </p>
+          <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+            <motion.p
+              key={activeTab.name}
+              initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+              className="text-[16px] font-black uppercase tracking-[0.1em] shrink-0"
+              style={{ color: activeTab.color }}
+            >
+              {activeTab.name}
+            </motion.p>
+            <span className={`text-[10px] shrink-0 ${isDark ? 'text-slate-600' : 'text-slate-300'}`}>·</span>
+            <motion.p
+              key={activeTab.pitch}
+              initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 }}
+              className={`text-[14px] font-semibold ${isDark ? 'text-white/80' : 'text-slate-800'}`}
+            >
+              {activeTab.pitch}
+            </motion.p>
+          </div>
+          <p className="shrink-0 text-[10px] font-bold text-slate-500 font-mono">{activeTab.num} / 06</p>
         </div>
 
         {/* Window */}
-        <div className={`rounded-2xl overflow-hidden backdrop-blur-sm ${
+        <div onMouseEnter={() => { pausedRef.current = true; }} onMouseLeave={() => { pausedRef.current = false; }} className={`rounded-2xl overflow-hidden backdrop-blur-sm ${
           isDark
             ? 'bg-slate-900/70 border border-violet-900/40 shadow-[0_24px_48px_rgba(0,0,0,0.4)]'
             : 'bg-white border border-slate-200 shadow-lg'
         }`}>
-          {/* Tabs */}
-          <div className={`flex items-stretch px-1 border-b ${isDark ? 'bg-slate-950/40 border-violet-900/30' : 'bg-slate-50 border-slate-200'}`}>
-            {TABS.map((t, idx) => {
-              const active = idx === sceneIdx;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setSceneIdx(idx)}
-                  className={`flex-1 min-w-0 px-1.5 pt-2 pb-1.5 flex flex-col items-center gap-0.5 border-b-2 transition-colors ${
-                    active
-                      ? ''
-                      : (isDark ? 'border-transparent text-slate-500 hover:text-slate-300 hover:bg-slate-800/40' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100')
-                  }`}
-                  style={active ? { color: t.color, background: t.soft, borderBottomColor: t.color } : undefined}
-                >
-                  <span className="text-[8.5px] font-bold tracking-[0.08em] font-mono" style={active ? { color: t.color } : undefined}>{t.num}</span>
-                  <span className="text-[10.5px] font-extrabold uppercase tracking-[0.04em] whitespace-nowrap overflow-hidden text-ellipsis max-w-full">{t.name}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Chrome */}
-          <div className={`flex items-center gap-1.5 px-3 py-2.5 border-b ${isDark ? 'bg-slate-950/40 border-violet-900/30' : 'bg-slate-50 border-slate-200'}`}>
-            <div className="w-2.5 h-2.5 rounded-full bg-rose-500/65" />
-            <div className="w-2.5 h-2.5 rounded-full bg-amber-500/65" />
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/65" />
-            <div className={`flex-1 mx-3 rounded-md h-5 flex items-center px-3 ${isDark ? 'bg-slate-800/80' : 'bg-slate-100'}`}>
-              <span className="text-[10.5px] font-mono text-slate-500">{activeTab.url}</span>
-            </div>
-          </div>
+          <div className="w-full h-[2px]" style={{ background: `linear-gradient(90deg, ${activeTab.color}, transparent)` }} />
 
           {/* Scene */}
-          <div className="relative h-[320px] overflow-hidden">
+          <div className="relative h-[300px] overflow-hidden">
             <AnimatePresence mode="wait">
               {activeTab.id === 'hub'    && <HubScene    key="hub"    isDark={isDark} hubViewIdx={hubViewIdx} onPickView={setHubViewIdx} />}
               {activeTab.id === 'learn'  && <LearnScene  key="learn"  isDark={isDark} />}
@@ -733,6 +753,22 @@ function LeftPanelTour({ isDark }: { isDark: boolean }) {
               {activeTab.id === 'badges' && <BadgesScene key="badges" isDark={isDark} />}
               {activeTab.id === 'cert'   && <CertScene   key="cert"   isDark={isDark} />}
             </AnimatePresence>
+          </div>
+
+          {/* Dot indicators */}
+          <div className={`flex items-center justify-center gap-2 py-3 border-t ${isDark ? 'border-violet-900/30' : 'border-slate-100'}`}>
+            {TABS.map((t, idx) => (
+              <button
+                key={t.id}
+                onClick={() => setSceneIdx(idx)}
+                className="transition-all duration-300 rounded-full"
+                style={{
+                  width: idx === sceneIdx ? 20 : 6,
+                  height: 6,
+                  background: idx === sceneIdx ? t.color : (isDark ? 'rgba(148,163,184,0.2)' : 'rgba(148,163,184,0.4)'),
+                }}
+              />
+            ))}
           </div>
         </div>
       </motion.div>
@@ -1079,68 +1115,94 @@ function TrialOpt({ letter, text, correct }: { letter: string; text: string; cor
 }
 
 // ─── Scene 5: Badges ────────────────────────────────────────
+const HERO_BADGES = [
+  { id: 'manual',     label: 'Manual Testing',  kind: 'Mastery Badge' },
+  { id: 'sql',        label: 'SQL Sorcery',      kind: 'Completion Badge' },
+  { id: 'playwright', label: 'Playwright',       kind: 'Mastery Badge' },
+];
+
 function BadgesScene({ isDark }: { isDark: boolean }) {
-  const zones: Array<{ id: string; abbr: string }> = [
-    { id: 'manual', abbr: 'Manual' },
-    { id: 'sql', abbr: 'SQL' },
-    { id: 'api', abbr: 'API' },
-    { id: 'typescript', abbr: 'TS' },
-    { id: 'playwright', abbr: 'PW' },
-    { id: 'ai-qa', abbr: 'AI-QA' },
-  ];
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setIdx(i => (i + 1) % HERO_BADGES.length), 2200);
+    return () => clearInterval(id);
+  }, []);
+
+  const badge = HERO_BADGES[idx];
+  const t = ZONE_THEMES[badge.id];
+
   return (
     <Scene>
-      <div className="flex flex-col gap-2.5 h-full">
-        <div className="flex items-baseline justify-between">
-          <h3 className={`text-[13px] font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>My Badges</h3>
-          <span className="text-[10.5px] text-slate-500 font-semibold">5 of 12 earned</span>
+      <div className="h-full flex items-center gap-6 px-2">
+
+        {/* Left — hero badge */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={badge.id}
+            initial={{ opacity: 0, scale: 0.7 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.7 }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
+            className="flex flex-col items-center gap-3 shrink-0"
+          >
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full blur-2xl opacity-60" style={{ background: t.glow }} />
+              <div className="relative w-20 h-20 rounded-full flex items-center justify-center border-4"
+                style={{ background: t.soft, borderColor: t.color, boxShadow: `0 0 28px ${t.glow}` }}>
+                <div style={{ color: t.color }}><ZoneIcon id={badge.id} size={34} /></div>
+              </div>
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest text-white whitespace-nowrap"
+                style={{ background: `linear-gradient(135deg, ${t.color}, ${t.glow})` }}>
+                EARNED
+              </div>
+            </div>
+            <div className="text-center mt-1">
+              <p className={`text-[12px] font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{badge.label}</p>
+              <p className="text-[9px] font-bold uppercase tracking-widest mt-0.5" style={{ color: t.color }}>{badge.kind}</p>
+            </div>
+            {/* Dot indicators */}
+            <div className="flex items-center gap-1.5">
+              {HERO_BADGES.map((b, i) => (
+                <button key={b.id} onClick={() => setIdx(i)}
+                  className="rounded-full transition-all duration-300"
+                  style={{ width: i === idx ? 14 : 5, height: 5, background: i === idx ? ZONE_THEMES[b.id].color : (isDark ? 'rgba(148,163,184,0.2)' : 'rgba(148,163,184,0.4)') }}
+                />
+              ))}
+            </div>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Divider */}
+        <div className={`w-px self-stretch my-4 shrink-0 ${isDark ? 'bg-white/10' : 'bg-slate-200'}`} />
+
+        {/* Right — how to earn */}
+        <div className="flex flex-col gap-3 flex-1">
+          <p className={`text-[10px] font-black uppercase tracking-[0.14em] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>How to earn</p>
+
+          <div className={`flex items-start gap-2.5 rounded-xl p-3 border ${isDark ? 'bg-slate-800/50 border-slate-700/40' : 'bg-slate-50 border-slate-200'}`}>
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-emerald-500/15 border border-emerald-500/30">
+              <Zap size={13} className="text-emerald-400" />
+            </div>
+            <div>
+              <p className={`text-[11px] font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>Complete all levels</p>
+              <p className={`text-[10px] mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Finish every module in a zone → Completion Badge</p>
+            </div>
+          </div>
+
+          <div className={`flex items-start gap-2.5 rounded-xl p-3 border ${isDark ? 'bg-slate-800/50 border-slate-700/40' : 'bg-slate-50 border-slate-200'}`}>
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-amber-500/15 border border-amber-500/30">
+              <Target size={13} className="text-amber-400" />
+            </div>
+            <div>
+              <p className={`text-[11px] font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>Pass the Mastery Trial</p>
+              <p className={`text-[10px] mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Score 80%+ in the zone exam → Mastery Badge</p>
+            </div>
+          </div>
         </div>
-        <BadgeSection isDark={isDark} title="COMPLETION BADGES" count="3/6"
-          zones={zones.map((z, i) => ({ ...z, locked: i > 2, kind: 'completion' as const, isNew: false }))} />
-        <BadgeSection isDark={isDark} title="MASTERY TRIAL BADGES" count="2/6"
-          zones={zones.map((z, i) => ({ ...z, locked: i > 1, kind: 'mastery' as const, isNew: z.id === 'sql' }))} />
+
       </div>
     </Scene>
-  );
-}
-
-function BadgeSection({ isDark, title, count, zones }: {
-  isDark: boolean; title: string; count: string;
-  zones: Array<{ id: string; abbr: string; locked: boolean; kind: 'completion' | 'mastery'; isNew: boolean }>;
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between">
-        <span className="text-[8.5px] font-extrabold uppercase tracking-[0.12em] text-slate-500">{title}</span>
-        <span className="text-[9px] text-slate-500">{count}</span>
-      </div>
-      <div className="grid grid-cols-6 gap-1.5">
-        {zones.map(z => {
-          const t = ZONE_THEMES[z.id];
-          return (
-            <div key={z.id + z.kind} className={`relative rounded-lg pt-2.5 pb-2 px-1 flex flex-col items-center gap-1.5 border ${
-              isDark ? 'bg-slate-950/40 border-slate-700/40' : 'bg-white border-slate-200'
-            } ${z.locked ? 'opacity-45' : ''}`}
-              style={z.isNew ? { boxShadow: `0 0 0 2px ${t.color}, 0 6px 20px ${t.glow}` } : undefined}
-            >
-              {z.isNew && (
-                <span className="absolute top-1 right-1 text-[7.5px] font-extrabold tracking-[0.10em] text-white px-1 py-0.5 rounded"
-                  style={{ background: 'linear-gradient(135deg, #f59e0b, #f43f5e)' }}>NEW</span>
-              )}
-              <div className="w-[30px] h-[30px] rounded-full flex items-center justify-center border-2"
-                style={{
-                  borderColor: z.locked ? 'rgba(148,163,184,0.35)' : t.color,
-                  background: z.locked ? 'rgba(148,163,184,0.10)' : t.soft,
-                  color: z.locked ? '#94a3b8' : t.color,
-                }}>
-                {z.kind === 'mastery' ? <Trophy size={15} /> : <ZoneIcon id={z.id} size={15} />}
-              </div>
-              <p className="text-[9px] font-bold uppercase tracking-[0.04em] text-slate-500">{z.abbr}</p>
-            </div>
-          );
-        })}
-      </div>
-    </div>
   );
 }
 
@@ -1170,7 +1232,7 @@ function CertScene({ isDark }: { isDark: boolean }) {
                 <span className="text-[9px]" style={{ color: c1 }}>✦</span>
                 <div className="w-9 h-px" style={{ background: `linear-gradient(90deg, ${c1}, transparent)` }} />
               </div>
-              <div className="text-[22px] font-bold uppercase tracking-[0.20em] text-slate-900 leading-none" style={{ paddingLeft: '0.20em' }}>QA Quest</div>
+              <div className="text-[22px] font-bold uppercase tracking-[0.20em] text-slate-900 leading-none" style={{ paddingLeft: '0.20em' }}>QAVeda</div>
               <div className="text-[8px] uppercase tracking-[0.18em] font-bold mt-1" style={{ color: cDark }}>Certificate of Mastery</div>
             </div>
             <div className="flex flex-col items-center">
@@ -1183,7 +1245,7 @@ function CertScene({ isDark }: { isDark: boolean }) {
                 style={{ background: `linear-gradient(135deg, ${cDark}, ${c1})` }}>
                 <ShieldCheck size={13} />
               </div>
-              <div className="text-[8px] text-slate-400">qa-quest · authenticated</div>
+              <div className="text-[8px] text-slate-400">qaveda · authenticated</div>
             </div>
           </div>
         </div>
@@ -1221,4 +1283,39 @@ function AuthInput({ icon, type, placeholder, value, onChange, onBlur, autoFocus
       />
     </div>
   );
+}
+
+function Typewriter({ text, speed = 28 }: { text: string; speed?: number }) {
+  const [displayed, setDisplayed] = useState('');
+  useEffect(() => {
+    let i = 0;
+    setDisplayed('');
+    const id = setInterval(() => {
+      i++;
+      setDisplayed(text.slice(0, i));
+      if (i >= text.length) clearInterval(id);
+    }, speed);
+    return () => clearInterval(id);
+  }, [text, speed]);
+  return <>{displayed}<span className="animate-pulse">|</span></>;
+}
+
+function CountUp({ target, suffix = '' }: { target: number; suffix?: string }) {
+  const [count, setCount] = useState(0);
+  const raf = useRef<number>(0);
+
+  useEffect(() => {
+    const duration = 1200;
+    const start = performance.now();
+    const step = (now: number) => {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.floor(eased * target));
+      if (progress < 1) raf.current = requestAnimationFrame(step);
+    };
+    raf.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf.current);
+  }, [target]);
+
+  return <>{count}{suffix}</>;
 }

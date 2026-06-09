@@ -35,7 +35,7 @@ const STEPS: Step[] = [
     icon: Star,
     iconBg: 'bg-violet-500/20',
     iconColor: 'text-violet-500 dark:text-fuchsia-400',
-    title: 'Welcome to QA Quest',
+    title: 'Welcome to QAVeda',
     description:
       "Your gamified learning platform for QA engineers. This quick tour will walk you through the app — it takes about 30 seconds.",
   },
