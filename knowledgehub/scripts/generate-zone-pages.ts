@@ -384,7 +384,7 @@ function generatePage(zone: typeof ZONES[0]): string {
 
   <header class="header">
     <a href="https://qaveda.com" class="header-brand">QA<span>Veda</span></a>
-    <a href="https://qaveda.com" class="header-cta">Start Learning Free →</a>
+    <a href="https://qaveda.com" class="header-cta">Explore QAVeda →</a>
   </header>
 
   <section class="hero">
@@ -401,8 +401,8 @@ function generatePage(zone: typeof ZONES[0]): string {
         <div class="hero-stat-label">Levels</div>
       </div>
       <div class="hero-stat">
-        <div class="hero-stat-num">Real</div>
-        <div class="hero-stat-label">Company Asked</div>
+        <div class="hero-stat-num">Expert</div>
+        <div class="hero-stat-label">Curated</div>
       </div>
     </div>
   </section>
