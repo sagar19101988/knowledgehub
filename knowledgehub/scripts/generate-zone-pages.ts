@@ -64,6 +64,8 @@ const LEVEL_LABELS: Record<string, string> = {
   senior: 'Senior (5+ years)',
 };
 
+const INTERCEPT_EVERY = 15;
+
 function escapeHtml(str: string): string {
   return str
     .replace(/&/g, '&amp;')
@@ -72,15 +74,45 @@ function escapeHtml(str: string): string {
     .replace(/"/g, '&quot;');
 }
 
-function renderAnswer(answer: string): string {
-  // Convert markdown bold **text** to <strong>
-  let html = escapeHtml(answer);
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  // Convert backtick code to <code>
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-  // Convert newlines to <br>
-  html = html.replace(/\n/g, '<br>');
-  return html;
+function getTeaserAnswer(answer: string): string {
+  // Remove fenced code blocks entirely
+  let clean = answer.replace(/```[\s\S]*?```/g, '').trim();
+
+  // For 6-part format: cut before the first section heading
+  const headingIdx = clean.search(/\*\*Why|\*\*Walked|\*\*Real|\*\*Rule/);
+  if (headingIdx > 0) {
+    clean = clean.slice(0, headingIdx).trim();
+  }
+
+  // Strip markdown bold and inline code
+  clean = clean
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .trim();
+
+  // Take only the first non-empty line (stops before bullet lists)
+  const firstLine = clean.split('\n').map(l => l.trim()).find(l => l.length > 0 && !l.startsWith('-')) ?? '';
+
+  // Replace trailing colon (intro-to-list pattern) with a period
+  const sentence = firstLine.replace(/:$/, '.').trim();
+
+  if (!sentence) {
+    // All lines are bullets — strip dash and use the first bullet's content
+    const firstBullet = clean.split('\n').map(l => l.trim()).find(l => l.startsWith('-')) ?? '';
+    const stripped = firstBullet.replace(/^-\s*/, '').replace(/:$/, '.').trim();
+    if (stripped) {
+      const words = stripped.split(' ').filter(w => w.length > 0);
+      return words.slice(0, 25).join(' ') + (words.length > 25 ? '…' : '');
+    }
+    const fallback = answer.replace(/\*\*(.*?)\*\*/g, '$1').replace(/`([^`]+)`/g, '$1').split('\n')[0].trim();
+    const words = fallback.split(' ').filter(w => w.length > 0);
+    return words.slice(0, 25).join(' ') + (words.length > 25 ? '…' : '');
+  }
+
+  // Cap at 35 words
+  const words = sentence.split(' ').filter(w => w.length > 0);
+  if (words.length <= 35) return sentence;
+  return words.slice(0, 35).join(' ') + '…';
 }
 
 function generatePage(zone: typeof ZONES[0]): string {
@@ -89,23 +121,43 @@ function generatePage(zone: typeof ZONES[0]): string {
   const mids     = questions.filter(q => q.level === 'mid');
   const seniors  = questions.filter(q => q.level === 'senior');
 
+  const interceptCard = `
+    <div class="intercept-card">
+      <div class="intercept-icon">🔓</div>
+      <div class="intercept-text">
+        <strong>You're reading previews.</strong><br>
+        Full answers with walked-through examples, real-world QA scenarios and rules of thumb are free on QAVeda.
+      </div>
+      <a href="https://qaveda.com" class="intercept-btn">Open QAVeda — it's free →</a>
+    </div>`;
+
   const renderSection = (level: string, items: typeof questions) => {
     if (items.length === 0) return '';
-    return `
-    <section class="level-section">
-      <h2 class="level-heading">${LEVEL_LABELS[level]}</h2>
-      <div class="qa-list">
-        ${items.map((qa, i) => `
+    const cards = items.map((qa, i) => {
+      const teaser = getTeaserAnswer(qa.answer);
+      const card = `
         <article class="qa-card">
           <div class="qa-number">${i + 1}</div>
           <div class="qa-body">
             ${qa.topic ? `<span class="qa-topic">${escapeHtml(qa.topic)}</span>` : ''}
             <h3 class="qa-question">${escapeHtml(qa.question)}</h3>
-            ${qa.code ? `<pre class="qa-code"><code>${escapeHtml(qa.code)}</code></pre>` : ''}
-            <div class="qa-answer">${renderAnswer(qa.answer)}</div>
-            ${qa.analogy ? `<div class="qa-analogy"><span class="analogy-label">💡 Plain English:</span> ${escapeHtml(qa.analogy)}</div>` : ''}
+            <p class="qa-teaser">${escapeHtml(teaser)}</p>
+            <p class="qa-hint">↳ Includes walked-through example, real-world QA scenario &amp; rule of thumb</p>
+            <a href="https://qaveda.com" class="qa-cta-link">Get the full answer on QAVeda →</a>
           </div>
-        </article>`).join('')}
+        </article>`;
+      // Inject intercept card after every INTERCEPT_EVERY questions (but not after the last one)
+      if ((i + 1) % INTERCEPT_EVERY === 0 && i + 1 < items.length) {
+        return card + interceptCard;
+      }
+      return card;
+    });
+
+    return `
+    <section class="level-section">
+      <h2 class="level-heading">${LEVEL_LABELS[level]}</h2>
+      <div class="qa-list">
+        ${cards.join('')}
       </div>
     </section>`;
   };
@@ -131,6 +183,7 @@ function generatePage(zone: typeof ZONES[0]): string {
       background: #f8fafc;
       color: #1e293b;
       line-height: 1.6;
+      padding-bottom: 72px;
     }
     a { color: inherit; text-decoration: none; }
 
@@ -143,7 +196,7 @@ function generatePage(zone: typeof ZONES[0]): string {
       justify-content: space-between;
       position: sticky;
       top: 0;
-      z-index: 10;
+      z-index: 100;
       border-bottom: 1px solid rgba(255,255,255,0.08);
     }
     .header-brand {
@@ -198,15 +251,36 @@ function generatePage(zone: typeof ZONES[0]): string {
       max-width: 600px;
       margin: 0 auto 28px;
     }
+    .hero-cta-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 36px;
+    }
+    .hero-cta-btn {
+      display: inline-block;
+      background: ${zone.color};
+      color: white;
+      font-size: 16px;
+      font-weight: 800;
+      padding: 14px 36px;
+      border-radius: 10px;
+      letter-spacing: -0.3px;
+      transition: opacity 0.2s;
+    }
+    .hero-cta-btn:hover { opacity: 0.85; }
+    .hero-cta-note {
+      font-size: 13px;
+      color: rgba(255,255,255,0.35);
+    }
     .hero-stats {
       display: flex;
       gap: 32px;
       justify-content: center;
       flex-wrap: wrap;
     }
-    .hero-stat {
-      text-align: center;
-    }
+    .hero-stat { text-align: center; }
     .hero-stat-num {
       font-size: 28px;
       font-weight: 900;
@@ -249,12 +323,12 @@ function generatePage(zone: typeof ZONES[0]): string {
     }
 
     /* Q&A card */
-    .qa-list { display: flex; flex-direction: column; gap: 20px; }
+    .qa-list { display: flex; flex-direction: column; gap: 16px; }
     .qa-card {
       background: white;
       border: 1px solid #e2e8f0;
       border-radius: 12px;
-      padding: 24px;
+      padding: 20px 24px;
       display: flex;
       gap: 16px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.06);
@@ -287,82 +361,144 @@ function generatePage(zone: typeof ZONES[0]): string {
       margin-bottom: 8px;
     }
     .qa-question {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
       color: #0f172a;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       line-height: 1.4;
     }
-    .qa-code {
-      background: #1e293b;
-      color: #94a3b8;
-      font-size: 13px;
-      padding: 14px 16px;
-      border-radius: 8px;
-      overflow-x: auto;
-      margin-bottom: 12px;
-      font-family: 'Consolas', 'Monaco', monospace;
-      line-height: 1.5;
-    }
-    .qa-answer {
+    .qa-teaser {
       font-size: 14px;
       color: #475569;
-      line-height: 1.7;
+      line-height: 1.65;
+      margin-bottom: 6px;
     }
-    .qa-answer strong { color: #1e293b; font-weight: 700; }
-    .qa-answer code {
-      background: #f1f5f9;
-      color: #7c3aed;
-      padding: 1px 5px;
-      border-radius: 4px;
-      font-family: 'Consolas', 'Monaco', monospace;
-      font-size: 13px;
+    .qa-hint {
+      font-size: 12px;
+      color: #94a3b8;
+      font-style: italic;
+      margin-bottom: 12px;
     }
-    .qa-analogy {
-      margin-top: 12px;
-      padding: 12px 14px;
-      background: #fffbeb;
-      border-left: 3px solid #f59e0b;
-      border-radius: 0 8px 8px 0;
+    .qa-cta-link {
+      display: inline-block;
       font-size: 13px;
-      color: #78350f;
+      font-weight: 700;
+      color: ${zone.color};
+      border: 1px solid ${zone.color}40;
+      background: ${zone.color}08;
+      padding: 6px 14px;
+      border-radius: 6px;
+      transition: background 0.15s;
+    }
+    .qa-cta-link:hover { background: ${zone.color}18; }
+
+    /* Intercept card */
+    .intercept-card {
+      background: #07050f;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 28px 28px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin: 8px 0;
+      flex-wrap: wrap;
+    }
+    .intercept-icon { font-size: 28px; flex-shrink: 0; }
+    .intercept-text {
+      flex: 1;
+      min-width: 200px;
+      font-size: 14px;
+      color: rgba(255,255,255,0.6);
       line-height: 1.6;
     }
-    .analogy-label {
+    .intercept-text strong { color: white; }
+    .intercept-btn {
+      flex-shrink: 0;
+      background: ${zone.color};
+      color: white;
+      font-size: 13px;
       font-weight: 700;
-      margin-right: 4px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      white-space: nowrap;
+      transition: opacity 0.2s;
     }
+    .intercept-btn:hover { opacity: 0.85; }
 
     /* CTA banner */
     .cta-banner {
       background: #07050f;
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 16px;
-      padding: 40px 32px;
+      padding: 48px 32px;
       text-align: center;
       margin-top: 48px;
     }
     .cta-title {
-      font-size: 24px;
+      font-size: 26px;
       font-weight: 900;
       color: white;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
+      letter-spacing: -0.5px;
     }
     .cta-sub {
       font-size: 15px;
       color: rgba(255,255,255,0.5);
-      margin-bottom: 24px;
+      margin-bottom: 28px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
     }
     .cta-btn {
       display: inline-block;
       background: ${zone.color};
       color: white;
-      font-size: 15px;
-      font-weight: 700;
-      padding: 12px 32px;
+      font-size: 16px;
+      font-weight: 800;
+      padding: 14px 36px;
       border-radius: 10px;
+      transition: opacity 0.2s;
     }
     .cta-btn:hover { opacity: 0.85; }
+    .cta-note {
+      margin-top: 14px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.3);
+    }
+
+    /* Sticky bottom bar */
+    .sticky-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #07050f;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 200;
+      flex-wrap: wrap;
+    }
+    .sticky-bar-text {
+      font-size: 14px;
+      color: rgba(255,255,255,0.65);
+    }
+    .sticky-bar-text strong { color: white; }
+    .sticky-bar-btn {
+      background: ${zone.color};
+      color: white;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 8px 20px;
+      border-radius: 8px;
+      white-space: nowrap;
+      transition: opacity 0.2s;
+    }
+    .sticky-bar-btn:hover { opacity: 0.85; }
 
     /* Footer */
     .footer {
@@ -377,6 +513,8 @@ function generatePage(zone: typeof ZONES[0]): string {
     @media (max-width: 600px) {
       .qa-card { flex-direction: column; }
       .hero { padding: 40px 16px 32px; }
+      .intercept-card { flex-direction: column; text-align: center; }
+      .sticky-bar { flex-direction: column; gap: 8px; padding: 10px 16px; }
     }
   </style>
 </head>
@@ -384,13 +522,17 @@ function generatePage(zone: typeof ZONES[0]): string {
 
   <header class="header">
     <a href="https://qaveda.com" class="header-brand">QA<span>Veda</span></a>
-    <a href="https://qaveda.com" class="header-cta">Explore QAVeda →</a>
+    <a href="https://qaveda.com" class="header-cta">Start Learning Free →</a>
   </header>
 
   <section class="hero">
     <div class="hero-badge">Interview Prep · ${zone.title}</div>
     <h1 class="hero-title">${zone.title}<br><span>Interview Questions</span></h1>
-    <p class="hero-subtitle">${zone.description}</p>
+    <p class="hero-subtitle">Real questions asked in actual QA interviews — ${questions.length} Q&amp;As across Junior, Mid and Senior levels. Full answers, examples &amp; real scenarios on QAVeda.</p>
+    <div class="hero-cta-wrap">
+      <a href="https://qaveda.com" class="hero-cta-btn">Practice Full Answers on QAVeda →</a>
+      <span class="hero-cta-note">Free · No credit card · 200+ lessons + quizzes included</span>
+    </div>
     <div class="hero-stats">
       <div class="hero-stat">
         <div class="hero-stat-num">${questions.length}</div>
@@ -401,8 +543,8 @@ function generatePage(zone: typeof ZONES[0]): string {
         <div class="hero-stat-label">Levels</div>
       </div>
       <div class="hero-stat">
-        <div class="hero-stat-num">Expert</div>
-        <div class="hero-stat-label">Curated</div>
+        <div class="hero-stat-num">Free</div>
+        <div class="hero-stat-label">On QAVeda</div>
       </div>
     </div>
   </section>
@@ -413,15 +555,21 @@ function generatePage(zone: typeof ZONES[0]): string {
     ${renderSection('senior', seniors)}
 
     <div class="cta-banner">
-      <div class="cta-title">Want to master ${zone.title}?</div>
-      <div class="cta-sub">QAVeda has 200+ structured lessons, practice tests, skill assessments and certificates — all gamified with XP, badges and ranks.</div>
-      <a href="https://qaveda.com" class="cta-btn">Start Learning on QAVeda →</a>
+      <div class="cta-title">Don't just read. Practice.</div>
+      <div class="cta-sub">QAVeda has full answers with walked-through examples, 200+ structured lessons, Mastery Trial quizzes and certificates — all gamified with XP, badges and ranks.</div>
+      <a href="https://qaveda.com" class="cta-btn">Start for Free on QAVeda →</a>
+      <div class="cta-note">Free · No credit card required</div>
     </div>
   </main>
 
   <footer class="footer">
     © 2026 <a href="https://qaveda.com">QAVeda</a> · Gamified QA Learning Platform · <a href="https://qaveda.com">qaveda.com</a>
   </footer>
+
+  <div class="sticky-bar">
+    <span class="sticky-bar-text"><strong>Want the full answer?</strong> Lessons, examples &amp; real scenarios are free on QAVeda.</span>
+    <a href="https://qaveda.com" class="sticky-bar-btn">Go to QAVeda →</a>
+  </div>
 
 </body>
 </html>`;
