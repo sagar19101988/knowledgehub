@@ -813,10 +813,10 @@ function FeedbackTab() {
   const [hovered, setHovered] = useState(false);
 
   return (
-    <div className="fixed right-[20px] top-1/2 -translate-y-1/2 z-40 group">
+    <div className="fixed bottom-5 right-5 z-40 group">
       {/* Pulse ring */}
       {!hovered && (
-        <span className="absolute inset-0 rounded-l-xl bg-fuchsia-500 opacity-60 animate-ping" style={{ animationDuration: '2s' }} />
+        <span className="absolute inset-0 rounded-full bg-fuchsia-500 opacity-60 animate-ping" style={{ animationDuration: '2s' }} />
       )}
       <a
         href="https://docs.google.com/forms/d/e/1FAIpQLSfX244KyI5wqHXCK77xBFAC0TwTmLgBemZZfUMioW4o2J2zTg/viewform"
@@ -824,24 +824,23 @@ function FeedbackTab() {
         rel="noopener noreferrer"
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        className="relative flex flex-col items-center gap-2 px-2.5 py-4 rounded-l-xl font-bold uppercase tracking-widest transition-all duration-200 shadow-xl bg-fuchsia-600 hover:bg-fuchsia-500 text-white"
+        className="relative flex items-center gap-2 px-4 py-3 rounded-full font-bold uppercase tracking-widest text-[11px] transition-all duration-200 shadow-xl bg-fuchsia-600 hover:bg-fuchsia-500 text-white"
       >
         {/* Icon */}
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
-        {/* Vertical text */}
-        <span className="text-[10px]" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>Feedback</span>
+        <span>Feedback</span>
       </a>
       {/* Tooltip on hover */}
       {hovered && (
-        <div className="absolute right-full top-1/2 -translate-y-1/2 mr-3 px-3 py-2 rounded-lg whitespace-nowrap shadow-2xl border border-cyan-500/30"
+        <div className="absolute bottom-full right-0 mb-3 px-3 py-2 rounded-lg whitespace-nowrap shadow-2xl border border-cyan-500/30"
           style={{ background: 'linear-gradient(135deg, #020d14 0%, #041a24 50%, #020d14 100%)' }}
         >
           <p className="text-[9px] font-black uppercase tracking-[0.18em] text-cyan-400 mb-0.5">Got opinions?</p>
           <p className="text-[11px] font-bold text-white">Rate us. Roast us. We can take it.</p>
           {/* Arrow */}
-          <div className="absolute right-[-6px] top-1/2 -translate-y-1/2 w-3 h-3 rotate-45 border-r border-t border-cyan-500/30"
+          <div className="absolute bottom-[-6px] right-6 w-3 h-3 rotate-45 border-r border-b border-cyan-500/30"
             style={{ background: 'linear-gradient(135deg, transparent 50%, #041a24 50%)' }}
           />
         </div>
