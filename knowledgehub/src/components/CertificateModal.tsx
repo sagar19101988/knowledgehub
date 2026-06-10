@@ -289,7 +289,7 @@ export function CertificateModal({ zoneId, zoneName, completionDate, onClose }: 
     setDownloading('png');
     try {
       const dataUrl = await getDataUrl('png');
-      triggerDownload(dataUrl, `QAQuest-${slug}-Certificate.png`);
+      triggerDownload(dataUrl, `QAVeda-${slug}-Certificate.png`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error('[Certificate] PNG download failed:', err);
@@ -307,7 +307,7 @@ export function CertificateModal({ zoneId, zoneName, completionDate, onClose }: 
       const { jsPDF } = await import('jspdf');
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       pdf.addImage(dataUrl, 'JPEG', 0, 0, 297, 210);
-      pdf.save(`QAQuest-${slug}-Certificate.pdf`);
+      pdf.save(`QAVeda-${slug}-Certificate.pdf`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error('[Certificate] PDF download failed:', err);
