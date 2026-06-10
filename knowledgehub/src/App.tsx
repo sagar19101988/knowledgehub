@@ -813,7 +813,7 @@ function FeedbackTab() {
   const [hovered, setHovered] = useState(false);
 
   return (
-    <div className="fixed right-0 top-1/2 -translate-y-1/2 z-40 group">
+    <div className="fixed right-4 top-1/2 -translate-y-1/2 z-40 group">
       {/* Pulse ring */}
       {!hovered && (
         <span className="absolute inset-0 rounded-l-xl bg-fuchsia-500 opacity-60 animate-ping" style={{ animationDuration: '2s' }} />
