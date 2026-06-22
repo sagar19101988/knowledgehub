@@ -115,6 +115,67 @@ function getTeaserAnswer(answer: string): string {
   return words.slice(0, 35).join(' ') + '…';
 }
 
+function escapeJson(str: string): string {
+  return str
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, ' ')
+    .replace(/\r/g, '')
+    .replace(/\t/g, ' ');
+}
+
+function generateFAQSchema(zone: typeof ZONES[0], questions: typeof INTERVIEW_BANK[string]): string {
+  // 3 from each level = up to 9 FAQ items — good spread for rich results
+  const picks = [
+    ...questions.filter(q => q.level === 'junior').slice(0, 3),
+    ...questions.filter(q => q.level === 'mid').slice(0, 3),
+    ...questions.filter(q => q.level === 'senior').slice(0, 3),
+  ];
+
+  const items = picks.map(qa => {
+    const teaser = getTeaserAnswer(qa.answer);
+    const answerText = escapeJson(
+      teaser + ' Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com'
+    );
+    return `    {
+      "@type": "Question",
+      "name": "${escapeJson(qa.question)}",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "${answerText}"
+      }
+    }`;
+  }).join(',\n');
+
+  return `  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+${items}
+    ]
+  }
+  </script>`;
+}
+
+function generateWebsiteSchema(): string {
+  return `  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "QAVeda",
+    "alternateName": "QA Veda",
+    "url": "https://qaveda.com",
+    "description": "Gamified QA learning platform for software testers. Master Manual Testing, SQL, API Testing, TypeScript, Playwright and AI for QA.",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://qaveda.com",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>`;
+}
+
 function generatePage(zone: typeof ZONES[0]): string {
   const questions = INTERVIEW_BANK[zone.key] ?? [];
   const juniors  = questions.filter(q => q.level === 'junior');
@@ -176,6 +237,8 @@ function generatePage(zone: typeof ZONES[0]): string {
   <meta property="og:description" content="${zone.description}" />
   <meta property="og:url" content="https://qaveda.com/zones/${zone.slug}.html" />
   <meta property="og:image" content="https://qaveda.com/og-image.png" />
+${generateWebsiteSchema()}
+${generateFAQSchema(zone, questions)}
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
