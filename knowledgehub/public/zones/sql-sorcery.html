@@ -30,80 +30,43 @@
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "What is the difference between DELETE, TRUNCATE, and DROP?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "All three remove data but operate at completely different levels — DELETE removes specific rows, TRUNCATE empties a table in one sweep, and DROP destroys the table itself. Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
+    "@type": ["Course", "LearningResource"],
+    "name": "SQL Sorcery for QA Engineers",
+    "description": "Master SQL for software testers and QA engineers. Learn query writing, joins, aggregations, stored procedures and database testing techniques. Includes real SQL interview questions for QA roles.",
+    "provider": {
+      "@type": "Organization",
+      "name": "QAVeda",
+      "sameAs": "https://qaveda.com"
+    },
+    "url": "https://qaveda.com",
+    "isAccessibleForFree": true,
+    "inLanguage": "en-US",
+    "educationalLevel": "Beginner to Expert",
+    "teaches": "SQL Sorcery skills for QA and software testing engineers",
+    "hasCourseInstance": {
+      "@type": "CourseInstance",
+      "courseMode": "online",
+      "courseSchedule": {
+        "@type": "Schedule",
+        "repeatFrequency": "P1D"
       }
     },
-    {
-      "@type": "Question",
-      "name": "Write a query to find the second-highest salary from an Employee table. What should it return if there is no second salary?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Find the largest salary that is strictly less than the overall maximum — and wrap it in MAX() so the query returns NULL (not zero rows) when no second salary exists. Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
+    "hasPart": [
+      {
+        "@type": "CourseChapter",
+        "name": "Junior Level (0–2 years)",
+        "description": "50 interview questions covering SQL Sorcery fundamentals"
+      },
+      {
+        "@type": "CourseChapter",
+        "name": "Mid Level (2–5 years)",
+        "description": "50 interview questions covering SQL Sorcery intermediate topics"
+      },
+      {
+        "@type": "CourseChapter",
+        "name": "Senior Level (5+ years)",
+        "description": "50 interview questions covering SQL Sorcery advanced concepts"
       }
-    },
-    {
-      "@type": "Question",
-      "name": "Write a query to find all duplicate email addresses in a Person table.",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Group by email and use HAVING to keep only groups that appear more than once — the duplicate check must go in HAVING, not WHERE, because you can only count after grouping. Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Find the top 3 highest-paid employees in each department.",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Rank employees within each department using DENSE_RANK() OVER (PARTITION BY department), then keep ranks 1–3. Use DENSE_RANK, not ROW_NUMBER, so tied salaries share a rank rather than arbitrarily dropping one. Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Given an Employee table where each row has a managerId pointing to another employee, find all employees who earn more than their manager.",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Join the Employee table to itself — one alias as the employee, one as their manager — then filter where the employee's salary exceeds the manager's. Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Explain the difference between ROW_NUMBER(), RANK(), and DENSE_RANK() with an example.",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "All three number rows in order, but differ in how ties are handled — ROW_NUMBER gives every row a unique number, RANK skips numbers after ties, DENSE_RANK never skips. Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Explain the four SQL transaction isolation levels and which read phenomena each one prevents.",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Isolation levels are a trade-off between safety and speed. There are three problems they protect against. Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Write a query to find every user who has logged in on 3 or more consecutive days, returning the start date and length of each streak.",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "This is the classic gaps-and-islands problem. The trick: on a run of back-to-back dates, date − row_number stays the *same*, so we can use it to group each streak. Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Your production application is hitting deadlocks under load. How do you diagnose the cause and resolve them?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "What a deadlock is: two transactions each hold something the other one needs, so both wait forever. The database notices, picks one as the \"loser\", and cancels it with an error. Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
-      }
-    }
     ]
   }
   </script>

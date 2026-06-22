@@ -30,80 +30,43 @@
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "What is TypeScript, and how does it differ from JavaScript?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "TypeScript is a superset of JavaScript — that means everything you can already write in JavaScript also works in TypeScript, and TypeScript adds extra features on top. The biggest addition is static types: you tell… Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
+    "@type": ["Course", "LearningResource"],
+    "name": "TypeScript for QA for QA Engineers",
+    "description": "Master TypeScript for test automation and QA engineering. Learn types, interfaces, generics, OOP principles and advanced patterns used in modern test frameworks. Real TypeScript interview questions for QA roles.",
+    "provider": {
+      "@type": "Organization",
+      "name": "QAVeda",
+      "sameAs": "https://qaveda.com"
+    },
+    "url": "https://qaveda.com",
+    "isAccessibleForFree": true,
+    "inLanguage": "en-US",
+    "educationalLevel": "Beginner to Expert",
+    "teaches": "TypeScript for QA skills for QA and software testing engineers",
+    "hasCourseInstance": {
+      "@type": "CourseInstance",
+      "courseMode": "online",
+      "courseSchedule": {
+        "@type": "Schedule",
+        "repeatFrequency": "P1D"
       }
     },
-    {
-      "@type": "Question",
-      "name": "What are the basic types in TypeScript?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "TypeScript adds type annotations on top of JavaScript values. You tell TypeScript what kind of data each variable holds, and it makes sure you never accidentally put the wrong kind in. Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
+    "hasPart": [
+      {
+        "@type": "CourseChapter",
+        "name": "Junior Level (0–2 years)",
+        "description": "50 interview questions covering TypeScript for QA fundamentals"
+      },
+      {
+        "@type": "CourseChapter",
+        "name": "Mid Level (2–5 years)",
+        "description": "50 interview questions covering TypeScript for QA intermediate topics"
+      },
+      {
+        "@type": "CourseChapter",
+        "name": "Senior Level (5+ years)",
+        "description": "50 interview questions covering TypeScript for QA advanced concepts"
       }
-    },
-    {
-      "@type": "Question",
-      "name": "What is the difference between type inference and type annotation?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "TypeScript figures out the type of a value in two ways: either you spell it out explicitly (annotation), or TypeScript works it out from the value itself (inference). Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "What are generics, and why use them?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "A generic is a way to write a function, class, or interface that works with *any* type — but still gives you full type safety. Instead of hardcoding a specific type, you use a type… Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "What is a generic constraint?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "A generic constraint limits which types can be passed as a type parameter. You write it as <T extends SomeType>. Without it, TypeScript treats T as completely unknown — you can't access any properties on… Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "What are utility types? Name the common ones.",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Utility types are built-in TypeScript generics that *transform* an existing type into a new one. Instead of rewriting an interface from scratch, you derive a variant from it — keeping the two in sync automatically. Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How do you architect Playwright test sharding across CI workers for a large test suite?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Sharding splits your test suite into slices that run in parallel across multiple CI machines — if you have 500 tests and 5 workers, each worker runs ~100 tests independently, cutting total wall-clock time by… Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How do you design a type-safe Page Object Model hierarchy using TypeScript generics and abstract classes?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "A Page Object Model (POM) wraps page interactions into classes so tests read as business logic, not raw Playwright selectors. TypeScript abstract classes let you put shared infrastructure (navigation, waiting, error handling) in one place;… Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How do you manage test data at scale — typed factories, seed strategies, and teardown?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Hard-coded test data breaks the moment another parallel test edits the same record. The solution: each test creates exactly the data it needs, owns it for its lifetime, then cleans it up — regardless of… Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
-      }
-    }
     ]
   }
   </script>

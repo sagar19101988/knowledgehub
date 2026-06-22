@@ -124,35 +124,51 @@ function escapeJson(str: string): string {
     .replace(/\t/g, ' ');
 }
 
-function generateFAQSchema(zone: typeof ZONES[0], questions: typeof INTERVIEW_BANK[string]): string {
-  // 3 from each level = up to 9 FAQ items — good spread for rich results
-  const picks = [
-    ...questions.filter(q => q.level === 'junior').slice(0, 3),
-    ...questions.filter(q => q.level === 'mid').slice(0, 3),
-    ...questions.filter(q => q.level === 'senior').slice(0, 3),
-  ];
-
-  const items = picks.map(qa => {
-    const teaser = getTeaserAnswer(qa.answer);
-    const answerText = escapeJson(
-      teaser + ' Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com'
-    );
-    return `    {
-      "@type": "Question",
-      "name": "${escapeJson(qa.question)}",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "${answerText}"
-      }
-    }`;
-  }).join(',\n');
+function generateCourseSchema(zone: typeof ZONES[0], questions: typeof INTERVIEW_BANK[string]): string {
+  const juniorCount = questions.filter(q => q.level === 'junior').length;
+  const midCount    = questions.filter(q => q.level === 'mid').length;
+  const seniorCount = questions.filter(q => q.level === 'senior').length;
 
   return `  <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-${items}
+    "@type": ["Course", "LearningResource"],
+    "name": "${escapeJson(zone.title)} for QA Engineers",
+    "description": "${escapeJson(zone.description)}",
+    "provider": {
+      "@type": "Organization",
+      "name": "QAVeda",
+      "sameAs": "https://qaveda.com"
+    },
+    "url": "https://qaveda.com",
+    "isAccessibleForFree": true,
+    "inLanguage": "en-US",
+    "educationalLevel": "Beginner to Expert",
+    "teaches": "${escapeJson(zone.title)} skills for QA and software testing engineers",
+    "hasCourseInstance": {
+      "@type": "CourseInstance",
+      "courseMode": "online",
+      "courseSchedule": {
+        "@type": "Schedule",
+        "repeatFrequency": "P1D"
+      }
+    },
+    "hasPart": [
+      {
+        "@type": "CourseChapter",
+        "name": "Junior Level (0–2 years)",
+        "description": "${juniorCount} interview questions covering ${escapeJson(zone.title)} fundamentals"
+      },
+      {
+        "@type": "CourseChapter",
+        "name": "Mid Level (2–5 years)",
+        "description": "${midCount} interview questions covering ${escapeJson(zone.title)} intermediate topics"
+      },
+      {
+        "@type": "CourseChapter",
+        "name": "Senior Level (5+ years)",
+        "description": "${seniorCount} interview questions covering ${escapeJson(zone.title)} advanced concepts"
+      }
     ]
   }
   </script>`;
@@ -238,7 +254,7 @@ function generatePage(zone: typeof ZONES[0]): string {
   <meta property="og:url" content="https://qaveda.com/zones/${zone.slug}.html" />
   <meta property="og:image" content="https://qaveda.com/og-image.png" />
 ${generateWebsiteSchema()}
-${generateFAQSchema(zone, questions)}
+${generateCourseSchema(zone, questions)}
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -638,6 +654,337 @@ ${generateFAQSchema(zone, questions)}
 </html>`;
 }
 
+function generateWarRoomPage(): string {
+  const ACCENT = '#e11d48';
+  const allQuestions = Object.values(INTERVIEW_BANK).flat();
+  const totalCount = allQuestions.length;
+
+  // 2 sample questions per zone (1 junior, 1 mid) for preview content
+  const samples: { zone: typeof ZONES[0]; q: (typeof allQuestions)[0] }[] = [];
+  for (const zone of ZONES) {
+    const zoneQs = INTERVIEW_BANK[zone.key] ?? [];
+    const junior = zoneQs.find(q => q.level === 'junior');
+    const mid    = zoneQs.find(q => q.level === 'mid');
+    if (junior) samples.push({ zone, q: junior });
+    if (mid)    samples.push({ zone, q: mid });
+  }
+
+  const sampleCards = samples.slice(0, 12).map(({ zone, q }, i) => {
+    const teaser = getTeaserAnswer(q.answer);
+    const levelLabel = q.level === 'junior' ? 'Junior' : q.level === 'mid' ? 'Mid-Level' : 'Senior';
+    return `
+        <article class="qa-card">
+          <div class="qa-number">${i + 1}</div>
+          <div class="qa-body">
+            <div class="qa-meta">
+              <span class="qa-zone" style="color:${zone.color};background:${zone.color}15">${escapeHtml(zone.title)}</span>
+              <span class="qa-level">${levelLabel}</span>
+            </div>
+            <h3 class="qa-question">${escapeHtml(q.question)}</h3>
+            <p class="qa-teaser">${escapeHtml(teaser)}</p>
+            <p class="qa-hint">↳ Includes walked-through example, real-world QA scenario &amp; rule of thumb</p>
+            <a href="https://qaveda.com" class="qa-cta-link">Get the full answer on QAVeda →</a>
+          </div>
+        </article>`;
+  }).join('');
+
+  const schema = `  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "LearningResource",
+    "name": "QA Interview Questions — The War Room",
+    "description": "${totalCount}+ real interview questions asked at top tech companies. Covers Manual Testing, SQL, API Testing, TypeScript, Playwright and AI for QA. Junior, Mid and Senior levels with full explanations.",
+    "provider": {
+      "@type": "Organization",
+      "name": "QAVeda",
+      "sameAs": "https://qaveda.com"
+    },
+    "url": "https://qaveda.com",
+    "isAccessibleForFree": true,
+    "inLanguage": "en-US",
+    "educationalLevel": ["Beginner", "Intermediate", "Expert"],
+    "learningResourceType": "Practice Problem",
+    "educationalUse": "preparation",
+    "teaches": "QA and software testing interview preparation across Manual Testing, SQL, API Testing, TypeScript, Playwright and AI for QA"
+  }
+  </script>`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QA Interview Questions — The War Room · QAVeda</title>
+  <meta name="description" content="${totalCount}+ real QA interview questions across Manual Testing, SQL, API Testing, TypeScript, Playwright and AI for QA. Junior, Mid and Senior levels with full walked-through answers." />
+  <meta name="keywords" content="QA interview questions, software testing interview prep, manual testing interview, API testing interview, SQL for QA interview, Playwright interview questions, TypeScript QA interview, SDET interview questions, software tester interview" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://qaveda.com/war-room.html" />
+  <meta property="og:title" content="QA Interview Questions — The War Room · QAVeda" />
+  <meta property="og:description" content="${totalCount}+ real QA interview questions. Junior, Mid and Senior levels. Free on QAVeda." />
+  <meta property="og:url" content="https://qaveda.com/war-room.html" />
+  <meta property="og:image" content="https://qaveda.com/og-image.png" />
+${generateWebsiteSchema()}
+${schema}
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #1e293b; line-height: 1.6; padding-bottom: 72px; }
+    a { color: inherit; text-decoration: none; }
+    .header { background: #07050f; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .header-brand { font-size: 20px; font-weight: 900; color: white; letter-spacing: -0.5px; }
+    .header-brand span { color: ${ACCENT}; }
+    .header-cta { background: ${ACCENT}; color: white; font-size: 13px; font-weight: 700; padding: 8px 18px; border-radius: 8px; transition: opacity 0.2s; }
+    .header-cta:hover { opacity: 0.85; }
+    .hero { background: #07050f; padding: 60px 24px 48px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .hero-badge { display: inline-block; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.6); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 5px 14px; border-radius: 999px; margin-bottom: 20px; }
+    .hero-title { font-size: clamp(32px, 6vw, 56px); font-weight: 900; color: white; letter-spacing: -1px; margin-bottom: 12px; }
+    .hero-title span { color: ${ACCENT}; }
+    .hero-subtitle { font-size: 17px; color: rgba(255,255,255,0.5); max-width: 620px; margin: 0 auto 28px; }
+    .hero-cta-btn { display: inline-block; background: ${ACCENT}; color: white; font-size: 16px; font-weight: 800; padding: 14px 36px; border-radius: 10px; transition: opacity 0.2s; margin-bottom: 10px; }
+    .hero-cta-btn:hover { opacity: 0.85; }
+    .hero-cta-note { font-size: 13px; color: rgba(255,255,255,0.35); display: block; margin-bottom: 36px; }
+    .hero-stats { display: flex; gap: 32px; justify-content: center; flex-wrap: wrap; }
+    .hero-stat { text-align: center; }
+    .hero-stat-num { font-size: 28px; font-weight: 900; color: ${ACCENT}; }
+    .hero-stat-label { font-size: 12px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.08em; }
+    .zones-strip { background: #0f0d1a; border-bottom: 1px solid rgba(255,255,255,0.06); padding: 16px 24px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .zone-chip { font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 999px; border: 1px solid; }
+    .container { max-width: 860px; margin: 0 auto; padding: 48px 24px 80px; }
+    .section-heading { font-size: 22px; font-weight: 800; color: #0f172a; margin-bottom: 24px; padding-bottom: 10px; border-bottom: 2px solid ${ACCENT}33; display: flex; align-items: center; gap: 10px; }
+    .section-heading::before { content: ''; display: inline-block; width: 4px; height: 22px; background: ${ACCENT}; border-radius: 2px; }
+    .qa-list { display: flex; flex-direction: column; gap: 16px; }
+    .qa-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 24px; display: flex; gap: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    .qa-number { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: ${ACCENT}18; color: ${ACCENT}; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+    .qa-body { flex: 1; min-width: 0; }
+    .qa-meta { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+    .qa-zone { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 2px 8px; border-radius: 4px; }
+    .qa-level { font-size: 11px; font-weight: 600; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 4px; }
+    .qa-question { font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 10px; line-height: 1.4; }
+    .qa-teaser { font-size: 14px; color: #475569; line-height: 1.65; margin-bottom: 6px; }
+    .qa-hint { font-size: 12px; color: #94a3b8; font-style: italic; margin-bottom: 12px; }
+    .qa-cta-link { display: inline-block; font-size: 13px; font-weight: 700; color: ${ACCENT}; border: 1px solid ${ACCENT}40; background: ${ACCENT}08; padding: 6px 14px; border-radius: 6px; transition: background 0.15s; }
+    .qa-cta-link:hover { background: ${ACCENT}18; }
+    .cta-banner { background: #07050f; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 48px 32px; text-align: center; margin-top: 48px; }
+    .cta-title { font-size: 26px; font-weight: 900; color: white; margin-bottom: 10px; }
+    .cta-sub { font-size: 15px; color: rgba(255,255,255,0.5); margin-bottom: 28px; max-width: 500px; margin-left: auto; margin-right: auto; }
+    .cta-btn { display: inline-block; background: ${ACCENT}; color: white; font-size: 16px; font-weight: 800; padding: 14px 36px; border-radius: 10px; transition: opacity 0.2s; }
+    .cta-btn:hover { opacity: 0.85; }
+    .cta-note { margin-top: 14px; font-size: 13px; color: rgba(255,255,255,0.3); }
+    .sticky-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #07050f; border-top: 1px solid rgba(255,255,255,0.1); padding: 12px 24px; display: flex; align-items: center; justify-content: center; gap: 16px; z-index: 200; flex-wrap: wrap; }
+    .sticky-bar-text { font-size: 14px; color: rgba(255,255,255,0.65); }
+    .sticky-bar-text strong { color: white; }
+    .sticky-bar-btn { background: ${ACCENT}; color: white; font-size: 13px; font-weight: 700; padding: 8px 20px; border-radius: 8px; white-space: nowrap; }
+    .footer { text-align: center; padding: 24px; font-size: 13px; color: #94a3b8; border-top: 1px solid #e2e8f0; }
+    .footer a { color: ${ACCENT}; }
+    @media (max-width: 600px) { .qa-card { flex-direction: column; } .hero { padding: 40px 16px 32px; } .sticky-bar { flex-direction: column; gap: 8px; padding: 10px 16px; } }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <a href="https://qaveda.com" class="header-brand">QA<span>Veda</span></a>
+    <a href="https://qaveda.com" class="header-cta">Practice Free on QAVeda →</a>
+  </header>
+
+  <section class="hero">
+    <div class="hero-badge">Interview Prep · The War Room</div>
+    <h1 class="hero-title">QA <span>Interview Questions</span></h1>
+    <p class="hero-subtitle">Real questions asked in actual QA, SDET and automation engineer interviews — ${totalCount}+ Q&amp;As across 6 topics and 3 experience levels. Full answers on QAVeda.</p>
+    <a href="https://qaveda.com" class="hero-cta-btn">Practice Full Answers Free →</a>
+    <span class="hero-cta-note">Free · No credit card · Full explanations + examples included</span>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="hero-stat-num">${totalCount}+</div><div class="hero-stat-label">Questions</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">6</div><div class="hero-stat-label">Topics</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">3</div><div class="hero-stat-label">Levels</div></div>
+    </div>
+  </section>
+
+  <div class="zones-strip">
+    ${ZONES.map(z => `<span class="zone-chip" style="color:${z.color};border-color:${z.color}40;background:${z.color}10">${escapeHtml(z.title)}</span>`).join('')}
+  </div>
+
+  <main class="container">
+    <h2 class="section-heading">Sample Questions — Preview</h2>
+    <div class="qa-list">
+      ${sampleCards}
+    </div>
+
+    <div class="cta-banner">
+      <div class="cta-title">Stop guessing. Start knowing.</div>
+      <div class="cta-sub">QAVeda has ${totalCount}+ full interview answers with walked-through examples, real-world QA scenarios and rules of thumb — across all 6 topics and 3 experience levels.</div>
+      <a href="https://qaveda.com" class="cta-btn">Open The War Room Free →</a>
+      <div class="cta-note">Free · No credit card required</div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    © 2026 <a href="https://qaveda.com">QAVeda</a> · Gamified QA Learning Platform · <a href="https://qaveda.com">qaveda.com</a>
+  </footer>
+
+  <div class="sticky-bar">
+    <span class="sticky-bar-text"><strong>Want the full answer?</strong> ${totalCount}+ real interview Q&amp;As are free on QAVeda.</span>
+    <a href="https://qaveda.com" class="sticky-bar-btn">Go to QAVeda →</a>
+  </div>
+</body>
+</html>`;
+}
+
+function generateMasteryTrialPage(): string {
+  const ACCENT = '#f59e0b';
+  const zoneNames = ZONES.map(z => z.title);
+
+  const schema = `  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Quiz",
+    "name": "QA Mastery Trial — Test Your Knowledge",
+    "description": "30-question mastery quiz per zone. Score 80% or above to earn your QA Certificate of Mastery. Covers all 6 QA learning zones: ${zoneNames.join(', ')}.",
+    "provider": {
+      "@type": "Organization",
+      "name": "QAVeda",
+      "sameAs": "https://qaveda.com"
+    },
+    "url": "https://qaveda.com",
+    "isAccessibleForFree": true,
+    "inLanguage": "en-US",
+    "educationalLevel": ["Beginner", "Intermediate", "Expert"],
+    "about": {
+      "@type": "Thing",
+      "name": "Software Quality Assurance",
+      "description": "QA engineering skills including ${zoneNames.join(', ')}"
+    },
+    "educationalUse": "assessment"
+  }
+  </script>`;
+
+  const zoneCards = ZONES.map(z => `
+        <div class="zone-card">
+          <div class="zone-dot" style="background:${z.color}"></div>
+          <div class="zone-info">
+            <div class="zone-name">${escapeHtml(z.title)}</div>
+            <div class="zone-sub">30 questions · 80% to pass · Certificate on completion</div>
+          </div>
+        </div>`).join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QA Mastery Trial — Practice Test &amp; Certificate · QAVeda</title>
+  <meta name="description" content="Test your QA knowledge with the Mastery Trial — 30 questions per zone, no hints, timed. Score 80%+ to earn your QA Certificate of Mastery. Free on QAVeda." />
+  <meta name="keywords" content="QA practice test, software testing quiz, QA certification quiz, QA knowledge test, manual testing quiz, API testing quiz, Playwright quiz, TypeScript QA quiz, SDET practice exam, software tester assessment" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://qaveda.com/mastery-trial.html" />
+  <meta property="og:title" content="QA Mastery Trial — Practice Test &amp; Certificate · QAVeda" />
+  <meta property="og:description" content="30 questions. No hints. Score 80%+ to earn your QA Certificate of Mastery. Free on QAVeda." />
+  <meta property="og:url" content="https://qaveda.com/mastery-trial.html" />
+  <meta property="og:image" content="https://qaveda.com/og-image.png" />
+${generateWebsiteSchema()}
+${schema}
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #1e293b; line-height: 1.6; padding-bottom: 72px; }
+    a { color: inherit; text-decoration: none; }
+    .header { background: #07050f; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .header-brand { font-size: 20px; font-weight: 900; color: white; }
+    .header-brand span { color: ${ACCENT}; }
+    .header-cta { background: ${ACCENT}; color: white; font-size: 13px; font-weight: 700; padding: 8px 18px; border-radius: 8px; }
+    .hero { background: #07050f; padding: 60px 24px 48px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .hero-badge { display: inline-block; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.6); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 5px 14px; border-radius: 999px; margin-bottom: 20px; }
+    .hero-title { font-size: clamp(32px, 6vw, 56px); font-weight: 900; color: white; letter-spacing: -1px; margin-bottom: 12px; }
+    .hero-title span { color: ${ACCENT}; }
+    .hero-subtitle { font-size: 17px; color: rgba(255,255,255,0.5); max-width: 600px; margin: 0 auto 28px; }
+    .rules { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; margin-bottom: 36px; }
+    .rule { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 16px 24px; text-align: center; min-width: 140px; }
+    .rule-val { font-size: 24px; font-weight: 900; color: ${ACCENT}; }
+    .rule-label { font-size: 12px; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+    .hero-cta-btn { display: inline-block; background: ${ACCENT}; color: white; font-size: 16px; font-weight: 800; padding: 14px 36px; border-radius: 10px; transition: opacity 0.2s; margin-bottom: 10px; }
+    .hero-cta-btn:hover { opacity: 0.85; }
+    .hero-cta-note { font-size: 13px; color: rgba(255,255,255,0.35); display: block; }
+    .container { max-width: 760px; margin: 0 auto; padding: 48px 24px 80px; }
+    .section-heading { font-size: 22px; font-weight: 800; color: #0f172a; margin-bottom: 24px; padding-bottom: 10px; border-bottom: 2px solid ${ACCENT}33; display: flex; align-items: center; gap: 10px; }
+    .section-heading::before { content: ''; display: inline-block; width: 4px; height: 22px; background: ${ACCENT}; border-radius: 2px; }
+    .zone-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 48px; }
+    .zone-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 20px; display: flex; align-items: center; gap: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .zone-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .zone-name { font-size: 15px; font-weight: 700; color: #0f172a; }
+    .zone-sub { font-size: 13px; color: #64748b; margin-top: 2px; }
+    .how-it-works { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; margin-bottom: 40px; }
+    .how-title { font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 20px; }
+    .steps { display: flex; flex-direction: column; gap: 14px; }
+    .step { display: flex; gap: 14px; align-items: flex-start; }
+    .step-num { width: 28px; height: 28px; border-radius: 50%; background: ${ACCENT}18; color: ${ACCENT}; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .step-text { font-size: 14px; color: #475569; padding-top: 4px; }
+    .step-text strong { color: #0f172a; }
+    .cta-banner { background: #07050f; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 48px 32px; text-align: center; }
+    .cta-title { font-size: 26px; font-weight: 900; color: white; margin-bottom: 10px; }
+    .cta-sub { font-size: 15px; color: rgba(255,255,255,0.5); margin-bottom: 28px; max-width: 480px; margin-left: auto; margin-right: auto; }
+    .cta-btn { display: inline-block; background: ${ACCENT}; color: white; font-size: 16px; font-weight: 800; padding: 14px 36px; border-radius: 10px; }
+    .cta-note { margin-top: 14px; font-size: 13px; color: rgba(255,255,255,0.3); }
+    .sticky-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #07050f; border-top: 1px solid rgba(255,255,255,0.1); padding: 12px 24px; display: flex; align-items: center; justify-content: center; gap: 16px; z-index: 200; flex-wrap: wrap; }
+    .sticky-bar-text { font-size: 14px; color: rgba(255,255,255,0.65); }
+    .sticky-bar-text strong { color: white; }
+    .sticky-bar-btn { background: ${ACCENT}; color: white; font-size: 13px; font-weight: 700; padding: 8px 20px; border-radius: 8px; white-space: nowrap; }
+    .footer { text-align: center; padding: 24px; font-size: 13px; color: #94a3b8; border-top: 1px solid #e2e8f0; }
+    .footer a { color: ${ACCENT}; }
+    @media (max-width: 600px) { .rules { flex-direction: column; align-items: center; } .hero { padding: 40px 16px 32px; } .sticky-bar { flex-direction: column; gap: 8px; padding: 10px 16px; } }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <a href="https://qaveda.com" class="header-brand">QA<span>Veda</span></a>
+    <a href="https://qaveda.com" class="header-cta">Take the Trial Free →</a>
+  </header>
+
+  <section class="hero">
+    <div class="hero-badge">Assessment · Mastery Trial</div>
+    <h1 class="hero-title">QA <span>Mastery Trial</span></h1>
+    <p class="hero-subtitle">30 questions. No hints. Timed. Score 80% or above to earn your QA Certificate of Mastery — and prove you know your zone.</p>
+    <div class="rules">
+      <div class="rule"><div class="rule-val">30</div><div class="rule-label">Questions</div></div>
+      <div class="rule"><div class="rule-val">80%</div><div class="rule-label">Pass Score</div></div>
+      <div class="rule"><div class="rule-val">6</div><div class="rule-label">Zones</div></div>
+      <div class="rule"><div class="rule-val">Free</div><div class="rule-label">On QAVeda</div></div>
+    </div>
+    <a href="https://qaveda.com" class="hero-cta-btn">Start Your Trial Free →</a>
+    <span class="hero-cta-note">Retry anytime · No credit card required</span>
+  </section>
+
+  <main class="container">
+    <h2 class="section-heading">Available Zones</h2>
+    <div class="zone-list">
+      ${zoneCards}
+    </div>
+
+    <div class="how-it-works">
+      <div class="how-title">How the Mastery Trial works</div>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-text"><strong>Choose a zone</strong> — Manual Testing, SQL, API Testing, TypeScript, Playwright or AI for QA.</div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-text"><strong>Answer 30 questions</strong> — multiple choice, drawn from across Beginner, Intermediate and Expert tiers. No hints.</div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-text"><strong>Score 80% or above</strong> — pass the trial and earn your QA Certificate of Mastery for that zone.</div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-text"><strong>Retry anytime</strong> — no lock-outs. Review your weak spots in the lessons and come back stronger.</div></div>
+      </div>
+    </div>
+
+    <div class="cta-banner">
+      <div class="cta-title">Are you ready to be tested?</div>
+      <div class="cta-sub">The Mastery Trial is free on QAVeda. Study the lessons, then prove what you know. Certificates downloadable as PDF.</div>
+      <a href="https://qaveda.com" class="cta-btn">Take the Mastery Trial Free →</a>
+      <div class="cta-note">Free · No credit card required · All 6 zones available</div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    © 2026 <a href="https://qaveda.com">QAVeda</a> · Gamified QA Learning Platform · <a href="https://qaveda.com">qaveda.com</a>
+  </footer>
+
+  <div class="sticky-bar">
+    <span class="sticky-bar-text"><strong>Ready to test yourself?</strong> The Mastery Trial is free on QAVeda.</span>
+    <a href="https://qaveda.com" class="sticky-bar-btn">Start the Trial →</a>
+  </div>
+</body>
+</html>`;
+}
+
 let generated = 0;
 for (const zone of ZONES) {
   const html = generatePage(zone);
@@ -648,4 +995,11 @@ for (const zone of ZONES) {
   generated++;
 }
 
-console.log(`\n🎉 Generated ${generated} zone pages in public/zones/`);
+// Generate standalone feature pages
+const PUBLIC_DIR = join(__dirname, '../public');
+writeFileSync(join(PUBLIC_DIR, 'war-room.html'), generateWarRoomPage(), 'utf-8');
+console.log('✅ war-room.html');
+writeFileSync(join(PUBLIC_DIR, 'mastery-trial.html'), generateMasteryTrialPage(), 'utf-8');
+console.log('✅ mastery-trial.html');
+
+console.log(`\n🎉 Generated ${generated} zone pages + 2 feature pages`);

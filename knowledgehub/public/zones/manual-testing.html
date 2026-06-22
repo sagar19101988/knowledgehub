@@ -30,80 +30,43 @@
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "What is the difference between verification and validation?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Verification asks \"are we building the product right?\" — checking documents and code against the spec. Validation asks \"are we building the right product?\" — running the software to confirm it meets real user needs. Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
+    "@type": ["Course", "LearningResource"],
+    "name": "Manual Testing for QA Engineers",
+    "description": "Master manual testing fundamentals, test case design, bug reporting, exploratory testing and QA processes. Prepare for manual testing interviews with real-world Q&As used in actual company interviews.",
+    "provider": {
+      "@type": "Organization",
+      "name": "QAVeda",
+      "sameAs": "https://qaveda.com"
+    },
+    "url": "https://qaveda.com",
+    "isAccessibleForFree": true,
+    "inLanguage": "en-US",
+    "educationalLevel": "Beginner to Expert",
+    "teaches": "Manual Testing skills for QA and software testing engineers",
+    "hasCourseInstance": {
+      "@type": "CourseInstance",
+      "courseMode": "online",
+      "courseSchedule": {
+        "@type": "Schedule",
+        "repeatFrequency": "P1D"
       }
     },
-    {
-      "@type": "Question",
-      "name": "What is the difference between severity and priority?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Severity measures how badly a bug damages the system technically; priority measures how urgently the business needs it fixed. They are independent scales, set by different people. Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
+    "hasPart": [
+      {
+        "@type": "CourseChapter",
+        "name": "Junior Level (0–2 years)",
+        "description": "50 interview questions covering Manual Testing fundamentals"
+      },
+      {
+        "@type": "CourseChapter",
+        "name": "Mid Level (2–5 years)",
+        "description": "50 interview questions covering Manual Testing intermediate topics"
+      },
+      {
+        "@type": "CourseChapter",
+        "name": "Senior Level (5+ years)",
+        "description": "50 interview questions covering Manual Testing advanced concepts"
       }
-    },
-    {
-      "@type": "Question",
-      "name": "What is the difference between a test scenario and a test case?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "A test scenario is a one-line description of what to test; a test case is the detailed how — exact steps, data, and expected result. One scenario typically expands into several test cases. Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "You have far more to test than time allows. How do you decide what to test?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "When time is short, you use risk-based testing — you rank every area by how likely it is to fail and how badly that failure would hurt, then test the highest-risk areas most deeply. Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "What is decision table testing, and when would you use it?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Decision table testing is a technique where you map every combination of input conditions to its expected outcome in a grid — so no rule slips through a gap. Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "What is state transition testing?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "State transition testing checks every valid move between a system's states works correctly, and every invalid move is properly blocked. Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How would you build a test strategy for a brand-new product?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "You start from the product's purpose, users, risks, and business goals — not from a template — then define test types, levels, environments, tools, quality gates, and the manual-vs-automation split, keeping it lean and evolving. Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How do you decide what to automate and what to keep manual?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "The decision is ROI-based: automate what's stable, repetitive, and run frequently; keep manual what requires human judgement, changes rapidly, or costs more to automate than the automation saves. Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How does QA work within an Agile / Scrum team?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "In Agile, QA is embedded in the team as a continuous collaborator — not a gate at the end. QA involves itself from story refinement, tests continuously as features land, automates alongside development, and treats… Full explanation with walked-through example and real-world QA scenario on QAVeda — qaveda.com"
-      }
-    }
     ]
   }
   </script>
