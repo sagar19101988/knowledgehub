@@ -5,7 +5,7 @@ import { atomDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/pri
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, XCircle,
-  AlertTriangle, Trophy, RotateCcw, ChevronDown, ChevronUp, Bookmark, CornerDownRight, Home,
+  AlertTriangle, Trophy, RotateCcw, ChevronDown, ChevronUp, Bookmark, CornerDownRight, Home, Clock,
 } from 'lucide-react';
 import { ZONES } from '../data/zones';
 import { QUESTION_BANK, MASTERY_BADGES, type MasteryTrialQuestion } from '../data/questionBank';
@@ -13,6 +13,7 @@ import { useQuestStore } from '../store/useQuestStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { UserAvatarMenu } from './UserAvatarMenu';
 import { CertificateModal } from './CertificateModal';
+import { TEXT, TEXT_COLOR } from '../lib/typography';
 import confetti from 'canvas-confetti';
 
 const TOTAL_QUESTIONS = 30;
@@ -50,30 +51,35 @@ function CircularTimer({ timeLeft }: { timeLeft: number }) {
   const isDark = useQuestStore(s => s.theme) === 'dark';
   const pct = Math.max(0, timeLeft / TOTAL_TIME);
   const SIZE = 112;
-  const STROKE = 8;
+  const STROKE = 6;
   const RADIUS = (SIZE - STROKE) / 2;
   const CIRC = 2 * Math.PI * RADIUS;
   const dashOffset = CIRC * (1 - pct);
 
   const isRed   = timeLeft < 300;
   const isAmber = timeLeft < 600 && !isRed;
-  const strokeColor = isRed ? '#ef4444' : isAmber ? '#f59e0b' : (isDark ? '#7c3aed' : '#2563eb');
+  const strokeColor = isRed ? '#ef4444' : isAmber ? '#f59e0b' : (isDark ? '#a78bfa' : '#2563eb');
+  const glowColor = isRed
+    ? 'rgba(239,68,68,0.32)'
+    : isAmber
+      ? 'rgba(245,158,11,0.30)'
+      : (isDark ? 'rgba(124,58,237,0.28)' : 'rgba(37,99,235,0.18)');
   const textCls = isRed
     ? 'text-rose-500 dark:text-rose-400'
     : isAmber
       ? 'text-amber-500 dark:text-amber-400'
-      : 'text-blue-600 dark:text-violet-400';
+      : 'text-blue-600 dark:text-violet-300';
   return (
     <div
-      className={`fixed bottom-6 right-6 z-[80] rounded-full
-        bg-white/92 dark:bg-[#0f0c20]/92 backdrop-blur-sm
+      className={`hidden xl:block fixed top-1/2 -translate-y-1/2 right-6 z-40 rounded-full
+        bg-white/75 dark:bg-[#100c22]/80 backdrop-blur-md
         ${isRed ? 'animate-pulse' : ''}`}
       style={{
         width: SIZE,
         height: SIZE,
         boxShadow: isDark
-          ? '0 4px 28px rgba(0,0,0,0.18), 0 0 0 1px rgba(139,92,246,0.16)'
-          : '0 2px 12px rgba(15,23,42,0.08), 0 0 0 1px #e2e8f0',
+          ? `0 10px 34px rgba(0,0,0,0.40), 0 0 30px ${glowColor}, inset 0 0 0 1px rgba(255,255,255,0.07)`
+          : `0 10px 26px rgba(15,23,42,0.10), 0 0 24px ${glowColor}, inset 0 0 0 1px rgba(255,255,255,0.65)`,
       }}
       aria-label={`Time remaining: ${formatTime(timeLeft)}`}
     >
@@ -81,7 +87,7 @@ function CircularTimer({ timeLeft }: { timeLeft: number }) {
         <circle
           cx={SIZE / 2} cy={SIZE / 2} r={RADIUS}
           strokeWidth={STROKE} fill="none"
-          stroke={isDark ? 'rgba(139,92,246,0.14)' : '#e2e8f0'}
+          stroke={isDark ? 'rgba(139,92,246,0.12)' : '#eef2f7'}
         />
         <circle
           cx={SIZE / 2} cy={SIZE / 2} r={RADIUS}
@@ -101,6 +107,26 @@ function CircularTimer({ timeLeft }: { timeLeft: number }) {
           left
         </span>
       </div>
+    </div>
+  );
+}
+
+// ── Compact header-docked timer chip (shown < xl, where the floating ring would overlap content) ──
+function TimerChip({ timeLeft }: { timeLeft: number }) {
+  const isDark = useQuestStore(s => s.theme) === 'dark';
+  const isRed   = timeLeft < 300;
+  const isAmber = timeLeft < 600 && !isRed;
+  const color  = isRed ? '#ef4444' : isAmber ? '#f59e0b' : (isDark ? '#a78bfa' : '#2563eb');
+  const bg     = isRed ? 'rgba(239,68,68,0.12)' : isAmber ? 'rgba(245,158,11,0.12)' : (isDark ? 'rgba(124,58,237,0.14)' : 'rgba(37,99,235,0.08)');
+  const border = isRed ? 'rgba(239,68,68,0.45)' : isAmber ? 'rgba(245,158,11,0.45)' : (isDark ? 'rgba(124,58,237,0.40)' : 'rgba(37,99,235,0.25)');
+  return (
+    <div
+      className={`xl:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg flex-shrink-0 ${isRed ? 'animate-pulse' : ''}`}
+      style={{ background: bg, border: `1px solid ${border}`, color }}
+      aria-label={`Time remaining: ${formatTime(timeLeft)}`}
+    >
+      <Clock size={15} />
+      <span className="text-sm font-black tabular-nums leading-none">{formatTime(timeLeft)}</span>
     </div>
   );
 }
@@ -809,22 +835,6 @@ function ReportCard({
 
       {/* ── Sticky action bar ── */}
       <div className="sticky top-0 z-40 bg-[#eff4fb]/90 dark:bg-[#07050f]/90 backdrop-blur border-b border-slate-200 dark:border-violet-900/30 h-14 px-3 sm:px-6 flex items-center justify-between">
-          <button
-            onClick={onBack}
-            aria-label="Back to Zone"
-            onMouseEnter={() => setBackTopHovered(true)}
-            onMouseLeave={() => setBackTopHovered(false)}
-            className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border transition-colors duration-150 group flex-shrink-0"
-            style={{
-              background: backTopHovered ? (isDark ? 'rgba(217,70,239,0.08)' : 'rgba(239,246,255,1)') : (isDark ? 'rgba(15,23,42,1)' : 'rgba(255,255,255,1)'),
-              borderColor: backTopHovered ? (isDark ? 'rgba(217,70,239,0.55)' : 'rgba(147,197,253,1)') : (isDark ? 'rgba(51,65,85,1)' : 'rgba(203,213,225,1)'),
-              color: backTopHovered ? (isDark ? 'rgba(232,121,249,1)' : 'rgba(29,78,216,1)') : (isDark ? 'rgba(148,163,184,1)' : 'rgba(71,85,105,1)'),
-              boxShadow: backTopHovered ? (isDark ? '0 0 18px rgba(192,38,211,0.4)' : '0 0 14px rgba(37,99,235,0.2)') : 'none',
-            }}
-          >
-            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
-            <span className="text-sm font-semibold hidden sm:inline">Back to Zone</span>
-          </button>
           <div className="flex items-center gap-2">
             <button
               onClick={() => navigate('/home')}
@@ -842,8 +852,30 @@ function ReportCard({
               <Home size={14} />
               <span className="text-sm font-semibold hidden sm:inline">Home</span>
             </button>
-            <UserAvatarMenu />
+            <button
+              onClick={onBack}
+              aria-label="Back to Zone"
+              onMouseEnter={() => setBackTopHovered(true)}
+              onMouseLeave={() => setBackTopHovered(false)}
+              className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border transition-colors duration-150 group flex-shrink-0"
+              style={{
+                background: backTopHovered ? (isDark ? 'rgba(217,70,239,0.08)' : 'rgba(239,246,255,1)') : (isDark ? 'rgba(15,23,42,1)' : 'rgba(255,255,255,1)'),
+                borderColor: backTopHovered ? (isDark ? 'rgba(217,70,239,0.55)' : 'rgba(147,197,253,1)') : (isDark ? 'rgba(51,65,85,1)' : 'rgba(203,213,225,1)'),
+                color: backTopHovered ? (isDark ? 'rgba(232,121,249,1)' : 'rgba(29,78,216,1)') : (isDark ? 'rgba(148,163,184,1)' : 'rgba(71,85,105,1)'),
+                boxShadow: backTopHovered ? (isDark ? '0 0 18px rgba(192,38,211,0.4)' : '0 0 14px rgba(37,99,235,0.2)') : 'none',
+              }}
+            >
+              <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
+              <span className="text-sm font-semibold hidden sm:inline">Zone</span>
+            </button>
+            <span className={`select-none hidden sm:inline ${isDark ? 'text-slate-700' : 'text-slate-300'}`}>|</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="[&>svg]:w-5 [&>svg]:h-5 flex-shrink-0 hidden sm:inline">{zoneMeta.icon}</span>
+              <span className={`text-sm font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{zoneMeta.title}</span>
+              <span className={`text-sm font-medium hidden sm:inline flex-shrink-0 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>/ Mastery Trial</span>
+            </div>
           </div>
+          <UserAvatarMenu />
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-5">
@@ -1107,7 +1139,7 @@ function ReportCard({
                               Correct: {formatCorrect()}
                             </div>
                           )}
-                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{q.explanation}</p>
+                          <p className={`${TEXT.body} ${TEXT_COLOR.muted}`}>{q.explanation}</p>
                         </div>
                       </motion.div>
                     )}
@@ -1328,7 +1360,7 @@ export default function MasteryTrialPage() {
         badgeEarned={badgeEarned}
         badgeAlreadyHad={badgeAlreadyHad}
         onRetake={handleRetake}
-        onBack={() => navigate(-1)}
+        onBack={() => navigate(`/zone/${zoneMeta.id}`)}
       />
     );
   }
@@ -1406,22 +1438,6 @@ export default function MasteryTrialPage() {
 
         {/* ── Sticky top nav — back button matches ZoneView Library ── */}
         <nav className="h-16 sticky top-0 z-40 bg-[#eff4fb]/85 dark:bg-[#0a0715]/80 backdrop-blur border-b border-violet-200/60 dark:border-violet-900/30 px-3 sm:px-6 flex items-center justify-between">
-          <button
-            onClick={() => navigate(-1)}
-            aria-label="Back to Zone"
-            onMouseEnter={() => setIntroBackHovered(true)}
-            onMouseLeave={() => setIntroBackHovered(false)}
-            className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border transition-colors duration-150 group flex-shrink-0"
-            style={{
-              background: introBackHovered ? (isDark ? 'rgba(217,70,239,0.08)' : 'rgba(239,246,255,1)') : (isDark ? 'rgba(15,23,42,1)' : 'rgba(255,255,255,1)'),
-              borderColor: introBackHovered ? (isDark ? 'rgba(217,70,239,0.55)' : 'rgba(147,197,253,1)') : (isDark ? 'rgba(51,65,85,1)' : 'rgba(203,213,225,1)'),
-              color: introBackHovered ? (isDark ? 'rgba(232,121,249,1)' : 'rgba(29,78,216,1)') : (isDark ? 'rgba(148,163,184,1)' : 'rgba(71,85,105,1)'),
-              boxShadow: introBackHovered ? (isDark ? '0 0 18px rgba(192,38,211,0.4)' : '0 0 14px rgba(37,99,235,0.2)') : 'none',
-            }}
-          >
-            <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
-            <span className="text-sm font-semibold hidden sm:inline">Back to Zone</span>
-          </button>
           <div className="flex items-center gap-2">
             <button
               onClick={() => navigate('/home')}
@@ -1439,8 +1455,30 @@ export default function MasteryTrialPage() {
               <Home size={15} />
               <span className="text-sm font-semibold hidden sm:inline">Home</span>
             </button>
-            <UserAvatarMenu />
+            <button
+              onClick={() => navigate(`/zone/${zoneId}`)}
+              aria-label="Back to Zone"
+              onMouseEnter={() => setIntroBackHovered(true)}
+              onMouseLeave={() => setIntroBackHovered(false)}
+              className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border transition-colors duration-150 group flex-shrink-0"
+              style={{
+                background: introBackHovered ? (isDark ? 'rgba(217,70,239,0.08)' : 'rgba(239,246,255,1)') : (isDark ? 'rgba(15,23,42,1)' : 'rgba(255,255,255,1)'),
+                borderColor: introBackHovered ? (isDark ? 'rgba(217,70,239,0.55)' : 'rgba(147,197,253,1)') : (isDark ? 'rgba(51,65,85,1)' : 'rgba(203,213,225,1)'),
+                color: introBackHovered ? (isDark ? 'rgba(232,121,249,1)' : 'rgba(29,78,216,1)') : (isDark ? 'rgba(148,163,184,1)' : 'rgba(71,85,105,1)'),
+                boxShadow: introBackHovered ? (isDark ? '0 0 18px rgba(192,38,211,0.4)' : '0 0 14px rgba(37,99,235,0.2)') : 'none',
+              }}
+            >
+              <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
+              <span className="text-sm font-semibold hidden sm:inline">Zone</span>
+            </button>
+            <span className={`select-none hidden sm:inline ${isDark ? 'text-slate-700' : 'text-slate-300'}`}>|</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="[&>svg]:w-5 [&>svg]:h-5 flex-shrink-0 hidden sm:inline">{zoneMeta.icon}</span>
+              <span className={`text-sm font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{zoneMeta.title}</span>
+              <span className={`text-sm font-medium hidden sm:inline flex-shrink-0 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>/ Mastery Trial</span>
+            </div>
           </div>
+          <UserAvatarMenu />
         </nav>
 
         <div className="max-w-4xl mx-auto px-4 py-10 space-y-6 relative z-10">
@@ -1882,7 +1920,23 @@ export default function MasteryTrialPage() {
 
       {/* ── Header ── */}
       <header className="h-20 border-b border-violet-200/60 dark:border-violet-900/30 bg-white/85 dark:bg-[#0a0715]/80 backdrop-blur px-4 sm:px-6 flex items-center gap-3 sticky top-0 z-50">
-        {/* Left: Exit (fuchsia-glow) + zone name */}
+        {/* Left: Home + Zone (fuchsia-glow) + zone name */}
+        <button
+          onClick={() => setShowGoHomeFromExamModal(true)}
+          aria-label="Home"
+          onMouseEnter={() => setExamHomeHovered(true)}
+          onMouseLeave={() => setExamHomeHovered(false)}
+          className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border transition-colors duration-150 group flex-shrink-0"
+          style={{
+            background: examHomeHovered ? (isDark ? 'rgba(217,70,239,0.08)' : 'rgba(239,246,255,1)') : (isDark ? 'rgba(15,23,42,1)' : 'rgba(255,255,255,1)'),
+            borderColor: examHomeHovered ? (isDark ? 'rgba(217,70,239,0.55)' : 'rgba(147,197,253,1)') : (isDark ? 'rgba(51,65,85,1)' : 'rgba(203,213,225,1)'),
+            color: examHomeHovered ? (isDark ? 'rgba(232,121,249,1)' : 'rgba(29,78,216,1)') : (isDark ? 'rgba(148,163,184,1)' : 'rgba(71,85,105,1)'),
+            boxShadow: examHomeHovered ? (isDark ? '0 0 18px rgba(192,38,211,0.4)' : '0 0 14px rgba(37,99,235,0.2)') : 'none',
+          }}
+        >
+          <Home size={14} />
+          <span className="text-sm font-semibold hidden sm:inline">Home</span>
+        </button>
         <button
           onClick={() => setShowBackToZoneModal(true)}
           aria-label="Back to Zone"
@@ -1897,13 +1951,13 @@ export default function MasteryTrialPage() {
           }}
         >
           <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
-          <span className="text-sm font-semibold hidden sm:inline">Back to Zone</span>
+          <span className="text-sm font-semibold hidden sm:inline">Zone</span>
         </button>
-        <div className="flex items-center gap-2.5 flex-shrink-0">
-          <span className="[&>svg]:w-6 [&>svg]:h-6">{zoneMeta.icon}</span>
-          <span className="hidden sm:inline text-base font-black text-slate-900 dark:text-white">
-            {zoneMeta.title}
-          </span>
+        <span className={`select-none hidden sm:inline ${isDark ? 'text-slate-700' : 'text-slate-300'}`}>|</span>
+        <div className="flex items-center gap-2 flex-shrink-0 min-w-0">
+          <span className="[&>svg]:w-5 [&>svg]:h-5 flex-shrink-0 hidden sm:inline">{zoneMeta.icon}</span>
+          <span className="text-sm font-bold truncate text-slate-900 dark:text-white">{zoneMeta.title}</span>
+          <span className="hidden lg:inline text-sm font-medium flex-shrink-0 text-slate-400 dark:text-slate-500">/ Mastery Trial</span>
         </div>
 
         {/* Center: Prev / Q counter / Next */}
@@ -1929,22 +1983,7 @@ export default function MasteryTrialPage() {
           </button>
         </div>
 
-        <button
-          onClick={() => setShowGoHomeFromExamModal(true)}
-          aria-label="Home"
-          onMouseEnter={() => setExamHomeHovered(true)}
-          onMouseLeave={() => setExamHomeHovered(false)}
-          className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border transition-colors duration-150 group flex-shrink-0"
-          style={{
-            background: examHomeHovered ? (isDark ? 'rgba(217,70,239,0.08)' : 'rgba(239,246,255,1)') : (isDark ? 'rgba(15,23,42,1)' : 'rgba(255,255,255,1)'),
-            borderColor: examHomeHovered ? (isDark ? 'rgba(217,70,239,0.55)' : 'rgba(147,197,253,1)') : (isDark ? 'rgba(51,65,85,1)' : 'rgba(203,213,225,1)'),
-            color: examHomeHovered ? (isDark ? 'rgba(232,121,249,1)' : 'rgba(29,78,216,1)') : (isDark ? 'rgba(148,163,184,1)' : 'rgba(71,85,105,1)'),
-            boxShadow: examHomeHovered ? (isDark ? '0 0 18px rgba(192,38,211,0.4)' : '0 0 14px rgba(37,99,235,0.2)') : 'none',
-          }}
-        >
-          <Home size={14} />
-          <span className="text-sm font-semibold hidden sm:inline">Home</span>
-        </button>
+        <TimerChip timeLeft={timeLeft} />
         <UserAvatarMenu onExit={() => setShowLeaveModal(true)} />
       </header>
 
@@ -2054,7 +2093,7 @@ export default function MasteryTrialPage() {
                       <span className="text-xs font-black text-blue-700 dark:text-violet-300 tabular-nums">Q{currentIdx + 1}</span>
                       <span className="text-[10px] text-blue-500/60 dark:text-violet-400/55 font-bold">/{questions.length}</span>
                     </span>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500 truncate">
+                    <p className={`${TEXT.eyebrow} ${TEXT_COLOR.faint} truncate`}>
                       {{ mcq: 'Single Choice', tf: 'True / False', 'code-mcq': 'Code Reading', 'fill-blank': 'Fill in Blank' }[current.type]}
                       <span className="mx-1.5 opacity-40">·</span>
                       {current.difficulty.toUpperCase()}
@@ -2075,7 +2114,7 @@ export default function MasteryTrialPage() {
                 </div>
 
                 {/* Question text */}
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white leading-snug mb-4">
+                <h2 className={`${TEXT.prompt} ${TEXT_COLOR.primary} mb-4`}>
                   {current.question}
                 </h2>
 

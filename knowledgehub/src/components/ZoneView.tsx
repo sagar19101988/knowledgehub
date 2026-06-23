@@ -9,7 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { ArrowLeft, BookOpen, Swords, ChevronDown, CheckCircle2, Lock, Menu, X, Trophy, Target } from 'lucide-react';
+import { Home, BookOpen, Swords, ChevronDown, CheckCircle2, Lock, Menu, X, Trophy, Target } from 'lucide-react';
 import { ZONES_CONTENT } from '../data/analogies';
 import { MASTERY_BADGES, QUESTION_BANK } from '../data/questionBank';
 import { ZONES, ZONE_TIERS } from '../data/zones';
@@ -151,7 +151,7 @@ export default function ZoneView() {
         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
           <button
             onClick={() => navigate('/home')}
-            aria-label="Go back"
+            aria-label="Home"
             onMouseEnter={() => setBackHovered(true)}
             onMouseLeave={() => setBackHovered(false)}
             className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border transition-colors duration-150 group flex-shrink-0"
@@ -162,8 +162,8 @@ export default function ZoneView() {
               boxShadow: backHovered ? (isDark ? '0 0 18px rgba(192,38,211,0.4)' : '0 0 14px rgba(37,99,235,0.2)') : 'none',
             }}
           >
-            <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
-            <span className="text-sm font-semibold hidden sm:inline">Back</span>
+            <Home size={15} />
+            <span className="text-sm font-semibold hidden sm:inline">Home</span>
           </button>
           <button
             onClick={() => setDrawerOpen(true)}
@@ -885,8 +885,8 @@ export default function ZoneView() {
                               {...props}
                             />
                           ) : (
-                            <code className={`px-1.5 py-0.5 rounded text-sm font-mono ${
-                              isDark ? 'bg-slate-800 text-sky-300' : 'bg-slate-100 text-blue-700'
+                            <code className={`px-1.5 py-0.5 rounded text-[0.82em] font-mono ${
+                              isDark ? 'bg-slate-800 text-violet-300' : 'bg-slate-100 text-blue-700'
                             }`} {...props}>
                               {children}
                             </code>

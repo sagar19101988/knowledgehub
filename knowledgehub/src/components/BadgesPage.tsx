@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { Home } from 'lucide-react';
 import { useQuestStore } from '../store/useQuestStore';
 import { UserAvatarMenu } from './UserAvatarMenu';
 import { ZONES } from '../data/zones';
@@ -58,7 +58,7 @@ export default function BadgesPage() {
       <nav className="z-40 h-16 sticky top-0 bg-[#eff4fb]/85 dark:bg-[#0a0715]/80 backdrop-blur border-b border-violet-200/60 dark:border-violet-900/30 px-3 sm:px-6 flex items-center justify-between">
         <button
           onClick={() => navigate('/home')}
-          aria-label="Back to Home"
+          aria-label="Home"
           onMouseEnter={() => setBackHovered(true)}
           onMouseLeave={() => setBackHovered(false)}
           className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border transition-colors duration-150 group flex-shrink-0"
@@ -69,8 +69,8 @@ export default function BadgesPage() {
             boxShadow: backHovered ? (isDark ? '0 0 18px rgba(192,38,211,0.4)' : '0 0 14px rgba(37,99,235,0.2)') : 'none',
           }}
         >
-          <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
-          <span className="text-sm font-semibold hidden sm:inline">Back to Home</span>
+          <Home size={15} />
+          <span className="text-sm font-semibold hidden sm:inline">Home</span>
         </button>
 
         <h1 className={`text-base font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>

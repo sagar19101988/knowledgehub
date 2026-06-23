@@ -5,11 +5,12 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { ArrowLeft, Home, ChevronLeft, ChevronRight, Shuffle as ShuffleIcon, Eye } from 'lucide-react';
+import { ArrowLeft, Home, ChevronLeft, ChevronRight, Shuffle as ShuffleIcon, Eye, ArrowUpRight, MessageSquare } from 'lucide-react';
 import { ZONES } from '../data/zones';
 import { INTERVIEW_BANK, type InterviewQA } from '../data/interviewBank';
 import { useQuestStore } from '../store/useQuestStore';
 import { UserAvatarMenu } from './UserAvatarMenu';
+import { makeMarkdownComponents } from '../lib/markdown';
 
 type Level = 'junior' | 'mid' | 'senior';
 
@@ -51,6 +52,13 @@ const LEVEL_CONFIG: {
   },
 ];
 
+// War Room intro — per-level cards (accent matches the in-deck level toggle colours)
+const WAR_ROOM_LEVELS: { key: Level; label: string; range: string; desc: string; accent: string; accentText: string }[] = [
+  { key: 'junior', label: 'Junior', range: '0–2 yrs', desc: "Fundamentals & core concepts you'll be asked first.",        accent: '#10b981', accentText: '#34d399' },
+  { key: 'mid',    label: 'Mid',    range: '2–5 yrs', desc: 'Scenario & trade-off questions that probe real judgement.',  accent: '#3b82f6', accentText: '#60a5fa' },
+  { key: 'senior', label: 'Senior', range: '5+ yrs', desc: 'Architecture, strategy & leadership-level deep dives.',       accent: '#f97316', accentText: '#fb923c' },
+];
+
 function shuffleArray<T>(arr: T[]): T[] {
   const out = [...arr];
   for (let i = out.length - 1; i > 0; i--) {
@@ -58,103 +66,6 @@ function shuffleArray<T>(arr: T[]): T[] {
     [out[i], out[j]] = [out[j], out[i]];
   }
   return out;
-}
-
-function makeMarkdownComponents(isDark: boolean) {
-  return {
-    code({ inline, className, children, ...props }: any) {
-      const match = /language-(\w+)/.exec(className || '');
-      return !inline && match ? (
-        <SyntaxHighlighter
-          language={match[1]}
-          style={isDark ? atomDark : oneLight}
-          PreTag="div"
-          customStyle={{ borderRadius: '0.75rem', fontSize: '0.8rem', margin: 0 }}
-          {...props}
-        >
-          {String(children).replace(/\n$/, '')}
-        </SyntaxHighlighter>
-      ) : (
-        <code
-          className={`px-1.5 py-0.5 rounded text-[0.82em] font-mono ${
-            isDark ? 'bg-slate-800 text-violet-300' : 'bg-slate-100 text-blue-700'
-          }`}
-          {...props}
-        >
-          {children}
-        </code>
-      );
-    },
-    p({ children }: any) {
-      return (
-        <p className={`text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-          {children}
-        </p>
-      );
-    },
-    strong({ children }: any) {
-      return (
-        <strong className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-          {children}
-        </strong>
-      );
-    },
-    em({ children }: any) {
-      return <em className={isDark ? 'text-slate-200' : 'text-slate-800'}>{children}</em>;
-    },
-    ul({ children }: any) {
-      return <ul className="list-disc pl-5 space-y-1.5">{children}</ul>;
-    },
-    ol({ children }: any) {
-      return <ol className="list-decimal pl-5 space-y-1.5">{children}</ol>;
-    },
-    li({ children }: any) {
-      return (
-        <li className={`text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-          {children}
-        </li>
-      );
-    },
-    h2({ children }: any) {
-      return (
-        <h2 className={`text-sm font-bold mt-3 mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-          {children}
-        </h2>
-      );
-    },
-    h3({ children }: any) {
-      return (
-        <h3 className={`text-sm font-bold mt-2 mb-1 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-          {children}
-        </h3>
-      );
-    },
-    table({ children }: any) {
-      return (
-        <div className="overflow-x-auto my-2">
-          <table className={`w-full text-xs border-collapse ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-            {children}
-          </table>
-        </div>
-      );
-    },
-    th({ children }: any) {
-      return (
-        <th className={`border px-2 py-1 text-left font-bold ${
-          isDark ? 'border-slate-700 bg-slate-800/60 text-slate-200' : 'border-slate-300 bg-slate-100 text-slate-800'
-        }`}>
-          {children}
-        </th>
-      );
-    },
-    td({ children }: any) {
-      return (
-        <td className={`border px-2 py-1 ${isDark ? 'border-slate-700' : 'border-slate-300'}`}>
-          {children}
-        </td>
-      );
-    },
-  };
 }
 
 // ── Question Card (reveal style) ──────────────────────────────
@@ -308,6 +219,7 @@ export default function InterviewArenaPage() {
   const zoneMeta = ZONES.find(z => z.id === id) ?? ZONES[0];
   const allCards = INTERVIEW_BANK[id ?? ''] ?? [];
 
+  const [started, setStarted] = useState(false);
   const [activeLevel, setActiveLevel] = useState<Level>('junior');
   const [deck, setDeck] = useState<InterviewQA[]>([]);
   const [cardIndex, setCardIndex] = useState(0);
@@ -351,6 +263,183 @@ export default function InterviewArenaPage() {
 
   const levelConfig = LEVEL_CONFIG.find(l => l.key === activeLevel)!;
 
+  // ── Intro landing (shown until the user picks a level) ──
+  if (!started) {
+    const enterLevel = (lv: Level) => { setActiveLevel(lv); setStarted(true); };
+    return (
+      <div className={`min-h-screen flex flex-col ${isDark ? 'bg-[#07050f] text-white' : 'bg-[#eff4fb] text-slate-900'}`}>
+
+        {/* Header Nav — matches the deck */}
+        <nav className={`h-16 px-3 sm:px-6 flex items-center gap-2 sticky top-0 z-[80] ${
+          isDark ? 'border-b border-violet-900/30 bg-[#07050f]' : 'border-b border-slate-200 bg-[#eff4fb]'
+        }`}>
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            <button
+              onClick={() => navigate('/home')}
+              aria-label="Home"
+              onMouseEnter={() => setHomeHovered(true)}
+              onMouseLeave={() => setHomeHovered(false)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-colors duration-150 flex-shrink-0"
+              style={hoverStyle(homeHovered)}
+            >
+              <Home size={14} />
+              <span className="text-sm font-semibold hidden sm:inline">Home</span>
+            </button>
+            <button
+              onClick={() => navigate(`/zone/${id}`)}
+              aria-label="Back to zone"
+              onMouseEnter={() => setBackHovered(true)}
+              onMouseLeave={() => setBackHovered(false)}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border transition-colors duration-150 group flex-shrink-0"
+              style={hoverStyle(backHovered)}
+            >
+              <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
+              <span className="text-sm font-semibold hidden sm:inline">Zone</span>
+            </button>
+            <span className={`select-none hidden sm:inline ${isDark ? 'text-slate-700' : 'text-slate-300'}`}>|</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="[&>svg]:w-5 [&>svg]:h-5 flex-shrink-0 hidden sm:inline">{zoneMeta.icon}</span>
+              <span className={`text-sm font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{zoneMeta.title}</span>
+              <span className={`text-sm font-medium hidden sm:inline flex-shrink-0 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>/ War Room</span>
+            </div>
+          </div>
+          <UserAvatarMenu />
+        </nav>
+
+        <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 sm:py-10 space-y-6">
+
+          {/* Hero */}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="relative overflow-hidden rounded-3xl border"
+            style={{
+              borderColor: isDark ? 'rgba(225,29,72,0.4)' : 'rgba(225,29,72,0.22)',
+              background: isDark
+                ? 'linear-gradient(135deg, rgba(20,3,9,0.97) 0%, rgba(45,5,17,0.97) 55%, rgba(15,2,5,0.97) 100%)'
+                : 'linear-gradient(135deg, #ffffff 0%, #fff5f6 100%)',
+              boxShadow: isDark ? '0 0 50px rgba(225,29,72,0.16), 0 20px 50px rgba(0,0,0,0.4)' : '0 10px 30px rgba(225,29,72,0.08)',
+            }}
+          >
+            <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 70% 55% at 50% 0%, rgba(225,29,72,0.16) 0%, transparent 70%)' }} />
+            <div className="relative z-10 px-7 sm:px-10 py-11 flex flex-col items-center text-center">
+              <motion.div
+                initial={{ scale: 0.6, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                className="w-20 h-20 rounded-3xl flex items-center justify-center mb-6 [&>svg]:w-10 [&>svg]:h-10"
+                style={{
+                  background: isDark ? 'rgba(225,29,72,0.16)' : 'rgba(225,29,72,0.10)',
+                  border: '1.5px solid rgba(225,29,72,0.5)',
+                  boxShadow: '0 0 34px rgba(225,29,72,0.3)',
+                }}
+              >
+                {zoneMeta.icon}
+              </motion.div>
+              <p className="text-[11px] font-black uppercase tracking-[0.3em] mb-3" style={{ color: isDark ? '#fb7185' : '#e11d48' }}>
+                {zoneMeta.title} · The War Room
+              </p>
+              <h1 className="text-3xl sm:text-4xl font-black mb-3" style={{ color: isDark ? '#ffffff' : '#0f172a', letterSpacing: '-0.02em' }}>
+                Walk in ready.
+              </h1>
+              <p className="text-sm leading-relaxed max-w-md" style={{ color: isDark ? 'rgba(255,255,255,0.55)' : '#64748b' }}>
+                The kind of {zoneMeta.title} questions you're most likely to face in interviews — with full, walked-through answers. Browse at your own pace. No timer, no score.
+              </p>
+            </div>
+          </motion.div>
+
+          {/* Level cards */}
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
+            <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-3 px-1">Pick your level</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {WAR_ROOM_LEVELS.map((lv, i) => (
+                <motion.button
+                  key={lv.key}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.18 + i * 0.06 }}
+                  onClick={() => enterLevel(lv.key)}
+                  className="group relative text-left rounded-2xl p-4 sm:p-5 border-2 transition-all duration-300"
+                  style={{ borderColor: `${lv.accent}55`, background: isDark ? `${lv.accent}0f` : `${lv.accent}0a` }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = lv.accent;
+                    e.currentTarget.style.boxShadow = `0 0 24px ${lv.accent}40`;
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = `${lv.accent}55`;
+                    e.currentTarget.style.boxShadow = '';
+                    e.currentTarget.style.transform = '';
+                  }}
+                >
+                  <ArrowUpRight size={16} className="absolute top-3.5 right-3.5 opacity-40 group-hover:opacity-100 transition-opacity" style={{ color: lv.accent }} />
+                  <div className="text-base font-black mb-2" style={{ color: isDark ? lv.accentText : lv.accent }}>{lv.label}</div>
+                  <div className="flex items-center gap-2 mb-2.5 flex-wrap">
+                    <span className="text-xs" style={{ color: isDark ? '#64748b' : '#94a3b8' }}>{lv.range}</span>
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded-md" style={{ color: isDark ? lv.accentText : lv.accent, background: `${lv.accent}22` }}>
+                      {countPerLevel[lv.key]} questions
+                    </span>
+                  </div>
+                  <p className="text-xs leading-relaxed" style={{ color: isDark ? 'rgba(255,255,255,0.5)' : '#64748b' }}>{lv.desc}</p>
+                </motion.button>
+              ))}
+            </div>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 text-center mt-3">
+              Switch levels anytime from the toggle inside — no need to come back here.
+            </p>
+          </motion.div>
+
+          {/* How it works */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.24 }}
+            className="grid grid-cols-1 sm:grid-cols-3 gap-3"
+          >
+            {[
+              { icon: <Eye size={17} />, text: 'Reveal-only — answer when ready' },
+              { icon: <MessageSquare size={17} />, text: 'Interview-style questions' },
+              { icon: <ShuffleIcon size={17} />, text: 'Shuffle & browse freely' },
+            ].map((item, i) => (
+              <div
+                key={i}
+                className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border ${
+                  isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-slate-200'
+                }`}
+              >
+                <span style={{ color: isDark ? '#fb7185' : '#e11d48' }}>{item.icon}</span>
+                <span className={`text-xs font-semibold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{item.text}</span>
+              </div>
+            ))}
+          </motion.div>
+
+          {/* Stats */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className={`flex justify-center gap-8 sm:gap-12 py-5 rounded-2xl border ${
+              isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-slate-200'
+            }`}
+          >
+            {[
+              { num: allCards.length, label: 'Questions' },
+              { num: 3, label: 'Levels' },
+              { num: ZONES.length, label: 'Zones' },
+            ].map((s) => (
+              <div key={s.label} className="text-center">
+                <div className="text-xl font-black tabular-nums" style={{ color: isDark ? '#fb7185' : '#e11d48' }}>{s.num}</div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mt-0.5">{s.label}</div>
+              </div>
+            ))}
+          </motion.div>
+
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`min-h-screen flex flex-col ${isDark ? 'bg-[#07050f] text-white' : 'bg-[#eff4fb] text-slate-900'}`}>
 
@@ -382,7 +471,7 @@ export default function InterviewArenaPage() {
             style={hoverStyle(backHovered)}
           >
             <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform duration-200" />
-            <span className="text-sm font-semibold hidden sm:inline">Back</span>
+            <span className="text-sm font-semibold hidden sm:inline">Zone</span>
           </button>
 
           <span className={`select-none hidden sm:inline ${isDark ? 'text-slate-700' : 'text-slate-300'}`}>|</span>
